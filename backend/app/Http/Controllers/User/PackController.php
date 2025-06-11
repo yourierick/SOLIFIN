@@ -757,7 +757,7 @@ class PackController extends Controller
                             'sponsor_id' => $sponsorPack->user_id ?? null,
                         ]);
 
-                        $user->wallet->transactions->create([
+                        $user->wallet->transactions()->create([
                             "wallet_id" => $user->wallet->id,
                             "type" => "purchase",
                             "amount" => $amountInUSD,

@@ -52,6 +52,7 @@ export default function AddPack() {
     price: "",
     duree_publication_en_jour: "",
     peux_publier_formation: false,
+    boost_percentage: "",
     status: true,
   });
   const [dragActive, setDragActive] = useState(false);
@@ -131,6 +132,11 @@ export default function AddPack() {
         return;
       }
 
+      if (!formData.boost_percentage || formData.boost_percentage <= 0) {
+        Notification.warning("Le pourcentage de boost est requis");
+        return;
+      }
+
       // Filtrer les avantages vides
       const filteredAvantages = avantages.filter(
         (avantage) => avantage.trim() !== ""
@@ -157,10 +163,9 @@ export default function AddPack() {
         "peux_publier_formation",
         formData.peux_publier_formation ? "1" : "0"
       );
-
+      formDataToSend.append("boost_percentage", formData.boost_percentage);
       const response = await axios.post("/api/admin/packs", formDataToSend, {
         headers: {
-          "Content-Type": "multipart/form-data",
           "X-Requested-With": "XMLHttpRequest",
         },
       });
@@ -304,6 +309,29 @@ export default function AddPack() {
                     required
                     min="0"
                     step="0.01"
+                    className="block w-full rounded-md border-gray-300 pl-7 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
+                    placeholder="0.00"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Pourcentage de boost de publication
+                </label>
+                <div className="relative rounded-md shadow-sm">
+                  <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                    <span className="text-gray-500 dark:text-gray-400 sm:text-sm">
+                      %
+                    </span>
+                  </div>
+                  <input
+                    type="number"
+                    name="boost_percentage"
+                    value={formData.boost_percentage}
+                    onChange={handleInputChange}
+                    required
+                    step="any"
                     className="block w-full rounded-md border-gray-300 pl-7 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
                     placeholder="0.00"
                   />

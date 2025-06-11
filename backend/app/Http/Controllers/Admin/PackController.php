@@ -52,6 +52,7 @@ class PackController extends Controller
                 'avantages' => 'required|json',
                 'duree_publication_en_jour' => 'required|numeric|min:1',
                 'abonnement' => 'required|string|in:mensuel,trimestriel,semestriel,annuel,triennal,quinquennal',
+                'boost_percentage' => 'required|numeric|min:0|max:100',
             ]);
 
             if ($request->peux_publier_formation === "1") {
@@ -71,6 +72,7 @@ class PackController extends Controller
                 'duree_publication_en_jour' => $validated['duree_publication_en_jour'],
                 'abonnement' => $validated['abonnement'],
                 'peux_publier_formation' => $request->boolean('peux_publier_formation'),
+                'boost_percentage' => $validated['boost_percentage'],
             ]);
 
             //Attribuer automatiquement le pack aux super-administrateurs
@@ -158,6 +160,7 @@ class PackController extends Controller
             'avantages' => 'required|json',
             'abonnement' => 'required|string|in:mensuel,trimestriel,semestriel,annuel,triennal,quinquennal',
             'peux_publier_formation' => 'required|boolean',
+            'boost_percentage' => 'required|numeric|min:0|max:100',
         ]);
 
         if ($validator->fails()) {
@@ -180,6 +183,7 @@ class PackController extends Controller
                 'avantages' => $request->avantages,
                 'abonnement' => $request->abonnement,
                 'peux_publier_formation' => filter_var($request->peux_publier_formation, FILTER_VALIDATE_BOOLEAN),
+                'boost_percentage' => $request->boost_percentage,
             ]);
 
             DB::commit();

@@ -238,11 +238,11 @@ const paymentMethodsMap = {
     icon: CreditCardIcon,
     options: PAYMENT_METHODS[PAYMENT_TYPES.CREDIT_CARD],
   },
-  [PAYMENT_TYPES.MONEY_TRANSFER]: {
-    name: "Transfert d'argent",
-    icon: GlobeAltIcon,
-    options: PAYMENT_METHODS[PAYMENT_TYPES.MONEY_TRANSFER],
-  },
+  // [PAYMENT_TYPES.MONEY_TRANSFER]: {
+  //   name: "Transfert d'argent",
+  //   icon: GlobeAltIcon,
+  //   options: PAYMENT_METHODS[PAYMENT_TYPES.MONEY_TRANSFER],
+  // },
 };
 
 export default function WithdrawalForm({ walletId, walletType, onClose }) {
@@ -257,11 +257,11 @@ export default function WithdrawalForm({ walletId, walletType, onClose }) {
     phoneNumber: "",
     phoneCode: "+243", // Indicatif téléphonique par défaut
     country: "CD", // Pays par défaut: République Démocratique du Congo
-    fullName: "", // Nouveau champ pour transfert d'argent
-    recipientCountry: "", // Nouveau champ pour transfert d'argent
-    recipientCity: "", // Nouveau champ pour transfert d'argent
-    idType: "", // Nouveau champ pour transfert d'argent
-    idNumber: "", // Nouveau champ pour transfert d'argent
+    // fullName: "", // Nouveau champ pour transfert d'argent
+    // recipientCountry: "", // Nouveau champ pour transfert d'argent
+    // recipientCity: "", // Nouveau champ pour transfert d'argent
+    // idType: "", // Nouveau champ pour transfert d'argent
+    // idNumber: "", // Nouveau champ pour transfert d'argent
     password: "", // Mot de passe pour confirmer le retrait
     otpCode: "", // Champ OTP conservé pour compatibilité mais non utilisé
     currency: "USD", // Devise par défaut: USD ($)

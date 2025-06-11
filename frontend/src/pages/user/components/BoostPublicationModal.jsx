@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect } from "react";
 import {
   Box,
   Typography,
@@ -11,14 +11,113 @@ import {
   InputAdornment,
   Alert,
   CircularProgress,
-  MenuItem
-} from '@mui/material';
-import { XMarkIcon } from '@heroicons/react/24/outline';
-import { useTheme } from '../../../contexts/ThemeContext';
-import axios from '../../../utils/axios';
-import { ToastContainer, toast } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
-import { CURRENCIES, PAYMENT_TYPES, PAYMENT_METHODS } from '../../../config';
+  MenuItem,
+  Autocomplete,
+} from "@mui/material";
+import { XMarkIcon } from "@heroicons/react/24/outline";
+import { useTheme } from "../../../contexts/ThemeContext";
+import axios from "../../../utils/axios";
+import { CURRENCIES, PAYMENT_TYPES, PAYMENT_METHODS } from "../../../config";
+import { countries } from "../../../data/countries";
+import Notification from "../../../components/Notification";
+
+// Composant local pour l'indicatif téléphonique
+const SimplePhoneCode = ({ value, onChange }) => {
+  // Utiliser un select standard de Material UI avec Autocomplete
+  const [open, setOpen] = useState(false);
+
+  // Codes prioritaires à afficher en haut de la liste
+  const priorityCodes = [
+    "CD",
+    "CI",
+    "FR",
+    "US",
+    "SN",
+    "CM",
+    "BE",
+    "CA",
+    "MA",
+    "DZ",
+    "TN",
+  ];
+
+  // Créer une liste ordonnée avec les pays prioritaires en premier
+  const priorityCountries = [];
+  const otherCountries = [];
+
+  // Trier les pays
+  countries.forEach((country) => {
+    if (priorityCodes.includes(country.code)) {
+      priorityCountries.push(country);
+    } else {
+      otherCountries.push(country);
+    }
+  });
+
+  // Trier les pays prioritaires selon l'ordre défini
+  priorityCountries.sort((a, b) => {
+    return priorityCodes.indexOf(a.code) - priorityCodes.indexOf(b.code);
+  });
+
+  // Trier les autres pays par ordre alphabétique
+  otherCountries.sort((a, b) => a.name.localeCompare(b.name));
+
+  // Combiner les deux listes
+  const allCountries = [...priorityCountries, ...otherCountries];
+
+  // Trouver le pays correspondant à la valeur actuelle
+  const selectedCountry =
+    allCountries.find((country) => country.phoneCode === value) || null;
+
+  return (
+    <Autocomplete
+      fullWidth
+      open={open}
+      onOpen={() => setOpen(true)}
+      onClose={() => setOpen(false)}
+      size="small"
+      options={allCountries}
+      value={selectedCountry}
+      onChange={(event, newValue) => {
+        if (newValue) {
+          onChange(newValue.phoneCode);
+        }
+      }}
+      getOptionLabel={(option) => `${option.phoneCode} (${option.name})`}
+      renderInput={(params) => (
+        <TextField
+          {...params}
+          size="small"
+          variant="outlined"
+          placeholder="Indicatif"
+          InputProps={{
+            ...params.InputProps,
+            style: { paddingRight: "8px" },
+          }}
+          sx={{
+            "& .MuiOutlinedInput-root": {
+              height: "40px",
+            },
+          }}
+        />
+      )}
+      renderOption={(props, option) => (
+        <li {...props} key={option.code}>
+          {option.phoneCode} ({option.name})
+        </li>
+      )}
+      ListboxProps={{
+        style: { maxHeight: 300 },
+      }}
+      componentsProps={{
+        popper: {
+          style: { zIndex: 9999 },
+          className: "phone-code-menu",
+        },
+      }}
+    />
+  );
+};
 
 // Prix par défaut par jour pour le boost d'une publication (si le paramètre n'est pas défini)
 const DEFAULT_PRICE_PER_DAY = 1; // USD
@@ -27,60 +126,106 @@ const DEFAULT_PRICE_PER_DAY = 1; // USD
 const paymentMethodFields = {
   [PAYMENT_TYPES.WALLET]: [],
   [PAYMENT_TYPES.CREDIT_CARD]: [
-    { name: 'cardNumber', label: 'Numéro de carte', type: 'text', required: true, maxLength: 19, 
-      format: (value) => value.replace(/\s/g, '').replace(/(\d{4})/g, '$1 ').trim() },
-    { name: 'cardHolder', label: 'Nom sur la carte', type: 'text', required: true },
-    { 
-      name: 'expiryDate', 
-      label: 'Date d\'expiration', 
-      type: 'text', 
+    {
+      name: "cardNumber",
+      label: "Numéro de carte",
+      type: "text",
+      required: true,
+      maxLength: 19,
+      format: (value) =>
+        value
+          .replace(/\s/g, "")
+          .replace(/(\d{4})/g, "$1 ")
+          .trim(),
+    },
+    {
+      name: "cardHolder",
+      label: "Nom sur la carte",
+      type: "text",
+      required: true,
+    },
+    {
+      name: "expiryDate",
+      label: "Date d'expiration",
+      type: "text",
       required: true,
       maxLength: 5,
-      format: (value) => value.replace(/\D/g, '').replace(/(\d{2})(\d{0,2})/, '$1/$2')
+      format: (value) =>
+        value.replace(/\D/g, "").replace(/(\d{2})(\d{0,2})/, "$1/$2"),
     },
-    { name: 'cvv', label: 'CVV', type: 'text', required: true, maxLength: 3 }
+    { name: "cvv", label: "CVV", type: "text", required: true, maxLength: 3 },
   ],
   [PAYMENT_TYPES.MOBILE_MONEY]: [
-    { name: 'phoneNumber', label: 'Numéro de téléphone', type: 'tel', required: true }
+    {
+      name: "phoneNumber",
+      label: "Numéro de téléphone",
+      type: "tel",
+      required: true,
+    },
   ],
   [PAYMENT_TYPES.BANK_TRANSFER]: [
-    { name: 'accountName', label: 'Nom du compte', type: 'text', required: true },
-    { name: 'accountNumber', label: 'Numéro de compte', type: 'text', required: true }
+    {
+      name: "accountName",
+      label: "Nom du compte",
+      type: "text",
+      required: true,
+    },
+    {
+      name: "accountNumber",
+      label: "Numéro de compte",
+      type: "text",
+      required: true,
+    },
   ],
   [PAYMENT_TYPES.MONEY_TRANSFER]: [
-    { name: 'senderName', label: 'Nom de l\'expéditeur', type: 'text', required: true },
-    { name: 'referenceNumber', label: 'Numéro de référence', type: 'text', required: true }
+    {
+      name: "senderName",
+      label: "Nom de l'expéditeur",
+      type: "text",
+      required: true,
+    },
+    {
+      name: "referenceNumber",
+      label: "Numéro de référence",
+      type: "text",
+      required: true,
+    },
   ],
   [PAYMENT_TYPES.CASH]: [
-    { name: 'paymentLocation', label: 'Lieu de paiement', type: 'text', required: true }
-  ]
+    {
+      name: "paymentLocation",
+      label: "Lieu de paiement",
+      type: "text",
+      required: true,
+    },
+  ],
 };
 
 // Transformation des méthodes de paiement pour l'interface utilisateur
 const paymentMethods = [
   {
     id: PAYMENT_TYPES.WALLET,
-    name: 'Mon Wallet',
-    icon: 'wallet',
-    category: 'direct',
-    options: PAYMENT_METHODS[PAYMENT_TYPES.WALLET]
+    name: "Mon Wallet",
+    icon: "wallet",
+    category: "direct",
+    options: PAYMENT_METHODS[PAYMENT_TYPES.WALLET],
   },
   {
     id: PAYMENT_TYPES.CREDIT_CARD,
-    name: 'Carte de crédit',
-    icon: 'credit-card',
-    category: 'card',
+    name: "Carte de crédit",
+    icon: "credit-card",
+    category: "card",
     options: PAYMENT_METHODS[PAYMENT_TYPES.CREDIT_CARD],
-    fields: paymentMethodFields[PAYMENT_TYPES.CREDIT_CARD]
+    fields: paymentMethodFields[PAYMENT_TYPES.CREDIT_CARD],
   },
   {
     id: PAYMENT_TYPES.MOBILE_MONEY,
-    name: 'Mobile Money',
-    icon: 'phone',
-    category: 'mobile',
+    name: "Mobile Money",
+    icon: "phone",
+    category: "mobile",
     options: PAYMENT_METHODS[PAYMENT_TYPES.MOBILE_MONEY],
-    fields: paymentMethodFields[PAYMENT_TYPES.MOBILE_MONEY]
-  }
+    fields: paymentMethodFields[PAYMENT_TYPES.MOBILE_MONEY],
+  },
 ];
 
 // Styles CSS personnalisés pour le modal
@@ -214,12 +359,17 @@ const customStyles = `
   }
 `;
 
-export default function BoostPublicationModal({ isOpen, onClose, publication, publicationType }) {
+export default function BoostPublicationModal({
+  isOpen,
+  onClose,
+  publication,
+  publicationType,
+}) {
   const { isDarkMode } = useTheme();
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
   const [paymentMethod, setPaymentMethod] = useState(PAYMENT_TYPES.WALLET);
-  const [selectedPaymentOption, setSelectedPaymentOption] = useState('');
+  const [selectedPaymentOption, setSelectedPaymentOption] = useState("");
   const [formFields, setFormFields] = useState({});
   const [days, setDays] = useState(7);
   const [walletBalance, setWalletBalance] = useState(0);
@@ -227,12 +377,13 @@ export default function BoostPublicationModal({ isOpen, onClose, publication, pu
   const [totalAmount, setTotalAmount] = useState(DEFAULT_PRICE_PER_DAY * 7);
   const [convertedAmount, setConvertedAmount] = useState(0);
   const [exchangeRate, setExchangeRate] = useState(1);
-  const [selectedCurrency, setSelectedCurrency] = useState('USD');
+  const [selectedCurrency, setSelectedCurrency] = useState("USD");
   const [transactionFees, setTransactionFees] = useState(0);
   const [feePercentage, setFeePercentage] = useState(0);
   const [loadingFees, setLoadingFees] = useState(false);
   const [feesError, setFeesError] = useState(false);
   const [formIsValid, setFormIsValid] = useState(false);
+  const [phoneCode, setPhoneCode] = useState("+243"); // Indicatif téléphonique par défaut (RDC)
 
   // Récupérer le solde du wallet et le prix du boost au chargement
   useEffect(() => {
@@ -240,14 +391,16 @@ export default function BoostPublicationModal({ isOpen, onClose, publication, pu
       fetchWalletBalance();
       fetchBoostPrice();
       fetchTransferFees();
-      
+
       // Réinitialiser les états pour les méthodes de paiement
-      setSelectedPaymentOption(paymentMethod === PAYMENT_TYPES.WALLET ? 'solifin-wallet' : '');
-      
+      setSelectedPaymentOption(
+        paymentMethod === PAYMENT_TYPES.WALLET ? "solifin-wallet" : ""
+      );
+
       // Calculer le montant total initial
       const amount = pricePerDay * days;
       setTotalAmount(amount);
-      
+
       // Vérifier la validité du formulaire
       validateForm();
     }
@@ -257,14 +410,14 @@ export default function BoostPublicationModal({ isOpen, onClose, publication, pu
   useEffect(() => {
     const amount = pricePerDay * days;
     setTotalAmount(amount);
-    
+
     // Mettre à jour les frais si ce n'est pas un paiement par wallet
     if (paymentMethod !== PAYMENT_TYPES.WALLET && feePercentage > 0) {
       // Calculer les frais en fonction du pourcentage global
       const fees = (amount * feePercentage) / 100;
       setTransactionFees(fees);
     }
-    
+
     // Vérifier la validité du formulaire
     validateForm();
   }, [days, pricePerDay, paymentMethod, feePercentage]);
@@ -272,23 +425,23 @@ export default function BoostPublicationModal({ isOpen, onClose, publication, pu
   // Effet pour surveiller les changements de méthode de paiement
   useEffect(() => {
     if (paymentMethod === PAYMENT_TYPES.WALLET) {
-      setSelectedPaymentOption('solifin-wallet');
-      setSelectedCurrency('USD');
-    } else if (selectedPaymentOption === 'solifin-wallet') {
-      setSelectedPaymentOption('');
+      setSelectedPaymentOption("solifin-wallet");
+      setSelectedCurrency("USD");
+    } else if (selectedPaymentOption === "solifin-wallet") {
+      setSelectedPaymentOption("");
     }
-    
+
     validateForm();
   }, [paymentMethod]);
 
   // Effet pour convertir la devise lorsque la devise sélectionnée change
   useEffect(() => {
-    if (selectedCurrency !== 'USD' && paymentMethod !== PAYMENT_TYPES.WALLET) {
+    if (selectedCurrency !== "USD" && paymentMethod !== PAYMENT_TYPES.WALLET) {
       convertCurrency();
     } else {
       setConvertedAmount({ convertedAmount: totalAmount, rate: 1 });
       setExchangeRate(1);
-      
+
       // Mettre à jour les frais si ce n'est pas un paiement par wallet
       if (paymentMethod !== PAYMENT_TYPES.WALLET && feePercentage > 0) {
         const fees = (totalAmount * feePercentage) / 100;
@@ -296,7 +449,7 @@ export default function BoostPublicationModal({ isOpen, onClose, publication, pu
       }
     }
   }, [selectedCurrency, totalAmount, paymentMethod, feePercentage]);
-  
+
   // Appliquer les frais lorsque les paramètres de paiement changent
   useEffect(() => {
     if (isOpen && selectedPaymentOption) {
@@ -311,33 +464,43 @@ export default function BoostPublicationModal({ isOpen, onClose, publication, pu
   // Récupérer le solde du wallet
   const fetchWalletBalance = async () => {
     try {
-      const response = await axios.get('/api/userwallet/balance');
+      const response = await axios.get("/api/userwallet/balance");
       if (response.data.success) {
         setWalletBalance(parseFloat(response.data.balance));
       } else {
-        console.error('Erreur lors de la récupération du solde:', response.data.message);
+        console.error(
+          "Erreur lors de la récupération du solde:",
+          response.data.message
+        );
         setWalletBalance(0);
-        toast.error('Impossible de récupérer le solde de votre wallet. Veuillez rafraîchir la page.');
+        Notification.error(
+          "Impossible de récupérer le solde de votre wallet. Veuillez rafraîchir la page."
+        );
       }
     } catch (error) {
-      console.error('Erreur lors de la récupération du solde:', error);
+      console.error("Erreur lors de la récupération du solde:", error);
       setWalletBalance(0);
-      toast.error('Impossible de récupérer le solde de votre wallet. Veuillez rafraîchir la page.');
+      Notification.error(
+        "Impossible de récupérer le solde de votre wallet. Veuillez rafraîchir la page."
+      );
     }
   };
 
   // Récupérer le prix du boost
   const fetchBoostPrice = async () => {
     try {
-      const response = await axios.get('/api/boost-price');
+      const response = await axios.get("/api/boost-price");
       if (response.data.success) {
         setPricePerDay(parseFloat(response.data.price));
       } else {
-        console.error('Erreur lors de la récupération du prix du boost:', response.data.message);
+        console.error(
+          "Erreur lors de la récupération du prix du boost:",
+          response.data.message
+        );
         setPricePerDay(DEFAULT_PRICE_PER_DAY);
       }
     } catch (error) {
-      console.error('Erreur lors de la récupération du prix du boost:', error);
+      console.error("Erreur lors de la récupération du prix du boost:", error);
       setPricePerDay(DEFAULT_PRICE_PER_DAY);
     }
   };
@@ -346,61 +509,89 @@ export default function BoostPublicationModal({ isOpen, onClose, publication, pu
   const fetchTransferFees = async () => {
     setLoadingFees(true);
     setFeesError(false);
-    
-    try {    
-      const response = await axios.post('/api/transaction-fees/transfer', {
+
+    try {
+      const response = await axios.post("/api/transaction-fees/purchase", {
         amount: 100, // Montant de référence (à défaut) pour calculer le pourcentage
       });
-      
+
       if (response.data.success) {
         // Stocker le pourcentage plutôt que le montant des frais
         setFeePercentage(response.data.percentage);
         setFeesError(false);
       } else {
         setFeesError(true);
-        toast.error(response.data.message || 'Erreur lors de la récupération des frais de transaction');
+        Notification.error(
+          response.data.message ||
+            "Erreur lors de la récupération des frais de transaction"
+        );
       }
     } catch (error) {
-      console.error('Erreur lors de la récupération des frais:', error);
+      console.error("Erreur lors de la récupération des frais:", error);
       setFeesError(true);
-      toast.error('Erreur lors de la récupération des frais de transaction. Veuillez réessayer.');
+      Notification.error(
+        "Erreur lors de la récupération des frais de transaction. Veuillez réessayer."
+      );
     } finally {
       setLoadingFees(false);
     }
   };
-  
+
+  // Fonction pour recalculer les frais de transaction
+  const calculateFees = () => {
+    setFeesError(false);
+    if (
+      convertedAmount &&
+      convertedAmount.convertedAmount &&
+      paymentMethod !== PAYMENT_TYPES.WALLET
+    ) {
+      const fees = (convertedAmount.convertedAmount * feePercentage) / 100;
+      setTransactionFees(fees);
+    } else if (paymentMethod === PAYMENT_TYPES.WALLET) {
+      setTransactionFees(0);
+    }
+    validateForm();
+  };
+
   // Fonction pour convertir la devise
   const convertCurrency = async () => {
     try {
       setLoading(true);
-      const response = await axios.post('/api/currency/convert', {
+      const response = await axios.post("/api/currency/convert", {
         amount: totalAmount,
-        from: 'USD',
-        to: selectedCurrency
+        from: "USD",
+        to: selectedCurrency,
       });
-      
+
       if (response.data.success) {
         const convertedAmt = response.data;
         setConvertedAmount(convertedAmt);
-        
+
         // Calculer les frais en fonction du pourcentage global
         if (paymentMethod !== PAYMENT_TYPES.WALLET && feePercentage > 0) {
           const fees = (convertedAmt.convertedAmount * feePercentage) / 100;
           setTransactionFees(fees);
         }
       } else {
-        console.error('Erreur lors de la conversion:', response.data.message);
+        console.error("Erreur lors de la conversion:", response.data.message);
         // En cas d'erreur, on utilise le montant original
         setConvertedAmount({ convertedAmount: totalAmount, rate: 1 });
         setFeesError(true);
-        toast.error(response.data.message || 'Erreur lors de la conversion de devise');
+        Notification.error(
+          response.data.message || "Erreur lors de la conversion de devise"
+        );
       }
     } catch (error) {
-      console.error('Erreur lors de la conversion:', error);
-      console.error('Détails de l\'erreur:', error.response?.data || 'Pas de détails disponibles');
+      console.error("Erreur lors de la conversion:", error);
+      console.error(
+        "Détails de l'erreur:",
+        error.response?.data || "Pas de détails disponibles"
+      );
       setConvertedAmount({ convertedAmount: totalAmount, rate: 1 });
       setFeesError(true);
-      toast.error('Erreur lors de la conversion de devise. Veuillez réessayer.');
+      Notification.error(
+        "Erreur lors de la conversion de devise. Veuillez réessayer."
+      );
     } finally {
       setLoading(false);
     }
@@ -409,30 +600,46 @@ export default function BoostPublicationModal({ isOpen, onClose, publication, pu
   // Fonction pour gérer les changements de champs de formulaire
   const handleFieldChange = (fieldName, value) => {
     // Appliquer le formatage si nécessaire
-    const selectedMethod = paymentMethods.find(m => m.id === paymentMethod);
-    const field = selectedMethod?.fields?.find(f => f.name === fieldName);
-    
+    const selectedMethod = paymentMethods.find((m) => m.id === paymentMethod);
+    const field = selectedMethod?.fields?.find((f) => f.name === fieldName);
+
+    // Validation spécifique pour le numéro de téléphone (pas de 0 au début)
+    if (fieldName === "phoneNumber") {
+      // Supprimer le 0 initial si présent
+      if (value.startsWith("0")) {
+        value = value.substring(1);
+      }
+      // Ne garder que les chiffres
+      value = value.replace(/[^0-9]/g, "");
+    }
+
     if (field && field.format) {
       value = field.format(value);
     }
-    
+
     setFormFields({
       ...formFields,
-      [fieldName]: value
+      [fieldName]: value,
     });
-    
+
+    validateForm();
+  };
+
+  // Fonction pour gérer le changement d'indicatif téléphonique
+  const handlePhoneCodeChange = (newPhoneCode) => {
+    setPhoneCode(newPhoneCode);
     validateForm();
   };
 
   // Fonction pour gérer le changement de méthode de paiement
   const handlePaymentMethodChange = (method) => {
     setPaymentMethod(method);
-    setSelectedPaymentOption('');
+    setSelectedPaymentOption("");
     setFormFields({});
-    
+
     // Si on choisit le wallet, on sélectionne automatiquement solifin-wallet et on met les frais à 0
     if (method === PAYMENT_TYPES.WALLET) {
-      setSelectedPaymentOption('solifin-wallet');
+      setSelectedPaymentOption("solifin-wallet");
       setTransactionFees(0);
     } else {
       // Pour les autres méthodes, calculer les frais en fonction du pourcentage global
@@ -441,7 +648,7 @@ export default function BoostPublicationModal({ isOpen, onClose, publication, pu
         setTransactionFees(fees);
       }
     }
-    
+
     validateForm();
   };
 
@@ -455,13 +662,13 @@ export default function BoostPublicationModal({ isOpen, onClose, publication, pu
   const validateForm = () => {
     // Vérifier si tous les champs requis sont remplis
     let isValid = true;
-    
+
     // Vérifier si une méthode de paiement spécifique est sélectionnée
-    isValid = isValid && selectedPaymentOption !== '';
-    
+    isValid = isValid && selectedPaymentOption !== "";
+
     // Vérifier si le nombre de jours est valide
     isValid = isValid && days > 0;
-    
+
     // Vérifier les champs selon la méthode de paiement
     if (paymentMethod === PAYMENT_TYPES.WALLET) {
       // Pour le wallet, pas besoin de vérifier le solde ici
@@ -469,19 +676,26 @@ export default function BoostPublicationModal({ isOpen, onClose, publication, pu
       isValid = isValid && true;
     } else if (paymentMethod === PAYMENT_TYPES.CREDIT_CARD) {
       // Pour la carte de crédit, vérifier les champs requis
-      const requiredFields = ['cardNumber', 'cardHolder', 'expiryDate', 'cvv'];
-      isValid = isValid && requiredFields.every(field => formFields[field] && formFields[field].trim() !== '');
+      const requiredFields = ["cardNumber", "cardHolder", "expiryDate", "cvv"];
+      isValid =
+        isValid &&
+        requiredFields.every(
+          (field) => formFields[field] && formFields[field].trim() !== ""
+        );
     } else if (paymentMethod === PAYMENT_TYPES.MOBILE_MONEY) {
       // Pour le mobile money, vérifier le numéro de téléphone
-      isValid = isValid && formFields.phoneNumber && formFields.phoneNumber.trim() !== '';
+      isValid =
+        isValid &&
+        formFields.phoneNumber &&
+        formFields.phoneNumber.trim() !== "";
     }
-    
+
     // Vérifier que le montant est positif
     isValid = isValid && totalAmount > 0;
-    
+
     // Vérifier qu'il n'y a pas d'erreur de calcul des frais
     isValid = isValid && !feesError;
-    
+
     setFormIsValid(isValid);
     return isValid;
   };
@@ -490,39 +704,39 @@ export default function BoostPublicationModal({ isOpen, onClose, publication, pu
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    setError('');
-    
+    setError("");
+
     // Vérifier si le solde du wallet est suffisant
     if (paymentMethod === PAYMENT_TYPES.WALLET && totalAmount > walletBalance) {
-      setError('Solde insuffisant dans votre wallet');
+      setError("Solde insuffisant dans votre wallet");
       setLoading(false);
       return;
     }
 
     // Vérifier si tous les champs requis sont remplis
     if (!formIsValid) {
-      setError('Veuillez remplir tous les champs obligatoires');
+      setError("Veuillez remplir tous les champs obligatoires");
       setLoading(false);
       return;
     }
-    
+
     try {
       // Déterminer le type de publication pour l'API
       let apiEndpoint;
       switch (publicationType) {
-        case 'advertisement':
+        case "advertisement":
           apiEndpoint = `/api/publicites/${publication.id}/boost`;
           break;
-        case 'jobOffer':
+        case "jobOffer":
           apiEndpoint = `/api/offres-emploi/${publication.id}/boost`;
           break;
-        case 'businessOpportunity':
+        case "businessOpportunity":
           apiEndpoint = `/api/opportunites-affaires/${publication.id}/boost`;
           break;
         default:
-          throw new Error('Type de publication non pris en charge');
+          throw new Error("Type de publication non pris en charge");
       }
-      
+
       // Préparer les données pour l'API
       const paymentData = {
         ...formFields,
@@ -531,35 +745,52 @@ export default function BoostPublicationModal({ isOpen, onClose, publication, pu
         paymentType: paymentMethod, // Type général (wallet, credit-card, etc.)
         paymentOption: selectedPaymentOption, // Garder pour compatibilité avec l'ancien code
         currency: selectedCurrency,
-        amount: paymentMethod === PAYMENT_TYPES.WALLET ? totalAmount : convertedAmount.convertedAmount,
+        amount:
+          paymentMethod === PAYMENT_TYPES.WALLET
+            ? totalAmount
+            : convertedAmount.convertedAmount,
         fees: paymentMethod === PAYMENT_TYPES.WALLET ? 0 : transactionFees,
       };
-      
+
+      // Ajouter l'indicatif téléphonique au numéro de téléphone si c'est un paiement mobile money
+      if (
+        paymentMethod === PAYMENT_TYPES.MOBILE_MONEY &&
+        formFields.phoneNumber
+      ) {
+        paymentData.fullPhoneNumber = `${phoneCode}${formFields.phoneNumber}`;
+      }
+
       // Envoyer la demande de boost
       const response = await axios.post(apiEndpoint, paymentData);
-      
+
       if (response.data.success) {
-        toast.success('Publication boostée avec succès! La durée d\'affichage a été prolongée.');
+        Notification.success(
+          "Publication boostée avec succès! La durée d'affichage a été prolongée."
+        );
         onClose(true); // Passer true pour indiquer que le boost a réussi
       } else {
-        const errorMessage = response.data.message || 'Une erreur est survenue lors du boost de la publication.';
-        toast.error(errorMessage);
+        const errorMessage =
+          response.data.message ||
+          "Une erreur est survenue lors du boost de la publication.";
+        Notification.error(errorMessage);
         setError(errorMessage);
       }
     } catch (error) {
-      console.error('Erreur lors du boost de la publication:', error);
-      const errorMessage = error.response?.data?.message || 'Une erreur est survenue lors du boost de la publication.';
-      toast.error(errorMessage);
+      console.error("Erreur lors du boost de la publication:", error);
+      const errorMessage =
+        error.response?.data?.message ||
+        "Une erreur est survenue lors du boost de la publication.";
+      Notification.error(errorMessage);
       setError(errorMessage);
     } finally {
       setLoading(false);
     }
   };
-  
+
   // Fonction pour rendre les champs de formulaire spécifiques à la méthode de paiement
   const renderPaymentFields = () => {
-    const selectedMethod = paymentMethods.find(m => m.id === paymentMethod);
-    
+    const selectedMethod = paymentMethods.find((m) => m.id === paymentMethod);
+
     if (!selectedMethod) {
       return null;
     }
@@ -567,55 +798,114 @@ export default function BoostPublicationModal({ isOpen, onClose, publication, pu
     return (
       <div className="space-y-2">
         {/* Afficher les options spécifiques pour chaque type de paiement */}
-        {paymentMethod !== PAYMENT_TYPES.WALLET && selectedMethod.options && selectedMethod.options.length > 0 && (
-          <div className="mb-2">
-            <Typography variant="subtitle2" gutterBottom>
-              {paymentMethod === PAYMENT_TYPES.CREDIT_CARD ? 'Choisissez votre type de carte' : 'Choisissez votre opérateur'}
-            </Typography>
-            <RadioGroup
-              value={selectedPaymentOption}
-              onChange={(e) => handlePaymentOptionChange(e.target.value)}
-            >
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                {selectedMethod.options.map((option) => (
-                  <FormControlLabel
-                    key={option.id}
-                    value={option.id}
-                    control={<Radio size="small" />}
-                    label={
-                      <div className="flex items-center">
-                        {option.icon && (
-                          <img src={option.icon} alt={option.name} className="w-6 h-6 mr-2" />
-                        )}
-                        <span>{option.name}</span>
-                      </div>
-                    }
-                  />
-                ))}
-              </div>
-            </RadioGroup>
-          </div>
-        )}
-        
+        {paymentMethod !== PAYMENT_TYPES.WALLET &&
+          selectedMethod.options &&
+          selectedMethod.options.length > 0 && (
+            <div className="mb-2">
+              <Typography variant="subtitle2" gutterBottom>
+                {paymentMethod === PAYMENT_TYPES.CREDIT_CARD
+                  ? "Choisissez votre type de carte"
+                  : "Choisissez votre opérateur"}
+              </Typography>
+              <RadioGroup
+                value={selectedPaymentOption}
+                onChange={(e) => handlePaymentOptionChange(e.target.value)}
+              >
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                  {selectedMethod.options.map((option) => (
+                    <FormControlLabel
+                      key={option.id}
+                      value={option.id}
+                      control={<Radio size="small" />}
+                      label={
+                        <div className="flex items-center">
+                          {option.icon && (
+                            <img
+                              src={option.icon}
+                              alt={option.name}
+                              className="w-6 h-6 mr-2"
+                            />
+                          )}
+                          <span>{option.name}</span>
+                        </div>
+                      }
+                    />
+                  ))}
+                </div>
+              </RadioGroup>
+            </div>
+          )}
+
         {/* Afficher les champs de formulaire spécifiques à la méthode de paiement */}
         {selectedMethod.fields && selectedMethod.fields.length > 0 && (
           <div className="space-y-2">
-            {selectedMethod.fields.map((field) => (
-              <TextField
-                key={field.name}
-                label={field.label}
-                type={field.type}
-                value={formFields[field.name] || ''}
-                onChange={(e) => handleFieldChange(field.name, e.target.value)}
-                required={field.required}
-                fullWidth
-                size="small"
-                margin="dense"
-                inputProps={{
-                  maxLength: field.maxLength
-                }}
-              />
-            ))}
+            {selectedMethod.fields.map((field) => {
+              // Cas spécial pour le numéro de téléphone avec indicatif
+              if (
+                field.name === "phoneNumber" &&
+                paymentMethod === PAYMENT_TYPES.MOBILE_MONEY
+              ) {
+                return (
+                  <div key={field.name} className="mb-2">
+                    <Typography variant="subtitle2" gutterBottom>
+                      {field.label}
+                    </Typography>
+                    <div className="flex items-center space-x-2">
+                      <div className="w-2/5">
+                        <SimplePhoneCode
+                          value={phoneCode}
+                          onChange={handlePhoneCodeChange}
+                        />
+                      </div>
+                      <div className="flex-1">
+                        <TextField
+                          placeholder="Numéro sans indicatif ni 0 initial"
+                          type={field.type}
+                          value={formFields[field.name] || ""}
+                          onChange={(e) =>
+                            handleFieldChange(field.name, e.target.value)
+                          }
+                          required={field.required}
+                          fullWidth
+                          size="small"
+                          variant="outlined"
+                          helperText="Ne pas commencer par 0"
+                          inputProps={{
+                            maxLength: field.maxLength,
+                            pattern: "[1-9][0-9]*",
+                          }}
+                          sx={{
+                            "& .MuiOutlinedInput-root": {
+                              height: "40px",
+                            },
+                          }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                );
+              }
+
+              // Autres champs normaux
+              return (
+                <TextField
+                  key={field.name}
+                  label={field.label}
+                  type={field.type}
+                  value={formFields[field.name] || ""}
+                  onChange={(e) =>
+                    handleFieldChange(field.name, e.target.value)
+                  }
+                  required={field.required}
+                  fullWidth
+                  size="small"
+                  margin="dense"
+                  inputProps={{
+                    maxLength: field.maxLength,
+                  }}
+                />
+              );
+            })}
           </div>
         )}
       </div>
@@ -623,15 +913,23 @@ export default function BoostPublicationModal({ isOpen, onClose, publication, pu
   };
 
   return (
-    <div className={`fixed inset-0 z-50 ${isOpen ? 'flex items-center justify-center' : 'hidden'}`}>
+    <div
+      className={`fixed inset-0 z-50 ${
+        isOpen ? "flex items-center justify-center" : "hidden"
+      }`}
+    >
       {/* Overlay semi-transparent avec effet de flou */}
-      <div 
+      <div
         className="absolute inset-0 bg-black bg-opacity-50 backdrop-blur-sm modal-blur-overlay"
         onClick={onClose}
       ></div>
-      
+
       {/* Contenu du modal */}
-      <div className={`relative bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-3xl max-h-[90vh] flex flex-col ${isDarkMode ? 'dark' : ''} modal-animation`}>
+      <div
+        className={`relative bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-3xl max-h-[90vh] flex flex-col ${
+          isDarkMode ? "dark" : ""
+        } modal-animation`}
+      >
         {/* En-tête du modal */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-primary-600 dark:bg-primary-800 text-white rounded-t-lg">
           <div>
@@ -642,11 +940,15 @@ export default function BoostPublicationModal({ isOpen, onClose, publication, pu
               Prolongez la durée d'affichage de votre publication
             </Typography>
           </div>
-          <IconButton onClick={onClose} size="small" className="text-white hover:text-gray-200">
+          <IconButton
+            onClick={onClose}
+            size="small"
+            className="text-white hover:text-gray-200"
+          >
             <XMarkIcon className="h-5 w-5" />
           </IconButton>
         </div>
-        
+
         {/* Corps du modal avec défilement */}
         <div className="flex-1 overflow-y-auto custom-scrollbar">
           <form onSubmit={handleSubmit} className="p-6">
@@ -656,47 +958,62 @@ export default function BoostPublicationModal({ isOpen, onClose, publication, pu
                 {error}
               </Alert>
             )}
-            
+
             {/* Détails de la publication */}
             <div className="mb-6 fade-in">
-              <Typography variant="h6" className="mb-2 font-semibold text-gray-800 dark:text-gray-100">
+              <Typography
+                variant="h6"
+                className="mb-2 font-semibold text-gray-800 dark:text-gray-100"
+              >
                 Détails de la publication
               </Typography>
               <div className="bg-gray-50 dark:bg-gray-800/50 p-4 rounded-lg mb-4 border border-gray-200 dark:border-gray-700">
                 <Typography variant="subtitle1" className="font-medium">
-                  {publication?.titre || 'Publication'}
+                  {publication?.titre || "Publication"}
                 </Typography>
-                <Typography variant="body2" className="text-gray-600 dark:text-gray-300 mt-1">
-                  Type: {
-                    publicationType === 'advertisement' ? 'Publicité' :
-                    publicationType === 'jobOffer' ? 'Offre d\'emploi' :
-                    'Opportunité d\'affaire'
-                  }
+                <Typography
+                  variant="body2"
+                  className="text-gray-600 dark:text-gray-300 mt-1"
+                >
+                  Type:{" "}
+                  {publicationType === "advertisement"
+                    ? "Publicité"
+                    : publicationType === "jobOffer"
+                    ? "Offre d'emploi"
+                    : "Opportunité d'affaire"}
                 </Typography>
                 {publication?.duree_affichage && (
-                  <Typography variant="body2" className="text-gray-600 dark:text-gray-300 mt-1">
-                    Durée d'affichage actuelle: {publication.duree_affichage} jours
+                  <Typography
+                    variant="body2"
+                    className="text-gray-600 dark:text-gray-300 mt-1"
+                  >
+                    Durée d'affichage actuelle: {publication.duree_affichage}{" "}
+                    jours
                   </Typography>
                 )}
               </div>
             </div>
-            
+
             {/* Durée du boost */}
             <div className="mb-6 slide-in">
               <TextField
                 label="Durée du boost en jours"
                 type="number"
                 value={days}
-                onChange={(e) => setDays(Math.max(1, parseInt(e.target.value) || 1))}
+                onChange={(e) =>
+                  setDays(Math.max(1, parseInt(e.target.value) || 1))
+                }
                 fullWidth
                 variant="outlined"
                 InputProps={{
-                  endAdornment: <InputAdornment position="end">jours</InputAdornment>,
+                  endAdornment: (
+                    <InputAdornment position="end">jours</InputAdornment>
+                  ),
                 }}
                 inputProps={{ min: 1 }}
                 className="mb-2"
               />
-              
+
               <div className="flex justify-between text-sm text-gray-600 dark:text-gray-300 mt-1">
                 <span>Prix par jour:</span>
                 <span>${pricePerDay.toFixed(2)}</span>
@@ -706,18 +1023,23 @@ export default function BoostPublicationModal({ isOpen, onClose, publication, pu
                 <span>${totalAmount.toFixed(2)}</span>
               </div>
             </div>
-            
+
             {/* Méthodes de paiement */}
             <div className="mb-6 fade-in">
-              <Typography variant="h6" className="mb-2 font-semibold text-gray-800 dark:text-gray-100">
+              <Typography
+                variant="h6"
+                className="mb-2 font-semibold text-gray-800 dark:text-gray-100"
+              >
                 Méthode de paiement
               </Typography>
-              
+
               <div className="space-y-2">
                 {paymentMethods.map((method) => (
-                  <div 
+                  <div
                     key={method.id}
-                    className={`method-card cursor-pointer ${paymentMethod === method.id ? 'selected' : ''}`}
+                    className={`method-card cursor-pointer ${
+                      paymentMethod === method.id ? "selected" : ""
+                    }`}
                     onClick={() => handlePaymentMethodChange(method.id)}
                   >
                     <div className="flex items-center">
@@ -728,29 +1050,49 @@ export default function BoostPublicationModal({ isOpen, onClose, publication, pu
                         color="primary"
                       />
                       <div className="ml-2">
-                        <Typography variant="subtitle2" className="font-medium">{method.name}</Typography>
+                        <Typography variant="subtitle2" className="font-medium">
+                          {method.name}
+                        </Typography>
                         {method.id === PAYMENT_TYPES.WALLET ? (
-                          <Typography variant="caption" className="text-gray-500 dark:text-gray-400">
+                          <Typography
+                            variant="caption"
+                            className="text-gray-500 dark:text-gray-400"
+                          >
                             Solde disponible: {walletBalance.toFixed(2)} USD
                           </Typography>
                         ) : method.id === PAYMENT_TYPES.CARD ? (
-                          <Typography variant="caption" className="text-gray-500 dark:text-gray-400">
+                          <Typography
+                            variant="caption"
+                            className="text-gray-500 dark:text-gray-400"
+                          >
                             Visa, Mastercard, American Express
                           </Typography>
                         ) : method.id === PAYMENT_TYPES.MOBILE ? (
-                          <Typography variant="caption" className="text-gray-500 dark:text-gray-400">
+                          <Typography
+                            variant="caption"
+                            className="text-gray-500 dark:text-gray-400"
+                          >
                             Orange Money, Airtel Money, M-Pesa
                           </Typography>
                         ) : method.id === PAYMENT_TYPES.BANK ? (
-                          <Typography variant="caption" className="text-gray-500 dark:text-gray-400">
+                          <Typography
+                            variant="caption"
+                            className="text-gray-500 dark:text-gray-400"
+                          >
                             Virement bancaire
                           </Typography>
                         ) : method.id === PAYMENT_TYPES.TRANSFER ? (
-                          <Typography variant="caption" className="text-gray-500 dark:text-gray-400">
+                          <Typography
+                            variant="caption"
+                            className="text-gray-500 dark:text-gray-400"
+                          >
                             Western Union, MoneyGram
                           </Typography>
                         ) : (
-                          <Typography variant="caption" className="text-gray-500 dark:text-gray-400">
+                          <Typography
+                            variant="caption"
+                            className="text-gray-500 dark:text-gray-400"
+                          >
                             Paiement en espèces
                           </Typography>
                         )}
@@ -759,7 +1101,7 @@ export default function BoostPublicationModal({ isOpen, onClose, publication, pu
                   </div>
                 ))}
               </div>
-              
+
               {paymentMethod !== PAYMENT_TYPES.WALLET && (
                 <div className="mb-4">
                   <Typography variant="subtitle2" className="mb-2">
@@ -780,73 +1122,109 @@ export default function BoostPublicationModal({ isOpen, onClose, publication, pu
                   </TextField>
                 </div>
               )}
-              
+
               {renderPaymentFields()}
             </div>
-            
+
             {/* Récapitulatif */}
             <div className="mb-6 fade-in">
-              <Typography variant="h6" className="mb-2 font-semibold text-gray-800 dark:text-gray-100">
+              <Typography
+                variant="h6"
+                className="mb-2 font-semibold text-gray-800 dark:text-gray-100"
+              >
                 Récapitulatif
               </Typography>
-              
+
               <div className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800/50">
                 <div className="space-y-2">
                   <div className="flex justify-between items-center">
                     <Typography variant="body2">
-                      Boost pour {days} jour{days > 1 ? 's' : ''}
+                      Boost pour {days} jour{days > 1 ? "s" : ""}
                     </Typography>
                     <Typography variant="body2">
-                      {paymentMethod === PAYMENT_TYPES.WALLET ? 
-                        `${totalAmount.toFixed(2)} ${CURRENCIES.USD.symbol}` : 
-                        `${convertedAmount?.convertedAmount?.toFixed(2)} ${CURRENCIES[selectedCurrency].symbol}`}
+                      {paymentMethod === PAYMENT_TYPES.WALLET
+                        ? `${totalAmount.toFixed(2)} ${CURRENCIES.USD.symbol}`
+                        : `${convertedAmount?.convertedAmount?.toFixed(2)} ${
+                            CURRENCIES[selectedCurrency].symbol
+                          }`}
                     </Typography>
                   </div>
-                  
-                  {selectedCurrency !== 'USD' && paymentMethod !== PAYMENT_TYPES.WALLET && (
-                    <div className="flex justify-between items-center text-xs text-gray-500 dark:text-gray-400">
-                      <span>Taux de change</span>
-                      <span>1 USD = {convertedAmount.rate} {selectedCurrency}</span>
-                    </div>
-                  )}
-                  
+
+                  {selectedCurrency !== "USD" &&
+                    paymentMethod !== PAYMENT_TYPES.WALLET && (
+                      <div className="flex justify-between items-center text-xs text-gray-500 dark:text-gray-400">
+                        <span>Taux de change</span>
+                        <span>
+                          1 USD = {convertedAmount.rate} {selectedCurrency}
+                        </span>
+                      </div>
+                    )}
+
                   {transactionFees > 0 && (
                     <div className="flex justify-between items-center">
                       <Typography variant="body2">
                         Frais de transaction
-                        {feePercentage > 0 && <span className="text-xs text-gray-500 ml-1">({feePercentage}%)</span>}
+                        {feePercentage > 0 && (
+                          <span className="text-xs text-gray-500 ml-1">
+                            ({feePercentage}%)
+                          </span>
+                        )}
                       </Typography>
                       <Typography variant="body2">
-                        {transactionFees.toFixed(2)} {paymentMethod === PAYMENT_TYPES.WALLET ? CURRENCIES.USD.symbol : CURRENCIES[selectedCurrency].symbol}
+                        {transactionFees.toFixed(2)}{" "}
+                        {paymentMethod === PAYMENT_TYPES.WALLET
+                          ? CURRENCIES.USD.symbol
+                          : CURRENCIES[selectedCurrency].symbol}
                       </Typography>
                     </div>
                   )}
-                  
+
                   <div className="flex justify-between items-center mt-2 pt-2 border-t border-gray-200 dark:border-gray-600">
                     <Typography variant="subtitle1" className="font-bold">
                       Total
                     </Typography>
                     <div className="flex items-center">
                       {feesError ? (
-                        <IconButton 
-                          size="small" 
-                          color="primary" 
-                          onClick={calculateFees} 
+                        <IconButton
+                          size="small"
+                          color="primary"
+                          onClick={calculateFees}
                           className="mr-2"
                           title="Recalculer les frais"
                         >
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            className="h-5 w-5"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                            />
                           </svg>
                         </IconButton>
                       ) : loadingFees ? (
                         <CircularProgress size={16} className="mr-2" />
                       ) : null}
-                      <Typography variant="subtitle1" color="primary" className="font-bold">
-                        {paymentMethod === PAYMENT_TYPES.WALLET 
-                          ? (totalAmount || 0).toFixed(2) + ' ' + CURRENCIES.USD.symbol
-                          : ((convertedAmount.convertedAmount || 0) + (transactionFees || 0)).toFixed(2) + ' ' + CURRENCIES[selectedCurrency].symbol
-                        }
+                      <Typography
+                        variant="subtitle1"
+                        color="primary"
+                        className="font-bold"
+                      >
+                        {paymentMethod === PAYMENT_TYPES.WALLET
+                          ? (totalAmount || 0).toFixed(2) +
+                            " " +
+                            CURRENCIES.USD.symbol
+                          : (
+                              (convertedAmount.convertedAmount || 0) +
+                              (transactionFees || 0)
+                            ).toFixed(2) +
+                            " " +
+                            CURRENCIES[selectedCurrency].symbol}
                       </Typography>
                     </div>
                   </div>
@@ -855,20 +1233,29 @@ export default function BoostPublicationModal({ isOpen, onClose, publication, pu
             </div>
           </form>
         </div>
-        
+
         {/* Alerte pour solde insuffisant */}
-        {paymentMethod === PAYMENT_TYPES.WALLET && totalAmount > walletBalance && (
-          <Alert severity="error" className="mx-6 mb-3">
-            Solde insuffisant dans votre wallet. Vous avez besoin de {totalAmount.toFixed(2)} USD mais votre solde est de {walletBalance.toFixed(2)} USD.
-          </Alert>
-        )}
-        
+        {paymentMethod === PAYMENT_TYPES.WALLET &&
+          totalAmount > walletBalance && (
+            <Alert severity="error" className="mx-6 mb-3">
+              Solde insuffisant dans votre wallet. Vous avez besoin de{" "}
+              {totalAmount.toFixed(2)} USD mais votre solde est de{" "}
+              {walletBalance.toFixed(2)} USD.
+            </Alert>
+          )}
+
         {/* Bouton de paiement - en dehors de la zone scrollable */}
         <div className="p-6 pt-4 flex items-center justify-between border-t border-gray-200 dark:border-gray-700">
-          <Typography variant="body2" color="textSecondary" className="text-gray-500 dark:text-gray-400">
-            {paymentMethod === PAYMENT_TYPES.WALLET ? 'Paiement direct depuis votre wallet' : 'Procédez au paiement sécurisé'}
+          <Typography
+            variant="body2"
+            color="textSecondary"
+            className="text-gray-500 dark:text-gray-400"
+          >
+            {paymentMethod === PAYMENT_TYPES.WALLET
+              ? "Paiement direct depuis votre wallet"
+              : "Procédez au paiement sécurisé"}
           </Typography>
-          
+
           <div className="flex space-x-3">
             <Button
               variant="outlined"
@@ -883,47 +1270,38 @@ export default function BoostPublicationModal({ isOpen, onClose, publication, pu
               variant="contained"
               color="primary"
               disabled={
-                !formIsValid || 
-                loading || 
-                loadingFees || 
-                feesError || 
-                (paymentMethod === PAYMENT_TYPES.WALLET && totalAmount > walletBalance)
+                !formIsValid ||
+                loading ||
+                loadingFees ||
+                feesError ||
+                (paymentMethod === PAYMENT_TYPES.WALLET &&
+                  totalAmount > walletBalance)
               }
               className="px-6 py-2"
               onClick={handleSubmit}
               sx={{
-                backgroundColor: 'rgb(22, 163, 74)',
-                '&:hover': {
-                  backgroundColor: 'rgb(21, 128, 61)',
+                backgroundColor: "rgb(22, 163, 74)",
+                "&:hover": {
+                  backgroundColor: "rgb(21, 128, 61)",
                 },
-                '&.Mui-disabled': {
-                  backgroundColor: 'rgba(22, 163, 74, 0.5)',
-                }
+                "&.Mui-disabled": {
+                  backgroundColor: "rgba(22, 163, 74, 0.5)",
+                },
               }}
             >
               {loading ? (
                 <CircularProgress size={24} color="inherit" />
+              ) : paymentMethod === PAYMENT_TYPES.WALLET ? (
+                "Payer maintenant"
               ) : (
-                paymentMethod === PAYMENT_TYPES.WALLET ? 'Payer maintenant' : 'Procéder au paiement'
+                "Procéder au paiement"
               )}
             </Button>
           </div>
         </div>
       </div>
-      
+
       <style dangerouslySetInnerHTML={{ __html: customStyles }} />
-      <ToastContainer
-        position="top-right"
-        autoClose={5000}
-        hideProgressBar={false}
-        newestOnTop
-        closeOnClick
-        rtl={false}
-        pauseOnFocusLoss
-        draggable
-        pauseOnHover
-        theme={isDarkMode ? "dark" : "light"}
-      />
     </div>
   );
 }

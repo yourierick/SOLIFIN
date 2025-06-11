@@ -21,6 +21,7 @@ class Pack extends Model
         'avantages',
         'duree_publication_en_jour',
         'peux_publier_formation',
+        'boost_percentage',
         'abonnement'
     ];
 
@@ -29,6 +30,7 @@ class Pack extends Model
         'peux_publier_formation' => 'boolean',
         'status' => 'boolean',
         'avantages' => 'array',
+        'boost_percentage' => 'float',
     ];
 
     /**

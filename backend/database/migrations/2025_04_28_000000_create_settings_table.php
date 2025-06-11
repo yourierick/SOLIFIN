@@ -71,9 +71,9 @@ return new class extends Migration
                 'updated_at' => now(),
             ],
             [
-                'key' => 'sending_fee_percentage',
+                'key' => 'purchase_commission_system',
                 'value' => '0',
-                'description' => 'Pourcentage des frais d\'achat des formations',
+                'description' => 'Pourcentage des frais de commission système pour la vente des formations',
                 'created_at' => now(),
                 'updated_at' => now(),
             ],

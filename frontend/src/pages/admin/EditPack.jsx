@@ -24,6 +24,7 @@ export default function EditPack() {
     status: true,
     abonnement: "",
     peux_publier_formation: false,
+    boost_percentage: "",
   });
   const [dragActive, setDragActive] = useState(false);
 
@@ -48,6 +49,7 @@ export default function EditPack() {
           pack.peux_publier_formation === undefined
             ? false
             : Boolean(pack.peux_publier_formation),
+        boost_percentage: pack.boost_percentage || "",
       });
 
       // Gérer les avantages
@@ -135,6 +137,11 @@ export default function EditPack() {
         return;
       }
 
+      if (!formData.boost_percentage || formData.boost_percentage <= 0) {
+        toast.warning("Le pourcentage de boost est requis");
+        return;
+      }
+
       // Filtrer les avantages vides
       const filteredAvantages = avantages.filter(
         (avantage) => avantage.trim() !== ""
@@ -160,7 +167,7 @@ export default function EditPack() {
         formData.peux_publier_formation ? "1" : "0"
       );
       formDataToSend.append("_method", "PUT"); // Pour la méthode PUT
-
+      formDataToSend.append("boost_percentage", formData.boost_percentage);
       formDataToSend.append("avantages", JSON.stringify(filteredAvantages));
 
       const response = await axios.post(
@@ -168,7 +175,6 @@ export default function EditPack() {
         formDataToSend,
         {
           headers: {
-            "Content-Type": "multipart/form-data",
             "X-Requested-With": "XMLHttpRequest",
           },
         }
@@ -363,6 +369,20 @@ export default function EditPack() {
                   onChange={handleInputChange}
                   className="block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
                   placeholder="Durée de publication en jours"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Pourcentage de boost (%)
+                </label>
+                <input
+                  type="number"
+                  name="boost_percentage"
+                  value={formData.boost_percentage}
+                  onChange={handleInputChange}
+                  className="block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
+                  placeholder="Pourcentage de boost"
                 />
               </div>
 

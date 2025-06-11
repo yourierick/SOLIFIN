@@ -15,13 +15,10 @@ class BoostPriceController extends Controller
     public function getBoostPrice()
     {
         // Récupérer le paramètre de prix du boost
-        $setting = Setting::where('key', 'boost_price')->first();
-        
-        // Valeur par défaut si le paramètre n'est pas défini
-        $defaultPrice = 1;
-        
-        // Si le paramètre existe, utiliser sa valeur, sinon utiliser la valeur par défaut
-        $price = $setting ? $setting->value : $defaultPrice;
+        $user = auth()->user();
+        $boostPercentage = $user->pack_de_publication->boost_percentage;
+        $packPrice = $user->pack_de_publication->price;
+        $price = $packPrice * $boostPercentage / 100;
         
         return response()->json([
             'success' => true,

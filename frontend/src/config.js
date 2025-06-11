@@ -80,11 +80,11 @@ export const PAYMENT_METHODS = {
   [PAYMENT_TYPES.WALLET]: [
     { id: "solifin-wallet", name: "Portefeuille Solifin" },
   ],
-  [PAYMENT_TYPES.MONEY_TRANSFER]: [
-    { id: "western-union", name: "Western Union" },
-    { id: "moneygram", name: "MoneyGram" },
-    { id: "ria", name: "Ria Money Transfer" },
-  ],
+  // [PAYMENT_TYPES.MONEY_TRANSFER]: [
+  //   { id: "western-union", name: "Western Union" },
+  //   { id: "moneygram", name: "MoneyGram" },
+  //   { id: "ria", name: "Ria Money Transfer" },
+  // ],
 };
 
 export default {
