@@ -259,7 +259,7 @@ class RegisterController extends Controller
             ]);
 
             do {
-                $account_id = 'USR-' . rand(1, 100) . "-" . Str::random(4);
+                $account_id = 'USR-' . rand(1, 100) . "-" . strtoupper(Str::random(4));
             } while (User::where('account_id', $account_id)->exists());
 
             $user->account_id = $account_id;

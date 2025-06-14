@@ -11,6 +11,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use App\Models\User;
+use App\Notifications\FundsTransferred;
+use Illuminate\Support\Facades\DB;
 
 class WalletController extends Controller
 {
@@ -20,17 +22,17 @@ class WalletController extends Controller
             // Récupérer le wallet de l'admin connecté
             $userWallet = Wallet::where('user_id', Auth::id())->first();
             $adminWallet = $userWallet ? [
-                'balance' => number_format($userWallet->balance, 2) . ' $',
-                'total_earned' => number_format($userWallet->total_earned, 2) . ' $',
-                'total_withdrawn' => number_format($userWallet->total_withdrawn, 2) . ' $',
+                'balance' => number_format($userWallet->balance, 2),
+                'total_earned' => number_format($userWallet->total_earned, 2),
+                'total_withdrawn' => number_format($userWallet->total_withdrawn, 2),
             ] : null;
 
             // Récupérer le wallet system (il n'y en a qu'un seul)
             $systemWallet = WalletSystem::first();
             $systemWalletData = $systemWallet ? [
-                'balance' => number_format($systemWallet->balance, 2) . ' $',
-                'total_in' => number_format($systemWallet->total_in, 2) . ' $',
-                'total_out' => number_format($systemWallet->total_out, 2) . ' $',
+                'balance' => number_format($systemWallet->balance, 2),
+                'total_in' => number_format($systemWallet->total_in, 2),
+                'total_out' => number_format($systemWallet->total_out, 2),
             ] : null;
 
             // Récupérer les transactions du wallet system
@@ -40,7 +42,7 @@ class WalletController extends Controller
                 ->map(function ($transaction) {
                     return [
                         'id' => $transaction->id,
-                        'amount' => number_format($transaction->amount, 2) . ' $',
+                        'amount' => number_format($transaction->amount, 2),
                         'type' => $transaction->type,
                         'status' => $transaction->status,
                         'metadata' => $transaction->metadata,
@@ -55,10 +57,10 @@ class WalletController extends Controller
                 ->map(function ($transaction) {
                     return [
                         'id' => $transaction->id,
-                        'amount' => number_format($transaction->amount, 2) . ' $',
+                        'amount' => number_format($transaction->amount, 2),
                         'type' => $transaction->type,
                         'status' => $transaction->status,
-                        'metadata' => $transaction->metadata,
+                        'metadata' => $transaction->metadata,   
                         'created_at' => $transaction->created_at->format('d/m/Y H:i:s')
                     ];
                 });
@@ -88,7 +90,10 @@ class WalletController extends Controller
             $request->validate([
                 'recipient_account_id' => 'required',
                 'amount' => 'required|numeric|min:0',
-                'description' => 'required',
+                'original_amount' => 'required|numeric',
+                'fee_amount' => 'required|numeric',
+                'fee_percentage' => 'required|numeric',
+                'total_fee_amount' => 'required|numeric',
                 'password' => 'required'
             ]);
 
@@ -101,7 +106,7 @@ class WalletController extends Controller
                 ], 401);
             }
 
-            $userWallet = Wallet::where('user_id', Auth::id())->first();
+            $userWallet = $user->wallet;
             $recipient = User::where("account_id", $request->recipient_account_id)->first();
             
             if (!$recipient) {
@@ -111,7 +116,7 @@ class WalletController extends Controller
                 ], 404);
             }
             
-            $recipientWallet = Wallet::where('user_id', $recipient->id)->first();
+            $recipientWallet = $recipient->wallet;
 
             if (!$recipientWallet) {
                 return response()->json([
@@ -134,15 +139,79 @@ class WalletController extends Controller
                 ], 400);
             }
 
-            $userWallet->withdrawFunds($request->amount, "transfer", "completed", ["bénéficiaire" => $recipientWallet->user->name, "montant"=>$request->amount, "description"=>$request->description]);
-            $recipientWallet->addFunds($request->amount, "reception", "completed", ["créditeur" => $userWallet->user->name, "montant"=>$request->amount, "description"=>$request->description]);
+            DB::beginTransaction();
+            $userWallet->withdrawFunds($request->amount, "transfer", "completed", ["bénéficiaire" => $recipientWallet->user->name, "montant"=>$request->amount, "description"=>$request->description, "Vous avez transferé" => $request->original_amount . " $ au compte " . $recipientWallet->user->account_id]);
+            $recipientWallet->addFunds($request->amount, "reception", "completed", ["créditeur" => $userWallet->user->name, "montant"=>$request->amount, "description"=>$request->description, "Vous avez reçu" => $request->original_amount . " $ du compte " . $userWallet->user->account_id]);
 
+            $walletsystem = WalletSystem::first();
+            if (!$walletsystem) {
+                $walletsystem = WalletSystem::create(['balance' => 0]);
+            }
+
+            $walletsystem->transactions()->create([
+                'wallet_system_id' => $walletsystem->id,
+                'amount' => $request->original_amount,
+                'type' => "transfer",
+                'status' => "completed",
+                'metadata' => [
+                    "user" => $user->name, 
+                    "Créditeur" => $user->name,
+                    "Débiteur" => $recipient->name,
+                    "Montant original" => $request->original_amount . " $",
+                    "Dévise original" => "USD",
+                    "Frais de transaction" => $request->fee_amount . " $",
+                    "Pourcentage de transaction" => $request->fee_percentage . " %",
+                    "Frais de commission" => $request->commission_amount . " $",
+                    "Pourcentage de commission" => $request->commission_percentage . " %",
+                    "Total des frais" => $request->total_fee_amount . " $",
+                    "Déscription" => "Transfert de ". $request->original_amount . "$ par le compte " . $user->account_id . " au compte " . $request->recipient_account_id,
+                ]
+            ]);
+
+            if ($request->fee_amount > 0) {
+                // Ajouter la transaction des frais de transfert au wallet system
+                $walletsystem->transactions()->create([
+                    'wallet_system_id' => $walletsystem->id,
+                    'amount' => $request->fee_amount,
+                    'type' => "frais de transfert",
+                    'status' => "completed",
+                    'metadata' => [
+                        "user" => $user->name, 
+                        "Montant original" => $request->original_amount . "$",
+                        "Dévise original" => "USD",
+                        "Frais de transaction" => $request->fee_amount . " $",
+                        "Pourcentage de transaction" => $request->fee_percentage . " %",
+                        "Déscription" => "Frais de ". $request->fee_amount . " $ pour le transfert d'un montant de ". $request->original_amount ." $ payés par le compte " . $user->account_id . " au compte " . $request->recipient_account_id,
+                    ]
+                ]);
+            }
+
+            DB::commit();
+
+            // Notification à l'utilisateur qui a transféré les fonds
+            $user->notify(new FundsTransferred(
+                $request->original_amount,
+                $user->name,
+                $recipient->name,
+                false,
+                $request->description
+            ));
+            
+            // Notification à l'utilisateur qui a reçu les fonds
+            $recipient->notify(new FundsTransferred(
+                $request->original_amount,
+                $user->name,
+                $recipient->name,
+                true,
+                $request->description
+            ));
 
             return response()->json([
                 'success' => true,
                 'message' => 'Transfert effectué avec succès'
             ]);
         } catch (\Exception $e) {
+            DB::rollBack();
             \Log::error($e->getMessage());
             return response()->json([
                 'success' => false,

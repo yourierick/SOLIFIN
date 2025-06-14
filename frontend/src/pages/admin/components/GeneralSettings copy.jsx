@@ -9,8 +9,6 @@ import axios from "../../../utils/axios";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { useTheme } from "../../../contexts/ThemeContext";
-import ReactMarkdown from "react-markdown";
-import rehypeSanitize from "rehype-sanitize";
 
 // Définition des paramètres figés
 const FIXED_SETTINGS = [
@@ -126,11 +124,10 @@ const FIXED_SETTINGS = [
   {
     key: "founder_photo",
     label: "Photo du fondateur",
-    description: "Photo du fondateur (formats acceptés: JPG, PNG, max 2MB)",
-    placeholder: "Sélectionnez une image",
+    description: "URL de la photo du fondateur",
+    placeholder: "https://exemple.com/photo.jpg",
     category: "about",
     isImage: true,
-    isUploadable: true,
   },
 ];
 const GeneralSettings = () => {
@@ -140,11 +137,10 @@ const GeneralSettings = () => {
   const [showModal, setShowModal] = useState(false);
   const [currentSetting, setCurrentSetting] = useState(null);
   const [formData, setFormData] = useState({
+    key: "",
     value: "",
     description: "",
   });
-  const [selectedFile, setSelectedFile] = useState(null);
-  const [previewUrl, setPreviewUrl] = useState("");
   const [errors, setErrors] = useState({});
   const [refreshKey, setRefreshKey] = useState(0);
   const [submitting, setSubmitting] = useState(false);
@@ -193,11 +189,6 @@ const GeneralSettings = () => {
     const setting = settings[settingKey];
     const fixedSetting = FIXED_SETTINGS.find((s) => s.key === settingKey);
 
-    if (!fixedSetting) {
-      toast.error("Paramètre non trouvé");
-      return;
-    }
-
     if (setting) {
       // Le paramètre existe déjà, on édite sa valeur
       setFormData({
@@ -205,8 +196,7 @@ const GeneralSettings = () => {
         value: setting.value,
         description: setting.description,
       });
-      // Fusionner les propriétés du paramètre fixe avec celles du paramètre actuel
-      setCurrentSetting({ ...fixedSetting, ...setting });
+      setCurrentSetting(setting);
     } else {
       // Le paramètre n'existe pas encore, on prépare sa création
       setFormData({
@@ -214,7 +204,7 @@ const GeneralSettings = () => {
         value: "",
         description: fixedSetting.description,
       });
-      setCurrentSetting(fixedSetting);
+      setCurrentSetting(null);
     }
 
     setErrors({});
@@ -230,67 +220,22 @@ const GeneralSettings = () => {
       description: "",
     });
     setErrors({});
-    // Réinitialiser les états liés au téléchargement d'images
-    setSelectedFile(null);
-    setPreviewUrl("");
   };
 
   // Fonction pour gérer les changements dans le formulaire
   const handleChange = (e) => {
-    const { name, value, files } = e.target;
-    
-    // Si c'est un téléchargement de fichier
-    if (name === "file" && files && files.length > 0) {
-      const file = files[0];
-      
-      // Vérifier le type de fichier
-      if (!file.type.match("image/(jpeg|jpg|png)")) {
-        setErrors((prev) => ({
-          ...prev,
-          file: "Format de fichier non supporté. Utilisez JPG ou PNG."
-        }));
-        return;
-      }
-      
-      // Vérifier la taille du fichier (max 2MB)
-      if (file.size > 2 * 1024 * 1024) {
-        setErrors((prev) => ({
-          ...prev,
-          file: "L'image est trop volumineuse. Maximum 2MB."
-        }));
-        return;
-      }
-      
-      setSelectedFile(file);
-      
-      // Créer une URL pour la prévisualisation
-      const fileReader = new FileReader();
-      fileReader.onload = (e) => {
-        setPreviewUrl(e.target.result);
-      };
-      fileReader.readAsDataURL(file);
-      
-      // Effacer l'erreur pour ce champ
-      if (errors.file) {
-        setErrors((prev) => ({
-          ...prev,
-          file: null,
-        }));
-      }
-    } else {
-      // Pour les autres champs
-      setFormData((prev) => ({
-        ...prev,
-        [name]: value,
-      }));
+    const { name, value } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
 
-      // Effacer l'erreur pour ce champ
-      if (errors[name]) {
-        setErrors((prev) => ({
-          ...prev,
-          [name]: null,
-        }));
-      }
+    // Effacer l'erreur pour ce champ
+    if (errors[name]) {
+      setErrors((prev) => ({
+        ...prev,
+        [name]: null,
+      }));
     }
   };
 
@@ -351,42 +296,16 @@ const GeneralSettings = () => {
 
     try {
       setSubmitting(true);
-      
-      // Vérifier si nous avons un fichier à télécharger pour la photo du fondateur
-      if (selectedFile && currentSetting && currentSetting.isUploadable) {
-        // Créer un FormData pour envoyer le fichier
-        const formDataWithFile = new FormData();
-        formDataWithFile.append('file', selectedFile);
-        formDataWithFile.append('description', formData.description);
-        
-        // Envoyer le fichier au serveur
-        const uploadResponse = await axios.post(
-          `/api/admin/settings/upload/${formData.key}`,
-          formDataWithFile,
-          {
-            headers: {
-              'Content-Type': 'multipart/form-data'
-            }
-          }
-        );
-        
-        if (uploadResponse.data.success) {
-          toast.success(uploadResponse.data.message);
-          setRefreshKey((prev) => prev + 1); // Déclencher une actualisation
-          handleCloseModal();
-        }
-      } else {
-        // Traitement normal pour les autres types de paramètres
-        const response = await axios.put(
-          `/api/admin/settings/key/${formData.key}`,
-          formData
-        );
+      // Toujours utiliser updateByKey qui gère à la fois la création et la mise à jour
+      const response = await axios.put(
+        `/api/admin/settings/key/${formData.key}`,
+        formData
+      );
 
-        if (response.data.success) {
-          toast.success(response.data.message);
-          setRefreshKey((prev) => prev + 1); // Déclencher une actualisation
-          handleCloseModal();
-        }
+      if (response.data.success) {
+        toast.success(response.data.message);
+        setRefreshKey((prev) => prev + 1); // Déclencher une actualisation
+        handleCloseModal();
       }
     } catch (error) {
       console.error("Erreur lors de la soumission du formulaire:", error);
@@ -440,70 +359,38 @@ const GeneralSettings = () => {
           {/* Affichage des paramètres par catégorie */}
           <div className="overflow-x-auto">
             {activeTab === "legal" ? (
-              // Affichage amélioré pour les documents légaux (texte long)
-              <div className="space-y-8">
+              // Affichage spécial pour les documents légaux (texte long)
+              <div className="space-y-6">
                 {getSettingsByCategory("legal").map((fixedSetting) => {
                   const setting = settings[fixedSetting.key];
                   return (
                     <div
                       key={fixedSetting.key}
-                      className="border dark:border-gray-700 rounded-lg overflow-hidden shadow-sm"
+                      className="border dark:border-gray-700 rounded-lg p-4"
                     >
-                      <div className="bg-gray-50 dark:bg-gray-700 p-4 border-b dark:border-gray-600 flex justify-between items-center">
-                        <div>
-                          <h5 className="font-medium text-gray-900 dark:text-white text-lg">
-                            {fixedSetting.label}
-                          </h5>
-                          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                            {fixedSetting.description}
-                          </p>
-                        </div>
+                      <div className="flex justify-between items-center mb-2">
+                        <h5 className="font-medium text-gray-900 dark:text-white">
+                          {fixedSetting.label}
+                        </h5>
                         <button
                           onClick={() => handleOpenEditModal(fixedSetting.key)}
-                          className="text-primary-600 hover:text-primary-900 dark:text-primary-400 dark:hover:text-primary-300 p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-600"
-                          title="Modifier"
+                          className="text-primary-600 hover:text-primary-900 dark:text-primary-400 dark:hover:text-primary-300"
                         >
                           <PencilIcon className="h-5 w-5" />
                         </button>
                       </div>
-                      
-                      {setting && setting.value ? (
-                        <div className="bg-white dark:bg-gray-800 p-5 rounded">
-                          <div className="prose dark:prose-invert max-w-none prose-sm overflow-y-auto max-h-96 legal-document">
-                            <ReactMarkdown 
-                              rehypePlugins={[rehypeSanitize]}
-                              components={{
-                                p: ({node, ...props}) => <p className="mb-4 text-base leading-relaxed" {...props} />,
-                                h1: ({node, ...props}) => <h1 className="text-2xl font-bold mb-4 mt-6 border-b pb-2 border-gray-200 dark:border-gray-700" {...props} />,
-                                h2: ({node, ...props}) => <h2 className="text-xl font-bold mb-3 mt-5" {...props} />,
-                                h3: ({node, ...props}) => <h3 className="text-lg font-bold mb-2 mt-4" {...props} />,
-                                h4: ({node, ...props}) => <h4 className="text-base font-bold mb-2 mt-3" {...props} />,
-                                ul: ({node, ...props}) => <ul className="list-disc pl-5 mb-4 space-y-2" {...props} />,
-                                ol: ({node, ...props}) => <ol className="list-decimal pl-5 mb-4 space-y-2" {...props} />,
-                                li: ({node, ...props}) => <li className="mb-1" {...props} />,
-                                a: ({node, ...props}) => <a className="text-blue-600 hover:underline" {...props} />,
-                                blockquote: ({node, ...props}) => <blockquote className="border-l-4 border-gray-300 dark:border-gray-600 pl-4 italic my-4" {...props} />,
-                                code: ({node, inline, ...props}) => 
-                                  inline ? <code className="bg-gray-100 dark:bg-gray-800 px-1 py-0.5 rounded text-sm" {...props} /> : 
-                                  <code className="block bg-gray-100 dark:bg-gray-800 p-2 rounded text-sm overflow-x-auto my-4" {...props} />,
-                                pre: ({node, ...props}) => <pre className="bg-gray-100 dark:bg-gray-800 p-4 rounded overflow-x-auto my-4" {...props} />,
-                                hr: ({node, ...props}) => <hr className="my-6 border-t border-gray-300 dark:border-gray-600" {...props} />,
-                                table: ({node, ...props}) => <table className="min-w-full divide-y divide-gray-300 dark:divide-gray-600 my-4" {...props} />,
-                                th: ({node, ...props}) => <th className="px-3 py-2 text-left font-semibold bg-gray-100 dark:bg-gray-700" {...props} />,
-                                td: ({node, ...props}) => <td className="px-3 py-2 border-t border-gray-200 dark:border-gray-700" {...props} />
-                              }}
-                            >
-                              {setting.value}
-                            </ReactMarkdown>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="bg-white dark:bg-gray-800 p-5 text-center">
-                          <span className="text-gray-400 italic block py-8">
-                            Aucun contenu défini
+                      <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">
+                        {fixedSetting.description}
+                      </p>
+                      <div className="bg-white dark:bg-gray-700 p-3 rounded border dark:border-gray-600 max-h-40 overflow-y-auto">
+                        {setting ? (
+                          setting.value
+                        ) : (
+                          <span className="text-gray-400 italic">
+                            Non défini
                           </span>
-                        </div>
-                      )}
+                        )}
+                      </div>
                     </div>
                   );
                 })}
@@ -663,176 +550,29 @@ const GeneralSettings = () => {
                   htmlFor="value"
                   className="block text-sm font-medium text-gray-700 dark:text-gray-300"
                 >
-                  Valeur {currentSetting && currentSetting.category === "legal" && "(Supporte le format Markdown)"}
+                  Valeur
                 </label>
-                
-                {/* Guide Markdown pour les documents légaux */}
-                {currentSetting && currentSetting.category === "legal" && (
-                  <div className="mb-2 p-2 bg-gray-50 dark:bg-gray-800 rounded text-xs text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700">
-                    <p className="font-medium mb-1">Formatage Markdown :</p>
-                    <ul className="list-disc pl-4 space-y-1">
-                      <li><code># Titre</code> pour les grands titres</li>
-                      <li><code>## Sous-titre</code> pour les sous-titres</li>
-                      <li><code>**texte**</code> pour du <strong>texte en gras</strong></li>
-                      <li><code>*texte*</code> pour du <em>texte en italique</em></li>
-                      <li><code>- élément</code> pour des listes à puces</li>
-                      <li><code>[texte](url)</code> pour des liens</li>
-                    </ul>
-                  </div>
-                )}
-                
-                {/* Champ texte long avec prévisualisation Markdown */}
-                {currentSetting && currentSetting.isLongText && (
-                  <div>
-                    <textarea
-                      id="value"
-                      name="value"
-                      rows={8}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:text-white"
-                      value={formData.value}
-                      onChange={handleChange}
-                    />
-                    {errors.value && (
-                      <p className="mt-1 text-sm text-red-600 dark:text-red-400">
-                        {errors.value}
-                      </p>
-                    )}
-                    
-                    {/* Prévisualisation Markdown pour les documents légaux */}
-                    {currentSetting.category === "legal" && formData.value && (
-                      <div className="mt-4">
-                        <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Prévisualisation</h4>
-                        <div className="border border-gray-300 dark:border-gray-600 rounded-md p-4 bg-white dark:bg-gray-800 prose dark:prose-invert prose-sm max-h-60 overflow-y-auto">
-                          <ReactMarkdown 
-                            rehypePlugins={[rehypeSanitize]}
-                            components={{
-                              p: ({node, ...props}) => <p className="mb-4 text-base leading-relaxed" {...props} />,
-                              h1: ({node, ...props}) => <h1 className="text-2xl font-bold mb-4 mt-6 border-b pb-2 border-gray-200 dark:border-gray-700" {...props} />,
-                              h2: ({node, ...props}) => <h2 className="text-xl font-bold mb-3 mt-5" {...props} />,
-                              h3: ({node, ...props}) => <h3 className="text-lg font-bold mb-2 mt-4" {...props} />,
-                              h4: ({node, ...props}) => <h4 className="text-base font-bold mb-2 mt-3" {...props} />,
-                              ul: ({node, ...props}) => <ul className="list-disc pl-5 mb-4 space-y-2" {...props} />,
-                              ol: ({node, ...props}) => <ol className="list-decimal pl-5 mb-4 space-y-2" {...props} />,
-                              li: ({node, ...props}) => <li className="mb-1" {...props} />,
-                              a: ({node, ...props}) => <a className="text-blue-600 hover:underline" {...props} />,
-                              blockquote: ({node, ...props}) => <blockquote className="border-l-4 border-gray-300 dark:border-gray-600 pl-4 italic my-4" {...props} />,
-                              code: ({node, inline, ...props}) => 
-                                inline ? <code className="bg-gray-100 dark:bg-gray-800 px-1 py-0.5 rounded text-sm" {...props} /> : 
-                                <code className="block bg-gray-100 dark:bg-gray-800 p-2 rounded text-sm overflow-x-auto my-4" {...props} />,
-                              pre: ({node, ...props}) => <pre className="bg-gray-100 dark:bg-gray-800 p-4 rounded overflow-x-auto my-4" {...props} />,
-                              hr: ({node, ...props}) => <hr className="my-6 border-t border-gray-300 dark:border-gray-600" {...props} />,
-                              table: ({node, ...props}) => <table className="min-w-full divide-y divide-gray-300 dark:divide-gray-600 my-4" {...props} />,
-                              th: ({node, ...props}) => <th className="px-3 py-2 text-left font-semibold bg-gray-100 dark:bg-gray-700" {...props} />,
-                              td: ({node, ...props}) => <td className="px-3 py-2 border-t border-gray-200 dark:border-gray-700" {...props} />
-                            }}
-                          >
-                            {formData.value}
-                          </ReactMarkdown>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-                
-                {/* Champ pour les images avec prévisualisation */}
-                {currentSetting && currentSetting.isImage && (
-                  <div className="space-y-4">
-                    {/* Option de téléchargement pour la photo du fondateur */}
-                    {currentSetting.isUploadable && (
-                      <div className="space-y-2">
-                        <label htmlFor="file" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                          Télécharger une image
-                        </label>
-                        <div className="flex items-center space-x-2">
-                          <input
-                            type="file"
-                            id="file"
-                            name="file"
-                            accept="image/jpeg,image/jpg,image/png"
-                            onChange={handleChange}
-                            className={`block w-full text-sm text-gray-700 dark:text-gray-300 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-primary-50 file:text-primary-700 dark:file:bg-primary-900 dark:file:text-primary-300 hover:file:bg-primary-100 dark:hover:file:bg-primary-800 ${errors.file ? "border-red-500" : ""}`}
-                          />
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setSelectedFile(null);
-                              setPreviewUrl("");
-                            }}
-                            className="px-2 py-1 text-xs text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"
-                          >
-                            Effacer
-                          </button>
-                        </div>
-                        {errors.file && (
-                          <p className="mt-1 text-sm text-red-600 dark:text-red-400">
-                            {errors.file}
-                          </p>
-                        )}
-                        <p className="text-xs text-gray-500 dark:text-gray-400">
-                          Formats acceptés: JPG, PNG. Taille max: 2MB
-                        </p>
-                        {previewUrl && (
-                          <div className="mt-2 border dark:border-gray-600 rounded-md p-2">
-                            <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
-                              Aperçu du fichier téléchargé:
-                            </p>
-                            <img
-                              src={previewUrl}
-                              alt="Aperçu"
-                              className="max-h-40 mx-auto object-contain"
-                            />
-                          </div>
-                        )}
-                      </div>
-                    )}
-                    
-                    {/* Champ URL pour toutes les images */}
-                    <div className="space-y-2">
-                      <label htmlFor="value" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                        {currentSetting.isUploadable ? "Ou entrez une URL d'image" : "URL de l'image"}
-                      </label>
-                      <input
-                        type="text"
-                        id="value"
-                        name="value"
-                        value={formData.value}
-                        onChange={handleChange}
-                        className={`mt-1 block w-full px-3 py-2 bg-white dark:bg-gray-800 border ${
-                          errors.value
-                            ? "border-red-500"
-                            : "border-gray-300 dark:border-gray-600"
-                        } rounded-md shadow-sm text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-primary-500 focus:border-primary-500`}
-                        placeholder="URL de l'image"
-                      />
-                      {errors.value && (
-                        <p className="mt-1 text-sm text-red-600 dark:text-red-400">
-                          {errors.value}
-                        </p>
-                      )}
-                      {formData.value && formData.value.startsWith("http") && (
-                        <div className="mt-2 border dark:border-gray-600 rounded-md p-2">
-                          <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
-                            Aperçu:
-                          </p>
-                          <img
-                            src={formData.value}
-                            alt="Aperçu"
-                            className="max-h-40 mx-auto object-contain"
-                            onError={(e) => {
-                              e.target.onerror = null;
-                              e.target.src =
-                                "https://via.placeholder.com/150?text=Image+non+disponible";
-                            }}
-                          />
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
-                
-                {/* Champ texte simple */}
-                {currentSetting && currentSetting.isText && (
-                  <div>
+                {FIXED_SETTINGS.find((s) => s.key === formData.key)
+                  ?.isLongText ? (
+                  <textarea
+                    id="value"
+                    name="value"
+                    value={formData.value}
+                    onChange={handleChange}
+                    rows={6}
+                    className={`mt-1 block w-full px-3 py-2 bg-white dark:bg-gray-800 border ${
+                      errors.value
+                        ? "border-red-500"
+                        : "border-gray-300 dark:border-gray-600"
+                    } rounded-md shadow-sm text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-primary-500 focus:border-primary-500`}
+                    placeholder={
+                      FIXED_SETTINGS.find((s) => s.key === formData.key)
+                        ?.placeholder || ""
+                    }
+                  />
+                ) : FIXED_SETTINGS.find((s) => s.key === formData.key)
+                    ?.isImage ? (
+                  <div className="space-y-2">
                     <input
                       type="text"
                       id="value"
@@ -844,61 +584,64 @@ const GeneralSettings = () => {
                           ? "border-red-500"
                           : "border-gray-300 dark:border-gray-600"
                       } rounded-md shadow-sm text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-primary-500 focus:border-primary-500`}
-                      placeholder={currentSetting.placeholder || ""}
+                      placeholder="URL de l'image"
                     />
-                    {errors.value && (
-                      <p className="mt-1 text-sm text-red-600 dark:text-red-400">
-                        {errors.value}
-                      </p>
+                    {formData.value && formData.value.startsWith("http") && (
+                      <div className="mt-2 border dark:border-gray-600 rounded-md p-2">
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
+                          Aperçu:
+                        </p>
+                        <img
+                          src={formData.value}
+                          alt="Aperçu"
+                          className="max-h-40 mx-auto object-contain"
+                          onError={(e) => {
+                            e.target.onerror = null;
+                            e.target.src =
+                              "https://via.placeholder.com/150?text=Image+non+disponible";
+                          }}
+                        />
+                      </div>
                     )}
                   </div>
+                ) : FIXED_SETTINGS.find((s) => s.key === formData.key)
+                    ?.isText ? (
+                  <input
+                    type="text"
+                    id="value"
+                    name="value"
+                    value={formData.value}
+                    onChange={handleChange}
+                    className={`mt-1 block w-full px-3 py-2 bg-white dark:bg-gray-800 border ${
+                      errors.value
+                        ? "border-red-500"
+                        : "border-gray-300 dark:border-gray-600"
+                    } rounded-md shadow-sm text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-primary-500 focus:border-primary-500`}
+                    placeholder={
+                      FIXED_SETTINGS.find((s) => s.key === formData.key)
+                        ?.placeholder || ""
+                    }
+                  />
+                ) : (
+                  <input
+                    type="number"
+                    id="value"
+                    name="value"
+                    value={formData.value}
+                    onChange={handleChange}
+                    className={`mt-1 block w-full px-3 py-2 bg-white dark:bg-gray-800 border ${
+                      errors.value
+                        ? "border-red-500"
+                        : "border-gray-300 dark:border-gray-600"
+                    } rounded-md shadow-sm text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-primary-500 focus:border-primary-500`}
+                    placeholder={
+                      FIXED_SETTINGS.find((s) => s.key === formData.key)
+                        ?.placeholder || ""
+                    }
+                  />
                 )}
-                
-                {/* Champ nombre */}
-                {currentSetting && currentSetting.isNumber && (
-                  <div>
-                    <input
-                      type="number"
-                      id="value"
-                      name="value"
-                      value={formData.value}
-                      onChange={handleChange}
-                      className={`mt-1 block w-full px-3 py-2 bg-white dark:bg-gray-800 border ${
-                        errors.value
-                          ? "border-red-500"
-                          : "border-gray-300 dark:border-gray-600"
-                      } rounded-md shadow-sm text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-primary-500 focus:border-primary-500`}
-                      placeholder={currentSetting.placeholder || ""}
-                    />
-                    {errors.value && (
-                      <p className="mt-1 text-sm text-red-600 dark:text-red-400">
-                        {errors.value}
-                      </p>
-                    )}
-                  </div>
-                )}
-                
-                {/* Fallback pour tout autre type de champ */}
-                {!currentSetting && (
-                  <div>
-                    <input
-                      type="text"
-                      id="value"
-                      name="value"
-                      value={formData.value}
-                      onChange={handleChange}
-                      className={`mt-1 block w-full px-3 py-2 bg-white dark:bg-gray-800 border ${
-                        errors.value
-                          ? "border-red-500"
-                          : "border-gray-300 dark:border-gray-600"
-                      } rounded-md shadow-sm text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-primary-500 focus:border-primary-500`}
-                    />
-                    {errors.value && (
-                      <p className="mt-1 text-sm text-red-600 dark:text-red-400">
-                        {errors.value}
-                      </p>
-                    )}
-                  </div>
+                {errors.value && (
+                  <p className="mt-1 text-sm text-red-500">{errors.value}</p>
                 )}
               </div>
               <div>

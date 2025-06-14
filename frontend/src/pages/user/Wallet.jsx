@@ -105,6 +105,7 @@ export default function Wallets() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [user, setUser] = useState(null);
   const [typeFilter, setTypeFilter] = useState("all");
   const [dateFilter, setDateFilter] = useState({ startDate: "", endDate: "" });
   const [transactions, setTransactions] = useState([]);
@@ -142,7 +143,11 @@ export default function Wallets() {
     useState(false);
   const [recipientInfo, setRecipientInfo] = useState({});
   const [transferFeePercentage, setTransferFeePercentage] = useState(0);
+  const [transferCommissionPercentage, setTransferCommissionPercentage] =
+    useState(0);
   const [transferFeeAmount, setTransferFeeAmount] = useState(0);
+  const [transferCommissionAmount, setTransferCommissionAmount] = useState(0);
+  const [totalFeeAmount, setTotalFeeAmount] = useState(0);
 
   // Styles CSS pour l'ascenseur personnalisé
   const scrollbarStyles = {
@@ -236,6 +241,7 @@ export default function Wallets() {
       if (response.data.success) {
         setuserWallet(response.data.userWallet);
         setTransactions(response.data.transactions);
+        setUser(response.data.user);
       }
 
       // Récupérer les points bonus
@@ -269,33 +275,6 @@ export default function Wallets() {
         "Erreur lors du chargement de l'historique des points bonus:",
         error
       );
-    }
-  };
-
-  const fetchSendingFeePercentage = async () => {
-    try {
-      const response = await axios.get("/api/sending-fee-percentage");
-      if (response.data.success) {
-        const feePercentage = parseFloat(response.data.fee_percentage) || 0;
-        setTransferFeePercentage(feePercentage);
-
-        // Calculer les frais initiaux si un montant est déjà défini
-        if (transferData.amount && parseFloat(transferData.amount) > 0) {
-          const amount = parseFloat(transferData.amount);
-          const feeAmount = amount * (feePercentage / 100);
-          setTransferFeeAmount(feeAmount);
-        }
-
-        return feePercentage;
-      }
-      return 0;
-    } catch (error) {
-      console.error(
-        "Erreur lors de la récupération des frais de transfert:",
-        error
-      );
-      toast.error("Erreur lors de la récupération des frais de transfert");
-      return 0;
     }
   };
 
@@ -458,14 +437,33 @@ export default function Wallets() {
       password: "",
     });
 
-    // Réinitialiser le montant des frais
+    // Réinitialiser les montants des frais
     setTransferFeeAmount(0);
+    setTransferCommissionAmount(0);
+    setTotalFeeAmount(0);
 
     // Ouvrir le modal
     setShowTransferModal(true);
 
-    // Récupérer les frais de transfert
-    await fetchSendingFeePercentage();
+    // Récupérer les frais de transfert et commissions
+    try {
+      const response = await axios.get(`/api/getTransferFees`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      });
+
+      if (response.data.success) {
+        setTransferFeePercentage(response.data.fee_percentage);
+        setTransferCommissionPercentage(response.data.fee_commission);
+      }
+    } catch (error) {
+      console.error(
+        "Erreur lors de la récupération des frais de transfert:",
+        error
+      );
+      toast.error("Impossible de récupérer les frais de transfert");
+    }
   };
 
   const fetchRecipientInfo = async () => {
@@ -476,6 +474,26 @@ export default function Wallets() {
 
     if (!transferData.amount || parseFloat(transferData.amount) <= 0) {
       toast.error("Veuillez entrer un montant valide");
+      return;
+    }
+
+    if (transferData.recipient_account_id === user.account_id) {
+      toast.error("Vous ne pouvez pas vous transferer des fonds");
+      return;
+    }
+
+    const transferAmount = parseFloat(transferData.amount);
+
+    // Calculer le montant total avec les frais
+    const feeAmount = transferAmount * (transferFeePercentage / 100);
+    const commissionAmount =
+      transferAmount * (transferCommissionPercentage / 100);
+    const totalAmount = transferAmount + feeAmount + commissionAmount;
+
+    if (totalAmount > userWallet.balance) {
+      toast.error(
+        "Montant insuffisant dans votre portefeuille pour couvrir le transfert et les frais"
+      );
       return;
     }
 
@@ -506,18 +524,21 @@ export default function Wallets() {
       toast.error("Veuillez entrer votre mot de passe");
       return;
     }
-
+    n;
     setTransferLoading(true);
     try {
-      // Calculer le montant total avec les frais
-      const totalAmount = parseFloat(transferData.amount) + transferFeeAmount;
+      // Calculer le montant total avec les frais et commissions
+      const totalAmount = parseFloat(transferData.amount) + totalFeeAmount;
 
       const response = await axios.post("/api/funds-transfer", {
         recipient_account_id: transferData.recipient_account_id,
-        amount: totalAmount.toFixed(2), // Envoyer le montant total (avec frais)
+        amount: totalAmount.toFixed(2), // Envoyer le montant total (avec frais et commissions)
         original_amount: parseFloat(transferData.amount).toFixed(2), // Montant original sans frais
-        fee_amount: transferFeeAmount.toFixed(2), // Montant des frais
-        fee_percentage: transferFeePercentage, // Pourcentage des frais
+        fee_amount: transferFeeAmount.toFixed(2), // Montant des frais de transfert
+        fee_percentage: transferFeePercentage, // Pourcentage des frais de transfert
+        commission_amount: transferCommissionAmount.toFixed(2), // Montant des frais de commission
+        commission_percentage: transferCommissionPercentage, // Pourcentage des frais de commission
+        total_fee_amount: totalFeeAmount.toFixed(2), // Montant total des frais
         note: transferData.note,
         password: transferData.password,
       });
@@ -545,14 +566,40 @@ export default function Wallets() {
   }, [searchQuery, statusFilter, typeFilter, dateFilter]);
 
   useEffect(() => {
-    if (transferData.amount && transferFeePercentage > 0) {
-      const fee =
-        (parseFloat(transferData.amount) * transferFeePercentage) / 100;
-      setTransferFeeAmount(fee);
+    if (transferData.amount) {
+      const amount = parseFloat(transferData.amount);
+      if (!isNaN(amount)) {
+        // Calculer les frais de transfert
+        const fee =
+          transferFeePercentage > 0
+            ? (amount * transferFeePercentage) / 100
+            : 0;
+        setTransferFeeAmount(fee);
+
+        // Calculer les frais de commission
+        const commission =
+          transferCommissionPercentage > 0
+            ? (amount * transferCommissionPercentage) / 100
+            : 0;
+        setTransferCommissionAmount(commission);
+
+        // Calculer le total des frais
+        setTotalFeeAmount(fee + commission);
+      } else {
+        setTransferFeeAmount(0);
+        setTransferCommissionAmount(0);
+        setTotalFeeAmount(0);
+      }
     } else {
       setTransferFeeAmount(0);
+      setTransferCommissionAmount(0);
+      setTotalFeeAmount(0);
     }
-  }, [transferData.amount, transferFeePercentage]);
+  }, [
+    transferData.amount,
+    transferFeePercentage,
+    transferCommissionPercentage,
+  ]);
 
   const filteredTransactions = transactions.filter((transaction) => {
     const matchesSearch = JSON.stringify(transaction.metadata)
@@ -2388,6 +2435,8 @@ export default function Wallets() {
                             if (isNaN(value) || value < 0) {
                               setTransferData({ ...transferData, amount: "" });
                               setTransferFeeAmount(0);
+                              setTransferCommissionAmount(0);
+                              setTotalFeeAmount(0);
                             } else if (value > userWallet.balance) {
                               setTransferData({
                                 ...transferData,
@@ -2397,7 +2446,12 @@ export default function Wallets() {
                               const feeAmount =
                                 userWallet.balance *
                                 (transferFeePercentage / 100);
+                              const commissionAmount =
+                                userWallet.balance *
+                                (transferCommissionPercentage / 100);
                               setTransferFeeAmount(feeAmount);
+                              setTransferCommissionAmount(commissionAmount);
+                              setTotalFeeAmount(feeAmount + commissionAmount);
                             } else {
                               setTransferData({
                                 ...transferData,
@@ -2406,7 +2460,11 @@ export default function Wallets() {
                               // Calculer les frais pour le montant saisi
                               const feeAmount =
                                 value * (transferFeePercentage / 100);
+                              const commissionAmount =
+                                value * (transferCommissionPercentage / 100);
                               setTransferFeeAmount(feeAmount);
+                              setTransferCommissionAmount(commissionAmount);
+                              setTotalFeeAmount(feeAmount + commissionAmount);
                             }
                           }}
                           placeholder="0.00"
@@ -2428,47 +2486,68 @@ export default function Wallets() {
                       </div>
                     </div>
 
-                    {transferFeePercentage > 0 && transferData.amount && (
-                      <div
-                        className={`p-4 rounded-md shadow-sm ${
-                          isDarkMode ? "bg-gray-700/70" : "bg-gray-100"
-                        }`}
-                      >
-                        <div className="flex justify-between items-center">
-                          <span
-                            className={`${
-                              isDarkMode ? "text-gray-300" : "text-gray-700"
-                            } flex items-center`}
-                          >
-                            <FaPercent className="inline-block mr-1.5 text-amber-500 h-3 w-3" />
-                            Frais de transfert ({transferFeePercentage}%):
-                          </span>
-                          <span className="font-medium">
-                            {transferFeeAmount.toFixed(2)} USD
-                          </span>
+                    {(transferFeePercentage > 0 ||
+                      transferCommissionPercentage > 0) &&
+                      transferData.amount && (
+                        <div
+                          className={`p-4 rounded-md shadow-sm ${
+                            isDarkMode ? "bg-gray-700/70" : "bg-gray-100"
+                          }`}
+                        >
+                          {transferFeePercentage > 0 && (
+                            <div className="flex justify-between items-center mb-2">
+                              <span
+                                className={`${
+                                  isDarkMode ? "text-gray-300" : "text-gray-700"
+                                } flex items-center`}
+                              >
+                                <FaPercent className="inline-block mr-1.5 text-amber-500 h-3 w-3" />
+                                Frais de transfert ({transferFeePercentage}%):
+                              </span>
+                              <span className="font-medium">
+                                {transferFeeAmount.toFixed(2)} USD
+                              </span>
+                            </div>
+                          )}
+
+                          {transferCommissionPercentage > 0 && (
+                            <div className="flex justify-between items-center mb-2">
+                              <span
+                                className={`${
+                                  isDarkMode ? "text-gray-300" : "text-gray-700"
+                                } flex items-center`}
+                              >
+                                <FaPercent className="inline-block mr-1.5 text-blue-500 h-3 w-3" />
+                                Frais de commission (
+                                {transferCommissionPercentage}%):
+                              </span>
+                              <span className="font-medium">
+                                {transferCommissionAmount.toFixed(2)} USD
+                              </span>
+                            </div>
+                          )}
+
+                          <div className="flex justify-between items-center mt-2 pt-2 border-t border-dashed">
+                            <span
+                              className={`font-medium ${
+                                isDarkMode ? "text-gray-300" : "text-gray-800"
+                              }`}
+                            >
+                              Montant total:
+                            </span>
+                            <span
+                              className={`font-bold text-lg ${
+                                isDarkMode ? "text-green-400" : "text-green-600"
+                              }`}
+                            >
+                              {(
+                                parseFloat(transferData.amount) + totalFeeAmount
+                              ).toFixed(2)}{" "}
+                              USD
+                            </span>
+                          </div>
                         </div>
-                        <div className="flex justify-between items-center mt-2 pt-2 border-t border-dashed">
-                          <span
-                            className={`font-medium ${
-                              isDarkMode ? "text-gray-300" : "text-gray-800"
-                            }`}
-                          >
-                            Montant total:
-                          </span>
-                          <span
-                            className={`font-bold text-lg ${
-                              isDarkMode ? "text-green-400" : "text-green-600"
-                            }`}
-                          >
-                            {(
-                              parseFloat(transferData.amount) +
-                              transferFeeAmount
-                            ).toFixed(2)}{" "}
-                            USD
-                          </span>
-                        </div>
-                      </div>
-                    )}
+                      )}
 
                     <div>
                       <label
@@ -2698,7 +2777,8 @@ export default function Wallets() {
                     </ul>
                   </div>
 
-                  {transferFeePercentage > 0 && (
+                  {(transferFeePercentage > 0 ||
+                    transferCommissionPercentage > 0) && (
                     <div
                       className={`p-4 rounded-lg ${
                         isDarkMode ? "bg-gray-700/70" : "bg-gray-100"
@@ -2725,18 +2805,35 @@ export default function Wallets() {
                             {parseFloat(transferData.amount).toFixed(2)} USD
                           </span>
                         </li>
-                        <li className="flex justify-between">
-                          <span
-                            className={
-                              isDarkMode ? "text-gray-400" : "text-gray-600"
-                            }
-                          >
-                            Frais ({transferFeePercentage}%):
-                          </span>
-                          <span className="font-medium">
-                            {transferFeeAmount.toFixed(2)} USD
-                          </span>
-                        </li>
+                        {transferFeePercentage > 0 && (
+                          <li className="flex justify-between">
+                            <span
+                              className={
+                                isDarkMode ? "text-gray-400" : "text-gray-600"
+                              }
+                            >
+                              Frais de transfert ({transferFeePercentage}%):
+                            </span>
+                            <span className="font-medium">
+                              {transferFeeAmount.toFixed(2)} USD
+                            </span>
+                          </li>
+                        )}
+                        {transferCommissionPercentage > 0 && (
+                          <li className="flex justify-between">
+                            <span
+                              className={
+                                isDarkMode ? "text-gray-400" : "text-gray-600"
+                              }
+                            >
+                              Frais de commission (
+                              {transferCommissionPercentage}%):
+                            </span>
+                            <span className="font-medium">
+                              {transferCommissionAmount.toFixed(2)} USD
+                            </span>
+                          </li>
+                        )}
                         <li className="flex justify-between font-medium border-t pt-2 mt-2">
                           <span
                             className={
@@ -2751,8 +2848,7 @@ export default function Wallets() {
                             }`}
                           >
                             {(
-                              parseFloat(transferData.amount) +
-                              transferFeeAmount
+                              parseFloat(transferData.amount) + totalFeeAmount
                             ).toFixed(2)}{" "}
                             USD
                           </span>

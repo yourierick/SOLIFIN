@@ -3,6 +3,7 @@
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\DB;
 
 return new class extends Migration
 {
@@ -74,6 +75,58 @@ return new class extends Migration
                 'key' => 'purchase_commission_system',
                 'value' => '0',
                 'description' => 'Pourcentage des frais de commission système pour la vente des formations',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            // Réseaux sociaux
+            [
+                'key' => 'facebook_url',
+                'value' => '',
+                'description' => 'Lien vers la page Facebook',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
+                'key' => 'whatsapp_url',
+                'value' => '',
+                'description' => 'Lien vers WhatsApp ou numéro de contact',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
+                'key' => 'twitter_url',
+                'value' => '',
+                'description' => 'Lien vers le compte X (Twitter)',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
+                'key' => 'instagram_url',
+                'value' => '',
+                'description' => 'Lien vers le compte Instagram',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            // Documents légaux
+            [
+                'key' => 'terms_of_use',
+                'value' => '',
+                'description' => 'Conditions d\'utilisation de la plateforme',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
+                'key' => 'privacy_policy',
+                'value' => '',
+                'description' => 'Politique de confidentialité de la plateforme',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            // Photo du fondateur
+            [
+                'key' => 'founder_photo',
+                'value' => '',
+                'description' => 'URL de la photo du fondateur',
                 'created_at' => now(),
                 'updated_at' => now(),
             ],

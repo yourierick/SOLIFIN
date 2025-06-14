@@ -23,8 +23,6 @@ class TransactionFee extends Model
         'payment_type',
         'transfer_fee_percentage',
         'withdrawal_fee_percentage',
-        'fee_fixed',
-        'fee_cap',
         'is_active',
         'last_api_update',
         'api_response'
@@ -181,8 +179,6 @@ class TransactionFee extends Model
                     [
                         'transfer_fee_percentage' => $method['transfer_fee_percentage'] ?? 0,
                         'withdrawal_fee_percentage' => $method['withdrawal_fee_percentage'] ?? 0,
-                        'fee_fixed' => $method['fee_fixed'] ?? 0,
-                        'fee_cap' => $method['fee_cap'] ?? null,
                         'is_active' => $method['is_active'] ?? true,
                         'last_api_update' => now(),
                         'api_response' => $method
@@ -212,13 +208,15 @@ class TransactionFee extends Model
     {
         if ($currency === 'USD') {
             return $amount;
+        }else {
+            $amount = round($amount, 2);
         }
         
         try {
             // Récupérer le taux de conversion depuis la BD
             $exchangeRate = ExchangeRates::where('currency', "USD")->where("target_currency", $currency)->first();
             if ($exchangeRate) {
-                return $amount * $exchangeRate->rate;
+                return round($amount * $exchangeRate->rate, 2);
             }
         } catch (\Exception $e) {
             \Log::error('Erreur lors de l\'appel à l\'API de conversion: ' . $e->getMessage());

@@ -56,10 +56,6 @@ export const PAGINATION = {
 export const PAYMENT_TYPES = {
   MOBILE_MONEY: "mobile-money",
   CREDIT_CARD: "credit-card",
-  BANK_TRANSFER: "bank-transfer",
-  CASH: "cash",
-  WALLET: "wallet",
-  MONEY_TRANSFER: "money-transfer",
 };
 
 // Configuration détaillée des méthodes de paiement par type
@@ -77,14 +73,6 @@ export const PAYMENT_METHODS = {
     { id: "mastercard", name: "Mastercard" },
     { id: "american-express", name: "American Express" },
   ],
-  [PAYMENT_TYPES.WALLET]: [
-    { id: "solifin-wallet", name: "Portefeuille Solifin" },
-  ],
-  // [PAYMENT_TYPES.MONEY_TRANSFER]: [
-  //   { id: "western-union", name: "Western Union" },
-  //   { id: "moneygram", name: "MoneyGram" },
-  //   { id: "ria", name: "Ria Money Transfer" },
-  // ],
 };
 
 export default {

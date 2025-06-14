@@ -30,6 +30,8 @@ class Formation extends Model
         'price',
         'currency',
         'rejection_reason',
+        'payment_method',
+        'payment_details',
     ];
 
     /**

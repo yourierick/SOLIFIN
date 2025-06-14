@@ -44,14 +44,13 @@ class UpdateTransactionFees extends Command
                     $this->info("Nombre de moyens de paiement mis à jour: {$fees->count()}");
                     
                     $this->table(
-                        ['Moyen de paiement', 'Fournisseur', 'Frais de transfert (%)', 'Frais de retrait (%)', 'Frais d\'achat (%)'],
+                        ['Moyen de paiement', 'Fournisseur', 'Frais de transfert (%)', 'Frais de retrait (%)'],
                         $fees->map(function ($fee) {
                             return [
                                 $fee->payment_method,
                                 $fee->provider,
                                 $fee->transfer_fee_percentage,
                                 $fee->withdrawal_fee_percentage,
-                                $fee->purchase_fee_percentage
                             ];
                         })
                     );

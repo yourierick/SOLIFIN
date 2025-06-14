@@ -253,7 +253,6 @@ class WithdrawalController extends Controller
                     "frais_de_commission" => $request->referral_commission,
                     "montant_total_a_payer" => $request->total_amount,
                     "payment_details" => $request->payment_details, 
-                    "link" => "/admin/withdrawal-requests"
                 ]
             ]);
 
@@ -262,7 +261,7 @@ class WithdrawalController extends Controller
             //Géler le montant à retirer du wallet de l'utilisateur
             $wallet->withdrawFunds($request->total_amount, "withdrawal", "pending", [
                 'withdrawal_request_id' => $withdrawalRequest->id,
-                'Dévise' => $request->currency,
+                'Dévise souhaitée pour le retrait' => $request->currency,
                 'Méthode de paiement' => $request->payment_method,
                 'Montant à rétirer' => $request->amount,
                 'Pourcentage des frais' => $request->fee_percentage,
@@ -609,20 +608,14 @@ class WithdrawalController extends Controller
             // Début de la transaction DB
             DB::beginTransaction();
 
-            $transaction = $withdrawal->user->wallet->transactions()
-                ->where('type', 'withdrawal')
-                ->where('metadata->withdrawal_request_id', $id)
-                ->first();
-
-            if ($transaction) {
-                $transaction->status = 'completed';
-                $transaction->save();
-            }
-
             // Gestion du portefeuille système
             $walletSystem = WalletSystem::first();
             if (!$walletSystem) {
                 $walletSystem = WalletSystem::create(['balance' => 0]);
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Portefeuille système non trouvé, veuillez réessayer plus tard'
+                ], 404);
             }
 
             // Création d'une transaction pour les frais système si nécessaire
@@ -638,21 +631,27 @@ class WithdrawalController extends Controller
                         'Frais de transaction' => $globalFees,
                         'Pourcentage global de transaction' => $globalFeePercentage,
                         'Frais API' => $specificFees,
-                        'Description' => "frais de transaction de " . $systemFees . " $ pour le retrait d'un montant de " . $withdrawal->payment_details['montant_a_retirer'] . " $ par le compte " . $withdrawal->user->account_id, // Correction orthographique
+                        'Description' => "Frais de " . $systemFees . " $ pour le retrait d'un montant de " . $withdrawal->payment_details['montant_a_retirer'] . " $ payés par le compte " . $withdrawal->user->account_id, // Correction orthographique
                     ]
                 ]);
+            }elseif ($systemFees < 0) {
+                DB::rollBack();
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Le montant des frais de transaction est inférieur à zéro'
+                ], 400);
             }
 
             // Déduction des fonds du portefeuille système
             $walletSystem->deductFunds($withdrawal->payment_details['montant_a_retirer'], "withdrawal", "completed", [
                 "user" => $withdrawal->user->name, 
-                "Montant original" => $withdrawal->payment_details['montant_a_retirer'],
+                "Montant original" => $withdrawal->payment_details['montant_a_retirer'] . " $",
                 "Devise originale" => $withdrawal->payment_details['devise'], // Correction orthographique
                 //"taux de change" => proviendra de l'api,
                 "Frais de transaction" => $globalFees,
                 "Pourcentage global de transaction" => $globalFeePercentage,
                 "Frais API" => $specificFees,
-                "Description" => "retrait de ". $withdrawal->payment_details['montant_a_retirer'] . " $ par le compte " . $withdrawal->user->account_id,
+                "Description" => "Retrait d\'un montant de ". $withdrawal->payment_details['montant_a_retirer'] . " $ par le compte " . $withdrawal->user->account_id,
             ]);
 
             // Gestion du parrain avec vérification de l'existence du pack et du parrain
@@ -677,7 +676,7 @@ class WithdrawalController extends Controller
                         "Source" => $withdrawal->user->name,
                         "Bénéficiaire" => $sponsor->name,
                         "Montant" => $commissionFees,
-                        "Description" => "commission de ". $commissionFees . " $ pour le retrait d'un montant de ". $withdrawal->payment_details['montant_a_retirer'] ." $ par votre filleul " . $withdrawal->user->name, // Correction orthographique
+                        "Description" => "Paiement d'une commission de ". $commissionFees . " $ pour le retrait d'un montant de ". $withdrawal->payment_details['montant_a_retirer'] ." $ au compte " . $sponsor->account_id, // Correction orthographique
                     ]
                 ]);
             }
@@ -689,6 +688,16 @@ class WithdrawalController extends Controller
             $withdrawal->processed_at = now();
             $withdrawal->paid_at = now();
             $withdrawal->save();
+
+            $transaction = $withdrawal->user->wallet->transactions()
+                ->where('type', 'withdrawal')
+                ->where('metadata->withdrawal_request_id', $id)
+                ->first();
+
+            if ($transaction) {
+                $transaction->status = 'completed';
+                $transaction->save();
+            }
 
             DB::commit();
 
@@ -741,7 +750,7 @@ class WithdrawalController extends Controller
 
         $specificFees = 0;
         if ($transactionFee) {
-            $specificFees = $transactionFee->calculateWithdrawalFee($withdrawalAmount, "USD");
+            $specificFees = $transactionFee->calculateWithdrawalFee($withdrawalAmount);
         }
         
         $systemFees = $globalFees - $specificFees;
@@ -800,7 +809,7 @@ class WithdrawalController extends Controller
             $wallet->addFunds($withdrawal->amount, "remboursement", "completed", [
                 "user" => $withdrawal->user->name,
                 "Montant" => $withdrawal->amount,
-                "Description" => "remboursement de " . $withdrawal->amount . " pour le retrait d'un montant de " . $withdrawal->payment_details['montant_a_retirer'] . " par le compte " . $withdrawal->user->account_id . " qui a été rejeté",
+                "Description" => "remboursement de " . $withdrawal->amount . " pour le retrait ID: " . $withdrawal->id . " d'un montant de " . $withdrawal->payment_details['montant_a_retirer'] . " par le compte " . $withdrawal->user->account_id . " qui a été rejeté",
             ]);
 
             // Mettre à jour la transaction originale

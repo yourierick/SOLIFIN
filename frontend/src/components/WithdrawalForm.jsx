@@ -14,6 +14,18 @@ import {
   GlobeAltIcon,
   UserGroupIcon,
 } from "@heroicons/react/24/outline";
+// Import des icônes de mobile money
+import airtelIcon from "../assets/icons-mobil-money/airtel.png";
+import mpesaIcon from "../assets/icons-mobil-money/mpesa.png";
+import orangeIcon from "../assets/icons-mobil-money/orange.png";
+import africellIcon from "../assets/icons-mobil-money/afrimoney.png";
+import mtnIcon from "../assets/icons-mobil-money/mtn.png";
+import moovIcon from "../assets/icons-mobil-money/moov.png";
+
+// Import des icônes de cartes de crédit
+import visaIcon from "../assets/icons-mobil-money/visa.png";
+import mastercardIcon from "../assets/icons-mobil-money/mastercard.png";
+import amexIcon from "../assets/icons-mobil-money/americanexpress.png";
 import { CURRENCIES, PAYMENT_TYPES, PAYMENT_METHODS } from "../config";
 import { countries } from "../data/countries";
 import CountryCodeSelector from "./CountryCodeSelector";
@@ -231,12 +243,41 @@ const paymentMethodsMap = {
   [PAYMENT_TYPES.MOBILE_MONEY]: {
     name: "Mobile Money",
     icon: PhoneIcon,
-    options: PAYMENT_METHODS[PAYMENT_TYPES.MOBILE_MONEY],
+    options: PAYMENT_METHODS[PAYMENT_TYPES.MOBILE_MONEY].map((option) => {
+      // Ajouter les icônes aux options de mobile money
+      if (option.id === "airtel-money") {
+        return { ...option, icon: airtelIcon };
+      } else if (option.id === "mtn-mobile-money") {
+        // Pour MTN, on utilise une icône générique pour l'instant
+        return { ...option, icon: mtnIcon }; // Couleur jaune pour MTN
+      } else if (option.id === "moov-money") {
+        // Pour Moov, on utilise une icône générique pour l'instant
+        return { ...option, icon: moovIcon }; // Couleur bleue pour Moov
+      } else if (option.id === "afrimoney") {
+        // Pour Afrimoney, on utilise une icône générique pour l'instant
+        return { ...option, icon: africellIcon }; // Couleur verte pour Afrimoney
+      } else if (option.id === "m-pesa") {
+        return { ...option, icon: mpesaIcon };
+      } else if (option.id === "orange-money") {
+        return { ...option, icon: orangeIcon };
+      }
+      return option;
+    }),
   },
   [PAYMENT_TYPES.CREDIT_CARD]: {
     name: "Carte de crédit",
     icon: CreditCardIcon,
-    options: PAYMENT_METHODS[PAYMENT_TYPES.CREDIT_CARD],
+    options: PAYMENT_METHODS[PAYMENT_TYPES.CREDIT_CARD].map((option) => {
+      // Ajouter les icônes aux options de carte de crédit
+      if (option.id === "visa") {
+        return { ...option, icon: visaIcon };
+      } else if (option.id === "mastercard") {
+        return { ...option, icon: mastercardIcon };
+      } else if (option.id === "american-express") {
+        return { ...option, icon: amexIcon };
+      }
+      return option;
+    }),
   },
   // [PAYMENT_TYPES.MONEY_TRANSFER]: {
   //   name: "Transfert d'argent",
@@ -877,6 +918,71 @@ export default function WithdrawalForm({ walletId, walletType, onClose }) {
                   {renderPaymentMethodCards()}
                 </div>
 
+                {/* Options de paiement spécifiques */}
+                {selectedMethod && selectedMethod.options && (
+                  <div className="mb-6 slide-in">
+                    <h4
+                      className={`text-sm font-semibold uppercase tracking-wider mb-3 ${
+                        isDarkMode ? "text-gray-300" : "text-gray-700"
+                      }`}
+                    >
+                      Sélectionnez une option
+                    </h4>
+                    <div className="grid grid-cols-2 gap-3">
+                      {selectedMethod.options.map((option) => (
+                        <button
+                          key={option.id}
+                          type="button"
+                          className={`method-card flex items-center gap-3 ${
+                            selectedPaymentOption === option.id
+                              ? "selected"
+                              : ""
+                          }`}
+                          onClick={() => setSelectedPaymentOption(option.id)}
+                        >
+                          {option.icon && (
+                            <div className="w-8 h-8 flex items-center justify-center rounded-full bg-white shadow-sm">
+                              <img
+                                src={option.icon}
+                                alt={option.name}
+                                className="w-6 h-6 object-contain"
+                              />
+                            </div>
+                          )}
+                          {!option.icon && option.iconColor && (
+                            <div className="w-8 h-8 flex items-center justify-center rounded-full bg-white shadow-sm">
+                              <div
+                                className="w-6 h-6 rounded-full flex items-center justify-center"
+                                style={{
+                                  backgroundColor: option.iconColor,
+                                }}
+                              >
+                                <PhoneIcon className="w-3 h-3 text-white" />
+                              </div>
+                            </div>
+                          )}
+                          {!option.icon && !option.iconColor && (
+                            <div className="w-8 h-8 flex items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900">
+                              <PhoneIcon className="w-4 h-4 text-blue-600 dark:text-blue-300" />
+                            </div>
+                          )}
+                          <span
+                            className={`text-sm font-medium ${
+                              selectedPaymentOption === option.id
+                                ? "text-primary-500"
+                                : isDarkMode
+                                ? "text-gray-300"
+                                : "text-gray-700"
+                            }`}
+                          >
+                            {option.name}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 {/* Sélection du pays - commun à tous les types de paiement */}
                 <div className="mb-4">
                   <label className="input-label dark:text-gray-200">
@@ -979,105 +1085,6 @@ export default function WithdrawalForm({ walletId, walletType, onClose }) {
                       </div>
                     )}
 
-                    {selectedType === PAYMENT_TYPES.BANK_TRANSFER && (
-                      <div>
-                        <div className="mb-4">
-                          <label className="input-label dark:text-gray-200">
-                            Nom de la banque{" "}
-                            <span className="text-red-500">*</span>
-                          </label>
-                          <input
-                            type="text"
-                            name="bankName"
-                            value={formData.bankName}
-                            onChange={(e) =>
-                              setFormData({
-                                ...formData,
-                                bankName: e.target.value,
-                              })
-                            }
-                            placeholder="Nom de la banque"
-                            className="input-field"
-                            required
-                          />
-                        </div>
-                        <div className="mb-4">
-                          <label className="input-label dark:text-gray-200">
-                            Numéro de compte{" "}
-                            <span className="text-red-500">*</span>
-                          </label>
-                          <input
-                            type="text"
-                            name="accountNumber"
-                            value={formData.accountNumber}
-                            onChange={(e) =>
-                              setFormData({
-                                ...formData,
-                                accountNumber: e.target.value,
-                              })
-                            }
-                            placeholder="Numéro de compte"
-                            className="input-field"
-                            required
-                          />
-                        </div>
-                        <div className="mb-4">
-                          <label className="input-label dark:text-gray-200">
-                            Nom du titulaire du compte{" "}
-                            <span className="text-red-500">*</span>
-                          </label>
-                          <input
-                            type="text"
-                            name="accountName"
-                            value={formData.accountName}
-                            onChange={(e) =>
-                              setFormData({
-                                ...formData,
-                                accountName: e.target.value,
-                              })
-                            }
-                            placeholder="Nom du titulaire du compte"
-                            className="input-field"
-                            required
-                          />
-                        </div>
-                        <div className="mb-4">
-                          <label className="input-label dark:text-gray-200">
-                            Code SWIFT <span className="text-red-500">*</span>
-                          </label>
-                          <input
-                            type="text"
-                            name="swiftCode"
-                            value={formData.swiftCode}
-                            onChange={(e) =>
-                              setFormData({
-                                ...formData,
-                                swiftCode: e.target.value,
-                              })
-                            }
-                            placeholder="Code SWIFT"
-                            className="input-field"
-                            required
-                          />
-                        </div>
-                        <div className="mb-4">
-                          <label className="input-label dark:text-gray-200">
-                            IBAN
-                          </label>
-                          <input
-                            type="text"
-                            name="iban"
-                            value={formData.iban}
-                            onChange={(e) =>
-                              setFormData({ ...formData, iban: e.target.value })
-                            }
-                            placeholder="IBAN"
-                            className="input-field"
-                          />
-                        </div>
-                      </div>
-                    )}
-
                     {selectedType === PAYMENT_TYPES.CREDIT_CARD && (
                       <div>
                         <div className="mb-4">
@@ -1128,7 +1135,7 @@ export default function WithdrawalForm({ walletId, walletType, onClose }) {
                       </div>
                     )}
 
-                    {selectedType === PAYMENT_TYPES.MONEY_TRANSFER && (
+                    {/* {selectedType === PAYMENT_TYPES.MONEY_TRANSFER && (
                       <div>
                         <div className="mb-4">
                           <label className="input-label dark:text-gray-200">
@@ -1249,7 +1256,7 @@ export default function WithdrawalForm({ walletId, walletType, onClose }) {
                             )}
                         </div>
                       </div>
-                    )}
+                    )} */}
 
                     <div className="mb-4">
                       <label className="input-label dark:text-gray-200">
@@ -1308,47 +1315,6 @@ export default function WithdrawalForm({ walletId, walletType, onClose }) {
                         ))}
                       </select>
                     </div>
-
-                    {/* Options de paiement spécifiques */}
-                    {selectedMethod && selectedMethod.options && (
-                      <div className="mb-6 slide-in">
-                        <h4
-                          className={`text-sm font-semibold uppercase tracking-wider mb-3 ${
-                            isDarkMode ? "text-gray-300" : "text-gray-700"
-                          }`}
-                        >
-                          Sélectionnez une option
-                        </h4>
-                        <div className="grid grid-cols-2 gap-3">
-                          {selectedMethod.options.map((option) => (
-                            <button
-                              key={option.id}
-                              type="button"
-                              className={`method-card flex items-center gap-3 ${
-                                selectedPaymentOption === option.id
-                                  ? "selected"
-                                  : ""
-                              }`}
-                              onClick={() =>
-                                setSelectedPaymentOption(option.id)
-                              }
-                            >
-                              <span
-                                className={`text-sm font-medium ${
-                                  selectedPaymentOption === option.id
-                                    ? "text-primary-500"
-                                    : isDarkMode
-                                    ? "text-gray-300"
-                                    : "text-gray-700"
-                                }`}
-                              >
-                                {option.name}
-                              </span>
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    )}
 
                     {/* Champ de mot de passe */}
                     {selectedPaymentOption &&

@@ -71,6 +71,7 @@ import {
   Tooltip as RechartsTooltip,
   ResponsiveContainer,
   Legend,
+  Cell,
 } from "recharts";
 
 // Composant principal
@@ -589,7 +590,24 @@ const Finances = () => {
     if (!transactionStats || transactionStats.length === 0) return [];
 
     return transactionStats.map((stat) => ({
-      name: stat.type,
+      name:
+        stat.type === "purchase"
+          ? "Achat"
+          : stat.type === "transfer"
+          ? "Transfert des fonds"
+          : stat.type === "withdrawal"
+          ? "Retrait des fonds"
+          : stat.type === "reception"
+          ? "Dépôt des fonds"
+          : stat.type === "bonus"
+          ? "Bonus"
+          : stat.type === "commission de parrainage"
+          ? "Com. Parrainage"
+          : stat.type === "commission de retrait"
+          ? "Com. Retrait"
+          : stat.type === "commission de transfert"
+          ? "Com. Transfert"
+          : stat.type,
       montant: parseFloat(stat.total_amount || 0),
       count: parseInt(stat.count || 0),
     }));
@@ -992,7 +1010,8 @@ const Finances = () => {
                         transaction.type === "sale" ||
                         transaction.type === "bonus" ||
                         transaction.type === "commission de parrainage" ||
-                        transaction.type === "commission de retrait"
+                        transaction.type === "commission de retrait" ||
+                        transaction.type === "commission de transfert"
                           ? "success"
                           : transaction.type === "withdrawal" ||
                             transaction.type === "transfer" ||
@@ -1024,7 +1043,8 @@ const Finances = () => {
                         transaction.type === "sale" ||
                         transaction.type === "bonus" ||
                         transaction.type === "commission de parrainage" ||
-                        transaction.type === "commission de retrait"
+                        transaction.type === "commission de retrait" ||
+                        transaction.type === "commission de transfert"
                           ? "success.main"
                           : transaction.type === "withdrawal" ||
                             transaction.type === "transfer" ||
@@ -1038,7 +1058,8 @@ const Finances = () => {
                     transaction.type === "sale" ||
                     transaction.type === "commission de parrainage" ||
                     transaction.type === "commission de retrait" ||
-                    transaction.type === "bonus"
+                    transaction.type === "bonus" ||
+                    transaction.type === "commission de transfert"
                       ? `+${formatAmount(transaction.amount)}`
                       : transaction.type === "withdrawal" ||
                         transaction.type === "purchase" ||
@@ -1257,56 +1278,52 @@ const Finances = () => {
         return [];
       }
 
-      // Grouper les transactions par type
       const groupedByType = transactionStats.reduce((acc, stat) => {
-        const type =
-          stat.type === "reception"
-            ? "Dépôt"
-            : stat.type === "withdrawal"
-            ? "Retrait"
-            : stat.type === "transfer"
-            ? "Transfert"
-            : stat.type === "bonus"
-            ? "Bonus"
-            : stat.type === "commission de parrainage"
-            ? "Parrainage"
-            : stat.type === "commission de retrait"
-            ? "Comm. Retrait"
-            : stat.type === "purchase"
-            ? "Achat"
-            : stat.type;
+        // Simplifier les noms pour l'affichage
+        let displayName;
+        switch (stat.type) {
+          case "commission de parrainage":
+            displayName = "Parrainage";
+            break;
+          case "commission de retrait":
+          case "commission de transfert":
+            displayName = "Commission";
+            break;
+          case "withdrawal":
+            displayName = "Retrait";
+            break;
+          case "transfer":
+            displayName = "Transfert";
+            break;
+          case "purchase":
+            displayName = "Achat";
+            break;
+          case "reception":
+            displayName = "Réception";
+            break;
+          case "bonus":
+            displayName = "Bonus";
+            break;
+          default:
+            displayName = stat.type;
+        }
 
-        const isIncome = [
-          "reception",
-          "bonus",
-          "commission de parrainage",
-        ].includes(stat.type);
-        const isExpense = [
-          "withdrawal",
-          "commission de retrait",
-          "purchase",
-        ].includes(stat.type);
+        // Déterminer si c'est une dépense (rouge) ou un revenu (vert)
+        const isExpense = ["withdrawal", "transfer", "purchase"].includes(
+          stat.type
+        );
 
-        if (!acc[type]) {
-          acc[type] = {
-            name: type,
-            entrées: 0,
-            sorties: 0,
-            total: 0,
+        if (!acc[displayName]) {
+          acc[displayName] = {
+            name: displayName,
+            montant: 0,
             count: 0,
+            isExpense: isExpense,
           };
         }
 
-        if (isIncome) {
-          acc[type].entrées += parseFloat(stat.total_amount) || 0;
-        } else if (isExpense) {
-          acc[type].sorties += parseFloat(stat.total_amount) || 0;
-        } else {
-          // Pour les transferts ou autres types, on les ajoute au total
-          acc[type].total += parseFloat(stat.total_amount) || 0;
-        }
-
-        acc[type].count += parseInt(stat.count) || 0;
+        acc[displayName].montant += parseFloat(stat.total_amount) || 0;
+        acc[displayName].count += parseInt(stat.count) || 0;
         return acc;
       }, {});
 
@@ -1405,48 +1422,122 @@ const Finances = () => {
                   axisLine={{ stroke: isDarkMode ? "#4b5563" : "#9ca3af" }}
                 />
                 <RechartsTooltip
-                  contentStyle={{
-                    backgroundColor: isDarkMode ? "#1f2937" : "#fff",
-                    border: `1px solid ${isDarkMode ? "#374151" : "#e5e7eb"}`,
-                    borderRadius: "8px",
-                    boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
+                  content={({ active, payload, label }) => {
+                    if (active && payload && payload.length) {
+                      const data = payload[0].payload;
+                      const color = data.isExpense
+                        ? theme.palette.error.main
+                        : theme.palette.success.main;
+
+                      return (
+                        <div
+                          style={{
+                            backgroundColor: isDarkMode ? "#1f2937" : "#fff",
+                            border: `1px solid ${
+                              isDarkMode ? "#374151" : "#e5e7eb"
+                            }`,
+                            borderRadius: "8px",
+                            boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
+                            padding: "8px 12px",
+                          }}
+                        >
+                          <p
+                            style={{
+                              margin: "0 0 5px 0",
+                              color: isDarkMode ? "#e5e7eb" : "#374151",
+                            }}
+                          >
+                            <strong>Type:</strong> {label}
+                          </p>
+                          <p
+                            style={{
+                              margin: 0,
+                              color: color,
+                              fontWeight: "bold",
+                            }}
+                          >
+                            <strong>Montant:</strong>{" "}
+                            {formatAmount(data.montant)}
+                          </p>
+                        </div>
+                      );
+                    }
+                    return null;
                   }}
-                  formatter={(value, name) => [
-                    name === "entrées" || name === "sorties"
-                      ? formatAmount(value)
-                      : value,
-                    name === "entrées"
-                      ? "Entrées"
-                      : name === "sorties"
-                      ? "Sorties"
-                      : name,
-                  ]}
-                  labelFormatter={(label) => `Type: ${label}`}
                 />
                 <Legend
                   wrapperStyle={{ paddingTop: 10 }}
-                  formatter={(value) => (
-                    <span style={{ color: isDarkMode ? "#e5e7eb" : "#374151" }}>
-                      {value}
-                    </span>
+                  content={() => (
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "center",
+                        marginTop: 10,
+                      }}
+                    >
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          marginRight: 20,
+                        }}
+                      >
+                        <div
+                          style={{
+                            width: 12,
+                            height: 12,
+                            backgroundColor: theme.palette.success.main,
+                            marginRight: 5,
+                          }}
+                        ></div>
+                        <span
+                          style={{
+                            color: isDarkMode ? "#e5e7eb" : "#374151",
+                            fontSize: 12,
+                          }}
+                        >
+                          Revenus
+                        </span>
+                      </div>
+                      <div style={{ display: "flex", alignItems: "center" }}>
+                        <div
+                          style={{
+                            width: 12,
+                            height: 12,
+                            backgroundColor: theme.palette.error.main,
+                            marginRight: 5,
+                          }}
+                        ></div>
+                        <span
+                          style={{
+                            color: isDarkMode ? "#e5e7eb" : "#374151",
+                            fontSize: 12,
+                          }}
+                        >
+                          Dépenses
+                        </span>
+                      </div>
+                    </div>
                   )}
                 />
                 <Bar
-                  dataKey="entrées"
-                  name="Entrées"
-                  fill={theme.palette.success.main}
+                  dataKey="montant"
+                  name="montant"
                   radius={[4, 4, 0, 0]}
                   animationDuration={1500}
                   animationEasing="ease-in-out"
-                />
-                <Bar
-                  dataKey="sorties"
-                  name="Sorties"
-                  fill={theme.palette.error.main}
-                  radius={[4, 4, 0, 0]}
-                  animationDuration={1500}
-                  animationEasing="ease-in-out"
-                />
+                >
+                  {transactionChartData.map((entry, index) => (
+                    <Cell
+                      key={`cell-${index}`}
+                      fill={
+                        entry.isExpense
+                          ? theme.palette.error.main
+                          : theme.palette.success.main
+                      }
+                    />
+                  ))}
+                </Bar>
               </BarChart>
             </ResponsiveContainer>
           )}

@@ -1,7 +1,8 @@
 import { motion } from "framer-motion";
 import { useTheme } from "../contexts/ThemeContext";
+import PropTypes from "prop-types";
 
-export default function Founder() {
+export default function Founder({ founderPhoto = "", isLoading = false, error = null }) {
   const { isDarkMode } = useTheme();
 
   return (
@@ -18,12 +19,26 @@ export default function Founder() {
             transition={{ duration: 0.5 }}
             className="relative"
           >
-            <div className="aspect-w-4 aspect-h-5">
-              <img
-                src="/img/testimonials/patrick.png"
-                alt="Fondateur de SOLIFIN"
-                className="object-cover rounded-2xl shadow-2xl"
-              />
+            <div className="w-64 h-80 mx-auto md:mx-0">
+              {isLoading ? (
+                <div className="flex items-center justify-center h-full w-full bg-gray-200 dark:bg-gray-700 rounded-lg">
+                  <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-600"></div>
+                </div>
+              ) : error ? (
+                <div className="flex items-center justify-center h-full w-full bg-gray-200 dark:bg-gray-700 rounded-lg">
+                  <p className="text-gray-500 dark:text-gray-400 text-center p-4">{error}</p>
+                </div>
+              ) : (
+                <img
+                  src={founderPhoto || "/img/testimonials/patrick.png"}
+                  alt="Fondateur de SOLIFIN"
+                  className="object-cover rounded-lg shadow-2xl w-full h-full"
+                  onError={(e) => {
+                    console.error("Erreur de chargement de l'image");
+                    e.target.src = "/img/testimonials/patrick.png";
+                  }}
+                />
+              )}
             </div>
             <motion.div
               initial={{ opacity: 0, scale: 0.8 }}
@@ -164,3 +179,9 @@ export default function Founder() {
     </section>
   );
 }
+
+Founder.propTypes = {
+  founderPhoto: PropTypes.string,
+  isLoading: PropTypes.bool,
+  error: PropTypes.string
+};

@@ -7,40 +7,43 @@ use App\Models\TransactionFee;
 use App\Models\Setting;
 use Illuminate\Http\Request;
 use App\Models\ExchangeRates;
+use Illuminate\Support\Facades\Auth;
 
 class TransactionFeeApiController extends Controller
 {
     /**
-     * Récupère les frais de transaction pour un moyen de paiement spécifique.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @return \Illuminate\Http\Response
+     * Récupère les frais depuis les paramètres du système pour le transfert d'argent entre wallets
+     * 
+     * @return \Illuminate\Http\JsonResponse
      */
-    // public function getFeesForPaymentMethod(Request $request)
-    // {
-    //     $paymentMethod = $request->input('payment_method');
+    public function getFeesForSolifinMoneyTransfer()
+    {
+        $feePercentage = \App\Models\Setting::where('key', 'transfer_fee_percentage')->first();
+        $feeCommission = \App\Models\Setting::where('key', 'transfer_commission')->first();
+        $user = Auth::user();
+        if (!$feePercentage) {
+            // Valeur par défaut si le paramètre n'existe pas
+            $feePercentage = 0;
+        } else {
+            $feePercentage = floatval($feePercentage->value);
+        }
+
+        if (!$feeCommission) {
+            $feeCommission = 0;
+        }else {
+            if ($user->is_admin) {
+                $feeCommission = floatval(0);
+            }else {
+                $feeCommission = floatval($feeCommission->value);
+            }
+        }
         
-    //     if (!$paymentMethod) {
-    //         return response()->json([
-    //             'status' => 'error',
-    //             'message' => 'Le paramètre payment_method est requis'
-    //         ], 400);
-    //     }
-        
-    //     $transactionFee = TransactionFee::getFeesForPaymentMethod($paymentMethod);
-        
-    //     if (!$transactionFee) {
-    //         return response()->json([
-    //             'status' => 'error',
-    //             'message' => 'Aucun frais de transaction trouvé pour ce moyen de paiement'
-    //         ], 404);
-    //     }
-        
-    //     return response()->json([
-    //         'status' => 'success',
-    //         'data' => $transactionFee
-    //     ]);
-    // }
+        return response()->json([
+            'success' => true,
+            'fee_percentage' => $feePercentage,
+            'fee_commission' => $feeCommission
+        ]);
+    }
     
     /**
      * Calcule les frais d'achat pour un montant donné.

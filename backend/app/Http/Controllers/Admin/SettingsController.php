@@ -13,12 +13,26 @@ class SettingsController extends Controller
      * Les clés de paramètres autorisées
      */
     protected $allowedKeys = [
+        // Paramètres financiers
         'withdrawal_commission',
         'boost_price',
         'withdrawal_fee_percentage',
         'sending_fee_percentage',
         'transfer_fee_percentage',
         'purchase_fee_percentage',
+        
+        // Réseaux sociaux
+        'facebook_url',
+        'whatsapp_url',
+        'twitter_url',
+        'instagram_url',
+        
+        // Documents légaux
+        'terms_of_use',
+        'privacy_policy',
+        
+        // Photo du fondateur
+        'founder_photo',
     ];
 
     /**
@@ -137,6 +151,88 @@ class SettingsController extends Controller
     }
 
     /**
+     * Télécharge une image pour un paramètre spécifique.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @param  string  $key
+     * @return \Illuminate\Http\Response
+     */
+    public function uploadImage(Request $request, $key)
+    {
+        // Vérifier si la clé est autorisée
+        if (!in_array($key, $this->allowedKeys)) {
+            return response()->json(['success' => false, 'message' => 'Clé de paramètre non autorisée.'], 400);
+        }
+
+        // Valider la requête
+        $validator = Validator::make($request->all(), [
+            'file' => 'required|image|mimes:jpeg,jpg,png|max:2048', // Max 2MB
+            'description' => 'required|string'
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['success' => false, 'errors' => $validator->errors()], 422);
+        }
+
+        try {
+            // Traiter le fichier
+            if ($request->hasFile('file')) {
+                $file = $request->file('file');
+                $fileName = $key . '_' . time() . '.' . $file->getClientOriginalExtension();
+                
+                // Stocker le fichier dans le disque public
+                $path = 'uploads/settings';
+                $fileUrl = $file->store($path, 'public');
+                
+                // Créer l'URL relative pour accéder à l'image
+                if (!$fileUrl) {
+                    throw new \Exception('Erreur lors de l\'enregistrement du fichier');
+                }
+                
+                // Mettre à jour ou créer le paramètre
+                $setting = Setting::where('key', $key)->first();
+                
+                if (!$setting) {
+                    $setting = Setting::create([
+                        'key' => $key,
+                        'value' => $fileUrl,
+                        'description' => $request->description
+                    ]);
+                    return response()->json([
+                        'success' => true, 
+                        'message' => 'Image téléchargée et paramètre créé avec succès.', 
+                        'setting' => $setting
+                    ], 201);
+                }
+                
+                // Supprimer l'ancienne image si elle existe
+                $oldImagePath = $setting->value;
+                if ($oldImagePath && !str_starts_with($oldImagePath, 'http')) {
+                    // Si c'est un chemin stocké dans le disque public
+                    if (\Illuminate\Support\Facades\Storage::disk('public')->exists($oldImagePath)) {
+                        \Illuminate\Support\Facades\Storage::disk('public')->delete($oldImagePath);
+                    }
+                }
+                
+                $setting->value = $fileUrl;
+                $setting->description = $request->description;
+                $setting->save();
+                
+                return response()->json([
+                    'success' => true, 
+                    'message' => 'Image téléchargée et paramètre mis à jour avec succès.', 
+                    'setting' => $setting
+                ]);
+            }
+            
+            return response()->json(['success' => false, 'message' => 'Aucun fichier trouvé.'], 400);
+            
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'message' => 'Erreur lors du téléchargement: ' . $e->getMessage()], 500);
+        }
+    }
+
+    /**
      * Récupère tous les paramètres.
      * 
      * Conservé pour compatibilité avec le frontend.
@@ -146,6 +242,14 @@ class SettingsController extends Controller
     public function index()
     {
         $settings = Setting::all();
+        foreach ($settings as $setting) {
+            if ($setting->key == 'founder_photo' && $setting->value) {
+                // Vérifier si l'URL est déjà complète
+                if (!str_starts_with($setting->value, 'http')) {
+                    $setting->value = asset("storage/" . $setting->value);
+                }
+            }
+        }
         return response()->json([
             'success' => true,
             'settings' => $settings

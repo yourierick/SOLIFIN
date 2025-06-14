@@ -38,8 +38,6 @@ class TransactionFeeController extends Controller
             'payment_type' => 'required|string|max:255',
             'transfer_fee_percentage' => 'required|numeric|min:0|max:100',
             'withdrawal_fee_percentage' => 'required|numeric|min:0|max:100',
-            'fee_fixed' => 'required|numeric|min:0',
-            'fee_cap' => 'nullable|numeric|min:0',
             'is_active' => 'boolean'
         ]);
 
@@ -59,8 +57,6 @@ class TransactionFeeController extends Controller
                 'payment_type' => $request->payment_type,
                 'transfer_fee_percentage' => $request->transfer_fee_percentage,
                 'withdrawal_fee_percentage' => $request->withdrawal_fee_percentage,
-                'fee_fixed' => $request->fee_fixed,
-                'fee_cap' => $request->fee_cap,
                 'is_active' => $request->is_active ?? true
             ]);
 
@@ -124,8 +120,6 @@ class TransactionFeeController extends Controller
             'payment_type' => 'required|string|max:255',
             'transfer_fee_percentage' => 'required|numeric|min:0|max:100',
             'withdrawal_fee_percentage' => 'required|numeric|min:0|max:100',
-            'fee_fixed' => 'required|numeric|min:0',
-            'fee_cap' => 'nullable|numeric|min:0',
             'is_active' => 'boolean'
         ]);
 
@@ -142,8 +136,6 @@ class TransactionFeeController extends Controller
                 'payment_type' => $request->payment_type,
                 'transfer_fee_percentage' => $request->transfer_fee_percentage,
                 'withdrawal_fee_percentage' => $request->withdrawal_fee_percentage,
-                'fee_fixed' => $request->fee_fixed,
-                'fee_cap' => $request->fee_cap,
                 'is_active' => $request->is_active ?? $transactionFee->is_active
             ]);
 

@@ -61,6 +61,8 @@ const PUBLIC_ROUTES = [
   "/reset-password",
   "/verification-success",
   "/verification-error",
+  "/legal/terms_of_use",
+  "/legal/privacy_policy",
 ];
 
 // Durée d'inactivité avant expiration de session (en millisecondes)
@@ -113,7 +115,8 @@ export const AuthProvider = ({ children }) => {
         if (
           currentPath === "/" ||
           currentPath === "/register" ||
-          (currentPath === "/register" && hasReferralCode)
+          (currentPath === "/register" && hasReferralCode) ||
+          PUBLIC_ROUTES.includes(currentPath)
         ) {
           setLoading(false);
           return;

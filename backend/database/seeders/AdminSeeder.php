@@ -33,7 +33,7 @@ class AdminSeeder extends Seeder
         ]);
 
         do {
-            $account_id = 'ADM-' . rand(1, 100) . "-" . Str::random(4);
+            $account_id = 'ADM-' . rand(1, 100) . "-" . strtoupper(Str::random(4));
         } while (User::where('account_id', $account_id)->exists());
 
         $admin->account_id = $account_id;

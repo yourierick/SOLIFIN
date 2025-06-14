@@ -103,7 +103,7 @@ const fallbackCategories = [
   },
 ];
 
-export default function FAQ() {
+export default function FAQ({ whatsappUrl = "https://wa.me/33600000000" }) {
   const [faqs, setFaqs] = useState(fallbackFaqs);
   const [categories, setCategories] = useState(fallbackCategories);
   const [activeIndex, setActiveIndex] = useState(null);
@@ -497,14 +497,16 @@ export default function FAQ() {
           <p className={isDarkMode ? "text-gray-400" : "text-gray-500"}>
             Vous ne trouvez pas la réponse que vous cherchez ?{" "}
             <a
-              href="#contact"
+              href={whatsappUrl}
+              target="_blank"
+              rel="noopener noreferrer"
               className={`font-medium ${
                 isDarkMode
                   ? "text-primary-400 hover:text-primary-300"
                   : "text-primary-600 hover:text-primary-700"
               }`}
             >
-              Contactez-nous
+              Contactez-nous sur WhatsApp
             </a>
           </p>
         </motion.div>

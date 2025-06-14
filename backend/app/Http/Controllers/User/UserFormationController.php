@@ -482,7 +482,7 @@ class UserFormationController extends Controller
      */
     public function getPurchaseFeePercentage()
     {
-        $feePercentage = \App\Models\Setting::where('key', 'purchase_fee_percentage')->first();
+        $feePercentage = \App\Models\Setting::where('key', 'purchase_commission_system')->first();
         
         if (!$feePercentage) {
             // Valeur par défaut si le paramètre n'existe pas
@@ -572,7 +572,7 @@ class UserFormationController extends Controller
             }
 
             $formationPrice = $formation->price;
-            $feePercentage = \App\Models\Setting::where('key', 'purchase_fee_percentage')->first();
+            $feePercentage = \App\Models\Setting::where('key', 'purchase_commission_system')->first();
             if (!$feePercentage) {
                 $purchaseFeePercentage = 0;
             } else {
@@ -604,18 +604,25 @@ class UserFormationController extends Controller
                     "total_out" => 0,
                 ]);
             }
-            $walletsystem->addFunds($fees, "frais d achat", "completed", [
-                "user" => $user->name, 
-                "Opération" => "Achat de formation", 
-                "Méthode de paiement" => "SOLIFIN WALLET",
-                "Type de paiement" => "Achat direct",
-                "Titre de la formation" => $formation->title, 
-                "Auteur" => $formation->creator->name,
-                "Prix de la formation" => $formation->price . "$", 
-                "Frais" => $fees . "$",
+
+            $walletsystem->transactions()->create([
+                "wallet_system_id" => $walletsystem->id,
+                "type" => "frais d achat",
+                "amount" => $fees,
+                "status" => "completed",
+                "metadata" => [
+                    "user" => $user->name, 
+                    "Opération" => "Achat de formation", 
+                    "Méthode de paiement" => "SOLIFIN WALLET",
+                    "Type de paiement" => "Achat direct",
+                    "Titre de la formation" => $formation->title, 
+                    "Auteur" => $formation->creator->name,
+                    "Prix de la formation" => $formation->price . "$", 
+                    "Frais" => $fees . "$",
+                ]
             ]);
             
-            // Créer l'achat (en attente de paiement)
+            // Créer l'achat
             $purchase = FormationPurchase::create([
                 'user_id' => $user->id,
                 'formation_id' => $formation->id,

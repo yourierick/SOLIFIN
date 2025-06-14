@@ -42,6 +42,9 @@ Route::get('/testimonials/approved', [App\Http\Controllers\TestimonialController
 // Route pour les statistiques publiques
 Route::get('/stats/home', [App\Http\Controllers\StatsController::class, 'getHomeStats']);
 
+//Récupération des paramètres publics
+Route::get('/settings/load', [App\Http\Controllers\HomeController::class, 'getSettings']);
+
 // Routes pour le système de FAQ
 Route::get('/faqs', [App\Http\Controllers\FaqController::class, 'index']);
 Route::get('/faq/categories', [App\Http\Controllers\FaqController::class, 'getCategories']);
@@ -366,6 +369,10 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
         Route::delete('/{id}/like', [App\Http\Controllers\SocialEventController::class, 'unlike']);
         Route::post('/{id}/share', [App\Http\Controllers\SocialEventController::class, 'share']);
     });
+
+    //Route pour récupérer les frais de transfert entre wallet
+    Route::get('/getTransferFees', [App\Http\Controllers\Api\TransactionFeeApiController::class, 'getFeesForSolifinMoneyTransfer']);
+    
     Route::post('/funds-transfer', [App\Http\Controllers\User\WalletUserController::class, 'funds_transfer']);
     Route::get('/recipient-info/{account_id}', [App\Http\Controllers\User\WalletUserController::class, 'getRecipientInfo']);
     Route::get('/sending-fee-percentage', [App\Http\Controllers\User\WalletUserController::class, 'getSendingFeePercentage']);
@@ -638,6 +645,7 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function ()
         Route::get('/settings', [\App\Http\Controllers\Admin\SettingsController::class, 'index']);
         Route::get('/settings/key/{key}', [\App\Http\Controllers\Admin\SettingsController::class, 'getByKey']);
         Route::put('/settings/key/{key}', [\App\Http\Controllers\Admin\SettingsController::class, 'updateByKey']);
+        Route::post('/settings/upload/{key}', [\App\Http\Controllers\Admin\SettingsController::class, 'uploadImage']);
     
         Route::prefix('/roles')->group(function () {    
             Route::get('/', [\App\Http\Controllers\RoleController::class, 'index']);

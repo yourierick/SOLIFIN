@@ -201,7 +201,7 @@ const PurchaseFormationModal = ({
                 sx={{ display: "flex", justifyContent: "space-between", mb: 1 }}
               >
                 <Typography variant="body2">
-                  Frais de transaction ({feePercentage}%):
+                  Frais de commodité ({feePercentage}%):
                 </Typography>
                 <Typography variant="body2">
                   ${calculateFees().toFixed(2)}

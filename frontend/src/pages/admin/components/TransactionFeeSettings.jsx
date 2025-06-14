@@ -422,39 +422,6 @@ const TransactionFeeSettings = () => {
           required
         />
       </Grid>
-      <Grid item xs={12} sm={6}>
-        <TextField
-          label="Frais fixes"
-          type="number"
-          fullWidth
-          value={currentFee.fee_fixed}
-          onChange={(e) =>
-            setCurrentFee({
-              ...currentFee,
-              fee_fixed: parseFloat(e.target.value),
-            })
-          }
-          inputProps={{ min: 0, step: 0.01 }}
-          required
-          helperText="Montant minimum des frais appliqués"
-        />
-      </Grid>
-      <Grid item xs={12} sm={6}>
-        <TextField
-          label="Plafond des frais"
-          type="number"
-          fullWidth
-          value={currentFee.fee_cap}
-          onChange={(e) =>
-            setCurrentFee({
-              ...currentFee,
-              fee_cap: e.target.value ? parseFloat(e.target.value) : "",
-            })
-          }
-          inputProps={{ min: 0, step: 0.01 }}
-          helperText="Montant maximum des frais (laisser vide pour aucun plafond)"
-        />
-      </Grid>
       <Grid item xs={12}>
         <FormControlLabel
           control={
@@ -494,12 +461,6 @@ const TransactionFeeSettings = () => {
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                 Frais de retrait (%)
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                Frais fixe ($)
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                Plafond ($)
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                 Statut
@@ -542,12 +503,6 @@ const TransactionFeeSettings = () => {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">
                     {fee.withdrawal_fee_percentage}%
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">
-                    {fee.fee_fixed} $
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">
-                    {fee.fee_cap || "-"} $
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">
                     {fee.is_active ? (
