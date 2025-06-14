@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use Illuminate\Http\Request;
 use App\Models\User;
+use Illuminate\Support\Facades\Password;
 
 // Mettre la route de vérification d'email en dehors des groupes de middleware
 Route::get('/email/verify/{id}/{hash}', function (Request $request, $id) {
@@ -31,3 +32,31 @@ Route::get('/email/resend-verification/{email}', function ($email) {
     
     return redirect(env('FRONTEND_URL', 'http://localhost:5173') . '/login?verification=sent');
 })->middleware(['throttle:6,1'])->name('verification.resend');
+
+// Routes pour la réinitialisation de mot de passe
+Route::get('/reset-password/{token}', function (string $token, Request $request) {
+    return redirect(env('FRONTEND_URL', 'http://localhost:5173') . '/reset-password/' . $token . '?email=' . $request->email);
+})->middleware('guest')->name('password.reset');
+
+Route::post('/reset-password', function (Request $request) {
+    $request->validate([
+        'token' => 'required',
+        'email' => 'required|email',
+        'password' => 'required|min:8|confirmed',
+    ]);
+
+    $status = Password::reset(
+        $request->only('email', 'password', 'password_confirmation', 'token'),
+        function (\App\Models\User $user, string $password) {
+            $user->forceFill([
+                'password' => \Illuminate\Support\Facades\Hash::make($password)
+            ]);
+
+            $user->save();
+        }
+    );
+
+    return $status === Password::PASSWORD_RESET
+                ? redirect(env('FRONTEND_URL', 'http://localhost:5173') . '/login?reset=success')
+                : back()->withErrors(['email' => [__($status)]]);
+})->middleware('guest')->name('password.update');

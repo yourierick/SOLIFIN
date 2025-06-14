@@ -65,6 +65,21 @@ const PUBLIC_ROUTES = [
   "/legal/privacy_policy",
 ];
 
+// Fonction pour vérifier si une route est publique, y compris les routes dynamiques comme reset-password avec token
+const isPublicRoute = (path) => {
+  // Vérification exacte pour les routes statiques
+  if (PUBLIC_ROUTES.includes(path)) {
+    return true;
+  }
+
+  // Vérification pour reset-password avec token (format: /reset-password/[token])
+  if (path.startsWith("/reset-password/")) {
+    return true;
+  }
+
+  return false;
+};
+
 // Durée d'inactivité avant expiration de session (en millisecondes)
 const SESSION_TIMEOUT = 10 * 60 * 1000; // 10 minutes
 
@@ -109,14 +124,15 @@ export const AuthProvider = ({ children }) => {
         const currentPath = window.location.pathname;
         const queryParams = new URLSearchParams(window.location.search);
         const hasReferralCode = queryParams.has("referral_code");
-        const isPublicRoute = PUBLIC_ROUTES.includes(currentPath);
+        // Utiliser la nouvelle fonction isPublicRoute pour vérifier les routes dynamiques
+        const isPublicRoutePath = isPublicRoute(currentPath);
 
         // Ignorer la vérification d'authentification pour la page d'accueil et la page d'inscription avec un code de parrainage
         if (
           currentPath === "/" ||
           currentPath === "/register" ||
           (currentPath === "/register" && hasReferralCode) ||
-          PUBLIC_ROUTES.includes(currentPath)
+          isPublicRoutePath
         ) {
           setLoading(false);
           return;
@@ -126,7 +142,7 @@ export const AuthProvider = ({ children }) => {
         isAuthenticatedRef.current = isAuthenticated;
 
         // Si l'utilisateur n'est pas authentifié et tente d'accéder à une route non publique
-        if (!isAuthenticated && !isPublicRoute) {
+        if (!isAuthenticated && !isPublicRoutePath) {
           // Rediriger vers la page de connexion
           navigate("/login", { replace: true });
         }
@@ -465,15 +481,39 @@ export const AuthProvider = ({ children }) => {
 
   const requestPasswordReset = async (email) => {
     try {
-      const response = await axios.post("/api/forgot-password", { email });
+      const response = await axios.post("/api/auth/forgot-password", { email });
       return {
         success: true,
         message: response.data.message,
       };
     } catch (error) {
+      // Gestion spécifique pour l'erreur 404 (utilisateur non trouvé)
+      if (error.response?.status === 404) {
+        return {
+          success: false,
+          error: "Aucun compte n'est associé à cette adresse email.",
+          errorType: "user_not_found",
+        };
+      }
+
+      // Vérifier si l'erreur est due à la limitation de fréquence (throttling)
+      const errorMessage = error.response?.data?.error || "";
+      if (errorMessage.includes("passwords.throttled")) {
+        return {
+          success: false,
+          error:
+            "Vous avez déjà demandé un lien de réinitialisation récemment.",
+          errorType: "throttled",
+          hint: "Veuillez attendre une minute avant de réessayer ou vérifiez votre boîte de réception.",
+        };
+      }
+
       return {
         success: false,
-        error: error.response?.data?.message || "Une erreur est survenue",
+        error:
+          error.response?.data?.error ||
+          "Une erreur est survenue lors de la demande de réinitialisation.",
+        errorType: "general_error",
       };
     }
   };
@@ -485,7 +525,7 @@ export const AuthProvider = ({ children }) => {
     password_confirmation
   ) => {
     try {
-      const response = await axios.post("/api/reset-password", {
+      const response = await axios.post("/api/auth/reset-password", {
         token,
         email,
         password,

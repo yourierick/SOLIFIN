@@ -22,14 +22,23 @@ export default function ForgotPassword() {
     if (result.success) {
       setStatus({
         type: 'success',
-        message: result.message
+        message: result.message || 'Un lien de réinitialisation a été envoyé à votre adresse email.'
       });
       setEmail('');
     } else {
-      setStatus({
-        type: 'error',
-        message: result.error
-      });
+      // Afficher un message d'erreur adapté selon le type d'erreur
+      if (result.errorType === 'user_not_found') {
+        setStatus({
+          type: 'error',
+          message: result.error,
+          hint: 'Vérifiez que vous avez saisi la bonne adresse email ou inscrivez-vous si vous n\'avez pas encore de compte.'
+        });
+      } else {
+        setStatus({
+          type: 'error',
+          message: result.error
+        });
+      }
     }
     
     setLoading(false);
@@ -68,6 +77,11 @@ export default function ForgotPassword() {
             <p className={status.type === 'success' ? 'text-green-500' : 'text-red-500'}>
               {status.message}
             </p>
+            {status.hint && (
+              <p className={`mt-1 text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                {status.hint}
+              </p>
+            )}
           </motion.div>
         )}
 
