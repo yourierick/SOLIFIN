@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
 import {
   Container,
   Grid,
@@ -7,11 +7,11 @@ import {
   CardActions,
   Typography,
   Button,
-  CircularProgress
-} from '@mui/material';
-import { useToast } from '../contexts/ToastContext';
-import PurchasePackForm from '../components/PurchasePackForm';
-import axios from '../utils/axios';
+  CircularProgress,
+} from "@mui/material";
+import { useToast } from "../contexts/ToastContext";
+import PurchasePackForm from "../components/PurchasePackForm";
+import axios from "../utils/axios";
 
 const Packs = () => {
   const { toast } = useToast();
@@ -23,13 +23,13 @@ const Packs = () => {
   useEffect(() => {
     const fetchPacks = async () => {
       try {
-        const response = await axios.get('/api/packs');
+        const response = await axios.get("/api/packs");
         if (response.data.success) {
-          setPacks(response.data.data.filter(pack => pack.status));
+          setPacks(response.data.data.filter((pack) => pack.status));
         }
       } catch (error) {
-        console.error('Erreur lors de la récupération des packs:', error);
-        toast.error('Impossible de charger les packs disponibles');
+        console.error("Erreur lors de la récupération des packs:", error);
+        toast.error("Impossible de charger les packs disponibles");
       } finally {
         setLoading(false);
       }
@@ -50,7 +50,7 @@ const Packs = () => {
 
   if (loading) {
     return (
-      <Container sx={{ mt: 4, display: 'flex', justifyContent: 'center' }}>
+      <Container sx={{ mt: 4, display: "flex", justifyContent: "center" }}>
         <CircularProgress />
       </Container>
     );
@@ -63,7 +63,7 @@ const Packs = () => {
       </Typography>
 
       <Grid container spacing={3}>
-        {packs.map(pack => (
+        {packs.map((pack) => (
           <Grid item xs={12} sm={6} md={4} key={pack.id}>
             <Card>
               <CardContent>
@@ -71,7 +71,7 @@ const Packs = () => {
                   {pack.name}
                 </Typography>
                 <Typography variant="h6" color="primary" gutterBottom>
-                  {pack.price}€/mois
+                  {pack.price}$/{pack.abonnement}
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
                   {pack.description}
@@ -80,9 +80,7 @@ const Packs = () => {
                   <ul>
                     {pack.avantages.map((avantage, index) => (
                       <li key={index}>
-                        <Typography variant="body2">
-                          {avantage}
-                        </Typography>
+                        <Typography variant="body2">{avantage}</Typography>
                       </li>
                     ))}
                   </ul>

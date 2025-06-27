@@ -172,14 +172,14 @@ const RoueDeLaChanceModal = ({ open, onClose, jeton, onResult }) => {
     // Restaurer le contexte (annuler la rotation)
     ctx.restore();
 
-    // Dessiner la flèche (en dehors de la rotation)
-    ctx.beginPath();
-    ctx.moveTo(centerX + radius + 10, centerY);
-    ctx.lineTo(centerX + radius - 10, centerY - 15);
-    ctx.lineTo(centerX + radius - 10, centerY + 15);
-    ctx.closePath();
-    ctx.fillStyle = "#FF0000";
-    ctx.fill();
+    // Flèche de la roue désactivée
+    // ctx.beginPath();
+    // ctx.moveTo(centerX + radius + 10, centerY);
+    // ctx.lineTo(centerX + radius - 10, centerY - 15);
+    // ctx.lineTo(centerX + radius - 10, centerY + 15);
+    // ctx.closePath();
+    // ctx.fillStyle = "#FF0000";
+    // ctx.fill();
   };
 
   // Faire tourner la roue

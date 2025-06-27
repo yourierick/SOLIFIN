@@ -78,8 +78,7 @@ import NotificationsDropdown from "../components/NotificationsDropdown";
 
 const navigation = [
   { name: "Tableau de bord", href: "/dashboard", icon: HomeIcon },
-  { name: "Mon profil", href: "/dashboard/profile", icon: UserIcon },
-  { name: "Portefeuille", href: "/dashboard/wallet", icon: WalletIcon },
+  // { name: "Portefeuille", href: "/dashboard/wallet", icon: WalletIcon },
   { name: "Mes finances", href: "/dashboard/finances", icon: BanknotesIcon },
   { name: "Mes packs", href: "/dashboard/packs/:id", icon: CubeIcon },
   {
@@ -87,7 +86,7 @@ const navigation = [
     href: "/dashboard/invitations",
     icon: UserPlusIcon,
   },
-  { name: "Jetons Esengo", href: "/dashboard/jetons-esengo", icon: GiftIcon },
+  // { name: "Jetons Esengo", href: "/dashboard/jetons-esengo", icon: GiftIcon },
   { name: "Mes statistiques", href: "/dashboard/stats", icon: ChartBarIcon },
   {
     name: "Fil d'actualités",
@@ -96,7 +95,7 @@ const navigation = [
   },
   { name: "Ma page", href: "/dashboard/my-page", icon: BuildingOfficeIcon },
   { name: "Social", href: "/dashboard/social", icon: ChatBubbleLeftRightIcon },
-  { name: "Formations", href: "/dashboard/formations", icon: AcademicCapIcon },
+  // { name: "Formations", href: "/dashboard/formations", icon: AcademicCapIcon },
   { name: "FAQ", href: "/dashboard/faq", icon: QuestionMarkCircleIcon },
 ];
 
@@ -106,10 +105,12 @@ export default function UserDashboardLayout() {
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const dropdownRef = useRef(null);
   const sidebarRef = useRef(null);
+  const [sidebarHover, setSidebarHover] = useState(false);
   const [sidebarStyle, setSidebarStyle] = useState({
     overflowY: "auto",
     scrollbarWidth: "none",
     msOverflowStyle: "none",
+    WebkitScrollbar: { display: "none" },
   });
   const [showTooltip, setShowTooltip] = useState(null);
   const [tooltipPosition, setTooltipPosition] = useState({ top: 0, left: 0 });
@@ -121,27 +122,40 @@ export default function UserDashboardLayout() {
   useEffect(() => {
     const styleEl = document.createElement("style");
     styleEl.textContent = `
-      .custom-scrollbar::-webkit-scrollbar {
-        width: 8px;
+      /* Style pour la barre de défilement - caché par défaut */
+      .sidebar-container::-webkit-scrollbar {
+        width: 5px;
+        height: 0; /* Masquer la barre de défilement horizontale */
+        background-color: transparent;
+        display: none;
       }
-      .custom-scrollbar::-webkit-scrollbar-track {
-        background: ${
-          isDarkMode ? "rgba(55, 65, 81, 0.3)" : "rgba(229, 231, 235, 0.5)"
-        };
+      
+      /* Style pour la barre de défilement au survol */
+      .sidebar-container:hover::-webkit-scrollbar {
+        width: 5px;
+        height: 0; /* Toujours masquer la barre horizontale même au survol */
+        display: block;
+      }
+      
+      /* Style du thumb (la partie mobile de la scrollbar) */
+      .sidebar-container::-webkit-scrollbar-thumb {
+        background-color: rgba(156, 163, 175, 0.5);
         border-radius: 10px;
       }
-      .custom-scrollbar::-webkit-scrollbar-thumb {
-        background-color: ${
-          isDarkMode ? "rgba(75, 85, 99, 0.8)" : "rgba(156, 163, 175, 0.8)"
-        };
-        border-radius: 10px;
-        border: 2px solid transparent;
-        background-clip: padding-box;
+      
+      /* Style du thumb au survol */
+      .sidebar-container::-webkit-scrollbar-thumb:hover {
+        background-color: rgba(156, 163, 175, 0.8);
       }
-      .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-        background-color: ${
-          isDarkMode ? "rgba(55, 65, 81, 0.9)" : "rgba(107, 114, 128, 0.9)"
-        };
+      
+      /* Style du track (la partie fixe de la scrollbar) */
+      .sidebar-container::-webkit-scrollbar-track {
+        background-color: transparent;
+      }
+      
+      /* Désactiver spécifiquement la barre de défilement horizontale */
+      .sidebar-container::-webkit-scrollbar-horizontal {
+        display: none;
       }
     `;
     document.head.appendChild(styleEl);
@@ -177,8 +191,8 @@ export default function UserDashboardLayout() {
 
   return (
     <div
-      className={`min-h-screen ${
-        isDarkMode ? "dark bg-gray-900" : "bg-gray-50"
+      className={`min-h-screen flex flex-col ${
+        isDarkMode ? "bg-gray-900" : "bg-gray-50"
       }`}
     >
       {/* Sidebar mobile */}
@@ -188,7 +202,7 @@ export default function UserDashboardLayout() {
         transition={{ duration: 0.3 }}
         className={`fixed inset-y-0 z-50 flex w-72 flex-col ${
           isDarkMode ? "bg-gray-800" : "bg-white"
-        } lg:hidden`}
+        } lg:hidden overflow-hidden`}
       >
         <div
           className={`flex h-16 shrink-0 items-center justify-between px-6 ${
@@ -220,7 +234,17 @@ export default function UserDashboardLayout() {
             <XMarkIcon className="h-6 w-6" />
           </button>
         </div>
-        <nav className="flex-1 space-y-1 px-3 py-4 custom-scrollbar">
+        <nav
+          className="flex-1 space-y-1 px-3 py-4 overflow-y-auto overflow-x-hidden h-full sidebar-container"
+          onMouseEnter={() => setSidebarHover(true)}
+          onMouseLeave={() => setSidebarHover(false)}
+          style={{
+            scrollbarWidth: sidebarHover ? "thin" : "none",
+            msOverflowStyle: sidebarHover ? "auto" : "none",
+            WebkitOverflowScrolling: "touch",
+            overflowX: "hidden",
+          }}
+        >
           {navigation.map((item) => {
             const isActive = location.pathname === item.href;
             return (
@@ -271,33 +295,20 @@ export default function UserDashboardLayout() {
         <div
           className={`flex grow flex-col gap-y-5 border-r ${
             isSidebarCollapsed ? "px-4" : "px-6"
-          } pb-4 overflow-y-auto transition-all duration-300 ${
+          } pb-4 overflow-y-auto overflow-x-hidden h-full transition-all duration-300 ${
             isDarkMode
               ? "bg-gray-800 border-gray-700"
               : "bg-white border-gray-200"
-          }`}
+          } sidebar-container`}
           ref={sidebarRef}
-          style={sidebarStyle}
-          onMouseEnter={() => {
-            // Vérifier si le défilement est nécessaire
-            if (
-              sidebarRef.current &&
-              sidebarRef.current.scrollHeight > sidebarRef.current.clientHeight
-            ) {
-              setSidebarStyle({
-                overflowY: "auto",
-                scrollbarWidth: "thin",
-                msOverflowStyle: "auto",
-              });
-            }
+          onMouseEnter={() => setSidebarHover(true)}
+          onMouseLeave={() => setSidebarHover(false)}
+          style={{
+            scrollbarWidth: sidebarHover ? "thin" : "none",
+            msOverflowStyle: sidebarHover ? "auto" : "none",
+            WebkitOverflowScrolling: "touch",
+            overflowX: "hidden",
           }}
-          onMouseLeave={() =>
-            setSidebarStyle({
-              overflowY: "auto",
-              scrollbarWidth: "none",
-              msOverflowStyle: "none",
-            })
-          }
         >
           <div className="flex h-16 shrink-0 items-center justify-between">
             <Link to="/dashboard" className="flex items-center gap-3">
@@ -315,7 +326,7 @@ export default function UserDashboardLayout() {
               )}
             </Link>
           </div>
-          <nav className="flex flex-1 flex-col custom-scrollbar">
+          <nav className="flex flex-1 flex-col sidebar-container overflow-y-auto">
             <ul role="list" className="flex flex-1 flex-col gap-y-7">
               <li>
                 <ul role="list" className="-mx-2 space-y-1">
@@ -626,7 +637,11 @@ export default function UserDashboardLayout() {
           </div>
         </div>
 
-        <main className={`py-6 ${isDarkMode ? "bg-gray-900" : "bg-gray-50"}`}>
+        <main
+          className={`py-6 flex-1 overflow-y-auto ${
+            isDarkMode ? "bg-gray-900" : "bg-gray-50"
+          }`}
+        >
           <div className="px-4 sm:px-6 lg:px-8">
             <Outlet />
           </div>

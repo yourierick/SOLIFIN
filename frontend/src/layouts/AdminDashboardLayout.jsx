@@ -225,11 +225,53 @@ const getNavigation = (pendingFormationsCount = 0, userPermissions = []) => {
 };
 
 export default function AdminDashboardLayout() {
+  // Ajout du style CSS pour les barres de défilement
+  useEffect(() => {
+    // Création d'une feuille de style pour les barres de défilement
+    const styleElement = document.createElement('style');
+    styleElement.textContent = `
+      /* Style pour la barre de défilement - caché par défaut */
+      .sidebar-container::-webkit-scrollbar {
+        width: 5px;
+        background-color: transparent;
+        display: none;
+      }
+      
+      /* Style pour la barre de défilement au survol */
+      .sidebar-container:hover::-webkit-scrollbar {
+        display: block;
+      }
+      
+      /* Style du thumb (la partie mobile de la scrollbar) */
+      .sidebar-container::-webkit-scrollbar-thumb {
+        background-color: rgba(156, 163, 175, 0.5);
+        border-radius: 10px;
+      }
+      
+      /* Style du thumb au survol */
+      .sidebar-container::-webkit-scrollbar-thumb:hover {
+        background-color: rgba(156, 163, 175, 0.8);
+      }
+      
+      /* Style du track (la partie fixe de la scrollbar) */
+      .sidebar-container::-webkit-scrollbar-track {
+        background-color: transparent;
+      }
+    `;
+    document.head.appendChild(styleElement);
+    
+    // Nettoyage lors du démontage du composant
+    return () => {
+      document.head.removeChild(styleElement);
+    };
+  }, []);
   const sidebarRef = useRef(null);
+  const [sidebarHover, setSidebarHover] = useState(false);
   const [sidebarStyle, setSidebarStyle] = useState({
     overflowY: "auto",
     scrollbarWidth: "none" /* Pour Firefox */,
     msOverflowStyle: "none" /* Pour Internet Explorer et Edge */,
+    WebkitScrollbar: { display: "none" } /* Pour Chrome, Safari et Opera */
   });
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [openSubmenu, setOpenSubmenu] = useState(null);
@@ -516,7 +558,7 @@ export default function AdminDashboardLayout() {
 
   return (
     <div
-      className={`min-h-screen ${isDarkMode ? "bg-gray-900" : "bg-gray-100"}`}
+      className={`min-h-screen flex flex-col ${isDarkMode ? "bg-gray-900" : "bg-gray-100"}`}
     >
       {/* Sidebar mobile */}
       <motion.div
@@ -525,7 +567,7 @@ export default function AdminDashboardLayout() {
         transition={{ duration: 0.3 }}
         className={`fixed inset-y-0 z-50 flex w-72 flex-col ${
           isDarkMode ? "bg-gray-800" : "bg-white"
-        } lg:hidden`}
+        } lg:hidden overflow-hidden`}
       >
         <div
           className={`flex h-16 shrink-0 items-center justify-between px-6 border-b ${
@@ -555,7 +597,16 @@ export default function AdminDashboardLayout() {
             <XMarkIcon className="h-6 w-6" />
           </button>
         </div>
-        <nav className="flex-1 space-y-1 px-3 py-4">
+        <nav 
+          className="flex-1 space-y-1 px-3 py-4 overflow-y-auto h-full sidebar-container" 
+          onMouseEnter={() => setSidebarHover(true)}
+          onMouseLeave={() => setSidebarHover(false)}
+          style={{
+            scrollbarWidth: sidebarHover ? "thin" : "none",
+            msOverflowStyle: sidebarHover ? "auto" : "none",
+            WebkitOverflowScrolling: "touch"
+          }}
+        >
           {loadingPermissions ? (
             // Afficher des barres de chargement pendant que les permissions sont récupérées
             <div className="flex flex-col space-y-2 px-4 py-6">
@@ -605,33 +656,22 @@ export default function AdminDashboardLayout() {
         <div
           className={`flex grow flex-col gap-y-5 border-r ${
             isSidebarCollapsed ? "px-4" : "px-6"
-          } pb-4 overflow-y-auto transition-all duration-300 ${
+          } pb-4 overflow-y-auto h-full transition-all duration-300 ${
             isDarkMode
               ? "bg-gray-800 border-gray-700"
               : "bg-white border-gray-200"
-          }`}
+          } sidebar-container`}
           ref={sidebarRef}
-          style={sidebarStyle}
-          onMouseEnter={() => {
-            // Vérifier si le défilement est nécessaire
-            if (
-              sidebarRef.current &&
-              sidebarRef.current.scrollHeight > sidebarRef.current.clientHeight
-            ) {
-              setSidebarStyle({
-                overflowY: "auto",
-                scrollbarWidth: "thin",
-                msOverflowStyle: "auto",
-              });
-            }
+          onMouseEnter={() => setSidebarHover(true)}
+          onMouseLeave={() => setSidebarHover(false)}
+          style={{
+            overflowY: "auto",
+            scrollbarWidth: sidebarHover ? "thin" : "none",
+            msOverflowStyle: sidebarHover ? "auto" : "none",
+            maxHeight: "100vh",
+            /* Styles pour Chrome, Safari et Opera */
+            WebkitOverflowScrolling: "touch"
           }}
-          onMouseLeave={() =>
-            setSidebarStyle({
-              overflowY: "auto",
-              scrollbarWidth: "none",
-              msOverflowStyle: "none",
-            })
-          }
         >
           <div className="flex h-16 shrink-0 items-center">
             <Link to="/admin" className="flex items-center gap-3">
@@ -900,7 +940,7 @@ export default function AdminDashboardLayout() {
           </div>
         </div>
 
-        <main className={`py-10 ${isDarkMode ? "bg-gray-900" : "bg-gray-100"}`}>
+        <main className={`py-10 flex-1 overflow-y-auto ${isDarkMode ? "bg-gray-900" : "bg-gray-100"}`}>
           <div className="px-4 sm:px-6 lg:px-8">
             <Outlet />
           </div>

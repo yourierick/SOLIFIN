@@ -471,7 +471,7 @@ export default function Packages() {
       sx={{
         mt: 4,
         mb: 8,
-        bgcolor: isDarkMode ? "#1f2937" : "background.default",
+        bgcolor: isDarkMode ? "#1f2937" : "background.primare",
         borderRadius: 2,
         py: 4,
       }}

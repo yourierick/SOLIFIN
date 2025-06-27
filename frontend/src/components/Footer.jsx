@@ -6,11 +6,10 @@ const defaultFooterLinks = {
   company: [
     { name: "À propos", href: "#about" },
     { name: "Packages", href: "#packages" },
-    { name: "Fondateur", href: "#founder" },
     { name: "Témoignages", href: "#testimonials" },
   ],
   support: [
-    { name: "Features", href: "#features" },
+    { name: "Pourquoi nous choisir ?", href: "#features" },
     { name: "FAQ", href: "#faq" },
     { name: "Services", href: "#services" },
     { name: "Théorie de changement", href: "#theory-of-change" },
@@ -59,6 +58,7 @@ export default function Footer({
   legalDocs = {},
   isLoading = false,
   error = null,
+  openLegalDocument = null,
 }) {
   // Utiliser les liens par défaut si les props ne sont pas disponibles
   const footerLinks = {
@@ -68,14 +68,21 @@ export default function Footer({
       legalDocs && !isLoading && !error
         ? Object.entries(legalDocs).map(([key, doc]) => ({
             name: doc.title || key,
-            href: `/legal/${key}`,
             key: key,
+            action: () => openLegalDocument && openLegalDocument(key),
           }))
         : [
-            { name: "Conditions d'utilisation", href: "/legal/terms_of_use" },
+            {
+              name: "Conditions d'utilisation",
+              key: "terms_of_use",
+              action: () =>
+                openLegalDocument && openLegalDocument("terms_of_use"),
+            },
             {
               name: "Politique de confidentialité",
-              href: "/legal/privacy_policy",
+              key: "privacy_policy",
+              action: () =>
+                openLegalDocument && openLegalDocument("privacy_policy"),
             },
           ],
   };
@@ -173,12 +180,12 @@ export default function Footer({
             <ul className="mt-4 space-y-2">
               {footerLinks.legal.map((link) => (
                 <li key={link.key || link.name}>
-                  <a
-                    href={link.href}
-                    className="text-gray-400 hover:text-primary-500 transition-colors"
+                  <button
+                    onClick={link.action}
+                    className="text-gray-400 hover:text-primary-500 transition-colors text-left"
                   >
                     {link.name}
-                  </a>
+                  </button>
                 </li>
               ))}
             </ul>
@@ -236,4 +243,5 @@ Footer.propTypes = {
   legalDocs: PropTypes.object,
   isLoading: PropTypes.bool,
   error: PropTypes.string,
+  openLegalDocument: PropTypes.func,
 };

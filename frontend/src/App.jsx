@@ -30,7 +30,6 @@ import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 import EmailVerification from "./pages/EmailVerification";
 import Homepage from "./pages/Homepage";
-import LegalDocument from "./pages/LegalDocument";
 import { useAuth } from "./contexts/AuthContext";
 import AdminDashboard from "./pages/admin/Dashboard";
 import PromptLoginOrSubscribePage from "./pages/PromptLoginOrSubscribePage";
@@ -146,14 +145,6 @@ function App() {
             element={
               <PublicRoute>
                 <VerificationSuccess />
-              </PublicRoute>
-            }
-          />
-          <Route
-            path="/legal/:documentKey"
-            element={
-              <PublicRoute>
-                <LegalDocument />
               </PublicRoute>
             }
           />

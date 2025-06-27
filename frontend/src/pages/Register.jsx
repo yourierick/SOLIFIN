@@ -2,7 +2,12 @@ import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useTheme } from "../contexts/ThemeContext";
-import { CheckIcon, XMarkIcon, ClipboardDocumentIcon } from "@heroicons/react/24/outline";
+import {
+  CheckIcon,
+  XMarkIcon,
+  ClipboardDocumentIcon,
+} from "@heroicons/react/24/outline";
+import logo from "../assets/logo.png";
 import Notification from "../components/Notification";
 import CountryCodeSelector from "../components/CountryCodeSelector";
 import CountrySelector from "../components/CountrySelector";
@@ -79,7 +84,7 @@ export default function Register() {
     noSponsorCode: false, // Nouvel état pour la case à cocher "Je n'ai pas de code sponsor"
   });
   const [formErrors, setFormErrors] = useState({});
-  
+
   // États pour la fenêtre modale des packs administrateurs
   const [isPacksModalOpen, setIsPacksModalOpen] = useState(false);
   const [adminPacks, setAdminPacks] = useState([]);
@@ -160,46 +165,52 @@ export default function Register() {
   const fetchAdminPacks = async () => {
     try {
       setLoadingPacks(true);
-      const response = await axios.get('/api/admin-packs');
+      const response = await axios.get("/api/admin-packs");
       if (response.data.success) {
         setAdminPacks(response.data.packs);
       } else {
-        Notification.error('Erreur lors du chargement des packs administrateurs');
+        Notification.error(
+          "Erreur lors du chargement des packs administrateurs"
+        );
       }
     } catch (error) {
-      console.error('Erreur lors du chargement des packs administrateurs', error);
-      Notification.error('Erreur lors du chargement des packs administrateurs');
+      console.error(
+        "Erreur lors du chargement des packs administrateurs",
+        error
+      );
+      Notification.error("Erreur lors du chargement des packs administrateurs");
     } finally {
       setLoadingPacks(false);
     }
   };
-  
+
   // Fonction pour copier un code de parrainage dans le presse-papiers
   const copyToClipboard = (code) => {
-    navigator.clipboard.writeText(code)
+    navigator.clipboard
+      .writeText(code)
       .then(() => {
         setCopiedCode(code);
         setTimeout(() => setCopiedCode(null), 2000);
-        Notification.success('Code copié dans le presse-papiers');
+        Notification.success("Code copié dans le presse-papiers");
       })
-      .catch(err => {
-        console.error('Erreur lors de la copie dans le presse-papiers', err);
-        Notification.error('Erreur lors de la copie du code');
+      .catch((err) => {
+        console.error("Erreur lors de la copie dans le presse-papiers", err);
+        Notification.error("Erreur lors de la copie du code");
       });
   };
-  
+
   // Fonction pour gérer l'ouverture de la fenêtre modale des packs
   const handleOpenPacksModal = () => {
     fetchAdminPacks();
     setIsPacksModalOpen(true);
   };
-  
+
   // Fonction pour sélectionner un code de parrainage depuis la fenêtre modale
   const selectSponsorCode = (code) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
       sponsor_code: code,
-      noSponsorCode: false
+      noSponsorCode: false,
     }));
     setIsPacksModalOpen(false);
   };
@@ -315,14 +326,14 @@ export default function Register() {
         // Si la case est cochée, ouvrir la fenêtre modale des packs
         handleOpenPacksModal();
       }
-      
+
       setFormData((prev) => ({
         ...prev,
         [name]: checked,
         // Si la case est cochée, effacer le code sponsor, sinon le laisser tel quel
         sponsor_code: checked ? "" : prev.sponsor_code,
       }));
-      
+
       // Réinitialiser l'erreur pour le code sponsor si la case est cochée
       if (checked && formErrors.sponsor_code) {
         setFormErrors({
@@ -382,319 +393,64 @@ export default function Register() {
 
   return (
     <>
-      <section className={`min-h-screen py-12 ${isDarkMode ? "bg-gray-900" : "bg-gray-50"}`}>
+      <section
+        className={`min-h-screen py-12 ${
+          isDarkMode ? "bg-gray-900" : "bg-gray-50"
+        }`}
+      >
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="max-w-md mx-auto">
-          <motion.div
-            className={`${
-              isDarkMode ? "bg-gray-800" : "bg-white"
-            } shadow-xl rounded-lg overflow-hidden`}
-            variants={containerVariants}
-            initial="hidden"
-            animate="visible"
-          >
-            <div className="px-6 py-8 sm:p-10">
-              <div className="text-center">
-                <h2
-                  className={`text-3xl font-extrabold ${
-                    isDarkMode ? "text-white" : "text-gray-900"
-                  }`}
-                >
-                  Créer un compte
-                </h2>
-                <p
-                  className={`mt-2 text-base ${
-                    isDarkMode ? "text-gray-300" : "text-gray-600"
-                  }`}
-                >
-                  Commencez votre aventure avec nous
-                </p>
-              </div>
-
-              <form onSubmit={handleSubmit} className="mt-8 space-y-6">
-                <motion.div variants={itemVariants} className="space-y-4">
-                  <TextField
-                    fullWidth
-                    label="Nom complet"
-                    name="name"
-                    value={formData.name}
-                    onChange={handleChange}
-                    required
-                    error={!!formErrors.name}
-                    helperText={formErrors.name}
-                    sx={{
-                      "& .MuiOutlinedInput-root": {
-                        "&.Mui-focused fieldset": {
-                          borderColor: "#2E7D32",
-                        },
-                      },
-                      "& .MuiInputLabel-root.Mui-focused": {
-                        color: "#2E7D32",
-                      },
-                    }}
-                  />
-
-                  <FormControl fullWidth error={!!formErrors.gender}>
-                    <InputLabel>Sexe</InputLabel>
-                    <Select
-                      name="gender"
-                      value={formData.gender}
-                      onChange={handleChange}
-                      required
-                      MenuProps={{
-                        PaperProps: {
-                          sx: {
-                            bgcolor: "#1f2937",
-                            color: "white",
-                            "& .MuiMenuItem-root": {
-                              color: "white",
-                              "&:hover": {
-                                bgcolor: "rgba(255, 255, 255, 0.08)",
-                              },
-                            },
-                          },
-                        },
-                      }}
-                    >
-                      <MenuItem value="">Sélectionner</MenuItem>
-                      <MenuItem value="homme">Masculin</MenuItem>
-                      <MenuItem value="femme">Féminin</MenuItem>
-                    </Select>
-                    {formErrors.gender && (
-                      <FormHelperText>{formErrors.gender}</FormHelperText>
-                    )}
-                  </FormControl>
-
-                  <div className="mb-4">
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                      Pays <span className="text-red-500">*</span>
-                    </label>
-                    <CountrySelector
-                      value={formData.country}
-                      onChange={handleCountryChange}
-                      placeholder="Sélectionner un pays"
-                    />
-                    {formErrors.country && (
-                      <p className="mt-1 text-sm text-red-600">
-                        {formErrors.country}
-                      </p>
-                    )}
-                  </div>
-
-                  <TextField
-                    fullWidth
-                    label="Province"
-                    name="province"
-                    value={formData.province}
-                    onChange={handleChange}
-                    required
-                    error={!!formErrors.province}
-                    helperText={formErrors.province}
-                  />
-
-                  <TextField
-                    fullWidth
-                    label="Ville"
-                    name="city"
-                    value={formData.city}
-                    onChange={handleChange}
-                    required
-                    error={!!formErrors.city}
-                    helperText={formErrors.city}
-                  />
-
-                  <TextField
-                    fullWidth
-                    type="email"
-                    label="Adresse email"
-                    name="email"
-                    value={formData.email}
-                    onChange={handleChange}
-                    required
-                    error={!!formErrors.email}
-                    helperText={formErrors.email}
-                    sx={{
-                      "& .MuiOutlinedInput-root": {
-                        "&.Mui-focused fieldset": {
-                          borderColor: "#2E7D32",
-                        },
-                      },
-                      "& .MuiInputLabel-root.Mui-focused": {
-                        color: "#2E7D32",
-                      },
-                    }}
-                  />
-
-                  <div className="mb-4">
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                      Téléphone <span className="text-red-500">*</span>
-                    </label>
-                    <div className="flex items-start space-x-2">
-                      <div className="w-1/3">
-                        <CountryCodeSelector
-                          value={formData.phoneCode}
-                          onChange={handlePhoneCodeChange}
-                        />
-                      </div>
-                      <div className="flex-1">
-                        <TextField
-                          fullWidth
-                          type="tel"
-                          label="Numéro de téléphone"
-                          name="phoneNumber"
-                          value={formData.phoneNumber}
-                          onChange={handleChange}
-                          required
-                          placeholder="Ex: 1234567 (sans indicatif)"
-                          error={!!formErrors.phoneNumber}
-                          helperText={formErrors.phoneNumber}
-                          sx={{
-                            "& .MuiOutlinedInput-root": {
-                              height: "48px",
-                              "&.Mui-focused fieldset": {
-                                borderColor: "#2E7D32",
-                              },
-                            },
-                            "& .MuiInputLabel-root": {
-                              transform: "translate(14px, 13px) scale(1)",
-                              "&.MuiInputLabel-shrink": {
-                                transform: "translate(14px, -6px) scale(0.75)",
-                              },
-                            },
-                            "& .MuiInputLabel-root.Mui-focused": {
-                              color: "#2E7D32",
-                            },
-                          }}
-                        />
-                      </div>
+            <motion.div
+              className={`${
+                isDarkMode ? "bg-gray-800" : "bg-white"
+              } shadow-xl rounded-lg overflow-hidden`}
+              variants={containerVariants}
+              initial="hidden"
+              animate="visible"
+            >
+              <div className="px-6 py-8 sm:p-10">
+                <div className="text-center">
+                  <div className="flex justify-center mb-4">
+                    <div className="w-20 h-20 bg-white p-1 flex items-center justify-center">
+                      <img
+                        src={logo}
+                        alt="logo"
+                        className="w-full h-full object-contain"
+                        onError={(e) => {
+                          e.target.onerror = null;
+                          e.target.src =
+                            "https://via.placeholder.com/80?text=SOLIFIN";
+                        }}
+                      />
                     </div>
                   </div>
+                  <h2
+                    className={`text-3xl font-extrabold ${
+                      isDarkMode ? "text-white" : "text-gray-900"
+                    }`}
+                  >
+                    Créer un compte
+                  </h2>
+                  <p
+                    className={`mt-2 text-base ${
+                      isDarkMode ? "text-gray-300" : "text-gray-600"
+                    }`}
+                  >
+                    Commencez votre aventure avec nous
+                  </p>
+                </div>
 
-                  <div className="mb-4">
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                      WhatsApp{" "}
-                      <span className="text-gray-500">(optionnel)</span>
-                    </label>
-                    <div className="flex items-start space-x-2">
-                      <div className="w-1/3">
-                        <CountryCodeSelector
-                          value={formData.whatsappCode}
-                          onChange={handleWhatsappCodeChange}
-                        />
-                      </div>
-                      <div className="flex-1">
-                        <TextField
-                          fullWidth
-                          type="tel"
-                          label="Numéro WhatsApp"
-                          name="whatsappNumber"
-                          value={formData.whatsappNumber}
-                          onChange={handleChange}
-                          placeholder="Ex: 1234567 (sans indicatif)"
-                          error={!!formErrors.whatsappNumber}
-                          helperText={formErrors.whatsappNumber}
-                          sx={{
-                            "& .MuiOutlinedInput-root": {
-                              height: "48px",
-                              "&.Mui-focused fieldset": {
-                                borderColor: "#2E7D32",
-                              },
-                            },
-                            "& .MuiInputLabel-root": {
-                              transform: "translate(14px, 13px) scale(1)",
-                              "&.MuiInputLabel-shrink": {
-                                transform: "translate(14px, -6px) scale(0.75)",
-                              },
-                            },
-                            "& .MuiInputLabel-root.Mui-focused": {
-                              color: "#2E7D32",
-                            },
-                          }}
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  <TextField
-                    fullWidth
-                    multiline
-                    rows={3}
-                    label="Adresse"
-                    name="address"
-                    value={formData.address}
-                    onChange={handleChange}
-                    required
-                    error={!!formErrors.address}
-                    helperText={formErrors.address}
-                    sx={{
-                      "& .MuiOutlinedInput-root": {
-                        "&.Mui-focused fieldset": {
-                          borderColor: "#2E7D32",
-                        },
-                      },
-                      "& .MuiInputLabel-root.Mui-focused": {
-                        color: "#2E7D32",
-                      },
-                    }}
-                  />
-
-                  <TextField
-                    fullWidth
-                    type="password"
-                    label="Mot de passe"
-                    name="password"
-                    value={formData.password}
-                    onChange={handleChange}
-                    required
-                    error={!!formErrors.password}
-                    helperText={formErrors.password}
-                    sx={{
-                      "& .MuiOutlinedInput-root": {
-                        "&.Mui-focused fieldset": {
-                          borderColor: "#2E7D32",
-                        },
-                      },
-                      "& .MuiInputLabel-root.Mui-focused": {
-                        color: "#2E7D32",
-                      },
-                    }}
-                  />
-
-                  <TextField
-                    fullWidth
-                    type="password"
-                    label="Confirmer le mot de passe"
-                    name="password_confirmation"
-                    value={formData.password_confirmation}
-                    onChange={handleChange}
-                    required
-                    error={!!formErrors.password_confirmation}
-                    helperText={formErrors.password_confirmation}
-                    sx={{
-                      "& .MuiOutlinedInput-root": {
-                        "&.Mui-focused fieldset": {
-                          borderColor: "#2E7D32",
-                        },
-                      },
-                      "& .MuiInputLabel-root.Mui-focused": {
-                        color: "#2E7D32",
-                      },
-                    }}
-                  />
-
-                  {/* Champ Code parrain déplacé plus bas avec la case à cocher */}
-
-                  <div className="space-y-2">
+                <form onSubmit={handleSubmit} className="mt-8 space-y-6">
+                  <motion.div variants={itemVariants} className="space-y-4">
                     <TextField
                       fullWidth
-                      label="Code parrain"
-                      name="sponsor_code"
-                      value={formData.sponsor_code}
+                      label="Nom complet"
+                      name="name"
+                      value={formData.name}
                       onChange={handleChange}
                       required
-                      disabled={formData.noSponsorCode}
-                      error={!!formErrors.sponsor_code}
-                      helperText={formErrors.sponsor_code || 'Code parrain obligatoire'}
+                      error={!!formErrors.name}
+                      helperText={formErrors.name}
                       sx={{
                         "& .MuiOutlinedInput-root": {
                           "&.Mui-focused fieldset": {
@@ -706,13 +462,380 @@ export default function Register() {
                         },
                       }}
                     />
-                    
+
+                    <FormControl fullWidth error={!!formErrors.gender}>
+                      <InputLabel>Sexe</InputLabel>
+                      <Select
+                        name="gender"
+                        value={formData.gender}
+                        onChange={handleChange}
+                        required
+                        MenuProps={{
+                          PaperProps: {
+                            sx: {
+                              bgcolor: "#1f2937",
+                              color: "white",
+                              "& .MuiMenuItem-root": {
+                                color: "white",
+                                "&:hover": {
+                                  bgcolor: "rgba(255, 255, 255, 0.08)",
+                                },
+                              },
+                            },
+                          },
+                        }}
+                      >
+                        <MenuItem value="">Sélectionner</MenuItem>
+                        <MenuItem value="homme">Masculin</MenuItem>
+                        <MenuItem value="femme">Féminin</MenuItem>
+                      </Select>
+                      {formErrors.gender && (
+                        <FormHelperText>{formErrors.gender}</FormHelperText>
+                      )}
+                    </FormControl>
+
+                    <div className="mb-4">
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Pays <span className="text-red-500">*</span>
+                      </label>
+                      <CountrySelector
+                        value={formData.country}
+                        onChange={handleCountryChange}
+                        placeholder="Sélectionner un pays"
+                      />
+                      {formErrors.country && (
+                        <p className="mt-1 text-sm text-red-600">
+                          {formErrors.country}
+                        </p>
+                      )}
+                    </div>
+
+                    <TextField
+                      fullWidth
+                      label="Province"
+                      name="province"
+                      value={formData.province}
+                      onChange={handleChange}
+                      required
+                      error={!!formErrors.province}
+                      helperText={formErrors.province}
+                    />
+
+                    <TextField
+                      fullWidth
+                      label="Ville"
+                      name="city"
+                      value={formData.city}
+                      onChange={handleChange}
+                      required
+                      error={!!formErrors.city}
+                      helperText={formErrors.city}
+                    />
+
+                    <TextField
+                      fullWidth
+                      type="email"
+                      label="Adresse email"
+                      name="email"
+                      value={formData.email}
+                      onChange={handleChange}
+                      required
+                      error={!!formErrors.email}
+                      helperText={formErrors.email}
+                      sx={{
+                        "& .MuiOutlinedInput-root": {
+                          "&.Mui-focused fieldset": {
+                            borderColor: "#2E7D32",
+                          },
+                        },
+                        "& .MuiInputLabel-root.Mui-focused": {
+                          color: "#2E7D32",
+                        },
+                      }}
+                    />
+
+                    <div className="mb-4">
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Téléphone <span className="text-red-500">*</span>
+                      </label>
+                      <div className="flex items-start space-x-2">
+                        <div className="w-1/3">
+                          <CountryCodeSelector
+                            value={formData.phoneCode}
+                            onChange={handlePhoneCodeChange}
+                          />
+                        </div>
+                        <div className="flex-1">
+                          <TextField
+                            fullWidth
+                            type="tel"
+                            label="Numéro de téléphone"
+                            name="phoneNumber"
+                            value={formData.phoneNumber}
+                            onChange={handleChange}
+                            required
+                            placeholder="Ex: 1234567 (sans indicatif)"
+                            error={!!formErrors.phoneNumber}
+                            helperText={formErrors.phoneNumber}
+                            sx={{
+                              "& .MuiOutlinedInput-root": {
+                                height: "48px",
+                                "&.Mui-focused fieldset": {
+                                  borderColor: "#2E7D32",
+                                },
+                              },
+                              "& .MuiInputLabel-root": {
+                                transform: "translate(14px, 13px) scale(1)",
+                                "&.MuiInputLabel-shrink": {
+                                  transform:
+                                    "translate(14px, -6px) scale(0.75)",
+                                },
+                              },
+                              "& .MuiInputLabel-root.Mui-focused": {
+                                color: "#2E7D32",
+                              },
+                            }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="mb-4">
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        WhatsApp{" "}
+                        <span className="text-gray-500">(optionnel)</span>
+                      </label>
+                      <div className="flex items-start space-x-2">
+                        <div className="w-1/3">
+                          <CountryCodeSelector
+                            value={formData.whatsappCode}
+                            onChange={handleWhatsappCodeChange}
+                          />
+                        </div>
+                        <div className="flex-1">
+                          <TextField
+                            fullWidth
+                            type="tel"
+                            label="Numéro WhatsApp"
+                            name="whatsappNumber"
+                            value={formData.whatsappNumber}
+                            onChange={handleChange}
+                            placeholder="Ex: 1234567 (sans indicatif)"
+                            error={!!formErrors.whatsappNumber}
+                            helperText={formErrors.whatsappNumber}
+                            sx={{
+                              "& .MuiOutlinedInput-root": {
+                                height: "48px",
+                                "&.Mui-focused fieldset": {
+                                  borderColor: "#2E7D32",
+                                },
+                              },
+                              "& .MuiInputLabel-root": {
+                                transform: "translate(14px, 13px) scale(1)",
+                                "&.MuiInputLabel-shrink": {
+                                  transform:
+                                    "translate(14px, -6px) scale(0.75)",
+                                },
+                              },
+                              "& .MuiInputLabel-root.Mui-focused": {
+                                color: "#2E7D32",
+                              },
+                            }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    <TextField
+                      fullWidth
+                      multiline
+                      rows={3}
+                      label="Adresse"
+                      name="address"
+                      value={formData.address}
+                      onChange={handleChange}
+                      required
+                      error={!!formErrors.address}
+                      helperText={formErrors.address}
+                      sx={{
+                        "& .MuiOutlinedInput-root": {
+                          "&.Mui-focused fieldset": {
+                            borderColor: "#2E7D32",
+                          },
+                        },
+                        "& .MuiInputLabel-root.Mui-focused": {
+                          color: "#2E7D32",
+                        },
+                      }}
+                    />
+
+                    <TextField
+                      fullWidth
+                      type="password"
+                      label="Mot de passe"
+                      name="password"
+                      value={formData.password}
+                      onChange={handleChange}
+                      required
+                      error={!!formErrors.password}
+                      helperText={formErrors.password}
+                      sx={{
+                        "& .MuiOutlinedInput-root": {
+                          "&.Mui-focused fieldset": {
+                            borderColor: "#2E7D32",
+                          },
+                        },
+                        "& .MuiInputLabel-root.Mui-focused": {
+                          color: "#2E7D32",
+                        },
+                      }}
+                    />
+
+                    <TextField
+                      fullWidth
+                      type="password"
+                      label="Confirmer le mot de passe"
+                      name="password_confirmation"
+                      value={formData.password_confirmation}
+                      onChange={handleChange}
+                      required
+                      error={!!formErrors.password_confirmation}
+                      helperText={formErrors.password_confirmation}
+                      sx={{
+                        "& .MuiOutlinedInput-root": {
+                          "&.Mui-focused fieldset": {
+                            borderColor: "#2E7D32",
+                          },
+                        },
+                        "& .MuiInputLabel-root.Mui-focused": {
+                          color: "#2E7D32",
+                        },
+                      }}
+                    />
+
+                    {/* Champ Code parrain déplacé plus bas avec la case à cocher */}
+
+                    <div className="space-y-2">
+                      <TextField
+                        fullWidth
+                        label="Code parrain"
+                        name="sponsor_code"
+                        value={formData.sponsor_code}
+                        onChange={handleChange}
+                        required
+                        disabled={formData.noSponsorCode}
+                        error={!!formErrors.sponsor_code}
+                        helperText={
+                          formErrors.sponsor_code || "Code parrain obligatoire"
+                        }
+                        sx={{
+                          "& .MuiOutlinedInput-root": {
+                            "&.Mui-focused fieldset": {
+                              borderColor: "#2E7D32",
+                            },
+                          },
+                          "& .MuiInputLabel-root.Mui-focused": {
+                            color: "#2E7D32",
+                          },
+                        }}
+                      />
+
+                      <FormControlLabel
+                        control={
+                          <Checkbox
+                            name="noSponsorCode"
+                            checked={formData.noSponsorCode}
+                            onChange={handleChange}
+                            sx={{
+                              color: "#2E7D32",
+                              "&.Mui-checked": {
+                                color: "#2E7D32",
+                              },
+                            }}
+                          />
+                        }
+                        label={
+                          <span
+                            className={`text-sm ${
+                              isDarkMode ? "text-gray-300" : "text-gray-700"
+                            }`}
+                          >
+                            Je n'ai pas de code sponsor
+                          </span>
+                        }
+                      />
+                    </div>
+
+                    <TextField
+                      fullWidth
+                      name="invitation_code"
+                      label="Code d'invitation (optionnel)"
+                      value={formData.invitation_code}
+                      onChange={(e) => {
+                        handleChange(e);
+                        if (e.target.value) {
+                          checkInvitationCode(e.target.value);
+                        }
+                      }}
+                      error={!!formErrors.invitation_code}
+                      helperText={formErrors.invitation_code}
+                      sx={{
+                        "& .MuiOutlinedInput-root": {
+                          "&.Mui-focused fieldset": {
+                            borderColor: "#2E7D32",
+                          },
+                        },
+                        "& .MuiInputLabel-root.Mui-focused": {
+                          color: "#2E7D32",
+                        },
+                      }}
+                    />
+
+                    <FormControl fullWidth>
+                      <InputLabel id="acquisition-source-label">
+                        Comment avez-vous connu SOLIFIN ?
+                      </InputLabel>
+                      <Select
+                        labelId="acquisition-source-label"
+                        name="acquisition_source"
+                        value={formData.acquisition_source}
+                        onChange={handleChange}
+                        label="Comment avez-vous connu SOLIFIN ?"
+                        sx={{
+                          "& .MuiOutlinedInput-root": {
+                            "&.Mui-focused fieldset": {
+                              borderColor: "#2E7D32",
+                            },
+                          },
+                          "& .MuiInputLabel-root.Mui-focused": {
+                            color: "#2E7D32",
+                          },
+                        }}
+                      >
+                        <MenuItem value="">
+                          <em>Sélectionnez une option</em>
+                        </MenuItem>
+                        <MenuItem value="referral">Parrain/Marraine</MenuItem>
+                        <MenuItem value="social_media">
+                          Réseaux sociaux
+                        </MenuItem>
+                        <MenuItem value="search_engine">
+                          Moteur de recherche
+                        </MenuItem>
+                        <MenuItem value="friend">Ami(e)</MenuItem>
+                        <MenuItem value="advertisement">Publicité</MenuItem>
+                        <MenuItem value="event">Événement</MenuItem>
+                        <MenuItem value="other">Autre</MenuItem>
+                      </Select>
+                    </FormControl>
+
                     <FormControlLabel
                       control={
                         <Checkbox
-                          name="noSponsorCode"
-                          checked={formData.noSponsorCode}
+                          name="acceptTerms"
+                          checked={formData.acceptTerms}
                           onChange={handleChange}
+                          required
                           sx={{
                             color: "#2E7D32",
                             "&.Mui-checked": {
@@ -721,245 +844,213 @@ export default function Register() {
                           }}
                         />
                       }
-                      label={
-                        <span className={`text-sm ${isDarkMode ? "text-gray-300" : "text-gray-700"}`}>
-                          Je n'ai pas de code sponsor
-                        </span>
-                      }
+                      label="J'accepte les conditions d'utilisation"
                     />
-                  </div>
+                    {formErrors.acceptTerms && (
+                      <FormHelperText error>
+                        {formErrors.acceptTerms}
+                      </FormHelperText>
+                    )}
+                  </motion.div>
 
-                  <TextField
-                    fullWidth
-                    name="invitation_code"
-                    label="Code d'invitation (optionnel)"
-                    value={formData.invitation_code}
-                    onChange={(e) => {
-                      handleChange(e);
-                      if (e.target.value) {
-                        checkInvitationCode(e.target.value);
-                      }
-                    }}
-                    error={!!formErrors.invitation_code}
-                    helperText={formErrors.invitation_code}
-                    sx={{
-                      "& .MuiOutlinedInput-root": {
-                        "&.Mui-focused fieldset": {
-                          borderColor: "#2E7D32",
-                        },
-                      },
-                      "& .MuiInputLabel-root.Mui-focused": {
-                        color: "#2E7D32",
-                      },
-                    }}
-                  />
-
-                  <FormControl fullWidth>
-                    <InputLabel id="acquisition-source-label">
-                      Comment avez-vous connu SOLIFIN ?
-                    </InputLabel>
-                    <Select
-                      labelId="acquisition-source-label"
-                      name="acquisition_source"
-                      value={formData.acquisition_source}
-                      onChange={handleChange}
-                      label="Comment avez-vous connu SOLIFIN ?"
+                  <motion.div variants={itemVariants}>
+                    <Button
+                      type="submit"
+                      fullWidth
+                      variant="contained"
+                      disabled={loading || !formData.acceptTerms}
                       sx={{
-                        "& .MuiOutlinedInput-root": {
-                          "&.Mui-focused fieldset": {
-                            borderColor: "#2E7D32",
-                          },
+                        mt: 3,
+                        bgcolor: "#2E7D32",
+                        "&:hover": {
+                          bgcolor: "#1B5E20",
                         },
-                        "& .MuiInputLabel-root.Mui-focused": {
-                          color: "#2E7D32",
+                        "&:disabled": {
+                          bgcolor: "#81C784",
                         },
                       }}
                     >
-                      <MenuItem value="">
-                        <em>Sélectionnez une option</em>
-                      </MenuItem>
-                      <MenuItem value="referral">Parrain/Marraine</MenuItem>
-                      <MenuItem value="social_media">Réseaux sociaux</MenuItem>
-                      <MenuItem value="search_engine">
-                        Moteur de recherche
-                      </MenuItem>
-                      <MenuItem value="friend">Ami(e)</MenuItem>
-                      <MenuItem value="advertisement">Publicité</MenuItem>
-                      <MenuItem value="event">Événement</MenuItem>
-                      <MenuItem value="other">Autre</MenuItem>
-                    </Select>
-                  </FormControl>
+                      {loading ? (
+                        <CircularProgress
+                          size={24}
+                          style={{ color: "white" }}
+                        />
+                      ) : (
+                        "Continuer vers le paiement"
+                      )}
+                    </Button>
+                  </motion.div>
 
-                  <FormControlLabel
-                    control={
-                      <Checkbox
-                        name="acceptTerms"
-                        checked={formData.acceptTerms}
-                        onChange={handleChange}
-                        required
-                        sx={{
-                          color: "#2E7D32",
-                          "&.Mui-checked": {
-                            color: "#2E7D32",
-                          },
-                        }}
-                      />
-                    }
-                    label="J'accepte les conditions d'utilisation"
-                  />
-                  {formErrors.acceptTerms && (
-                    <FormHelperText error>
-                      {formErrors.acceptTerms}
-                    </FormHelperText>
-                  )}
-                </motion.div>
-
-                <motion.div variants={itemVariants}>
-                  <Button
-                    type="submit"
-                    fullWidth
-                    variant="contained"
-                    disabled={loading || !formData.acceptTerms}
-                    sx={{
-                      mt: 3,
-                      bgcolor: "#2E7D32",
-                      "&:hover": {
-                        bgcolor: "#1B5E20",
-                      },
-                      "&:disabled": {
-                        bgcolor: "#81C784",
-                      },
-                    }}
+                  <motion.div
+                    variants={itemVariants}
+                    className="text-center mt-4"
                   >
-                    {loading ? (
-                      <CircularProgress size={24} style={{ color: "white" }} />
-                    ) : (
-                      "Continuer vers le paiement"
-                    )}
-                  </Button>
-                </motion.div>
-
-                <motion.div
-                  variants={itemVariants}
-                  className="text-center mt-4"
-                >
-                  <p
-                    className={`text-sm ${
-                      isDarkMode ? "text-gray-300" : "text-gray-600"
-                    }`}
-                  >
-                    Déjà un compte ?{" "}
-                    <Link
-                      to="/login"
-                      className={`font-medium ${
-                        isDarkMode ? "text-primary-400" : "text-primary-600"
-                      } hover:text-primary-500`}
+                    <p
+                      className={`text-sm ${
+                        isDarkMode ? "text-gray-300" : "text-gray-600"
+                      }`}
                     >
-                      Connectez-vous
-                    </Link>
-                  </p>
-                </motion.div>
-              </form>
-            </div>
-          </motion.div>
+                      Déjà un compte ?{" "}
+                      <Link
+                        to="/login"
+                        className={`font-medium ${
+                          isDarkMode ? "text-primary-400" : "text-primary-600"
+                        } hover:text-primary-500`}
+                      >
+                        Connectez-vous
+                      </Link>
+                    </p>
+                  </motion.div>
+                </form>
+              </div>
+            </motion.div>
           </div>
         </div>
       </section>
 
       {/* Fenêtre modale pour afficher les packs administrateurs */}
-    <Dialog
-      open={isPacksModalOpen}
-      onClose={() => setIsPacksModalOpen(false)}
-      maxWidth="md"
-      fullWidth
-      PaperProps={{
-        style: {
-          backgroundColor: isDarkMode ? '#1F2937' : '#FFFFFF',
-          color: isDarkMode ? '#F3F4F6' : '#111827',
-          borderRadius: '0.5rem'
-        }
-      }}
-    >
-      <DialogTitle className="flex justify-between items-center">
-        <span>Codes sponsors disponibles</span>
-        <IconButton
-          onClick={() => setIsPacksModalOpen(false)}
-          size="small"
-          sx={{ color: isDarkMode ? '#F3F4F6' : '#111827' }}
+      <Dialog
+        open={isPacksModalOpen}
+        onClose={() => setIsPacksModalOpen(false)}
+        maxWidth="md"
+        fullWidth
+        PaperProps={{
+          style: {
+            backgroundColor: isDarkMode ? "#1F2937" : "#FFFFFF",
+            color: isDarkMode ? "#F3F4F6" : "#111827",
+            borderRadius: "0.5rem",
+            boxShadow: "0 8px 32px rgba(0, 0, 0, 0.15)",
+          },
+        }}
+        BackdropProps={{
+          style: {
+            backgroundColor: "rgba(0, 0, 0, 0.5)",
+            backdropFilter: "blur(5px)",
+          },
+        }}
+      >
+        <DialogTitle className="flex justify-between items-center">
+          <span>Codes sponsors disponibles</span>
+          <IconButton
+            onClick={() => setIsPacksModalOpen(false)}
+            size="small"
+            sx={{ color: isDarkMode ? "#F3F4F6" : "#111827" }}
+          >
+            <XMarkIcon className="h-5 w-5" />
+          </IconButton>
+        </DialogTitle>
+
+        <DialogContent
+          dividers
+          sx={{ backgroundColor: isDarkMode ? "#1F2937" : "#FFFFFF" }}
         >
-          <XMarkIcon className="h-5 w-5" />
-        </IconButton>
-      </DialogTitle>
-      
-      <DialogContent dividers sx={{ backgroundColor: isDarkMode ? '#1F2937' : '#FFFFFF' }}>
-        {loadingPacks ? (
-          <div className="flex justify-center items-center py-8">
-            <CircularProgress size={40} style={{ color: '#2E7D32' }} />
-          </div>
-        ) : adminPacks.length > 0 ? (
-          <div className="space-y-4">
-            <p className={`text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-600'} mb-4`}>
-              Sélectionnez un code sponsor parmi les packs administrateurs disponibles :
-            </p>
-            
-            {adminPacks.map((pack) => (
-              <div 
-                key={pack.id}
-                className={`p-4 rounded-lg border ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-gray-50 border-gray-200'} flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3`}
+          {loadingPacks ? (
+            <div className="flex justify-center items-center py-8">
+              <CircularProgress size={40} style={{ color: "#2E7D32" }} />
+            </div>
+          ) : adminPacks.length > 0 ? (
+            <div className="space-y-4">
+              <p
+                className={`text-sm ${
+                  isDarkMode ? "text-gray-300" : "text-gray-600"
+                } mb-4`}
               >
-                <div>
-                  <h3 className={`font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                    {pack.name}
-                  </h3>
-                  <div className="flex items-center mt-1">
-                    <span className={`text-sm font-mono px-2 py-1 rounded ${isDarkMode ? 'bg-gray-700 text-gray-300' : 'bg-gray-200 text-gray-700'}`}>
-                      {pack.referral_code}
-                    </span>
-                    <Tooltip title={copiedCode === pack.referral_code ? "Copié !" : "Copier le code"}>
-                      <IconButton
-                        onClick={() => copyToClipboard(pack.referral_code)}
-                        size="small"
-                        sx={{ ml: 1, color: copiedCode === pack.referral_code ? '#4CAF50' : (isDarkMode ? '#F3F4F6' : '#111827') }}
-                      >
-                        <ClipboardDocumentIcon className="h-4 w-4" />
-                      </IconButton>
-                    </Tooltip>
-                  </div>
-                </div>
-                
-                <Button
-                  variant="contained"
-                  size="small"
-                  onClick={() => selectSponsorCode(pack.referral_code)}
-                  sx={{
-                    bgcolor: '#2E7D32',
-                    '&:hover': { bgcolor: '#1B5E20' },
-                    fontSize: '0.75rem'
-                  }}
+                Sélectionnez un code sponsor parmi les packs administrateurs
+                disponibles :
+              </p>
+
+              {adminPacks.map((pack) => (
+                <div
+                  key={pack.id}
+                  className={`p-4 rounded-lg border ${
+                    isDarkMode
+                      ? "bg-gray-800 border-gray-700"
+                      : "bg-gray-50 border-gray-200"
+                  } flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3`}
                 >
-                  Sélectionner
-                </Button>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="py-8 text-center">
-            <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-              Aucun pack administrateur disponible pour le moment.
-            </p>
-          </div>
-        )}
-      </DialogContent>
-      
-      <DialogActions sx={{ backgroundColor: isDarkMode ? '#1F2937' : '#FFFFFF' }}>
-        <Button 
-          onClick={() => setIsPacksModalOpen(false)} 
-          sx={{ color: isDarkMode ? '#F3F4F6' : '#111827' }}
+                  <div>
+                    <h3
+                      className={`font-medium ${
+                        isDarkMode ? "text-white" : "text-gray-900"
+                      }`}
+                    >
+                      {pack.name}
+                    </h3>
+                    <div className="flex items-center mt-1">
+                      <span
+                        className={`text-sm font-mono px-2 py-1 rounded ${
+                          isDarkMode
+                            ? "bg-gray-700 text-gray-300"
+                            : "bg-gray-200 text-gray-700"
+                        }`}
+                      >
+                        {pack.referral_code}
+                      </span>
+                      <Tooltip
+                        title={
+                          copiedCode === pack.referral_code
+                            ? "Copié !"
+                            : "Copier le code"
+                        }
+                      >
+                        <IconButton
+                          onClick={() => copyToClipboard(pack.referral_code)}
+                          size="small"
+                          sx={{
+                            ml: 1,
+                            color:
+                              copiedCode === pack.referral_code
+                                ? "#4CAF50"
+                                : isDarkMode
+                                ? "#F3F4F6"
+                                : "#111827",
+                          }}
+                        >
+                          <ClipboardDocumentIcon className="h-4 w-4" />
+                        </IconButton>
+                      </Tooltip>
+                    </div>
+                  </div>
+
+                  <Button
+                    variant="contained"
+                    size="small"
+                    onClick={() => selectSponsorCode(pack.referral_code)}
+                    sx={{
+                      bgcolor: "#2E7D32",
+                      "&:hover": { bgcolor: "#1B5E20" },
+                      fontSize: "0.75rem",
+                    }}
+                  >
+                    Sélectionner
+                  </Button>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="py-8 text-center">
+              <p
+                className={`text-sm ${
+                  isDarkMode ? "text-gray-400" : "text-gray-500"
+                }`}
+              >
+                Aucun pack administrateur disponible pour le moment.
+              </p>
+            </div>
+          )}
+        </DialogContent>
+
+        <DialogActions
+          sx={{ backgroundColor: isDarkMode ? "#1F2937" : "#FFFFFF" }}
         >
-          Fermer
-        </Button>
-      </DialogActions>
-    </Dialog>
+          <Button
+            onClick={() => setIsPacksModalOpen(false)}
+            sx={{ color: isDarkMode ? "#F3F4F6" : "#111827" }}
+          >
+            Fermer
+          </Button>
+        </DialogActions>
+      </Dialog>
     </>
   );
 }

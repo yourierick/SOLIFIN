@@ -52,7 +52,7 @@ class StatsController extends Controller
                 'stats' => [
                     [
                         'number' => $activeUsers,
-                        'label' => 'Membres Actifs',
+                        'label' => 'Communauté',
                         'suffix' => '+',
                         'icon' => 'users'
                     ],
@@ -63,16 +63,10 @@ class StatsController extends Controller
                         'icon' => 'globe'
                     ],
                     [
-                        'number' => $satisfactionRate,
+                        'number' => $satisfactionRate == 0 ? 98 : $satisfactionRate,
                         'label' => 'Taux de Satisfaction',
                         'suffix' => '%',
                         'icon' => 'star'
-                    ],
-                    [
-                        'number' => $totalTransactions,
-                        'label' => '$ de commission gagné',
-                        'suffix' => '$',
-                        'icon' => 'currency-dollar'
                     ],
                 ]
             ]);

@@ -4,6 +4,7 @@ import axios from "axios";
 import { useAuth } from "../../contexts/AuthContext";
 import { useTheme } from "../../contexts/ThemeContext";
 import { Tab } from "@headlessui/react";
+import Formations from "./components/Formations";
 import {
   NewspaperIcon,
   BriefcaseIcon,
@@ -26,6 +27,7 @@ import {
   XCircleIcon,
   DocumentArrowDownIcon,
   InformationCircleIcon,
+  AcademicCapIcon,
 } from "@heroicons/react/24/outline";
 import { HeartIcon as HeartIconSolid } from "@heroicons/react/24/solid";
 import PostCard from "./components/PostCard";
@@ -881,6 +883,20 @@ export default function NewsFeed() {
           >
             <LightBulbIcon className="h-5 w-5 mr-2" />
             Opportunités
+          </Tab>
+          <Tab
+            className={({ selected }) =>
+              classNames(
+                "w-full rounded-lg py-2.5 text-sm font-medium leading-5",
+                "flex items-center justify-center",
+                selected
+                  ? "bg-white dark:bg-gray-700 shadow text-primary-600 dark:text-white"
+                  : "text-gray-600 dark:text-gray-400 hover:bg-white/[0.12] hover:text-primary-600 dark:hover:text-white"
+              )
+            }
+          >
+            <AcademicCapIcon className="h-5 w-5 mr-2" />
+            Formations
           </Tab>
           <Tab
             className={({ selected }) =>
@@ -3120,6 +3136,16 @@ export default function NewsFeed() {
                 </div>
               </div>
             </div>
+          </Tab.Panel>
+
+          {/* Quatrième onglet: Formations */}
+          <Tab.Panel
+            className={classNames(
+              "rounded-xl p-3",
+              "ring-white/60 ring-offset-2 ring-offset-blue-400 focus:outline-none focus:ring-2"
+            )}
+          >
+            <Formations />
           </Tab.Panel>
 
           {/* Quatrième onglet: Pages */}

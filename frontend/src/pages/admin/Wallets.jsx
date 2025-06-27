@@ -1325,11 +1325,12 @@ export default function Wallets() {
 
           {/* Pagination */}
           {totalPages > 1 && filteredTransactions.length > 0 && (
-            <div className="flex justify-center gap-2 p-4">
+            <div className="flex flex-wrap justify-center items-center gap-1 sm:gap-2 p-2 sm:p-4">
+              {/* Bouton Précédent */}
               <button
                 onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
                 disabled={currentPage === 1}
-                className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${
+                className={`px-2 sm:px-3 py-1 rounded-md text-xs sm:text-sm font-medium transition-colors ${
                   currentPage === 1
                     ? `${
                         isDarkMode
@@ -1342,34 +1343,117 @@ export default function Wallets() {
                           : "bg-blue-500 hover:bg-blue-600"
                       } text-white`
                 }`}
+                aria-label="Page précédente"
               >
-                Précédent
+                <span className="hidden sm:inline">Précédent</span>
+                <span className="sm:hidden">&laquo;</span>
               </button>
-              {[...Array(totalPages)].map((_, index) => (
-                <button
-                  key={index + 1}
-                  onClick={() => setCurrentPage(index + 1)}
-                  className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${
-                    currentPage === index + 1
-                      ? `${
-                          isDarkMode ? "bg-blue-600" : "bg-blue-500"
-                        } text-white`
-                      : `${
-                          isDarkMode
-                            ? "bg-gray-700 text-gray-300 hover:bg-gray-600"
-                            : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                        }`
-                  }`}
-                >
-                  {index + 1}
-                </button>
-              ))}
+              
+              {/* Pagination adaptative */}
+              {(() => {
+                // Logique pour afficher un nombre limité de boutons de page sur mobile
+                const maxButtonsToShow = window.innerWidth < 640 ? 3 : 7;
+                let startPage = 1;
+                let endPage = totalPages;
+                
+                if (totalPages > maxButtonsToShow) {
+                  // Calculer la plage de pages à afficher
+                  const halfButtons = Math.floor(maxButtonsToShow / 2);
+                  startPage = Math.max(1, currentPage - halfButtons);
+                  endPage = Math.min(totalPages, startPage + maxButtonsToShow - 1);
+                  
+                  // Ajuster si on est proche de la fin
+                  if (endPage - startPage + 1 < maxButtonsToShow) {
+                    startPage = Math.max(1, endPage - maxButtonsToShow + 1);
+                  }
+                }
+                
+                const pageButtons = [];
+                
+                // Première page si nécessaire
+                if (startPage > 1) {
+                  pageButtons.push(
+                    <button
+                      key="first"
+                      onClick={() => setCurrentPage(1)}
+                      className={`w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center rounded-md text-xs sm:text-sm font-medium transition-colors ${
+                        isDarkMode
+                          ? "bg-gray-700 text-gray-300 hover:bg-gray-600"
+                          : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                      }`}
+                      aria-label="Première page"
+                    >
+                      1
+                    </button>
+                  );
+                  
+                  // Ellipsis si nécessaire
+                  if (startPage > 2) {
+                    pageButtons.push(
+                      <span key="ellipsis1" className="px-1 text-gray-500">...</span>
+                    );
+                  }
+                }
+                
+                // Pages numériques
+                for (let i = startPage; i <= endPage; i++) {
+                  pageButtons.push(
+                    <button
+                      key={i}
+                      onClick={() => setCurrentPage(i)}
+                      className={`w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center rounded-md text-xs sm:text-sm font-medium transition-colors ${
+                        currentPage === i
+                          ? `${
+                              isDarkMode ? "bg-blue-600" : "bg-blue-500"
+                            } text-white`
+                          : `${
+                              isDarkMode
+                                ? "bg-gray-700 text-gray-300 hover:bg-gray-600"
+                                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                            }`
+                      }`}
+                      aria-label={`Page ${i}`}
+                      aria-current={currentPage === i ? "page" : undefined}
+                    >
+                      {i}
+                    </button>
+                  );
+                }
+                
+                // Ellipsis et dernière page si nécessaire
+                if (endPage < totalPages) {
+                  if (endPage < totalPages - 1) {
+                    pageButtons.push(
+                      <span key="ellipsis2" className="px-1 text-gray-500">...</span>
+                    );
+                  }
+                  
+                  pageButtons.push(
+                    <button
+                      key="last"
+                      onClick={() => setCurrentPage(totalPages)}
+                      className={`w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center rounded-md text-xs sm:text-sm font-medium transition-colors ${
+                        isDarkMode
+                          ? "bg-gray-700 text-gray-300 hover:bg-gray-600"
+                          : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                      }`}
+                      aria-label={`Dernière page (${totalPages})`}
+                    >
+                      {totalPages}
+                    </button>
+                  );
+                }
+                
+                return pageButtons;
+              })()}
+              
+              {/* Bouton Suivant */}
               <button
                 onClick={() =>
                   setCurrentPage((prev) => Math.min(prev + 1, totalPages))
                 }
                 disabled={currentPage === totalPages}
-                className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${
+                className={`px-2 sm:px-3 py-1 rounded-md text-xs sm:text-sm font-medium transition-colors ${
                   currentPage === totalPages
                     ? `${
                         isDarkMode
@@ -1382,8 +1466,10 @@ export default function Wallets() {
                           : "bg-blue-500 hover:bg-blue-600"
                       } text-white`
                 }`}
+                aria-label="Page suivante"
               >
-                Suivant
+                <span className="hidden sm:inline">Suivant</span>
+                <span className="sm:hidden">&raquo;</span>
               </button>
             </div>
           )}

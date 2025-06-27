@@ -101,13 +101,13 @@ export default function Ads() {
   return (
     <section
       id="ads"
-      className={`py-16 ${
+      className={`w-full py-16 ${
         isDarkMode
           ? "bg-gradient-to-br from-gray-900 to-gray-800"
           : "bg-gradient-to-br from-gray-50 to-white"
       }`}
     >
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="w-full px-4 mx-auto sm:px-6 lg:px-8">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -115,13 +115,13 @@ export default function Ads() {
           viewport={{ once: true }}
           className="text-center mb-12"
         >
-          <h2
+          {/* <h2
             className={`heading-secondary mb-4 ${
               isDarkMode ? "text-white" : ""
             }`}
           >
             Annonces et <span className="text-primary-600">Publicités</span>
-          </h2>
+          </h2> */}
           <p
             className={`text-lg max-w-2xl mx-auto ${
               isDarkMode ? "text-gray-300" : "text-gray-600"
@@ -152,7 +152,7 @@ export default function Ads() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -30 }}
               transition={{ duration: 0.5 }}
-              className={`rounded-xl overflow-hidden shadow-lg ${
+              className={`w-full max-w-6xl mx-auto rounded-xl overflow-hidden shadow-lg ${
                 isDarkMode
                   ? "bg-gray-800 shadow-gray-900/50"
                   : "bg-white shadow-lg"
@@ -173,10 +173,8 @@ export default function Ads() {
                 {/* Wrapper aspect-ratio pour image et vidéo, jamais d'overflow */}
                 {/* Wrapper aspect-ratio 16:9 pour image ET vidéo, sans forcer la hauteur du player */}
                 <div
+                  className="w-full"
                   style={{
-                    width: 480,
-                    maxWidth: "100%",
-                    margin: "0 auto",
                     position: "relative",
                     borderRadius: "0.75rem",
                     overflow: "hidden",

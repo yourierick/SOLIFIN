@@ -228,7 +228,9 @@ const Packs = () => {
                   }} 
                 />
               )} */}
-              <PriceTag>{pack.price}€/mois</PriceTag>
+              <PriceTag>
+                {pack.price}$/{pack.abonnement}
+              </PriceTag>
 
               <CardContent sx={{ flexGrow: 1, pt: 4 }}>
                 <Typography
@@ -357,9 +359,14 @@ const Packs = () => {
           Contactez notre équipe commerciale pour obtenir plus d'informations ou
           pour créer un pack personnalisé adapté à vos besoins spécifiques.
         </Typography>
-        <Button variant="text" color="primary" endIcon={<ArrowForwardIcon />}>
+        {/* <a
+          variant="text"
+          color="primary"
+          endIcon={<ArrowForwardIcon />}
+          href="#"
+        >
           Nous contacter
-        </Button>
+        </a> */}
       </Box>
 
       <PurchasePackForm

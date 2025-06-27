@@ -84,7 +84,7 @@ export default function Stats() {
     <section
       className={`py-16 ${
         isDarkMode
-          ? "bg-gray-900"
+          ? "bg-gray-800"
           : "bg-gradient-to-r from-primary-600 to-primary-700"
       }`}
     >
@@ -121,7 +121,7 @@ export default function Stats() {
             <p className="text-red-300">{error}</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+          <div className="grid grid-cols-1 sm:grid-cols-1 lg:grid-cols-3 gap-8">
             {stats.map((stat, index) => {
               const Icon = getIcon(stat.icon);
               return (
@@ -132,7 +132,7 @@ export default function Stats() {
                   viewport={{ once: true }}
                   transition={{ duration: 0.5, delay: index * 0.1 }}
                   className={`rounded-xl p-6 ${
-                    isDarkMode ? "bg-gray-800" : "bg-white/10 backdrop-blur-sm"
+                    isDarkMode ? "bg-gray-700" : "bg-white/10 backdrop-blur-sm"
                   } shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1`}
                 >
                   <div className="flex flex-col items-center">

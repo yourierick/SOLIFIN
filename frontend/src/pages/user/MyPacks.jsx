@@ -925,7 +925,7 @@ export default function MyPacks() {
                         variant="h6"
                         sx={{ color: "primary.main", fontWeight: 700 }}
                       >
-                        {userPack.pack.price}$/mois
+                        {userPack.pack.price}$/{userPack.pack.abonnement}
                       </Typography>
                     </Box>
                     <Chip

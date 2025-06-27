@@ -51,6 +51,7 @@ import SectionDivider from "../components/SectionDivider";
 import AboutSolifin from "../components/AboutSolifin";
 import OurServices from "../components/OurServices";
 import TheoryOfChange from "../components/TheoryOfChange";
+import LegalDocumentModal from "../components/LegalDocumentModal";
 import { useTheme } from "../contexts/ThemeContext";
 import { useState, useEffect } from "react";
 import { useLocation } from "react-router-dom";
@@ -67,6 +68,16 @@ export default function Homepage() {
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  // État pour le modal de document légal
+  const [legalModalOpen, setLegalModalOpen] = useState(false);
+  const [currentLegalDocument, setCurrentLegalDocument] = useState(null);
+
+  // Fonction pour ouvrir le modal de document légal
+  const openLegalDocument = (documentKey) => {
+    setCurrentLegalDocument(documentKey);
+    setLegalModalOpen(true);
+  };
 
   // Récupérer les paramètres publics
   useEffect(() => {
@@ -102,28 +113,40 @@ export default function Homepage() {
 
   return (
     <div
-      className={`min-h-screen ${
+      className={`min-h-screen w-full overflow-x-hidden ${
         isDarkMode
           ? "bg-gradient-to-b from-gray-900 to-gray-800"
           : "bg-gradient-to-b from-primary-50 to-white"
       }`}
     >
       <Navbar />
-      <main>
+      <main className="relative w-full overflow-hidden">
         <section id="hero">
           <Hero />
+        </section>
+        <SectionDivider />
+        <section id="about">
+          <AboutSolifin />
+        </section>
+        <SectionDivider />
+        <section id="theory-of-change">
+          <TheoryOfChange />
         </section>
         <SectionDivider />
         <section id="features">
           <Features />
         </section>
         <SectionDivider />
-        <section id="packages">
-          <Packages />
+        <section id="services">
+          <OurServices />
         </section>
         <SectionDivider />
         <section id="ads">
           <Ads />
+        </section>
+        <SectionDivider />
+        <section id="packages">
+          <Packages />
         </section>
         <SectionDivider />
         <section id="referral">
@@ -138,28 +161,20 @@ export default function Homepage() {
           <Testimonials />
         </section>
         <SectionDivider />
-        <section id="founder">
+        {/* <section id="founder">
           <Founder
             founderPhoto={settings.founder?.founder_photo}
             isLoading={loading}
             error={error}
           />
-        </section>
-        <SectionDivider />
-        <section id="about">
-          <AboutSolifin />
-        </section>
-        <SectionDivider />
-        <section id="services">
-          <OurServices />
-        </section>
-        <SectionDivider />
-        <section id="theory-of-change">
-          <TheoryOfChange />
-        </section>
+        </section> */}
         <SectionDivider />
         <section id="faq">
-          <FAQ whatsappUrl={settings.social?.whatsapp_url || "https://wa.me/33600000000"} />
+          <FAQ
+            whatsappUrl={
+              settings.social?.whatsapp_url || "https://wa.me/33600000000"
+            }
+          />
         </section>
         <SectionDivider />
       </main>
@@ -169,8 +184,16 @@ export default function Homepage() {
         legalDocs={settings.legal}
         isLoading={loading}
         error={error}
+        openLegalDocument={openLegalDocument}
       />
       <ThemeToggle />
+
+      {/* Modal pour les documents légaux */}
+      <LegalDocumentModal
+        documentKey={currentLegalDocument}
+        isOpen={legalModalOpen}
+        onClose={() => setLegalModalOpen(false)}
+      />
     </div>
   );
 }

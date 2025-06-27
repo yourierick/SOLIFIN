@@ -42,6 +42,16 @@ Route::get('/testimonials/approved', [App\Http\Controllers\TestimonialController
 // Route pour les statistiques publiques
 Route::get('/stats/home', [App\Http\Controllers\StatsController::class, 'getHomeStats']);
 
+// Routes publiques pour SerdiPay (paiements sans authentification)
+Route::prefix('serdipay')->group(function () {
+    // Endpoint pour initier un paiement sans authentification (achat de pack)
+    Route::post('/guest/payment', [App\Http\Controllers\SerdiPayController::class, 'initiateGuestPayment']);
+    // Endpoint pour vérifier le statut d'une transaction sans authentification
+    Route::post('/guest/status', [App\Http\Controllers\SerdiPayController::class, 'checkGuestStatus']);
+    // Endpoint pour recevoir les callbacks de SerdiPay
+    Route::post('/callback', [App\Http\Controllers\SerdiPayController::class, 'handleCallback']);
+});
+
 //Récupération des paramètres publics
 Route::get('/settings/load', [App\Http\Controllers\HomeController::class, 'getSettings']);
 
@@ -180,6 +190,16 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
     Route::post('/withdrawal/request/{id}/cancel', [WithdrawalController::class, 'cancel']);
     Route::get('/withdrawal/referral-commission', [WithdrawalController::class, 'getReferralCommissionPercentage']);
 
+    // Routes pour SerdiPay (paiements authentifiés)
+    Route::prefix('serdipay')->group(function () {
+        // Endpoint pour initier un paiement
+        Route::post('/payment', [App\Http\Controllers\SerdiPayController::class, 'initiatePayment']);
+        // Endpoint pour initier un retrait
+        Route::post('/withdrawal', [App\Http\Controllers\SerdiPayController::class, 'initiateWithdrawal']);
+        // Endpoint pour vérifier le statut d'une transaction
+        Route::post('/status', [App\Http\Controllers\SerdiPayController::class, 'checkStatus']);
+    });
+    
     // Routes pour les finances de l'utilisateur
     Route::prefix('user/finances')->group(function () {
         Route::get('/transactions', [\App\Http\Controllers\User\FinanceController::class, 'getTransactions']);
@@ -256,8 +276,8 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
         Route::post('/purchase/{id}', [App\Http\Controllers\User\UserFormationController::class, 'purchase']);
         
         // Routes alternatives pour le composant QuizPlayer
-        Route::post('/modules/{moduleId}/quiz/submit', [\App\Http\Controllers\User\QuizController::class, 'submitAnswers']);
         Route::get('/modules/{moduleId}/quiz/results', [\App\Http\Controllers\User\QuizController::class, 'getResults']);
+        Route::post('/modules/{moduleId}/quiz/submit', [\App\Http\Controllers\User\QuizController::class, 'submitAnswers']);
         Route::get('/modules/{moduleId}', [\App\Http\Controllers\User\UserFormationController::class, 'showModuleWithoutFormation']);
         
         // Accès aux formations disponibles

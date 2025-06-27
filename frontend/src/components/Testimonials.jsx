@@ -5,39 +5,11 @@ import { UserCircleIcon } from "@heroicons/react/24/outline";
 import { useTheme } from "../contexts/ThemeContext";
 import axios from "axios";
 
-// Fallback pour les témoignages en cas d'erreur de chargement
-const fallbackTestimonials = [
-  {
-    id: 1,
-    name: "Marie Dubois",
-    role: "Membre depuis 2023",
-    image: null,
-    content:
-      "SOLIFIN m'a permis de développer mon réseau professionnel et d'accéder à des opportunités que je n'aurais jamais trouvées ailleurs.",
-    rating: 5,
-  },
-  {
-    id: 2,
-    name: "Jean Martin",
-    role: "Membre Elite",
-    image: null,
-    content:
-      "Grâce à SOLIFIN, j'ai pu financer mon projet d'entreprise et rencontrer des partenaires clés pour mon développement.",
-    rating: 5,
-  },
-  {
-    id: 3,
-    name: "Sophie Laurent",
-    role: "Membre Pro",
-    image: null,
-    content:
-      "Les opportunités d'affaires sur SOLIFIN sont inégalées. J'ai trouvé des partenaires commerciaux de qualité et augmenté mon chiffre d'affaires.",
-    rating: 5,
-  },
-];
+// État initial vide pour les témoignages
+const initialTestimonials = [];
 
 export default function Testimonials() {
-  const [testimonials, setTestimonials] = useState(fallbackTestimonials);
+  const [testimonials, setTestimonials] = useState(initialTestimonials);
   const [current, setCurrent] = useState(0);
   const [autoplay, setAutoplay] = useState(true);
   const [loading, setLoading] = useState(true);
@@ -57,8 +29,7 @@ export default function Testimonials() {
       } catch (err) {
         console.error("Erreur lors du chargement des témoignages:", err);
         setError("Impossible de charger les témoignages");
-        // Utiliser les témoignages de secours en cas d'erreur
-        setTestimonials(fallbackTestimonials);
+        setTestimonials([]); // S'assurer que le tableau est vide en cas d'erreur
       } finally {
         setLoading(false);
       }
@@ -66,6 +37,11 @@ export default function Testimonials() {
 
     fetchTestimonials();
   }, []);
+
+  // Ne rien afficher s'il n'y a pas de témoignages
+  if (loading || error || testimonials.length === 0) {
+    return null;
+  }
 
   // Rotation automatique des témoignages
   useEffect(() => {

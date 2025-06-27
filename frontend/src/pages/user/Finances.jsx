@@ -8,6 +8,8 @@ import React, {
 import axios from "axios";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
+import Wallets from "./Wallet";
+import JetonsEsengo from "./components/JetonsEsengo";
 import {
   Box,
   Container,
@@ -61,6 +63,8 @@ import {
   History as HistoryIcon,
   Info as InfoIcon,
   TrendingUp as TrendingUpIcon,
+  AccountBalanceWallet as WalletIcon,
+  LocalAtm as TokenIcon,
 } from "@mui/icons-material";
 import {
   BarChart,
@@ -594,11 +598,11 @@ const Finances = () => {
         stat.type === "purchase"
           ? "Achat"
           : stat.type === "transfer"
-          ? "Transfert des fonds"
+          ? "Transfert"
           : stat.type === "withdrawal"
-          ? "Retrait des fonds"
+          ? "Retrait"
           : stat.type === "reception"
-          ? "Dépôt des fonds"
+          ? "Réception"
           : stat.type === "bonus"
           ? "Bonus"
           : stat.type === "commission de parrainage"
@@ -1816,7 +1820,7 @@ const Finances = () => {
                   {type === "withdrawal"
                     ? "Retrait des fonds"
                     : type === "reception"
-                    ? "Dépot des fonds"
+                    ? "Réception"
                     : type === "transfer"
                     ? "Transfert des fonds"
                     : type === "bonus"
@@ -2449,6 +2453,12 @@ const Finances = () => {
           }}
         >
           <Tab
+            label="Portefeuille"
+            icon={<WalletIcon />}
+            iconPosition="start"
+            sx={{ fontWeight: 600, textTransform: "none" }}
+          />
+          <Tab
             label="Transactions"
             icon={<ReceiptIcon />}
             iconPosition="start"
@@ -2466,13 +2476,22 @@ const Finances = () => {
             iconPosition="start"
             sx={{ fontWeight: 600, textTransform: "none" }}
           />
+          <Tab
+            label="Jetons Esengo"
+            icon={<TokenIcon />}
+            iconPosition="start"
+            sx={{ fontWeight: 600, textTransform: "none" }}
+          />
         </Tabs>
       </Paper>
 
       {/* Contenu des onglets */}
       <Box sx={{ mt: 3 }}>
+        {/* Onglet Portefeuille */}
+        {activeTab === 0 && <Wallets />}
+
         {/* Onglet Transactions */}
-        {activeTab === 0 && (
+        {activeTab === 1 && (
           <>
             <TransactionFilters />
             {error.transactions && (
@@ -2485,7 +2504,7 @@ const Finances = () => {
         )}
 
         {/* Onglet Points Bonus */}
-        {activeTab === 1 && (
+        {activeTab === 2 && (
           <>
             <BonusPointsFilters />
             {error.bonusPoints && (
@@ -2498,7 +2517,7 @@ const Finances = () => {
         )}
 
         {/* Onglet Statistiques */}
-        {activeTab === 2 && (
+        {activeTab === 3 && (
           <>
             {/* Filtres pour les statistiques */}
             <Paper
@@ -2825,7 +2844,7 @@ const Finances = () => {
                               size="small"
                               label={
                                 stat.type === "reception"
-                                  ? "Dépot des fonds"
+                                  ? "Réception"
                                   : stat.type === "withdrawal"
                                   ? "Retrait des fonds"
                                   : stat.type === "transfer"
@@ -2950,6 +2969,9 @@ const Finances = () => {
             </Grid>
           </>
         )}
+
+        {/* Onglet Jetons Esengo */}
+        {activeTab === 4 && <JetonsEsengo />}
       </Box>
     </Container>
   );
