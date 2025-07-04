@@ -74,7 +74,9 @@ export default function Login() {
         }`}
       >
         <div className="flex flex-col items-center">
-          <div className="mb-2 w-24 h-24 bg-white p-2 flex items-center justify-center">
+          <div
+            className={`mb-2 w-24 h-24 p-2 flex items-center justify-center`}
+          >
             <img
               src={logo}
               alt="SOLIFIN Logo"

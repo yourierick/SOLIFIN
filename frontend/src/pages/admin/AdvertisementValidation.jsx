@@ -11,9 +11,11 @@ import {
   ChatBubbleLeftRightIcon,
   ExclamationCircleIcon,
   ShieldExclamationIcon,
+  DocumentTextIcon,
 } from "@heroicons/react/24/outline";
 import axios from "axios";
 import AdminPostDetailModal from "./components/AdminPostDetailModal";
+import ConfirmationModal from "../../components/ConfirmationModal";
 import { toast } from "react-toastify";
 
 function classNames(...classes) {
@@ -26,6 +28,7 @@ export default function AdvertisementValidation() {
     jobOffers: [],
     businessOpportunities: [],
     socialEvents: [],
+    digitalProducts: [],
   });
   const [reportModalOpen, setReportModalOpen] = useState(false);
   const [selectedReportedStatus, setSelectedReportedStatus] = useState(null);
@@ -34,23 +37,34 @@ export default function AdvertisementValidation() {
     jobOffers: [],
     businessOpportunities: [],
     socialEvents: [],
+    digitalProducts: [],
   });
 
   // Compteurs pour les publications en attente
   const pendingCounts = useMemo(
     () => ({
-      advertisements: allItems.advertisements.filter(
-        (item) => item.statut === "en_attente"
-      ).length,
-      jobOffers: allItems.jobOffers.filter(
-        (item) => item.statut === "en_attente"
-      ).length,
-      businessOpportunities: allItems.businessOpportunities.filter(
-        (item) => item.statut === "en_attente"
-      ).length,
-      socialEvents: allItems.socialEvents.filter(
-        (item) => item.statut === "en_attente"
-      ).length,
+      advertisements: Array.isArray(allItems.advertisements)
+        ? allItems.advertisements.filter((item) => item.statut === "en_attente")
+            .length
+        : 0,
+      jobOffers: Array.isArray(allItems.jobOffers)
+        ? allItems.jobOffers.filter((item) => item.statut === "en_attente")
+            .length
+        : 0,
+      businessOpportunities: Array.isArray(allItems.businessOpportunities)
+        ? allItems.businessOpportunities.filter(
+            (item) => item.statut === "en_attente"
+          ).length
+        : 0,
+      digitalProducts: Array.isArray(allItems.digitalProducts)
+        ? allItems.digitalProducts.filter(
+            (item) => item.statut === "en_attente"
+          ).length
+        : 0,
+      socialEvents: Array.isArray(allItems.socialEvents)
+        ? allItems.socialEvents.filter((item) => item.statut === "en_attente")
+            .length
+        : 0,
     }),
     [allItems]
   );
@@ -58,15 +72,17 @@ export default function AdvertisementValidation() {
     advertisements: { statut: "all", etat: "all" },
     jobOffers: { statut: "all", etat: "all" },
     businessOpportunities: { statut: "all", etat: "all" },
-    socialEvents: { statut: "all" },
+    socialEvents: { statut: "all", etat: "all" },
+    digitalProducts: { statut: "all", etat: "all" },
   });
 
   // État pour la pagination
   const [pagination, setPagination] = useState({
-    advertisements: { currentPage: 1, itemsPerPage: 3 },
-    jobOffers: { currentPage: 1, itemsPerPage: 3 },
-    businessOpportunities: { currentPage: 1, itemsPerPage: 3 },
-    socialEvents: { currentPage: 1, itemsPerPage: 3 },
+    advertisements: { currentPage: 1, itemsPerPage: 10 },
+    jobOffers: { currentPage: 1, itemsPerPage: 10 },
+    businessOpportunities: { currentPage: 1, itemsPerPage: 10 },
+    socialEvents: { currentPage: 1, itemsPerPage: 10 },
+    digitalProducts: { currentPage: 1, itemsPerPage: 10 },
   });
   const [isLoading, setIsLoading] = useState(true);
   const [selectedItem, setSelectedItem] = useState(null);
@@ -74,6 +90,8 @@ export default function AdvertisementValidation() {
   const [rejectionReason, setRejectionReason] = useState("");
   const [isRejectModalOpen, setIsRejectModalOpen] = useState(false);
   const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [itemToDelete, setItemToDelete] = useState({ id: null, type: null });
 
   useEffect(() => {
     fetchAllItems();
@@ -84,33 +102,51 @@ export default function AdvertisementValidation() {
     applyFilters();
   }, [allItems, filters]);
 
-  const fetchAllItems = async () => {
+  // Fonction pour récupérer les données
+  const fetchData = async () => {
+    setIsLoading(true);
     try {
-      setIsLoading(true);
-      // Utiliser les nouvelles routes pour récupérer toutes les publications
       const [
         advertisementsRes,
         jobOffersRes,
         businessOpportunitiesRes,
         socialEventsRes,
+        digitalProductsRes,
       ] = await Promise.all([
         axios.get("/api/admin/advertisements"),
         axios.get("/api/admin/job-offers"),
         axios.get("/api/admin/business-opportunities"),
         axios.get("/api/admin/social-events"),
+        axios.get("/api/admin/digital-products"),
       ]);
 
+      // S'assurer que toutes les propriétés sont des tableaux
       setAllItems({
-        advertisements: advertisementsRes.data || [],
-        jobOffers: jobOffersRes.data || [],
-        businessOpportunities: businessOpportunitiesRes.data || [],
-        socialEvents: socialEventsRes.data || [],
+        advertisements: Array.isArray(advertisementsRes.data)
+          ? advertisementsRes.data
+          : [],
+        jobOffers: Array.isArray(jobOffersRes.data) ? jobOffersRes.data : [],
+        businessOpportunities: Array.isArray(businessOpportunitiesRes.data)
+          ? businessOpportunitiesRes.data
+          : [],
+        socialEvents: Array.isArray(socialEventsRes.data)
+          ? socialEventsRes.data
+          : [],
+        digitalProducts: Array.isArray(digitalProductsRes.data.data)
+          ? digitalProductsRes.data.data
+          : [],
       });
     } catch (error) {
       console.error("Erreur lors du chargement des données:", error);
     } finally {
       setIsLoading(false);
     }
+  };
+
+  // Fonction pour récupérer toutes les données et afficher un toast de confirmation
+  const fetchAllItems = () => {
+    fetchData();
+    toast.info("Données actualisées");
   };
 
   // Fonction pour appliquer les filtres aux données
@@ -126,6 +162,10 @@ export default function AdvertisementValidation() {
         filters.businessOpportunities
       ),
       socialEvents: filterItems(allItems.socialEvents, filters.socialEvents),
+      digitalProducts: filterItems(
+        allItems.digitalProducts,
+        filters.digitalProducts
+      ),
     };
 
     setFilteredItems(newFilteredItems);
@@ -133,6 +173,7 @@ export default function AdvertisementValidation() {
 
   // Fonction pour filtrer les éléments selon les critères
   const filterItems = (items, filter) => {
+    if (!Array.isArray(items)) return [];
     return items.filter((item) => {
       // Filtre par statut
       if (filter.statut !== "all" && item.statut !== filter.statut) {
@@ -176,7 +217,11 @@ export default function AdvertisementValidation() {
         ? "advertisements"
         : type === "jobOffer"
         ? "jobOffers"
-        : "businessOpportunities";
+        : type === "businessOpportunity"
+        ? "businessOpportunities"
+        : type === "digitalProduct"
+        ? "digitalProducts"
+        : "socialEvents";
 
     setPagination((prev) => ({
       ...prev,
@@ -260,6 +305,10 @@ export default function AdvertisementValidation() {
           endpoint = `/api/admin/social-events/${id}/approve`;
           stateKey = "socialEvents";
           break;
+        case "digitalProduct":
+          endpoint = `/api/admin/digital-products/${id}/approve`;
+          stateKey = "digitalProducts";
+          break;
         default:
           return;
       }
@@ -300,6 +349,10 @@ export default function AdvertisementValidation() {
           endpoint = `/api/admin/social-events/${id}/etat`;
           stateKey = "socialEvents";
           break;
+        case "digitalProduct":
+          endpoint = `/api/admin/digital-products/${id}/etat`;
+          stateKey = "digitalProducts";
+          break;
         default:
           return;
       }
@@ -337,6 +390,10 @@ export default function AdvertisementValidation() {
           endpoint = `/api/admin/business-opportunities/${id}/status`;
           stateKey = "businessOpportunities";
           break;
+        case "digitalProduct":
+          endpoint = `/api/admin/digital-products/${id}/status`;
+          stateKey = "digitalProducts";
+          break;
         case "socialEvent":
           endpoint = `/api/admin/social-events/${id}/status`;
           stateKey = "socialEvents";
@@ -361,15 +418,16 @@ export default function AdvertisementValidation() {
     }
   };
 
+  // Fonction pour ouvrir le modal de confirmation de suppression
+  const openDeleteModal = (id, type) => {
+    setItemToDelete({ id, type });
+    setIsDeleteModalOpen(true);
+  };
+
   // Fonction pour supprimer une publication
-  const handleDelete = async (id, type) => {
-    if (
-      !window.confirm(
-        "Êtes-vous sûr de vouloir supprimer cette publication ? Cette action est irréversible."
-      )
-    ) {
-      return;
-    }
+  const handleDelete = async () => {
+    const { id, type } = itemToDelete;
+    if (!id || !type) return;
 
     try {
       let endpoint = "";
@@ -388,6 +446,10 @@ export default function AdvertisementValidation() {
           endpoint = `/api/admin/business-opportunities/${id}`;
           stateKey = "businessOpportunities";
           break;
+        case "digitalProduct":
+          endpoint = `/api/admin/digital-products/${id}`;
+          stateKey = "digitalProducts";
+          break;
         case "socialEvent":
           endpoint = `/api/admin/social-events/${id}`;
           stateKey = "socialEvents";
@@ -403,8 +465,12 @@ export default function AdvertisementValidation() {
         ...prev,
         [stateKey]: prev[stateKey].filter((item) => item.id !== id),
       }));
+
+      toast.success("Publication supprimée avec succès");
+      setIsDeleteModalOpen(false);
     } catch (error) {
       console.error("Erreur lors de la suppression:", error);
+      toast.error("Erreur lors de la suppression");
     }
   };
 
@@ -431,6 +497,10 @@ export default function AdvertisementValidation() {
         case "socialEvent":
           endpoint = `/api/admin/social-events/${selectedItem.id}/reject`;
           stateKey = "socialEvents";
+          break;
+        case "digitalProduct":
+          endpoint = `/api/admin/digital-products/${selectedItem.id}/reject`;
+          stateKey = "digitalProducts";
           break;
         default:
           return;
@@ -557,7 +627,11 @@ export default function AdvertisementValidation() {
         ? "advertisements"
         : type === "jobOffer"
         ? "jobOffers"
-        : "businessOpportunities";
+        : type === "businessOpportunity"
+        ? "businessOpportunities"
+        : type === "digitalProduct"
+        ? "digitalProducts"
+        : "socialEvents";
 
     const { currentPage, itemsPerPage } = pagination[paginationKey];
     const startIndex = (currentPage - 1) * itemsPerPage;
@@ -573,7 +647,11 @@ export default function AdvertisementValidation() {
         ? "advertisements"
         : type === "jobOffer"
         ? "jobOffers"
-        : "businessOpportunities";
+        : type === "businessOpportunity"
+        ? "businessOpportunities"
+        : type === "digitalProduct"
+        ? "digitalProducts"
+        : "socialEvents";
 
     const { currentPage, itemsPerPage } = pagination[paginationKey];
     const totalPages = Math.ceil(items.length / itemsPerPage);
@@ -738,7 +816,7 @@ export default function AdvertisementValidation() {
                     </button>
                   )}
                   {/* Ne pas afficher le bouton "Changer l'état" pour les statuts sociaux */}
-                  {type !== "socialEvent" && (
+                  {type !== "socialEvent" && type !== "digitalProduct" && (
                     <button
                       title="Changer l'état"
                       onClick={() =>
@@ -755,7 +833,7 @@ export default function AdvertisementValidation() {
                   )}
                   <button
                     title="Supprimer"
-                    onClick={() => handleDelete(item.id, type)}
+                    onClick={() => openDeleteModal(item.id, type)}
                     className="p-2 rounded-full hover:bg-red-100 dark:hover:bg-red-900/30"
                   >
                     <TrashIcon className="h-5 w-5 text-red-600 dark:text-red-500" />
@@ -799,6 +877,10 @@ export default function AdvertisementValidation() {
         case "businessOpportunity":
           endpoint = `/api/admin/business-opportunities/${id}/reject`;
           stateKey = "businessOpportunities";
+          break;
+        case "digitalProduct":
+          endpoint = `/api/admin/digital-products/${id}/reject`;
+          stateKey = "digitalProducts";
           break;
         case "socialEvent":
           endpoint = `/api/admin/social-events/${id}/reject`;
@@ -844,6 +926,10 @@ export default function AdvertisementValidation() {
         case "businessOpportunity":
           endpoint = `/api/admin/business-opportunities/${id}/status`;
           stateKey = "businessOpportunities";
+          break;
+        case "digitalProduct":
+          endpoint = `/api/admin/digital-products/${id}/status`;
+          stateKey = "digitalProducts";
           break;
         case "socialEvent":
           endpoint = `/api/admin/social-events/${id}/status`;
@@ -938,6 +1024,12 @@ export default function AdvertisementValidation() {
         break;
       case "businessOpportunity":
         postType = "opportunites_affaires";
+        break;
+      case "digitalProduct":
+        postType = "produits_numeriques";
+        break;
+      case "socialEvent":
+        postType = "statuts_sociaux";
         break;
       default:
         postType = "";
@@ -1152,12 +1244,14 @@ export default function AdvertisementValidation() {
                 )
               }
             >
-              Publicités
-              {pendingCounts.advertisements > 0 && (
-                <span className="ml-2 px-2 py-0.5 text-xs font-medium rounded-full bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-300">
-                  {pendingCounts.advertisements}
-                </span>
-              )}
+              <div className="relative flex items-center justify-center">
+                {pendingCounts.advertisements > 0 && (
+                  <span className="absolute -top-2 -right-2 px-2 py-0.5 text-xs font-medium rounded-full bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-300">
+                    {pendingCounts.advertisements}
+                  </span>
+                )}
+                Publicités
+              </div>
             </Tab>
             <Tab
               className={({ selected }) =>
@@ -1170,12 +1264,14 @@ export default function AdvertisementValidation() {
                 )
               }
             >
-              Offres d'emploi
-              {pendingCounts.jobOffers > 0 && (
-                <span className="ml-2 px-2 py-0.5 text-xs font-medium rounded-full bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-300">
-                  {pendingCounts.jobOffers}
-                </span>
-              )}
+              <div className="relative flex items-center justify-center">
+                {pendingCounts.jobOffers > 0 && (
+                  <span className="absolute -top-2 -right-2 px-2 py-0.5 text-xs font-medium rounded-full bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-300">
+                    {pendingCounts.jobOffers}
+                  </span>
+                )}
+                Offres d'emploi
+              </div>
             </Tab>
             <Tab
               className={({ selected }) =>
@@ -1188,12 +1284,14 @@ export default function AdvertisementValidation() {
                 )
               }
             >
-              Opportunités d'affaires
-              {pendingCounts.businessOpportunities > 0 && (
-                <span className="ml-2 px-2 py-0.5 text-xs font-medium rounded-full bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-300">
-                  {pendingCounts.businessOpportunities}
-                </span>
-              )}
+              <div className="relative flex items-center justify-center">
+                {pendingCounts.businessOpportunities > 0 && (
+                  <span className="absolute -top-2 -right-2 px-2 py-0.5 text-xs font-medium rounded-full bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-300">
+                    {pendingCounts.businessOpportunities}
+                  </span>
+                )}
+                Opportunités
+              </div>
             </Tab>
             <Tab
               className={({ selected }) =>
@@ -1206,15 +1304,36 @@ export default function AdvertisementValidation() {
                 )
               }
             >
-              <div className="flex items-center justify-center">
+              <div className="relative flex items-center justify-center">
+                {pendingCounts.digitalProducts > 0 && (
+                  <span className="absolute -top-2 -right-2 px-2 py-0.5 text-xs font-medium rounded-full bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-300">
+                    {pendingCounts.digitalProducts}
+                  </span>
+                )}
+                <DocumentTextIcon className="h-5 w-5 mr-2" />
+                Produits numériques
+              </div>
+            </Tab>
+            <Tab
+              className={({ selected }) =>
+                classNames(
+                  "w-full py-3 text-sm font-medium rounded-lg",
+                  "focus:outline-none focus:ring-2 ring-offset-2 ring-offset-primary-400 ring-white ring-opacity-60",
+                  selected
+                    ? "bg-white dark:bg-gray-800 shadow text-primary-700 dark:text-primary-400"
+                    : "text-gray-600 dark:text-gray-300 hover:bg-white/[0.12] dark:hover:bg-gray-700/[0.8] hover:text-primary-600 dark:hover:text-primary-400"
+                )
+              }
+            >
+              <div className="relative flex items-center justify-center">
+                {pendingCounts.socialEvents > 0 && (
+                  <span className="absolute -top-2 -right-2 px-2 py-0.5 text-xs font-medium rounded-full bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-300">
+                    {pendingCounts.socialEvents}
+                  </span>
+                )}
                 <ChatBubbleLeftRightIcon className="h-5 w-5 mr-2" />
                 Statuts Sociaux
               </div>
-              {pendingCounts.socialEvents > 0 && (
-                <span className="ml-2 px-2 py-0.5 text-xs font-medium rounded-full bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-300">
-                  {pendingCounts.socialEvents}
-                </span>
-              )}
             </Tab>
           </Tab.List>
           <Tab.Panels>
@@ -1271,6 +1390,24 @@ export default function AdvertisementValidation() {
               ) : (
                 <>
                   <FilterControls
+                    type="digitalProducts"
+                    typeLabel="produit numérique"
+                  />
+                  {renderItemList(
+                    filteredItems.digitalProducts,
+                    "digitalProduct"
+                  )}
+                </>
+              )}
+            </Tab.Panel>
+            <Tab.Panel className="p-4">
+              {isLoading ? (
+                <div className="flex justify-center p-8">
+                  <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-600 dark:border-primary-400"></div>
+                </div>
+              ) : (
+                <>
+                  <FilterControls
                     type="socialEvents"
                     typeLabel="statut social"
                   />
@@ -1286,6 +1423,18 @@ export default function AdvertisementValidation() {
       {isPreviewModalOpen && renderPreviewModal()}
       {isRejectModalOpen && renderRejectModal()}
       {reportModalOpen && renderReportModal()}
+      
+      {/* Modal de confirmation de suppression */}
+      <ConfirmationModal
+        isOpen={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
+        onConfirm={handleDelete}
+        title="Confirmation de suppression"
+        message="Êtes-vous sûr de vouloir supprimer cette publication ? Cette action est irréversible."
+        confirmButtonText="Supprimer"
+        cancelButtonText="Annuler"
+        type="danger"
+      />
     </div>
   );
 }

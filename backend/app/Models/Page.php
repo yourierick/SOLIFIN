@@ -73,4 +73,12 @@ class Page extends Model
     {
         return $this->hasMany(Livreur::class)->where('statut', 'approuve');
     }
+    
+    /**
+     * Récupérer les produits numériques associés à cette page
+     */
+    public function produitsNumeriques(): HasMany
+    {
+        return $this->hasMany(DigitalProduct::class);
+    }
 }

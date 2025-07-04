@@ -532,14 +532,23 @@ class FeedController extends Controller
     
     /**
      * Récupérer la liste des pages auxquelles l'utilisateur est abonné
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\Response
      */
-    public function subscribedPages()
+    public function subscribedPages(Request $request)
     {
         $userId = Auth::id();
+        $page = $request->input('page', 1);
+        $perPage = $request->input('per_page', 10);
         
-        $pages = Page::whereHas('abonnes', function($query) use ($userId) {
+        $pagesQuery = Page::whereHas('abonnes', function($query) use ($userId) {
             $query->where('user_id', $userId);
-        })->with('user')->get();
+        })->with('user');
+        
+        // Paginer les résultats
+        $paginatedPages = $pagesQuery->paginate($perPage, ['*'], 'page', $page);
+        $pages = $paginatedPages->items();
 
         foreach ($pages as $page) {
             if ($page->user->picture) {
@@ -550,50 +559,116 @@ class FeedController extends Controller
                 $page->photo_de_couverture = asset('storage/' . $page->photo_de_couverture);
             }
         }
-
         
         return response()->json([
-            'pages' => $pages
+            'pages' => $pages,
+            'current_page' => $paginatedPages->currentPage(),
+            'last_page' => $paginatedPages->lastPage(),
+            'total' => $paginatedPages->total(),
+            'per_page' => $paginatedPages->perPage()
         ]);
     }
     
     /**
-     * Récupérer la liste des pages recommandées pour l'utilisateur
+     * Rechercher des pages par nom d'utilisateur
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\Response
      */
-    public function recommendedPages()
+    public function searchPages(Request $request)
+    {
+        $query = $request->input('query');
+        $page = $request->input('page', 1);
+        $perPage = $request->input('per_page', 10);
+        
+        if (!$query) {
+            return response()->json([
+                'pages' => [],
+                'current_page' => 1,
+                'last_page' => 1,
+                'total' => 0,
+                'per_page' => $perPage
+            ]);
+        }
+        
+        // Rechercher les pages dont le nom d'utilisateur contient la requête
+        $pagesQuery = Page::whereHas('user', function($q) use ($query) {
+            $q->where('name', 'like', '%' . $query . '%');
+        })
+        ->with('user');
+        
+        // Paginer les résultats
+        $paginatedPages = $pagesQuery->paginate($perPage, ['*'], 'page', $page);
+        $pages = $paginatedPages->items();
+        
+        // Ajouter l'URL complète de la photo de couverture pour chaque page
+        foreach ($pages as $page) {
+            if ($page->user->picture) {
+                $page->user->picture = asset('storage/' . $page->user->picture);
+            }
+            
+            if ($page->photo_de_couverture) {
+                $page->photo_de_couverture = asset('storage/' . $page->photo_de_couverture);
+            }
+        }
+        
+        return response()->json([
+            'pages' => $pages,
+            'current_page' => $paginatedPages->currentPage(),
+            'last_page' => $paginatedPages->lastPage(),
+            'total' => $paginatedPages->total(),
+            'per_page' => $paginatedPages->perPage()
+        ]);
+    }
+
+    /**
+     * Récupérer la liste des pages recommandées pour l'utilisateur
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\Response
+     */
+    public function recommendedPages(Request $request)
     {
         $userId = Auth::id();
+        $page = $request->input('page', 1);
+        $perPage = $request->input('per_page', 10);
         
-        // Exclure les pages auxquelles l'utilisateur est déjà abonné
+        // Récupérer les IDs des pages auxquelles l'utilisateur est déjà abonné
         $subscribedPageIds = PageAbonnes::where('user_id', $userId)
             ->pluck('page_id')
             ->toArray();
         
-        // Récupérer les pages les plus populaires (avec le plus d'abonnés)
-        $pages = Page::whereNotIn('id', $subscribedPageIds)
+        // Récupérer des pages recommandées (exclure celles auxquelles l'utilisateur est déjà abonné)
+        $pagesQuery = Page::whereNotIn('id', $subscribedPageIds)
             ->orderBy('nombre_abonnes', 'desc')
-            ->with('user')
-            ->take(10)
-            ->get();
+            ->with('user');
+            
+        // Paginer les résultats
+        $paginatedPages = $pagesQuery->paginate($perPage, ['*'], 'page', $page);
+        $pages = $paginatedPages->items();
 
-            foreach ($pages as $page) {
-                if ($page->user->picture) {
-                    $page->user->picture = asset('storage/' . $page->user->picture);
-                }
-    
-                if ($page->photo_de_couverture) {
-                    $page->photo_de_couverture = asset('storage/' . $page->photo_de_couverture);
-                }
+        foreach ($pages as $page) {
+            if ($page->user->picture) {
+                $page->user->picture = asset('storage/' . $page->user->picture);
             }
+
+            if ($page->photo_de_couverture) {
+                $page->photo_de_couverture = asset('storage/' . $page->photo_de_couverture);
+            }
+        }
         
         return response()->json([
-            'pages' => $pages
+            'pages' => $pages,
+            'current_page' => $paginatedPages->currentPage(),
+            'last_page' => $paginatedPages->lastPage(),
+            'total' => $paginatedPages->total(),
+            'per_page' => $paginatedPages->perPage()
         ]);
     }
 
     /**
      * Ajouter un commentaire à une publication
-     */
+{{ ... }}
     // public function addComment(Request $request, $id)
     // {
     //     $post = Post::findOrFail($id);

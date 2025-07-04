@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import ReactDOM from 'react-dom';
 import { XMarkIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline';
+import { useTheme } from '../contexts/ThemeContext';
 
 /**
  * Composant modal de confirmation réutilisable
@@ -22,9 +23,14 @@ const ConfirmationModal = ({
   message = 'Êtes-vous sûr de vouloir effectuer cette action ?',
   confirmButtonText = 'Confirmer',
   cancelButtonText = 'Annuler',
-  isDarkMode = false,
+  isDarkMode: isDarkModeProp,
   type = 'danger' // 'danger', 'warning', 'info'
 }) => {
+  // Utiliser le contexte de thème global de l'application
+  const { isDarkMode: contextDarkMode } = useTheme();
+  
+  // Utiliser la valeur fournie en prop si disponible, sinon utiliser le contexte
+  const isDarkMode = isDarkModeProp !== undefined ? isDarkModeProp : contextDarkMode;
   // Empêcher le défilement du body lorsque le modal est ouvert
   useEffect(() => {
     if (isOpen) {
@@ -91,7 +97,7 @@ const ConfirmationModal = ({
   // Créer un élément modal qui sera rendu directement dans le body
   return ReactDOM.createPortal(
     <div 
-      className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center p-4 z-[9999]"
+      className={`fixed inset-0 ${isDarkMode ? 'bg-black bg-opacity-60' : 'bg-black bg-opacity-50'} backdrop-blur-sm flex items-center justify-center p-4 z-[9999]`}
       onClick={onClose} // Fermer le modal en cliquant à l'extérieur
     >
       <div 

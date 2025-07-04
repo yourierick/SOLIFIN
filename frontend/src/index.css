@@ -48,6 +48,62 @@
 }
 
 @layer utilities {
+  /* Styles pour les ascenseurs modernes */
+  .scrollbar-modern {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(99, 102, 241, 0.3) transparent;
+  }
+  
+  .scrollbar-modern::-webkit-scrollbar {
+    height: 6px;
+    width: 6px;
+  }
+  
+  .scrollbar-modern::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  
+  .scrollbar-modern::-webkit-scrollbar-thumb {
+    background-color: rgba(99, 102, 241, 0.3);
+    border-radius: 20px;
+    border: none;
+  }
+  
+  .scrollbar-modern::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(99, 102, 241, 0.5);
+  }
+  
+  .scrollbar-modern:hover::-webkit-scrollbar-thumb {
+    background-color: rgba(99, 102, 241, 0.5);
+  }
+  
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+  
+  .tabs-container {
+    position: relative;
+  }
+  
+  .tabs-container::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    height: 100%;
+    width: 30px;
+    background: linear-gradient(to right, rgba(243, 244, 246, 0), rgba(243, 244, 246, 0.7));
+    pointer-events: none;
+  }
+  
+  .dark .tabs-container::after {
+    background: linear-gradient(to right, rgba(31, 41, 55, 0), rgba(31, 41, 55, 0.7));
+  }
   .scrollbar-thin {
     scrollbar-width: thin;
   }

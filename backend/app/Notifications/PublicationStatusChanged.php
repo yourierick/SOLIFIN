@@ -59,18 +59,8 @@ class PublicationStatusChanged extends Notification implements ShouldQueue
                 ->line('Elle sera examinée par notre équipe prochainement.');
         }
 
-        $url = '/dashboard';
-        switch ($this->data['type']) {
-            case 'publicites':
-                $url = '/publicites/' . $this->data['id'];
-                break;
-            case 'offres_emploi':
-                $url = '/offres-emploi/' . $this->data['id'];
-                break;
-            case 'opportunites_affaires':
-                $url = '/opportunites-affaires/' . $this->data['id'];
-                break;
-        }
+        $url = '/dashboard/my-page';
+        
 
         return $message->action('Voir ma publication', url($url))
             ->line('Merci d\'utiliser notre application !');
@@ -134,6 +124,8 @@ class PublicationStatusChanged extends Notification implements ShouldQueue
                 return 'offre d\'emploi';
             case 'opportunite_affaire':
                 return 'opportunité d\'affaire';
+            case 'produit_numerique':
+                return 'produit numérique';
             default:
                 return 'publication';
         }

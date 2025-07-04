@@ -14,7 +14,6 @@ import {
   DocumentTextIcon,
   MagnifyingGlassIcon,
   FunnelIcon,
-  ArrowDownTrayIcon as DownloadIcon,
 } from "@heroicons/react/24/outline";
 import axios from "../../utils/axios";
 import { useAuth } from "../../contexts/AuthContext";
@@ -40,7 +39,6 @@ import SubTabsPanel from "./components/SubTabsPanel";
 import { NewspaperIcon } from "@heroicons/react/24/outline";
 import DigitalProductCard from "../../components/DigitalProductCard";
 import DigitalProductForm from "../../components/DigitalProductForm";
-import PurchaseDigitalProductModal from "./components/PurchaseDigitalProductModal";
 
 function classNames(...classes) {
   return classes.filter(Boolean).join(" ");
@@ -53,8 +51,6 @@ export default function MyPage() {
     businessOpportunities: [],
     digitalProducts: [],
   });
-  const [catalogProducts, setCatalogProducts] = useState([]);
-  const [isLoadingCatalog, setIsLoadingCatalog] = useState(false);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [currentFormType, setCurrentFormType] = useState(null);
   const [isEditMode, setIsEditMode] = useState(false);
@@ -80,14 +76,10 @@ export default function MyPage() {
 
   // États pour la recherche et le filtrage
   const [searchTerm, setSearchTerm] = useState("");
-  const [catalogSearchTerm, setCatalogSearchTerm] = useState("");
   const [filters, setFilters] = useState({
     statut: "tous", // 'tous', 'en_attente', 'approuvé', 'rejeté'
     etat: "tous", // 'tous', 'disponible', 'terminé'
     dateRange: "tous", // 'tous', 'aujourd'hui', 'semaine', 'mois'
-  });
-  const [catalogFilters, setCatalogFilters] = useState({
-    type: "tous", // 'tous', 'ebook', 'fichier_admin'
   });
   const [showFilters, setShowFilters] = useState(false);
 
@@ -101,114 +93,11 @@ export default function MyPage() {
     setSearchTerm("");
   };
 
-  // Fonction pour réinitialiser les filtres du catalogue
-  const resetCatalogFilters = () => {
-    setCatalogFilters({
-      type: "tous",
-    });
-    setCatalogSearchTerm("");
-  };
-
-  // Fonction pour récupérer les produits numériques du catalogue
-  const fetchCatalogProducts = async () => {
-    try {
-      setIsLoadingCatalog(true);
-      const params = {
-        page: pagination.catalogProducts.currentPage,
-        search: catalogSearchTerm,
-      };
-
-      // Ajouter le filtre de type si nécessaire
-      if (catalogFilters.type !== "tous") {
-        params.type = catalogFilters.type;
-      }
-
-      const response = await axios.get("/api/digital-products/approved", {
-        params,
-      });
-      setCatalogProducts(response.data.data || []);
-
-      // Mettre à jour la pagination
-      setPagination((prev) => ({
-        ...prev,
-        catalogProducts: {
-          ...prev.catalogProducts,
-          totalPages: Math.ceil(response.data.total / response.data.per_page),
-          totalItems: response.data.total,
-        },
-      }));
-    } catch (error) {
-      console.error("Erreur lors du chargement du catalogue:", error);
-      toast.error("Impossible de charger le catalogue de produits numériques");
-    } finally {
-      setIsLoadingCatalog(false);
-    }
-  };
-
-  // Fonction pour ouvrir le modal d'achat d'un produit numérique
-  const handlePurchaseProduct = async (productId) => {
-    try {
-      const product = catalogProducts.find((p) => p.id === productId);
-      if (product) {
-        setProductToPurchase(product);
-        setShowPurchaseModal(true);
-      } else {
-        // Si le produit n'est pas trouvé dans le cache, on le récupère depuis l'API
-        const response = await axios.get(`/api/digital-products/${productId}`);
-        if (response.data) {
-          setProductToPurchase(response.data.data);
-          setShowPurchaseModal(true);
-        }
-      }
-    } catch (error) {
-      console.error("Erreur lors de la récupération du produit:", error);
-      toast.error("Impossible de récupérer les détails du produit");
-    }
-  };
-
-  // Fonction pour récupérer les produits numériques achetés par l'utilisateur
-  const fetchMyPurchases = async () => {
-    try {
-      setLoadingPurchases(true);
-      const response = await axios.get("/api/digital-products/purchases/my");
-      setMyPurchases(response.data.data || []);
-    } catch (error) {
-      console.error("Erreur lors du chargement des achats:", error);
-    } finally {
-      setLoadingPurchases(false);
-    }
-  };
-
-  // Fonction pour confirmer l'achat d'un produit numérique
-  const handlePurchaseComplete = (downloadUrl) => {
-    // Rafraîchir la liste des produits achetés
-    fetchPublications();
-    fetchMyPurchases();
-
-    // Ouvrir le lien de téléchargement si disponible
-    if (downloadUrl) {
-      window.open(downloadUrl, "_blank");
-    }
-
-    toast.success(
-      "Achat réussi! Le produit a été ajouté à votre bibliothèque."
-    );
-  };
-
   // État pour le modal de photo de couverture
   const [showCoverPhotoModal, setShowCoverPhotoModal] = useState(false);
   const [coverPhotoFile, setCoverPhotoFile] = useState(null);
   const [coverPhotoError, setCoverPhotoError] = useState("");
   const [coverPhotoLoading, setCoverPhotoLoading] = useState(false);
-
-  // État pour le modal de confirmation d'achat
-  const [showPurchaseModal, setShowPurchaseModal] = useState(false);
-  const [productToPurchase, setProductToPurchase] = useState(null);
-  const [isPurchasing, setIsPurchasing] = useState(false);
-
-  // État pour stocker les produits numériques achetés par l'utilisateur
-  const [myPurchases, setMyPurchases] = useState([]);
-  const [loadingPurchases, setLoadingPurchases] = useState(false);
 
   // États pour la pagination
   const [pagination, setPagination] = useState({
@@ -216,7 +105,6 @@ export default function MyPage() {
     jobOffers: { currentPage: 1, itemsPerPage: 3 },
     businessOpportunities: { currentPage: 1, itemsPerPage: 3 },
     digitalProducts: { currentPage: 1, itemsPerPage: 3 },
-    catalogProducts: { currentPage: 1, itemsPerPage: 6 },
   });
 
   // État pour le modal de boost
@@ -240,8 +128,6 @@ export default function MyPage() {
       setSubscribersCount(pageResponse.data.page.nombre_abonnes);
       setLikesCount(pageResponse.data.page.nombre_likes);
 
-      fetchMyPurchases();
-
       // Fetch all publication types
       setPublications({
         advertisements: pageResponse.data.page.publicites,
@@ -249,6 +135,7 @@ export default function MyPage() {
         businessOpportunities: pageResponse.data.page.opportunites_affaires,
         digitalProducts: pageResponse.data.page.produits_numeriques || [],
       });
+      console.log(pageResponse.data.page.produits_numeriques);
     } catch (error) {
       console.error("Erreur lors du chargement des données:", error);
     } finally {
@@ -394,55 +281,6 @@ export default function MyPage() {
     }
   };
 
-  // Fonction pour rafraîchir les données après un achat
-  const refreshAfterPurchase = () => {
-    fetchPublications();
-    fetchMyPurchases();
-    fetchCatalog();
-  };
-
-  // Fonction pour confirmer l'achat d'un produit numérique
-  const confirmPurchase = async () => {
-    if (!productToPurchase) return;
-
-    try {
-      setIsPurchasing(true);
-      const response = await axios.post(
-        `/api/digital-products/${productToPurchase.id}/purchase`
-      );
-
-      toast.success(
-        "Achat effectué avec succès ! Vous pouvez télécharger votre produit dans la section 'Mes achats'."
-      );
-
-      // Fermer le modal et réinitialiser les états
-      setShowPurchaseModal(false);
-      setProductToPurchase(null);
-
-      // Rediriger vers la page de téléchargement si nécessaire
-      if (response.data.download_url) {
-        window.open(response.data.download_url, "_blank");
-      }
-    } catch (error) {
-      console.error("Erreur lors de l'achat:", error);
-      let errorMessage = "Une erreur est survenue lors de l'achat du produit";
-
-      if (error.response) {
-        if (error.response.status === 402) {
-          errorMessage = "Solde insuffisant pour effectuer cet achat";
-        } else if (error.response.status === 409) {
-          errorMessage = "Vous avez déjà acheté ce produit";
-        } else if (error.response.data && error.response.data.message) {
-          errorMessage = error.response.data.message;
-        }
-      }
-
-      toast.error(errorMessage);
-    } finally {
-      setIsPurchasing(false);
-    }
-  };
-
   useEffect(() => {
     // Vérifier le statut du pack de publication
     if (refreshPackStatus) {
@@ -450,17 +288,7 @@ export default function MyPage() {
     }
 
     fetchPageData();
-    fetchCatalogProducts();
   }, [user.id]);
-
-  // Effet pour recharger le catalogue quand les filtres ou la pagination changent
-  useEffect(() => {
-    fetchCatalogProducts();
-  }, [
-    pagination.catalogProducts.currentPage,
-    catalogSearchTerm,
-    catalogFilters.type,
-  ]);
 
   useEffect(() => {
     if (pageData?.id) {
@@ -1589,9 +1417,7 @@ export default function MyPage() {
                             searchTerm={searchTerm}
                             onSearchChange={(value) => setSearchTerm(value)}
                             filters={filters}
-                            onFilterChange={(newFilters) =>
-                              setFilters(newFilters)
-                            }
+                            onFilterChange={(newFilters) => setFilters(newFilters)}
                             showFilters={showFilters}
                             onToggleFilters={() => setShowFilters(!showFilters)}
                           />
@@ -1604,61 +1430,52 @@ export default function MyPage() {
                           </div>
                         ) : publications.digitalProducts.length > 0 ? (
                           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                            {getFilteredPublications(
-                              "digitalProduct",
-                              true
-                            ).map((product) => (
-                              <div key={product.id} className="mb-4">
-                                <DigitalProductCard
-                                  product={product}
-                                  onEdit={() => {
-                                    setSelectedDigitalProduct(product);
-                                    setIsDigitalProductFormOpen(true);
-                                  }}
-                                  onDelete={(id) =>
-                                    handleDeleteConfirm(id, "digitalProduct")
-                                  }
-                                  onChangeStatus={(id, newStatus) =>
-                                    handleChangeState(
-                                      id,
-                                      "digitalProduct",
-                                      newStatus
-                                    )
-                                  }
-                                />
-                              </div>
-                            ))}
+                            {getFilteredPublications("digitalProduct", true).map(
+                              (product) => (
+                                <div key={product.id} className="mb-4">
+                                  <DigitalProductCard
+                                    product={product}
+                                    onEdit={() => {
+                                      setSelectedDigitalProduct(product);
+                                      setIsDigitalProductFormOpen(true);
+                                    }}
+                                    onDelete={(id) =>
+                                      handleDeleteConfirm(id, "digitalProduct")
+                                    }
+                                    onChangeStatus={(id, newStatus) =>
+                                      handleChangeState(id, "digitalProduct", newStatus)
+                                    }
+                                  />
+                                </div>
+                              )
+                            )}
                           </div>
                         ) : (
                           <div className="text-center py-8">
                             <p className="text-gray-500 dark:text-gray-400">
-                              Vous n'avez pas encore créé de produits
-                              numériques.
+                              Vous n'avez pas encore créé de produits numériques.
                             </p>
                           </div>
                         )}
 
                         {/* Pagination */}
-                        {!isLoading &&
-                          publications.digitalProducts.length > 0 && (
-                            <div className="mt-4">
-                              <Pagination
-                                currentPage={
-                                  pagination.digitalProducts.currentPage
-                                }
-                                totalPages={getTotalPages("digitalProduct")}
-                                onPageChange={(page) =>
-                                  setPagination((prev) => ({
-                                    ...prev,
-                                    digitalProducts: {
-                                      ...prev.digitalProducts,
-                                      currentPage: page,
-                                    },
-                                  }))
-                                }
-                              />
-                            </div>
-                          )}
+                        {!isLoading && publications.digitalProducts.length > 0 && (
+                          <div className="mt-4">
+                            <Pagination
+                              currentPage={pagination.digitalProducts.currentPage}
+                              totalPages={getTotalPages("digitalProduct")}
+                              onPageChange={(page) =>
+                                setPagination((prev) => ({
+                                  ...prev,
+                                  digitalProducts: {
+                                    ...prev.digitalProducts,
+                                    currentPage: page,
+                                  },
+                                }))
+                              }
+                            />
+                          </div>
+                        )}
                       </>
                     ),
                   },
@@ -1669,7 +1486,7 @@ export default function MyPage() {
                           <h2 className="text-lg font-semibold text-gray-800 dark:text-white mb-4">
                             Catalogue des produits numériques
                           </h2>
-
+                          
                           {/* Barre de recherche pour le catalogue */}
                           <div className="relative mb-4">
                             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -1679,290 +1496,45 @@ export default function MyPage() {
                               type="text"
                               className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
                               placeholder="Rechercher un produit numérique..."
-                              value={catalogSearchTerm}
-                              onChange={(e) =>
-                                setCatalogSearchTerm(e.target.value)
-                              }
-                              onKeyPress={(e) =>
-                                e.key === "Enter" && fetchCatalogProducts()
-                              }
                             />
                           </div>
-
+                          
                           {/* Filtres pour le catalogue */}
                           <div className="flex flex-wrap gap-2 mb-4">
-                            <div
-                              className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium cursor-pointer transition-colors ${
-                                catalogFilters.type === "tous"
-                                  ? "bg-primary-100 text-primary-800 dark:bg-primary-900 dark:text-primary-200"
-                                  : "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200 hover:bg-primary-100 hover:text-primary-800 dark:hover:bg-primary-900 dark:hover:text-primary-200"
-                              }`}
-                              onClick={() =>
-                                setCatalogFilters({
-                                  ...catalogFilters,
-                                  type: "tous",
-                                })
-                              }
-                            >
+                            <div className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-primary-100 text-primary-800 dark:bg-primary-900 dark:text-primary-200">
                               Tous
                             </div>
-                            <div
-                              className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium cursor-pointer transition-colors ${
-                                catalogFilters.type === "ebook"
-                                  ? "bg-primary-100 text-primary-800 dark:bg-primary-900 dark:text-primary-200"
-                                  : "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200 hover:bg-primary-100 hover:text-primary-800 dark:hover:bg-primary-900 dark:hover:text-primary-200"
-                              }`}
-                              onClick={() =>
-                                setCatalogFilters({
-                                  ...catalogFilters,
-                                  type: "ebook",
-                                })
-                              }
-                            >
+                            <div className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200 hover:bg-primary-100 hover:text-primary-800 dark:hover:bg-primary-900 dark:hover:text-primary-200 cursor-pointer transition-colors">
                               E-books
                             </div>
-                            <div
-                              className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium cursor-pointer transition-colors ${
-                                catalogFilters.type === "fichier_admin"
-                                  ? "bg-primary-100 text-primary-800 dark:bg-primary-900 dark:text-primary-200"
-                                  : "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200 hover:bg-primary-100 hover:text-primary-800 dark:hover:bg-primary-900 dark:hover:text-primary-200"
-                              }`}
-                              onClick={() =>
-                                setCatalogFilters({
-                                  ...catalogFilters,
-                                  type: "fichier_admin",
-                                })
-                              }
-                            >
-                              Fichiers
+                            <div className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200 hover:bg-primary-100 hover:text-primary-800 dark:hover:bg-primary-900 dark:hover:text-primary-200 cursor-pointer transition-colors">
+                              Templates
+                            </div>
+                            <div className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200 hover:bg-primary-100 hover:text-primary-800 dark:hover:bg-primary-900 dark:hover:text-primary-200 cursor-pointer transition-colors">
+                              Logiciels
                             </div>
                           </div>
-
-                          {/* Liste des produits du catalogue */}
-                          {isLoadingCatalog ? (
-                            <div className="flex justify-center items-center py-8">
-                              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-600"></div>
-                            </div>
-                          ) : catalogProducts.length > 0 ? (
-                            <>
-                              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                {catalogProducts.map((product) => (
-                                  <div key={product.id} className="mb-4">
-                                    <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden transition-all hover:shadow-lg">
-                                      {product.image_url ? (
-                                        <div className="h-40 bg-gray-200 dark:bg-gray-700 overflow-hidden">
-                                          <img
-                                            src={product.image_url}
-                                            alt={product.titre}
-                                            className="w-full h-full object-cover"
-                                          />
-                                        </div>
-                                      ) : (
-                                        <div className="h-40 bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
-                                          <DocumentTextIcon className="h-16 w-16 text-gray-400 dark:text-gray-500" />
-                                        </div>
-                                      )}
-                                      <div className="p-4">
-                                        <div className="flex justify-between items-start">
-                                          <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-1 line-clamp-2">
-                                            {product.titre}
-                                          </h3>
-                                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary-100 text-primary-800 dark:bg-primary-900 dark:text-primary-200">
-                                            {product.type === "ebook"
-                                              ? "E-book"
-                                              : "Fichier"}
-                                          </span>
-                                        </div>
-                                        <p className="text-sm text-gray-500 dark:text-gray-400 mb-3 line-clamp-2">
-                                          {product.description}
-                                        </p>
-                                        <div className="flex justify-between items-center">
-                                          <div className="text-sm text-gray-500 dark:text-gray-400">
-                                            Par{" "}
-                                            <span className="font-medium text-gray-700 dark:text-gray-300">
-                                              {product.page?.user?.name ||
-                                                "Utilisateur"}
-                                            </span>
-                                          </div>
-                                          <div className="text-lg font-bold text-primary-600 dark:text-primary-400">
-                                            {product.prix} {product.devise}
-                                          </div>
-                                        </div>
-                                        {product.page?.user?.id === user.id ? (
-                                          <>
-                                            <div className="mt-2 flex items-center justify-center">
-                                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
-                                                <span className="mr-1">•</span>
-                                                Propriétaire
-                                              </span>
-                                            </div>
-                                            <button
-                                              className="mt-2 w-full inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors"
-                                              onClick={() => {
-                                                // Pour les propriétaires, utiliser directement l'URL du fichier
-                                                if (product.fichier_url) {
-                                                  // Utiliser l'URL complète déjà fournie par l'API
-                                                  window.open(
-                                                    product.fichier_url,
-                                                    "_blank"
-                                                  );
-                                                } else {
-                                                  // Si fichier_url n'est pas disponible, récupérer les détails du produit
-                                                  axios
-                                                    .get(
-                                                      `/api/digital-products/${product.id}`
-                                                    )
-                                                    .then((response) => {
-                                                      if (
-                                                        response.data &&
-                                                        response.data
-                                                          .fichier_url
-                                                      ) {
-                                                        window.open(
-                                                          response.data
-                                                            .fichier_url,
-                                                          "_blank"
-                                                        );
-                                                      } else {
-                                                        toast.error(
-                                                          "Impossible de télécharger le fichier"
-                                                        );
-                                                      }
-                                                    })
-                                                    .catch((error) => {
-                                                      console.error(
-                                                        "Erreur lors du téléchargement:",
-                                                        error
-                                                      );
-                                                      toast.error(
-                                                        "Erreur lors du téléchargement du fichier"
-                                                      );
-                                                    });
-                                                }
-                                              }}
-                                            >
-                                              <DownloadIcon className="h-5 w-5 mr-2" />
-                                              Télécharger
-                                            </button>
-                                          </>
-                                        ) : myPurchases.some(
-                                            (purchase) =>
-                                              purchase.digital_product_id ===
-                                              product.id
-                                          ) ? (
-                                          <>
-                                            <div className="mt-2 flex items-center justify-center">
-                                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
-                                                <span className="mr-1">•</span>
-                                                Déjà acheté
-                                              </span>
-                                            </div>
-                                            <button
-                                              className="mt-2 w-full inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
-                                              onClick={() => {
-                                                // Trouver l'achat correspondant
-                                                const purchase =
-                                                  myPurchases.find(
-                                                    (p) =>
-                                                      p.digital_product_id ===
-                                                      product.id
-                                                  );
-                                                if (
-                                                  purchase &&
-                                                  purchase.download_url
-                                                ) {
-                                                  window.open(
-                                                    purchase.download_url,
-                                                    "_blank"
-                                                  );
-                                                } else if (
-                                                  product.fichier_url
-                                                ) {
-                                                  window.open(
-                                                    product.fichier_url,
-                                                    "_blank"
-                                                  );
-                                                } else if (purchase?.id) {
-                                                  // Utiliser directement la route de téléchargement avec l'ID d'achat
-                                                  window.open(
-                                                    `/api/digital-products/download/${purchase.id}`,
-                                                    "_blank"
-                                                  );
-                                                } else {
-                                                  toast.error(
-                                                    "Impossible de télécharger le fichier"
-                                                  );
-                                                }
-                                              }}
-                                            >
-                                              <DownloadIcon className="h-5 w-5 mr-2" />
-                                              Télécharger
-                                            </button>
-                                          </>
-                                        ) : (
-                                          <button
-                                            className="mt-3 w-full inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors"
-                                            onClick={() =>
-                                              handlePurchaseProduct(product.id)
-                                            }
-                                          >
-                                            Acheter
-                                          </button>
-                                        )}
-                                      </div>
-                                    </div>
-                                  </div>
-                                ))}
-                              </div>
-
-                              {/* Pagination pour le catalogue */}
-                              {pagination.catalogProducts.totalPages > 1 && (
-                                <div className="mt-4">
-                                  <Pagination
-                                    currentPage={
-                                      pagination.catalogProducts.currentPage
-                                    }
-                                    totalPages={
-                                      pagination.catalogProducts.totalPages
-                                    }
-                                    onPageChange={(page) =>
-                                      setPagination((prev) => ({
-                                        ...prev,
-                                        catalogProducts: {
-                                          ...prev.catalogProducts,
-                                          currentPage: page,
-                                        },
-                                      }))
-                                    }
-                                  />
-                                </div>
-                              )}
-                            </>
-                          ) : (
-                            <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 text-center">
-                              <DocumentTextIcon className="h-12 w-12 text-primary-500 mx-auto mb-4" />
-                              <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
-                                Aucun produit numérique disponible
-                              </h3>
-                              <p className="text-gray-500 dark:text-gray-400 mb-4">
-                                Aucun produit ne correspond à vos critères de
-                                recherche ou aucun produit n'est disponible pour
-                                le moment.
-                              </p>
-                              <button
-                                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
-                                onClick={resetCatalogFilters}
-                              >
-                                Réinitialiser les filtres
-                              </button>
-                            </div>
-                          )}
+                          
+                          {/* Message temporaire */}
+                          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 text-center">
+                            <DocumentTextIcon className="h-12 w-12 text-primary-500 mx-auto mb-4" />
+                            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+                              Catalogue de produits numériques
+                            </h3>
+                            <p className="text-gray-500 dark:text-gray-400 mb-4">
+                              Cette fonctionnalité sera bientôt disponible. Vous pourrez parcourir et acheter des produits numériques publiés par d'autres utilisateurs.
+                            </p>
+                            <button className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
+                              Être notifié quand c'est prêt
+                            </button>
+                          </div>
                         </div>
                       </>
                     ),
                   },
                 ]}
               />
+
 
               {/* Modal pour créer/modifier un produit numérique */}
               {isDigitalProductFormOpen && (
@@ -2158,20 +1730,6 @@ export default function MyPage() {
         publication={publicationToBoost}
         publicationType={boostPublicationType}
       />
-
-      {/* Modal d'achat de produit numérique */}
-      {showPurchaseModal && productToPurchase && (
-        <PurchaseDigitalProductModal
-          open={showPurchaseModal}
-          onClose={() => {
-            setShowPurchaseModal(false);
-            setProductToPurchase(null);
-          }}
-          product={productToPurchase}
-          onPurchaseComplete={handlePurchaseComplete}
-        />
-      )}
-
       <ToastContainer
         position="top-right"
         autoClose={5000}

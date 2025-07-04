@@ -396,8 +396,8 @@ export default function Social() {
     if (statusGroup === "my") {
       statuses = myStatuses;
       setCurrentPageInfo({
-        name: "Mon statut",
-        picture: null,
+        name: `${currentUser.name}`,
+        picture: currentUser.picture_url,
       });
     } else {
       // Filtrer les statuts de la page spécifique
@@ -766,15 +766,10 @@ export default function Social() {
     return (
       <div className="space-y-6">
         {/* Section "Mon statut" */}
+        <div className="flex items-center justify-between">
+          <p className="text-sm text-gray-400 font-small">Mon statut</p>
+        </div>
         <div className="space-y-2">
-          <h3
-            className={`text-sm font-medium ${
-              isDarkMode ? "text-gray-300" : "text-gray-500"
-            }`}
-          >
-            Mon statut
-          </h3>
-
           {myStatuses.length === 0 ? (
             <div
               onClick={() => setIsCreating(true)}
@@ -917,7 +912,7 @@ export default function Social() {
                     isDarkMode ? "text-white" : "text-gray-900"
                   }`}
                 >
-                  Mon statut
+                  {currentUser.name}
                 </p>
                 <div className="flex items-center">
                   <p
@@ -1332,7 +1327,7 @@ export default function Social() {
               </div>
               <div>
                 <p className="text-white text-sm font-medium">
-                  {currentPageInfo?.name || "Mon statut"}
+                  {currentPageInfo?.name || "Statut"}
                 </p>
                 <p className="text-gray-300 text-xs">
                   {formatDistanceToNow(new Date(currentStatus.created_at), {
@@ -1538,13 +1533,14 @@ export default function Social() {
     <>
       <div className="container mx-auto px-4 py-6 max-w-4xl">
         <div className="flex justify-between items-center mb-6">
-          <h1
-            className={`text-2xl font-bold ${
+          <p
+            className={`text-md font-bold ${
               isDarkMode ? "text-white" : "text-gray-900"
             }`}
           >
-            Statuts
-          </h1>
+            Un moment, une pensée, une photo. Racontez votre journée à votre
+            manière.
+          </p>
           {!isCreating && (
             <button
               type="button"

@@ -168,6 +168,8 @@ export default function AdminPostDetailModal({
         return <NewspaperIcon className="h-5 w-5 text-gray-500" />;
       case "socialEvent":
         return <ChatBubbleLeftRightIcon className="h-5 w-5 text-blue-400" />;
+      case "digitalProduct":
+        return <DocumentTextIcon className="h-5 w-5 text-gray-500" />;
       default:
         return null;
     }
@@ -175,7 +177,140 @@ export default function AdminPostDetailModal({
 
   // Afficher les informations spécifiques selon le type de post
   const renderTypeSpecificInfo = () => {
-    if (
+    if (postType === "produits_numeriques") {
+      return (
+        <div
+          className={`mt-2 ${isDarkMode ? "text-gray-300" : "text-gray-700"}`}
+        >
+          {/* En-tête du produit numérique avec titre principal */}
+          <div
+            className={`border-b ${
+              isDarkMode ? "border-gray-700" : "border-gray-200"
+            } pb-3 mb-4`}
+          >
+            <div className="flex items-center mt-1">
+              <DocumentTextIcon className="h-4 w-4 mr-1 text-primary-500" />
+              <span className="text-sm font-medium">
+                {post.type === "ebook" ? "E-book" : "Fichiers d'administration"}
+              </span>
+            </div>
+          </div>
+
+          {/* Tableau d'informations principales */}
+          <div
+            className={`w-full mb-4 border ${
+              isDarkMode ? "border-gray-700" : "border-gray-200"
+            } rounded-md overflow-hidden`}
+          >
+            <table className="w-full text-sm">
+              <tbody>
+                {/* Prix */}
+                <tr className={`${isDarkMode ? "bg-gray-800" : "bg-gray-50"}`}>
+                  <th
+                    className={`px-4 py-2 text-left font-medium ${
+                      isDarkMode ? "text-gray-300" : "text-gray-600"
+                    } w-1/3`}
+                  >
+                    Prix
+                  </th>
+                  <td className="px-4 py-2">
+                    {post.prix
+                      ? `${post.prix} ${post.devise || ""}`
+                      : "Gratuit"}
+                  </td>
+                </tr>
+
+                {/* Type */}
+                <tr>
+                  <th
+                    className={`px-4 py-2 text-left font-medium ${
+                      isDarkMode ? "text-gray-300" : "text-gray-600"
+                    } w-1/3`}
+                  >
+                    Type
+                  </th>
+                  <td className="px-4 py-2">
+                    {post.type === "ebook" ? "E-book" : "Fichier administratif"}
+                  </td>
+                </tr>
+
+                {/* État */}
+                <tr className={`${isDarkMode ? "bg-gray-800" : "bg-gray-50"}`}>
+                  <th
+                    className={`px-4 py-2 text-left font-medium ${
+                      isDarkMode ? "text-gray-300" : "text-gray-600"
+                    } w-1/3`}
+                  >
+                    État
+                  </th>
+                  <td className="px-4 py-2">
+                    {post.etat === "disponible" ? "Disponible" : "Terminé"}
+                  </td>
+                </tr>
+
+                {/* Date de création */}
+                <tr>
+                  <th
+                    className={`px-4 py-2 text-left font-medium ${
+                      isDarkMode ? "text-gray-300" : "text-gray-600"
+                    } w-1/3`}
+                  >
+                    Date de création
+                  </th>
+                  <td className="px-4 py-2">
+                    {post.created_at
+                      ? formatDate(post.created_at)
+                      : "Non précisé"}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          {/* Description */}
+          {post.description && (
+            <div className="mb-4">
+              <h3
+                className={`text-sm uppercase tracking-wider font-bold mb-2 ${
+                  isDarkMode ? "text-gray-200" : "text-gray-700"
+                }`}
+              >
+                DESCRIPTION
+              </h3>
+              <div className="text-sm whitespace-pre-wrap">
+                {post.description}
+              </div>
+            </div>
+          )}
+
+          {/* Informations de téléchargement */}
+          <div className="mt-6 pt-4 border-t">
+            <h3
+              className={`text-sm uppercase tracking-wider font-bold mb-2 ${
+                isDarkMode ? "text-gray-200" : "text-gray-700"
+              }`}
+            >
+              FICHIER
+            </h3>
+            <div className="flex flex-col space-y-2 text-sm">
+              {post.digital_product_file_url && (
+                <div className="flex items-center">
+                  <DocumentArrowDownIcon className="h-4 w-4 mr-2 text-primary-500" />
+                  <a
+                    href={post.digital_product_file_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300"
+                  >
+                    Télécharger le fichier
+                  </a>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      );
+    } else if (
       postType === "jobOffer" ||
       postType === "offres-emploi" ||
       postType === "offres_emploi"
@@ -953,6 +1088,75 @@ export default function AdminPostDetailModal({
                           </div>
                         )}
                       </div>
+                    ) : postType === "produits_numeriques" &&
+                      post.digital_product_file_url ? (
+                      <div
+                        className={`flex flex-col items-center justify-center w-full h-full ${
+                          isDarkMode ? "bg-gray-900" : "bg-gray-100"
+                        }`}
+                      >
+                        <div className="flex flex-col items-center p-8 max-w-md">
+                          {/* Icône PDF */}
+                          <div className="relative mb-4">
+                            <svg
+                              className="w-32 h-32 text-red-600"
+                              xmlns="http://www.w3.org/2000/svg"
+                              viewBox="0 0 384 512"
+                            >
+                              <path
+                                fill="currentColor"
+                                d="M320 464c8.8 0 16-7.2 16-16V160H256c-17.7 0-32-14.3-32-32V48H64c-8.8 0-16 7.2-16 16V448c0 8.8 7.2 16 16 16H320zM0 64C0 28.7 28.7 0 64 0H229.5c17 0 33.3 6.7 45.3 18.7l90.5 90.5c12 12 18.7 28.3 18.7 45.3V448c0 35.3-28.7 64-64 64H64c-35.3 0-64-28.7-64-64V64z"
+                              />
+                              <path
+                                fill="currentColor"
+                                d="M80 224c0-8.8 7.2-16 16-16h32c8.8 0 16 7.2 16 16v32c0 8.8-7.2 16-16 16H96c-8.8 0-16-7.2-16-16V224zm96 0c0-8.8 7.2-16 16-16h32c8.8 0 16 7.2 16 16v32c0 8.8-7.2 16-16 16h-32c-8.8 0-16-7.2-16-16V224zm96 0c0-8.8 7.2-16 16-16h32c8.8 0 16 7.2 16 16v32c0 8.8-7.2 16-16 16h-32c-8.8 0-16-7.2-16-16V224z"
+                              />
+                            </svg>
+                            <div className="absolute -top-2 -right-2 bg-red-600 text-white text-xs font-bold px-2 py-1 rounded">
+                              PDF
+                            </div>
+                          </div>
+
+                          {/* Titre du fichier */}
+                          <h3
+                            className={`text-lg font-bold mb-2 text-center ${
+                              isDarkMode ? "text-white" : "text-gray-800"
+                            }`}
+                          >
+                            {post.titre || post.title || "Offre d'emploi"}
+                          </h3>
+
+                          {/* Référence */}
+                          <p
+                            className={`text-sm mb-4 text-center ${
+                              isDarkMode ? "text-gray-400" : "text-gray-600"
+                            }`}
+                          >
+                            {post.reference ? `Réf: ${post.reference}` : ""}
+                            {post.company_name
+                              ? (post.reference ? " | " : "") +
+                                post.company_name
+                              : ""}
+                          </p>
+
+                          {/* Bouton de téléchargement */}
+                          <a
+                            href={post.digital_product_file_url}
+                            download
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className={`flex items-center justify-center px-4 py-2 rounded-lg ${
+                              isDarkMode
+                                ? "bg-primary-600 hover:bg-primary-700"
+                                : "bg-primary-500 hover:bg-primary-600"
+                            } text-white font-medium transition-colors duration-200 mt-2`}
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <DocumentArrowDownIcon className="w-5 h-5 mr-2" />
+                            Télécharger le produit
+                          </a>
+                        </div>
+                      </div>
                     ) : (postType === "jobOffer" ||
                         postType === "offres-emploi" ||
                         postType === "offres_emploi") &&
@@ -1262,10 +1466,14 @@ export default function AdminPostDetailModal({
                   >
                     {/* En-tête */}
                     <div className="p-4 border-b flex items-center space-x-3">
-                      {post.user?.picture_url ? (
+                      {post.user?.picture_url ||
+                      post.page?.user?.picture_url ? (
                         <img
-                          src={post.user.picture_url}
-                          alt={post.user.name}
+                          src={
+                            post.user?.picture_url ||
+                            post.page?.user?.picture_url
+                          }
+                          alt={post.user?.name || post.page?.user?.name}
                           className="h-10 w-10 rounded-full object-cover"
                         />
                       ) : (
@@ -1279,7 +1487,9 @@ export default function AdminPostDetailModal({
                               isDarkMode ? "text-white" : "text-gray-600"
                             }`}
                           >
-                            {post.user?.name?.charAt(0) || "U"}
+                            {post.user?.name?.charAt(0) ||
+                              post.page?.user?.name?.charAt(0) ||
+                              "U"}
                           </span>
                         </div>
                       )}
@@ -1290,7 +1500,9 @@ export default function AdminPostDetailModal({
                               isDarkMode ? "text-white" : "text-gray-900"
                             }`}
                           >
-                            {post.user?.name || "Utilisateur"}
+                            {post.user?.name ||
+                              post.page?.user?.name ||
+                              "Utilisateur"}
                           </h3>
                           {renderTypeIcon()}
                         </div>

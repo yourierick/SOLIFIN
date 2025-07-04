@@ -25,6 +25,7 @@ use App\Http\Controllers\StatsController;
 use App\Http\Controllers\WithdrawalController;
 use App\Http\Controllers\Api\CurrencyController;
 use App\Http\Controllers\LivreurController;
+use App\Http\Controllers\PageController;
 
 /*
 |--------------------------------------------------------------------------
@@ -39,8 +40,10 @@ Route::get('/ads/approved', [App\Http\Controllers\HomeController::class, 'approv
 // Routes publiques pour les témoignages
 Route::get('/testimonials/featured', [App\Http\Controllers\TestimonialController::class, 'getFeatured']);
 Route::get('/testimonials/approved', [App\Http\Controllers\TestimonialController::class, 'getApproved']);
-// Route pour les statistiques publiques
+// Routes pour les statistiques publiques
 Route::get('/stats/home', [App\Http\Controllers\StatsController::class, 'getHomeStats']);
+
+
 
 // Routes publiques pour SerdiPay (paiements sans authentification)
 Route::prefix('serdipay')->group(function () {
@@ -103,6 +106,20 @@ Route::middleware('throttle:api')->group(function () {
 
 // Routes protégées
 Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
+    // Routes pour les produits numériques
+    Route::prefix('digital-products')->group(function () {
+        Route::get('/purchases/my', [App\Http\Controllers\DigitalProductController::class, 'myPurchases']);
+        Route::get('/purchase-fee-percentage', [App\Http\Controllers\DigitalProductController::class, 'getPurchaseFeePercentage']);
+        Route::get('/download/{purchaseId}', [App\Http\Controllers\DigitalProductController::class, 'download']);
+        //Route::get('/', [App\Http\Controllers\DigitalProductController::class, 'index']);
+        Route::get('/approved', [App\Http\Controllers\DigitalProductController::class, 'getApprovedProducts']);
+        Route::post('/', [App\Http\Controllers\DigitalProductController::class, 'store']);
+        Route::get('/{id}', [App\Http\Controllers\DigitalProductController::class, 'show']);
+        Route::post('/{id}', [App\Http\Controllers\DigitalProductController::class, 'update']);
+        Route::delete('/{id}', [App\Http\Controllers\DigitalProductController::class, 'destroy']);
+        Route::put('/{id}/etat', [App\Http\Controllers\DigitalProductController::class, 'changeEtat']);
+        Route::post('/{id}/purchase', [App\Http\Controllers\DigitalProductController::class, 'purchase']);
+    });
     // Routes pour la gestion des livreurs
     Route::get('user/purchase/new/packs', [App\Http\Controllers\User\PackController::class, 'index']);
 
@@ -231,6 +248,7 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
     Route::get('/feed', [App\Http\Controllers\FeedController::class, 'index']);
     
     //Route::get('/posts/{id}', [App\Http\Controllers\FeedController::class, 'show']);
+    Route::get('/pages/search', [App\Http\Controllers\FeedController::class, 'searchPages']);
     Route::get('/pages/subscribed', [App\Http\Controllers\FeedController::class, 'subscribedPages']);
     Route::get('/pages/recommended', [App\Http\Controllers\FeedController::class, 'recommendedPages']);
     Route::post('/pages/{id}/subscribe', [App\Http\Controllers\FeedController::class, 'subscribe']);
@@ -426,6 +444,7 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
 
 // Routes admin
 Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function () {
+    Route::patch('digital-products/{id}/status', [App\Http\Controllers\Admin\DigitalProductValidationController::class, 'updateStatus']);
     // Routes pour la modération des témoignages
     Route::prefix('testimonials')->middleware('permission:manage-testimonials')->group(function () {
         // Récupérer tous les témoignages avec pagination et filtres
@@ -527,6 +546,10 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function ()
     });
 
     Route::middleware('permission:manage-validations')->group(function () {
+        // Routes pour la validation des produits numériques
+        Route::get('/digital-products', [App\Http\Controllers\Admin\DigitalProductValidationController::class, 'index']);
+        Route::post('/digital-products/{id}/approve', [App\Http\Controllers\Admin\DigitalProductValidationController::class, 'approve']);
+        Route::post('/digital-products/{id}/reject', [App\Http\Controllers\Admin\DigitalProductValidationController::class, 'reject']);
         // Routes pour les publicités
         Route::get('/advertisements', [App\Http\Controllers\Admin\AdvertisementValidationController::class, 'index']);
         Route::post('/advertisements/{id}/approve', [App\Http\Controllers\Admin\AdvertisementValidationController::class, 'approve']);

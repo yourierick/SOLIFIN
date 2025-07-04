@@ -415,9 +415,9 @@ const FormationEditor = () => {
         <Button
           variant="outlined"
           startIcon={<ArrowBackIcon />}
-          onClick={() => navigate("/dashboard/formations")}
+          onClick={() => navigate("/dashboard/my-page")}
         >
-          Retour aux formations
+          Retour
         </Button>
       </Box>
     );
@@ -440,9 +440,9 @@ const FormationEditor = () => {
         <Button
           variant="outlined"
           startIcon={<ArrowBackIcon />}
-          onClick={() => navigate("/dashboard/formations")}
+          onClick={() => navigate("/dashboard/my-page")}
         >
-          Retour aux formations
+          Retour à ma page
         </Button>
 
         {formation.status === "draft" && (

@@ -4,12 +4,31 @@ import { MagnifyingGlassIcon, AdjustmentsHorizontalIcon, XMarkIcon } from '@hero
 const SearchFilterBar = ({ 
   searchTerm, 
   setSearchTerm, 
+  onSearchChange,
   filters, 
   handleFilterChange, 
+  onFilterChange,
   showFilters, 
   setShowFilters, 
+  onToggleFilters,
   resetFilters 
 }) => {
+  // Utiliser les fonctions alternatives si les principales ne sont pas définies
+  const handleSearchChange = (value) => {
+    if (setSearchTerm) {
+      setSearchTerm(value);
+    } else if (onSearchChange) {
+      onSearchChange(value);
+    }
+  };
+
+  const handleToggleFilters = () => {
+    if (setShowFilters) {
+      setShowFilters(!showFilters);
+    } else if (onToggleFilters) {
+      onToggleFilters();
+    }
+  };
   return (
     <div className="mb-4">
       {/* Barre de recherche */}
@@ -21,13 +40,13 @@ const SearchFilterBar = ({
           <input
             type="text"
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            onChange={(e) => handleSearchChange(e.target.value)}
             placeholder="Rechercher par titre, description, contact..."
             className="block w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
           />
           {searchTerm && (
             <button
-              onClick={() => setSearchTerm('')}
+              onClick={() => handleSearchChange('')}
               className="absolute inset-y-0 right-0 pr-3 flex items-center"
             >
               <XMarkIcon className="h-5 w-5 text-gray-400 dark:text-gray-500 hover:text-gray-500 dark:hover:text-gray-400" />
@@ -35,7 +54,7 @@ const SearchFilterBar = ({
           )}
         </div>
         <button
-          onClick={() => setShowFilters(!showFilters)}
+          onClick={handleToggleFilters}
           className={`p-2 rounded-md ${showFilters ? 'bg-primary-100 dark:bg-primary-900 text-primary-700 dark:text-primary-300' : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300'} hover:bg-primary-50 dark:hover:bg-primary-800`}
         >
           <AdjustmentsHorizontalIcon className="h-5 w-5" />
@@ -53,7 +72,13 @@ const SearchFilterBar = ({
               </label>
               <select
                 value={filters.statut}
-                onChange={(e) => handleFilterChange('statut', e.target.value)}
+                onChange={(e) => {
+                  if (handleFilterChange) {
+                    handleFilterChange('statut', e.target.value);
+                  } else if (onFilterChange) {
+                    onFilterChange({...filters, statut: e.target.value});
+                  }
+                }}
                 className="block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
               >
                 <option value="tous">Tous les statuts</option>
@@ -71,7 +96,13 @@ const SearchFilterBar = ({
               </label>
               <select
                 value={filters.etat}
-                onChange={(e) => handleFilterChange('etat', e.target.value)}
+                onChange={(e) => {
+                  if (handleFilterChange) {
+                    handleFilterChange('etat', e.target.value);
+                  } else if (onFilterChange) {
+                    onFilterChange({...filters, etat: e.target.value});
+                  }
+                }}
                 className="block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
               >
                 <option value="tous">Tous les états</option>
@@ -87,7 +118,13 @@ const SearchFilterBar = ({
               </label>
               <select
                 value={filters.dateRange}
-                onChange={(e) => handleFilterChange('dateRange', e.target.value)}
+                onChange={(e) => {
+                  if (handleFilterChange) {
+                    handleFilterChange('dateRange', e.target.value);
+                  } else if (onFilterChange) {
+                    onFilterChange({...filters, dateRange: e.target.value});
+                  }
+                }}
                 className="block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
               >
                 <option value="tous">Toutes les dates</option>

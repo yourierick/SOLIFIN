@@ -38,15 +38,11 @@ function classNames(...classes) {
   return classes.filter(Boolean).join(" ");
 }
 
-export default function NewsFeed({ initialActiveTab = 0, showTabs = true }) {
-  // Ajuster l'initialActiveTab si c'était l'onglet Pages (index 4)
-  // Maintenant que l'onglet Pages a été supprimé, nous devons ajuster l'index
-  const adjustedInitialActiveTab =
-    initialActiveTab === 4 ? 0 : initialActiveTab;
+export default function NewsFeed() {
   const { user } = useAuth();
   const { isDarkMode } = useTheme();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState(adjustedInitialActiveTab);
+  const [activeTab, setActiveTab] = useState(0);
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -798,9 +794,22 @@ export default function NewsFeed({ initialActiveTab = 0, showTabs = true }) {
 
   return (
     <div className="w-full max-w-full lg:max-w-6xl mx-auto flex-grow transition-all duration-300">
+      <div className="mb-6">
+        <h1
+          className={`text-2xl font-bold ${
+            isDarkMode ? "text-white" : "text-gray-900"
+          }`}
+        >
+          Fil d'actualités
+        </h1>
+        <p className={`mt-1 ${isDarkMode ? "text-gray-400" : "text-gray-500"}`}>
+          Découvrez les dernières actualités, offres d'emploi et opportunités
+          d'affaires
+        </p>
+      </div>
+
       {/* Onglets de navigation */}
       <Tab.Group
-        selectedIndex={activeTab}
         onChange={(index) => {
           // Mettre à jour l'onglet actif
           setActiveTab(index);
@@ -832,52 +841,78 @@ export default function NewsFeed({ initialActiveTab = 0, showTabs = true }) {
           fetchPosts(true);
         }}
       >
-        {showTabs && (
-          <Tab.List className="flex space-x-1 rounded-xl bg-primary-100 dark:bg-gray-800 p-1 mb-6">
-            <Tab
-              className={({ selected }) =>
-                classNames(
-                  "w-full rounded-lg py-2.5 text-sm font-medium leading-5",
-                  "flex items-center justify-center",
-                  selected
-                    ? "bg-white dark:bg-gray-700 shadow text-primary-600 dark:text-white"
-                    : "text-gray-600 dark:text-gray-400 hover:bg-white/[0.12] hover:text-primary-600 dark:hover:text-white"
-                )
-              }
-            >
-              <NewspaperIcon className="h-5 w-5 mr-2" />
-              Publicités
-            </Tab>
-            <Tab
-              className={({ selected }) =>
-                classNames(
-                  "w-full rounded-lg py-2.5 text-sm font-medium leading-5",
-                  "flex items-center justify-center",
-                  selected
-                    ? "bg-white dark:bg-gray-700 shadow text-primary-600 dark:text-white"
-                    : "text-gray-600 dark:text-gray-400 hover:bg-white/[0.12] hover:text-primary-600 dark:hover:text-white"
-                )
-              }
-            >
-              <BriefcaseIcon className="h-5 w-5 mr-2" />
-              Offres d'emploi
-            </Tab>
-            <Tab
-              className={({ selected }) =>
-                classNames(
-                  "w-full rounded-lg py-2.5 text-sm font-medium leading-5",
-                  "flex items-center justify-center",
-                  selected
-                    ? "bg-white dark:bg-gray-700 shadow text-primary-600 dark:text-white"
-                    : "text-gray-600 dark:text-gray-400 hover:bg-white/[0.12] hover:text-primary-600 dark:hover:text-white"
-                )
-              }
-            >
-              <LightBulbIcon className="h-5 w-5 mr-2" />
-              Opportunités
-            </Tab>
-          </Tab.List>
-        )}
+        <Tab.List className="flex space-x-1 rounded-xl bg-primary-100 dark:bg-gray-800 p-1 mb-6">
+          <Tab
+            className={({ selected }) =>
+              classNames(
+                "w-full rounded-lg py-2.5 text-sm font-medium leading-5",
+                "flex items-center justify-center",
+                selected
+                  ? "bg-white dark:bg-gray-700 shadow text-primary-600 dark:text-white"
+                  : "text-gray-600 dark:text-gray-400 hover:bg-white/[0.12] hover:text-primary-600 dark:hover:text-white"
+              )
+            }
+          >
+            <NewspaperIcon className="h-5 w-5 mr-2" />
+            Publicités
+          </Tab>
+          <Tab
+            className={({ selected }) =>
+              classNames(
+                "w-full rounded-lg py-2.5 text-sm font-medium leading-5",
+                "flex items-center justify-center",
+                selected
+                  ? "bg-white dark:bg-gray-700 shadow text-primary-600 dark:text-white"
+                  : "text-gray-600 dark:text-gray-400 hover:bg-white/[0.12] hover:text-primary-600 dark:hover:text-white"
+              )
+            }
+          >
+            <BriefcaseIcon className="h-5 w-5 mr-2" />
+            Offres d'emploi
+          </Tab>
+          <Tab
+            className={({ selected }) =>
+              classNames(
+                "w-full rounded-lg py-2.5 text-sm font-medium leading-5",
+                "flex items-center justify-center",
+                selected
+                  ? "bg-white dark:bg-gray-700 shadow text-primary-600 dark:text-white"
+                  : "text-gray-600 dark:text-gray-400 hover:bg-white/[0.12] hover:text-primary-600 dark:hover:text-white"
+              )
+            }
+          >
+            <LightBulbIcon className="h-5 w-5 mr-2" />
+            Opportunités
+          </Tab>
+          <Tab
+            className={({ selected }) =>
+              classNames(
+                "w-full rounded-lg py-2.5 text-sm font-medium leading-5",
+                "flex items-center justify-center",
+                selected
+                  ? "bg-white dark:bg-gray-700 shadow text-primary-600 dark:text-white"
+                  : "text-gray-600 dark:text-gray-400 hover:bg-white/[0.12] hover:text-primary-600 dark:hover:text-white"
+              )
+            }
+          >
+            <AcademicCapIcon className="h-5 w-5 mr-2" />
+            Formations
+          </Tab>
+          <Tab
+            className={({ selected }) =>
+              classNames(
+                "w-full rounded-lg py-2.5 text-sm font-medium leading-5",
+                "flex items-center justify-center",
+                selected
+                  ? "bg-white dark:bg-gray-700 shadow text-primary-600 dark:text-white"
+                  : "text-gray-600 dark:text-gray-400 hover:bg-white/[0.12] hover:text-primary-600 dark:hover:text-white"
+              )
+            }
+          >
+            <UsersIcon className="h-5 w-5 mr-2" />
+            Pages
+          </Tab>
+        </Tab.List>
         <Tab.Panels className="mt-2">
           {/* Premier onglet: Fil d'actualité */}
           <Tab.Panel

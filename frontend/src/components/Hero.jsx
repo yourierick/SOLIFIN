@@ -169,7 +169,7 @@ export default function Hero() {
         <div
           className={`absolute inset-0 ${
             isDarkMode
-              ? "bg-gradient-to-br from-gray-800/95 to-gray-800/95"
+              ? "bg-gradient-to-br from-gray-800/85 to-gray-800/85"
               : "bg-gradient-to-br from-primary-50/70 to-white/70"
           }`}
         />

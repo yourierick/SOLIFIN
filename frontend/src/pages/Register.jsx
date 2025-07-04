@@ -411,7 +411,7 @@ export default function Register() {
               <div className="px-6 py-8 sm:p-10">
                 <div className="text-center">
                   <div className="flex justify-center mb-4">
-                    <div className="w-20 h-20 bg-white p-1 flex items-center justify-center">
+                    <div className="w-20 h-20 p-1 flex items-center justify-center">
                       <img
                         src={logo}
                         alt="logo"

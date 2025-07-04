@@ -88,13 +88,13 @@ const navigation = [
   },
   // { name: "Jetons Esengo", href: "/dashboard/jetons-esengo", icon: GiftIcon },
   { name: "Mes statistiques", href: "/dashboard/stats", icon: ChartBarIcon },
-  {
-    name: "Fil d'actualités",
-    href: "/dashboard/news-feed",
-    icon: NewspaperIcon,
-  },
+  // {
+  //   name: "Fil d'actualités",
+  //   href: "/dashboard/news-feed",
+  //   icon: NewspaperIcon,
+  // },
   { name: "Ma page", href: "/dashboard/my-page", icon: BuildingOfficeIcon },
-  { name: "Social", href: "/dashboard/social", icon: ChatBubbleLeftRightIcon },
+  // { name: "Social", href: "/dashboard/social", icon: ChatBubbleLeftRightIcon },
   // { name: "Formations", href: "/dashboard/formations", icon: AcademicCapIcon },
   { name: "FAQ", href: "/dashboard/faq", icon: QuestionMarkCircleIcon },
 ];

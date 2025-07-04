@@ -1643,28 +1643,31 @@ export default function Wallets() {
                 <span className="hidden sm:inline">Précédent</span>
                 <span className="sm:hidden">&laquo;</span>
               </button>
-              
+
               {/* Pagination adaptative */}
               {(() => {
                 // Logique pour afficher un nombre limité de boutons de page sur mobile
                 const maxButtonsToShow = window.innerWidth < 640 ? 3 : 7;
                 let startPage = 1;
                 let endPage = totalPages;
-                
+
                 if (totalPages > maxButtonsToShow) {
                   // Calculer la plage de pages à afficher
                   const halfButtons = Math.floor(maxButtonsToShow / 2);
                   startPage = Math.max(1, currentPage - halfButtons);
-                  endPage = Math.min(totalPages, startPage + maxButtonsToShow - 1);
-                  
+                  endPage = Math.min(
+                    totalPages,
+                    startPage + maxButtonsToShow - 1
+                  );
+
                   // Ajuster si on est proche de la fin
                   if (endPage - startPage + 1 < maxButtonsToShow) {
                     startPage = Math.max(1, endPage - maxButtonsToShow + 1);
                   }
                 }
-                
+
                 const pageButtons = [];
-                
+
                 // Première page si nécessaire
                 if (startPage > 1) {
                   pageButtons.push(
@@ -1681,15 +1684,17 @@ export default function Wallets() {
                       1
                     </button>
                   );
-                  
+
                   // Ellipsis si nécessaire
                   if (startPage > 2) {
                     pageButtons.push(
-                      <span key="ellipsis1" className="px-1 text-gray-500">...</span>
+                      <span key="ellipsis1" className="px-1 text-gray-500">
+                        ...
+                      </span>
                     );
                   }
                 }
-                
+
                 // Pages numériques
                 for (let i = startPage; i <= endPage; i++) {
                   pageButtons.push(
@@ -1714,15 +1719,17 @@ export default function Wallets() {
                     </button>
                   );
                 }
-                
+
                 // Ellipsis et dernière page si nécessaire
                 if (endPage < totalPages) {
                   if (endPage < totalPages - 1) {
                     pageButtons.push(
-                      <span key="ellipsis2" className="px-1 text-gray-500">...</span>
+                      <span key="ellipsis2" className="px-1 text-gray-500">
+                        ...
+                      </span>
                     );
                   }
-                  
+
                   pageButtons.push(
                     <button
                       key="last"
@@ -1738,10 +1745,10 @@ export default function Wallets() {
                     </button>
                   );
                 }
-                
+
                 return pageButtons;
               })()}
-              
+
               {/* Bouton Suivant */}
               <button
                 onClick={() =>

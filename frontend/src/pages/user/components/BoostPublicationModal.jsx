@@ -838,7 +838,7 @@ export default function BoostPublicationModal({
 
         {/* Afficher les champs de formulaire spécifiques à la méthode de paiement */}
         {selectedMethod.fields && selectedMethod.fields.length > 0 && (
-          <div className="space-y-2">
+          <div key="payment-fields-container" className="space-y-2">
             {selectedMethod.fields.map((field) => {
               // Cas spécial pour le numéro de téléphone avec indicatif
               if (
@@ -954,7 +954,7 @@ export default function BoostPublicationModal({
           <form onSubmit={handleSubmit} className="p-6">
             {/* Afficher les erreurs */}
             {error && (
-              <Alert severity="error" className="mb-4">
+              <Alert key="error-alert" severity="error" className="mb-4">
                 {error}
               </Alert>
             )}
@@ -984,6 +984,7 @@ export default function BoostPublicationModal({
                 </Typography>
                 {publication?.duree_affichage && (
                   <Typography
+                    key="display-duration"
                     variant="body2"
                     className="text-gray-600 dark:text-gray-300 mt-1"
                   >
@@ -1014,11 +1015,17 @@ export default function BoostPublicationModal({
                 className="mb-2"
               />
 
-              <div className="flex justify-between text-sm text-gray-600 dark:text-gray-300 mt-1">
+              <div
+                key="price-per-day"
+                className="flex justify-between text-sm text-gray-600 dark:text-gray-300 mt-1"
+              >
                 <span>Prix par jour:</span>
                 <span>${pricePerDay.toFixed(2)}</span>
               </div>
-              <div className="flex justify-between text-sm font-medium mt-1">
+              <div
+                key="total-amount-info"
+                className="flex justify-between text-sm font-medium mt-1"
+              >
                 <span>Montant total:</span>
                 <span>${totalAmount.toFixed(2)}</span>
               </div>
@@ -1033,28 +1040,39 @@ export default function BoostPublicationModal({
                 Méthode de paiement
               </Typography>
 
-              <div className="space-y-2">
+              <div key="payment-methods-container" className="space-y-2">
                 {paymentMethods.map((method) => (
                   <div
-                    key={method.id}
+                    key={"method_" + method.id}
                     className={`method-card cursor-pointer ${
                       paymentMethod === method.id ? "selected" : ""
                     }`}
                     onClick={() => handlePaymentMethodChange(method.id)}
                   >
-                    <div className="flex items-center">
+                    <div
+                      key={`payment-method-${method.id}-container`}
+                      className="flex items-center"
+                    >
                       <Radio
                         checked={paymentMethod === method.id}
                         onChange={() => handlePaymentMethodChange(method.id)}
                         name="payment-method-radio"
                         color="primary"
                       />
-                      <div className="ml-2">
-                        <Typography variant="subtitle2" className="font-medium">
+                      <div
+                        key={`payment-method-${method.id}-content`}
+                        className="ml-2"
+                      >
+                        <Typography
+                          key={`payment-method-${method.id}-title`}
+                          variant="subtitle2"
+                          className="font-medium"
+                        >
                           {method.name}
                         </Typography>
                         {method.id === PAYMENT_TYPES.WALLET ? (
                           <Typography
+                            key={`payment-method-${method.id}-description`}
                             variant="caption"
                             className="text-gray-500 dark:text-gray-400"
                           >
@@ -1062,6 +1080,7 @@ export default function BoostPublicationModal({
                           </Typography>
                         ) : method.id === PAYMENT_TYPES.CARD ? (
                           <Typography
+                            key={`payment-method-${method.id}-description`}
                             variant="caption"
                             className="text-gray-500 dark:text-gray-400"
                           >
@@ -1069,6 +1088,7 @@ export default function BoostPublicationModal({
                           </Typography>
                         ) : method.id === PAYMENT_TYPES.MOBILE ? (
                           <Typography
+                            key={`payment-method-${method.id}-description`}
                             variant="caption"
                             className="text-gray-500 dark:text-gray-400"
                           >
@@ -1076,6 +1096,7 @@ export default function BoostPublicationModal({
                           </Typography>
                         ) : method.id === PAYMENT_TYPES.BANK ? (
                           <Typography
+                            key={`payment-method-${method.id}-description`}
                             variant="caption"
                             className="text-gray-500 dark:text-gray-400"
                           >
@@ -1083,6 +1104,7 @@ export default function BoostPublicationModal({
                           </Typography>
                         ) : method.id === PAYMENT_TYPES.TRANSFER ? (
                           <Typography
+                            key={`payment-method-${method.id}-description`}
                             variant="caption"
                             className="text-gray-500 dark:text-gray-400"
                           >
@@ -1090,6 +1112,7 @@ export default function BoostPublicationModal({
                           </Typography>
                         ) : (
                           <Typography
+                            key={`payment-method-${method.id}-description`}
                             variant="caption"
                             className="text-gray-500 dark:text-gray-400"
                           >
@@ -1137,7 +1160,10 @@ export default function BoostPublicationModal({
 
               <div className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800/50">
                 <div className="space-y-2">
-                  <div className="flex justify-between items-center">
+                  <div
+                    key="boost-duration"
+                    className="flex justify-between items-center"
+                  >
                     <Typography variant="body2">
                       Boost pour {days} jour{days > 1 ? "s" : ""}
                     </Typography>
@@ -1152,7 +1178,10 @@ export default function BoostPublicationModal({
 
                   {selectedCurrency !== "USD" &&
                     paymentMethod !== PAYMENT_TYPES.WALLET && (
-                      <div className="flex justify-between items-center text-xs text-gray-500 dark:text-gray-400">
+                      <div
+                        key="exchange-rate"
+                        className="flex justify-between items-center text-xs text-gray-500 dark:text-gray-400"
+                      >
                         <span>Taux de change</span>
                         <span>
                           1 USD = {convertedAmount.rate} {selectedCurrency}
@@ -1161,11 +1190,17 @@ export default function BoostPublicationModal({
                     )}
 
                   {transactionFees > 0 && (
-                    <div className="flex justify-between items-center">
+                    <div
+                      key="transaction-fees"
+                      className="flex justify-between items-center"
+                    >
                       <Typography variant="body2">
                         Frais de transaction
                         {feePercentage > 0 && (
-                          <span className="text-xs text-gray-500 ml-1">
+                          <span
+                            key="fee-percentage"
+                            className="text-xs text-gray-500 ml-1"
+                          >
                             ({feePercentage}%)
                           </span>
                         )}
@@ -1179,13 +1214,17 @@ export default function BoostPublicationModal({
                     </div>
                   )}
 
-                  <div className="flex justify-between items-center mt-2 pt-2 border-t border-gray-200 dark:border-gray-600">
+                  <div
+                    key="total-amount"
+                    className="flex justify-between items-center mt-2 pt-2 border-t border-gray-200 dark:border-gray-600"
+                  >
                     <Typography variant="subtitle1" className="font-bold">
                       Total
                     </Typography>
                     <div className="flex items-center">
                       {feesError ? (
                         <IconButton
+                          key="recalculate-fees"
                           size="small"
                           color="primary"
                           onClick={calculateFees}
@@ -1208,7 +1247,11 @@ export default function BoostPublicationModal({
                           </svg>
                         </IconButton>
                       ) : loadingFees ? (
-                        <CircularProgress size={16} className="mr-2" />
+                        <CircularProgress
+                          key="loading-fees"
+                          size={16}
+                          className="mr-2"
+                        />
                       ) : null}
                       <Typography
                         variant="subtitle1"
@@ -1237,7 +1280,11 @@ export default function BoostPublicationModal({
         {/* Alerte pour solde insuffisant */}
         {paymentMethod === PAYMENT_TYPES.WALLET &&
           totalAmount > walletBalance && (
-            <Alert severity="error" className="mx-6 mb-3">
+            <Alert
+              key="insufficient-balance-alert"
+              severity="error"
+              className="mx-6 mb-3"
+            >
               Solde insuffisant dans votre wallet. Vous avez besoin de{" "}
               {totalAmount.toFixed(2)} USD mais votre solde est de{" "}
               {walletBalance.toFixed(2)} USD.
@@ -1290,7 +1337,11 @@ export default function BoostPublicationModal({
               }}
             >
               {loading ? (
-                <CircularProgress size={24} color="inherit" />
+                <CircularProgress
+                  key="loading-progress"
+                  size={24}
+                  color="inherit"
+                />
               ) : paymentMethod === PAYMENT_TYPES.WALLET ? (
                 "Payer maintenant"
               ) : (
