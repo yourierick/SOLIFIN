@@ -16,6 +16,7 @@ import {
   Avatar,
   Autocomplete,
   Checkbox,
+  InputLabel, // Import manquant ajouté
 } from "@mui/material";
 import {
   XMarkIcon,
@@ -38,6 +39,17 @@ import axios from "../utils/axios";
 import { useToast } from "../contexts/ToastContext";
 import Notification from "./Notification";
 import { CURRENCIES, PAYMENT_TYPES, PAYMENT_METHODS } from "../config";
+
+// Importation des icônes pour les méthodes de paiement
+import airtelIcon from "../assets/icons-mobil-money/airtel.png";
+import mpesaIcon from "../assets/icons-mobil-money/mpesa.png";
+import orangeIcon from "../assets/icons-mobil-money/orange.png";
+import mtnIcon from "../assets/icons-mobil-money/mtn.png";
+import moovIcon from "../assets/icons-mobil-money/moov.png";
+import africellIcon from "../assets/icons-mobil-money/afrimoney.png";
+import visaIcon from "../assets/icons-mobil-money/visa.png";
+import mastercardIcon from "../assets/icons-mobil-money/mastercard.png";
+import amexIcon from "../assets/icons-mobil-money/americanexpress.png";
 import { countries } from "../data/countries";
 
 // Composant local pour l'indicatif téléphonique
@@ -130,6 +142,50 @@ const SimplePhoneCode = ({ value, onChange }) => {
       }}
     />
   );
+};
+
+// Mapping des méthodes de paiement avec leurs icônes
+const paymentMethodsMap = {
+  [PAYMENT_TYPES.MOBILE_MONEY]: {
+    name: "Mobile Money",
+    icon: PhoneIcon,
+    options: PAYMENT_METHODS[PAYMENT_TYPES.MOBILE_MONEY].map((option) => {
+      // Ajouter les icônes aux options de mobile money
+      if (option.id === "airtel-money") {
+        return { ...option, icon: airtelIcon };
+      } else if (option.id === "mtn-mobile-money") {
+        return { ...option, icon: mtnIcon };
+      } else if (option.id === "moov-money") {
+        return { ...option, icon: moovIcon };
+      } else if (option.id === "afrimoney") {
+        return { ...option, icon: africellIcon };
+      } else if (option.id === "m-pesa") {
+        return { ...option, icon: mpesaIcon };
+      } else if (option.id === "orange-money") {
+        return { ...option, icon: orangeIcon };
+      }
+      return option;
+    }),
+  },
+  [PAYMENT_TYPES.CREDIT_CARD]: {
+    name: "Carte de crédit",
+    icon: CreditCardIcon,
+    options: PAYMENT_METHODS[PAYMENT_TYPES.CREDIT_CARD].map((option) => {
+      // Ajouter les icônes aux options de carte de crédit
+      if (option.id === "visa") {
+        return { ...option, icon: visaIcon };
+      } else if (option.id === "mastercard") {
+        return { ...option, icon: mastercardIcon };
+      } else if (option.id === "american-express") {
+        return { ...option, icon: amexIcon };
+      }
+      return option;
+    }),
+  },
+  [PAYMENT_TYPES.WALLET]: {
+    name: "Portefeuille",
+    icon: WalletIcon,
+  },
 };
 
 // Style CSS pour la barre de défilement personnalisée et les animations
@@ -416,10 +472,10 @@ export default function PurchasePackForm({
       // Le prix du pack est le prix pour une période complète (pas)
       // Par exemple, pour un pack annuel à 20$, c'est 20$ pour 12 mois
       // Si l'utilisateur choisit plusieurs périodes, il faut multiplier le prix
-      
+
       // Calculer le nombre de périodes d'abonnement
       const periods = Math.ceil(months / step);
-      
+
       // Le montant total est le prix du pack multiplié par le nombre de périodes
       const totalAmountUSD = pack.price * periods;
       console.log(
@@ -436,7 +492,7 @@ export default function PurchasePackForm({
       else if (unitPriceConverted > 0) {
         // Calculer le nombre de périodes d'abonnement
         const periods = Math.ceil(months / step);
-        
+
         // Le montant converti est le prix unitaire multiplié par le nombre de périodes
         const newConvertedAmount = unitPriceConverted * periods;
         console.log(
@@ -465,28 +521,58 @@ export default function PurchasePackForm({
 
   // Fonction pour rendre les options de paiement avec des icônes
   const renderPaymentOptionWithIcon = (option, type) => {
-    let icon = null;
+    // Récupérer les informations de la méthode de paiement depuis le mapping
+    const methodInfo = paymentMethodsMap[type] || {};
 
-    // Déterminer l'icône en fonction du type de paiement et de l'option
-    if (type === PAYMENT_TYPES.MOBILE_MONEY) {
-      icon = <PhoneIcon className="h-4 w-4 text-orange-500" />;
+    // Trouver l'option spécifique avec son icône dans le mapping
+    const optionWithIcon =
+      methodInfo.options?.find((opt) => opt.id === option.id) || option;
+
+    // Déterminer l'icône à afficher
+    if (optionWithIcon.icon) {
+      // Si l'option a une icône personnalisée (image)
+      return (
+        <div className="flex items-center gap-2">
+          <div className="w-6 h-6 flex items-center justify-center rounded-full bg-white shadow-sm">
+            <img
+              src={optionWithIcon.icon}
+              alt={option.name}
+              className="w-5 h-5 object-contain"
+            />
+          </div>
+          <span>{option.name}</span>
+        </div>
+      );
+    } else if (type === PAYMENT_TYPES.MOBILE_MONEY) {
+      // Icône par défaut pour Mobile Money
+      return (
+        <div className="flex items-center gap-2">
+          <PhoneIcon className="h-5 w-5 text-orange-500" />
+          <span>{option.name}</span>
+        </div>
+      );
     } else if (type === PAYMENT_TYPES.CREDIT_CARD) {
-      // Différentes icônes selon le type de carte
+      // Icônes spécifiques pour les cartes de crédit
+      let icon = <PaymentIcon className="h-5 w-5 text-blue-500" />;
+
       if (option.id === "visa") {
-        icon = <CreditCardIcon className="h-4 w-4 text-blue-500" />;
+        icon = <CreditCardIcon className="h-5 w-5 text-blue-600" />;
       } else if (option.id === "mastercard") {
-        icon = <CreditScoreIcon className="h-4 w-4 text-red-500" />;
-      } else {
-        icon = <PaymentIcon className="h-4 w-4 text-purple-500" />;
+        icon = <CreditScoreIcon className="h-5 w-5 text-red-600" />;
+      } else if (option.id === "american-express") {
+        icon = <PaymentIcon className="h-5 w-5 text-purple-600" />;
       }
+
+      return (
+        <div className="flex items-center gap-2">
+          {icon}
+          <span>{option.name}</span>
+        </div>
+      );
     }
 
-    return (
-      <div className="flex items-center gap-2">
-        {icon}
-        <span>{option.name}</span>
-      </div>
-    );
+    // Fallback pour tout autre type
+    return <span>{option.name}</span>;
   };
 
   // Fonction pour récupérer les codes parrains admin
@@ -622,20 +708,20 @@ export default function PurchasePackForm({
     if (pack) {
       // Récupérer le pas d'abonnement (fréquence)
       const step = getSubscriptionStep(pack.abonnement);
-      
+
       // Calculer le nombre de périodes d'abonnement
       const periods = Math.ceil(months / step);
-      
+
       // Le montant total est le prix du pack multiplié par le nombre de périodes
       const newTotal = pack.price * periods;
       setTotalAmount(newTotal);
-      
-      console.log('Calcul du montant total (effet secondaire):', {
+
+      console.log("Calcul du montant total (effet secondaire):", {
         prix_pack: pack.price,
         duree_mois: months,
         pas_abonnement: step,
         periodes: periods,
-        montant_total: newTotal
+        montant_total: newTotal,
       });
 
       // Mettre à jour les frais en fonction du type de paiement
@@ -661,19 +747,19 @@ export default function PurchasePackForm({
         // mais en tenant compte de la fréquence du pack
         const step = getSubscriptionStep(pack.abonnement);
         const periods = Math.ceil(months / step);
-        
+
         // Le montant converti est le prix du pack multiplié par le nombre de périodes
         const walletAmount = pack.price * periods;
         setConvertedAmount(walletAmount);
-        
-        console.log('Montant pour wallet:', {
+
+        console.log("Montant pour wallet:", {
           prix_pack: pack.price,
           duree_mois: months,
           pas_abonnement: step,
           periodes: periods,
-          montant_wallet: walletAmount
+          montant_wallet: walletAmount,
         });
-        
+
         calculateFees();
       }
     }
@@ -818,7 +904,7 @@ export default function PurchasePackForm({
           const step = getSubscriptionStep(pack.abonnement);
           // Calculer le nombre de périodes d'abonnement
           const periods = Math.ceil(months / step);
-          
+
           // Le prix unitaire est le montant converti divisé par le nombre de périodes
           const unitPrice = convertedAmt / periods;
           console.log(
@@ -1015,14 +1101,15 @@ export default function PurchasePackForm({
 
       // Pour Mobile Money, ajouter l'indicatif téléphonique
       if (paymentMethod === PAYMENT_TYPES.MOBILE_MONEY) {
-        // Inclure l'indicatif dans le numéro de téléphone
+        // Utiliser l'indicatif fixe +243 mais sans le + pour l'API
+        const phoneCode = "243";
         const phoneWithCode = `${phoneCode}${formFields.phoneNumber}`;
 
         paymentDetails = {
           ...paymentDetails,
           phoneCode: phoneCode,
-          phoneNumber: phoneWithCode, // Remplacer le numéro par la version avec indicatif
-          fullPhoneNumber: phoneWithCode, // Garder fullPhoneNumber pour compatibilité
+          phoneNumber: formFields.phoneNumber, // Garder le numéro sans indicatif
+          fullPhoneNumber: phoneWithCode // Numéro complet sans le +
         };
       }
 
@@ -1030,8 +1117,8 @@ export default function PurchasePackForm({
       const step = getSubscriptionStep(pack.abonnement);
       const periods = Math.ceil(months / step);
       const correctAmount = pack.price * periods;
-      
-      console.log('Montant pour soumission:', {
+
+      console.log("Montant pour soumission:", {
         prix_pack: pack.price,
         duree_mois: months,
         pas_abonnement: step,
@@ -1039,9 +1126,9 @@ export default function PurchasePackForm({
         montant_calcule: correctAmount,
         montant_total_affiche: totalAmount,
         montant_converti: convertedAmount,
-        methode_paiement: paymentMethod
+        methode_paiement: paymentMethod,
       });
-      
+
       // Préparer les données à envoyer
       const paymentData = {
         payment_method: specificPaymentMethod, // Méthode spécifique (visa, mastercard, m-pesa, etc.)
@@ -1113,7 +1200,10 @@ export default function PurchasePackForm({
                   key={option.id}
                   value={option.id}
                   control={<Radio size="small" />}
-                  label={option.name}
+                  label={renderPaymentOptionWithIcon(
+                    option,
+                    PAYMENT_TYPES.MOBILE_MONEY
+                  )}
                 />
               ))}
             </RadioGroup>
@@ -1143,7 +1233,10 @@ export default function PurchasePackForm({
                   key={option.id}
                   value={option.id}
                   control={<Radio size="small" />}
-                  label={option.name}
+                  label={renderPaymentOptionWithIcon(
+                    option,
+                    PAYMENT_TYPES.CREDIT_CARD
+                  )}
                 />
               ))}
             </RadioGroup>
@@ -1160,28 +1253,37 @@ export default function PurchasePackForm({
             >
               Numéro de téléphone
             </Typography>
-            <div className="flex gap-2">
-              <div className="w-1/3">
-                <SimplePhoneCode
-                  value={phoneCode}
-                  onChange={(value) => setPhoneCode(value)}
-                />
-              </div>
-              <div className="w-2/3">
-                <TextField
-                  fullWidth
-                  size="small"
-                  placeholder="Numéro sans indicatif"
-                  value={formFields.phoneNumber || ""}
-                  onChange={(e) => {
-                    // Ne permettre que les chiffres
-                    const value = e.target.value.replace(/[^0-9]/g, "");
-                    handleFieldChange("phoneNumber", value);
-                  }}
-                  required
-                  helperText="Entrez uniquement les chiffres sans l'indicatif"
-                />
-              </div>
+            <div className="relative">
+              <TextField
+                fullWidth
+                size="small"
+                placeholder="Numéro sans indicatif"
+                value={formFields.phoneNumber || ""}
+                onChange={(e) => {
+                  // Ne permettre que les chiffres
+                  const value = e.target.value.replace(/[^0-9]/g, "");
+                  handleFieldChange("phoneNumber", value);
+                }}
+                required
+                helperText="Entrez uniquement les chiffres sans l'indicatif"
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start" className="mr-0">
+                      <div className="bg-gray-100 dark:bg-gray-700 py-1 px-2 rounded-l-md border-r border-gray-300 dark:border-gray-600">
+                        +243
+                      </div>
+                    </InputAdornment>
+                  ),
+                }}
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    paddingLeft: '0',
+                  },
+                  '& .MuiInputAdornment-root': {
+                    marginRight: '0',
+                  }
+                }}
+              />
             </div>
           </div>
         )}
@@ -1422,55 +1524,105 @@ export default function PurchasePackForm({
               </Typography>
 
               <div className="grid grid-cols-1 gap-3">
-                {paymentMethods.map((method) => (
-                  <div
-                    key={method.id}
-                    className={`method-card cursor-pointer ${
-                      paymentMethod === method.id ? "selected" : ""
-                    }`}
-                    onClick={() => setPaymentMethod(method.id)}
-                  >
-                    <div className="flex items-center">
-                      <Radio
-                        checked={paymentMethod === method.id}
-                        onChange={() => setPaymentMethod(method.id)}
-                        size="small"
-                      />
-                      {/* Icône en fonction du type de paiement */}
-                      <div className="ml-2 mr-3">
-                        {method.id === PAYMENT_TYPES.WALLET && (
-                          <WalletIcon2 className="h-6 w-6 text-green-600 dark:text-green-400" />
-                        )}
-                        {method.id === PAYMENT_TYPES.CREDIT_CARD && (
-                          <CreditCardIcon2 className="h-6 w-6 text-blue-600 dark:text-blue-400" />
-                        )}
-                        {method.id === PAYMENT_TYPES.MOBILE_MONEY && (
-                          <PhoneIcon2 className="h-6 w-6 text-orange-600 dark:text-orange-400" />
-                        )}
-                      </div>
-                      <div className="ml-2">
-                        <Typography variant="subtitle2" className="font-medium">
-                          {method.name}
-                        </Typography>
-                        {method.id === PAYMENT_TYPES.WALLET && (
-                          <Typography variant="caption" color="textSecondary">
-                            Solde disponible: {walletBalance} USD
+                {paymentMethods.map((method) => {
+                  const methodInfo = paymentMethodsMap[method.id] || {
+                    name: method.name,
+                  };
+                  const Icon =
+                    methodInfo.icon ||
+                    (method.id === PAYMENT_TYPES.WALLET
+                      ? WalletIcon2
+                      : method.id === PAYMENT_TYPES.CREDIT_CARD
+                      ? CreditCardIcon2
+                      : method.id === PAYMENT_TYPES.MOBILE_MONEY
+                      ? PhoneIcon2
+                      : null);
+
+                  return (
+                    <div
+                      key={method.id}
+                      className={`method-card cursor-pointer ${
+                        paymentMethod === method.id ? "selected" : ""
+                      }`}
+                      onClick={() => setPaymentMethod(method.id)}
+                    >
+                      <div className="flex items-center">
+                        <Radio
+                          checked={paymentMethod === method.id}
+                          onChange={() => setPaymentMethod(method.id)}
+                          size="small"
+                        />
+                        {/* Icône en fonction du type de paiement */}
+                        <div className="ml-2 mr-3">
+                          {Icon && (
+                            <Icon
+                              className={`h-6 w-6 ${
+                                method.id === PAYMENT_TYPES.WALLET
+                                  ? "text-green-600 dark:text-green-400"
+                                  : method.id === PAYMENT_TYPES.CREDIT_CARD
+                                  ? "text-blue-600 dark:text-blue-400"
+                                  : method.id === PAYMENT_TYPES.MOBILE_MONEY
+                                  ? "text-orange-600 dark:text-orange-400"
+                                  : "text-gray-600 dark:text-gray-400"
+                              }`}
+                            />
+                          )}
+                        </div>
+                        <div className="ml-2">
+                          <Typography
+                            variant="subtitle2"
+                            className="font-medium"
+                          >
+                            {method.name}
                           </Typography>
-                        )}
-                        {method.id === PAYMENT_TYPES.CREDIT_CARD && (
-                          <Typography variant="caption" color="textSecondary">
-                            Visa, Mastercard, American Express
-                          </Typography>
-                        )}
-                        {method.id === PAYMENT_TYPES.MOBILE_MONEY && (
-                          <Typography variant="caption" color="textSecondary">
-                            Orange Money, Airtel Money, M-Pesa
-                          </Typography>
-                        )}
+                          {method.id === PAYMENT_TYPES.WALLET && (
+                            <Typography variant="caption" color="textSecondary">
+                              Solde disponible: {walletBalance} USD
+                            </Typography>
+                          )}
+                          {method.id === PAYMENT_TYPES.CREDIT_CARD && (
+                            <div className="flex items-center gap-1 mt-1">
+                              <img
+                                src={visaIcon}
+                                alt="Visa"
+                                className="h-4 w-auto"
+                              />
+                              <img
+                                src={mastercardIcon}
+                                alt="Mastercard"
+                                className="h-4 w-auto"
+                              />
+                              <img
+                                src={amexIcon}
+                                alt="American Express"
+                                className="h-4 w-auto"
+                              />
+                            </div>
+                          )}
+                          {method.id === PAYMENT_TYPES.MOBILE_MONEY && (
+                            <div className="flex items-center gap-1 mt-1">
+                              <img
+                                src={orangeIcon}
+                                alt="Orange Money"
+                                className="h-4 w-auto"
+                              />
+                              <img
+                                src={airtelIcon}
+                                alt="Airtel Money"
+                                className="h-4 w-auto"
+                              />
+                              <img
+                                src={mpesaIcon}
+                                alt="M-Pesa"
+                                className="h-4 w-auto"
+                              />
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
 

@@ -40,6 +40,7 @@ import { useAuth } from "../contexts/AuthContext";
 import useWithdrawalRequests from "../hooks/useWithdrawalRequests";
 import usePendingTestimonials from "../hooks/usePendingTestimonials";
 import usePendingFormations from "../hooks/usePendingFormations";
+import usePendingPublications from "../hooks/usePendingPublications";
 import instance from "../utils/axios";
 import {
   ChartBarIcon,
@@ -161,6 +162,9 @@ const navigationItems = [
     href: "/admin/validations",
     icon: CheckBadgeIcon,
     permission: "manage-validations",
+    badge: (pendingPublicationsCount) =>
+      pendingPublicationsCount > 0 ? pendingPublicationsCount : null,
+    badgeColor: "yellow",
   },
   {
     name: "Paramètres",
@@ -171,14 +175,16 @@ const navigationItems = [
 ];
 
 // Fonction pour filtrer les éléments de navigation en fonction des permissions de l'utilisateur
-const getNavigation = (pendingFormationsCount = 0, userPermissions = []) => {
+const getNavigation = (pendingFormationsCount = 0, pendingPublicationsCount = 0, userPermissions = []) => {
   // Si l'utilisateur est super admin ou si aucune permission n'est fournie, afficher tous les éléments
   if (userPermissions.includes("super-admin") || userPermissions.length === 0) {
     return navigationItems.map((item) => ({
       ...item,
       badge:
         typeof item.badge === "function"
-          ? item.badge(pendingFormationsCount)
+          ? item.name === "Validations"
+            ? item.badge(pendingPublicationsCount)
+            : item.badge(pendingFormationsCount)
           : item.badge,
       // Pour les éléments avec sous-menu, filtrer également les enfants
       children: item.children
@@ -186,7 +192,9 @@ const getNavigation = (pendingFormationsCount = 0, userPermissions = []) => {
             ...subItem,
             badge:
               typeof subItem.badge === "function"
-                ? subItem.badge(pendingFormationsCount)
+                ? item.name === "Validations"
+                  ? subItem.badge(pendingPublicationsCount)
+                  : subItem.badge(pendingFormationsCount)
                 : subItem.badge,
           }))
         : undefined,
@@ -203,7 +211,9 @@ const getNavigation = (pendingFormationsCount = 0, userPermissions = []) => {
       ...item,
       badge:
         typeof item.badge === "function"
-          ? item.badge(pendingFormationsCount)
+          ? item.name === "Validations"
+            ? item.badge(pendingPublicationsCount)
+            : item.badge(pendingFormationsCount)
           : item.badge,
       // Pour les éléments avec sous-menu, filtrer également les enfants en fonction des permissions
       children: item.children
@@ -217,7 +227,9 @@ const getNavigation = (pendingFormationsCount = 0, userPermissions = []) => {
               ...subItem,
               badge:
                 typeof subItem.badge === "function"
-                  ? subItem.badge(pendingFormationsCount)
+                  ? item.name === "Validations"
+                    ? subItem.badge(pendingPublicationsCount)
+                    : subItem.badge(pendingFormationsCount)
                   : subItem.badge,
             }))
         : undefined,
@@ -283,6 +295,7 @@ export default function AdminDashboardLayout() {
   const { pendingCount } = useWithdrawalRequests();
   const { pendingCount: pendingTestimonialsCount } = usePendingTestimonials();
   const { pendingCount: pendingFormationsCount } = usePendingFormations();
+  const { pendingCount: pendingPublicationsCount } = usePendingPublications();
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [showTooltip, setShowTooltip] = useState(null);
   const [tooltipPosition, setTooltipPosition] = useState({ top: 0, left: 0 });
@@ -375,8 +388,8 @@ export default function AdminDashboardLayout() {
     };
   }, [dropdownRef]);
 
-  // Créer la navigation avec le nombre de formations en attente et les permissions de l'utilisateur
-  const navigation = getNavigation(pendingFormationsCount, userPermissions);
+  // Créer la navigation avec le nombre de formations et publications en attente et les permissions de l'utilisateur
+  const navigation = getNavigation(pendingFormationsCount, pendingPublicationsCount, userPermissions);
   
   // S'assurer que tous les menus sont fermés par défaut
   useEffect(() => {

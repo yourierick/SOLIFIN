@@ -140,10 +140,15 @@ class PackController extends Controller
             $paymentCurrency = $validated['currency'] ?? 'USD';
             $taux_de_change = 0;
 
-            $transactionFeeModel = TransactionFee::where('payment_method', $paymentMethod)
-                ->where('is_active', true);
+            $transactionFee = TransactionFee::where('payment_method', $paymentMethod)
+                ->where('is_active', true)->first();
             
-            $transactionFee = $transactionFeeModel->first();
+            if (!$transactionFee) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Cette méthode de paiement n\'est pas encore disponible'
+                ], 404);
+            }
 
             // Calculer les frais de transaction globaux et spécifiques à la méthode de paiement
             $specificFees = 0;
@@ -465,9 +470,8 @@ class PackController extends Controller
             $specificFees = 0;
             $globalFees = 0;
             if ($paymentMethod !== 'solifin-wallet') {
-                $transactionFeeModel = TransactionFee::where('payment_method', $paymentMethod)
-                                                           ->where('is_active', true);
-                $transactionFee = $transactionFeeModel->first();
+                $transactionFee = TransactionFee::where('payment_method', $paymentMethod)
+                                                           ->where('is_active', true)->first();
                 
                 // Recalculer les frais de transaction (pourcentage configuré dans le système)
                 $globalFeePercentage = (float) Setting::getValue('purchase_fee_percentage', 0);

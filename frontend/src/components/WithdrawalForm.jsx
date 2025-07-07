@@ -382,8 +382,8 @@ export default function WithdrawalForm({ walletId, walletType, onClose }) {
     const number = phoneNumber.replace(/\D/g, "");
     // Si le numéro commence par 0, le supprimer
     const cleanNumber = number.startsWith("0") ? number.substring(1) : number;
-    // Concaténer l'indicatif et le numéro
-    return `+${code}${cleanNumber}`;
+    // Concaténer l'indicatif et le numéro sans le +
+    return `${code}${cleanNumber}`;
   };
 
   // Récupérer les données du portefeuille et les frais
@@ -785,6 +785,15 @@ export default function WithdrawalForm({ walletId, walletType, onClose }) {
                 setSelectedType(type);
                 setSelectedMethod(methodInfo);
                 setSelectedPaymentOption(null); // Réinitialiser l'option spécifique
+                
+                // Si le type est mobile-money, forcer le pays à CD (République démocratique du Congo)
+                if (type === PAYMENT_TYPES.MOBILE_MONEY) {
+                  setFormData(prevData => ({
+                    ...prevData,
+                    country: "CD",
+                    phoneCode: "+243"
+                  }));
+                }
               }}
             >
               <Icon
@@ -983,59 +992,61 @@ export default function WithdrawalForm({ walletId, walletType, onClose }) {
                   </div>
                 )}
 
-                {/* Sélection du pays - commun à tous les types de paiement */}
-                <div className="mb-4">
-                  <label className="input-label dark:text-gray-200">
-                    Pays <span className="text-red-500">*</span>
-                  </label>
-                  <div className="relative">
-                    <select
-                      name="country"
-                      value={formData.country}
-                      onChange={(e) => {
-                        // Trouver l'indicatif téléphonique correspondant au pays sélectionné
-                        const selectedCountry = countries.find(
-                          (c) => c.code === e.target.value
-                        );
-                        setFormData({
-                          ...formData,
-                          country: e.target.value,
-                          phoneCode: selectedCountry
-                            ? selectedCountry.phoneCode
-                            : "+243",
-                        });
-                      }}
-                      className="input-field pl-10"
-                      required
-                    >
-                      {countries.map((country) => {
-                        // Trouver l'indicatif téléphonique du pays
-                        const phoneCode = country.phoneCode || "";
-                        return (
-                          <option key={country.code} value={country.code}>
-                            {country.name} ({phoneCode})
-                          </option>
-                        );
-                      })}
-                    </select>
-                    <div className="absolute left-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
-                      {formData.country && (
-                        <img
-                          src={`https://flagcdn.com/${formData.country.toLowerCase()}.svg`}
-                          alt={formData.country}
-                          className="w-5 h-auto"
-                          onError={(e) => {
-                            e.target.style.display = "none";
-                            e.target.nextSibling.style.display = "inline";
-                          }}
-                        />
-                      )}
-                      <span style={{ display: "none" }}>
-                        {getFlagEmoji(formData.country)}
-                      </span>
+                {/* Sélection du pays - affiché uniquement si le type de paiement n'est pas mobile-money */}
+                {selectedType !== PAYMENT_TYPES.MOBILE_MONEY && (
+                  <div className="mb-4">
+                    <label className="input-label dark:text-gray-200">
+                      Pays <span className="text-red-500">*</span>
+                    </label>
+                    <div className="relative">
+                      <select
+                        name="country"
+                        value={formData.country}
+                        onChange={(e) => {
+                          // Trouver l'indicatif téléphonique correspondant au pays sélectionné
+                          const selectedCountry = countries.find(
+                            (c) => c.code === e.target.value
+                          );
+                          setFormData({
+                            ...formData,
+                            country: e.target.value,
+                            phoneCode: selectedCountry
+                              ? selectedCountry.phoneCode
+                              : "+243",
+                          });
+                        }}
+                        className="input-field pl-10"
+                        required
+                      >
+                        {countries.map((country) => {
+                          // Trouver l'indicatif téléphonique du pays
+                          const phoneCode = country.phoneCode || "";
+                          return (
+                            <option key={country.code} value={country.code}>
+                              {country.name} ({phoneCode})
+                            </option>
+                          );
+                        })}
+                      </select>
+                      <div className="absolute left-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
+                        {formData.country && (
+                          <img
+                            src={`https://flagcdn.com/${formData.country.toLowerCase()}.svg`}
+                            alt={formData.country}
+                            className="w-5 h-auto"
+                            onError={(e) => {
+                              e.target.style.display = "none";
+                              e.target.nextSibling.style.display = "inline";
+                            }}
+                          />
+                        )}
+                        <span style={{ display: "none" }}>
+                          {getFlagEmoji(formData.country)}
+                        </span>
+                      </div>
                     </div>
                   </div>
-                </div>
+                )}
 
                 {/* Champs du formulaire */}
                 {selectedType && (

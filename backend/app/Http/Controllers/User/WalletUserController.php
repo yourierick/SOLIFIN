@@ -14,6 +14,9 @@ use App\Models\UserPack;
 use App\Models\Setting;
 use App\Notifications\FundsTransferred;
 use Illuminate\Support\Facades\DB;
+use App\Models\ExchangeRates;
+use App\Models\TransactionFee;
+
 
 class WalletUserController extends Controller
 {
@@ -294,5 +297,185 @@ class WalletUserController extends Controller
             'success' => true,
             'fee_percentage' => $feePercentage
         ]);
+    }
+    
+    /**
+     * Récupère le pourcentage de frais d'achat de virtuel depuis les paramètres du système
+     * 
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function getPurchaseFeePercentage()
+    {
+        // Utiliser la fonction calculatePurchaseFee du TransactionFeeApiController
+        $transactionFeeController = new \App\Http\Controllers\Api\TransactionFeeApiController();
+        $request = new Request(['amount' => 1]); // Montant fictif pour obtenir le pourcentage
+        $response = $transactionFeeController->calculatePurchaseFee($request);
+        
+        // Extraire le pourcentage de la réponse
+        $responseData = json_decode($response->getContent(), true);
+        $feePercentage = $responseData['percentage'] ?? 0;
+        
+        return response()->json([
+            'success' => true,
+            'fee_percentage' => $feePercentage
+        ]);
+    }
+    
+    /**
+     * Achat de virtuel via SerdiPay
+     * 
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function purchaseVirtual(Request $request)
+    {
+        \Log::info('Achat de virtuel via SerdiPay : ' . json_encode($request->all()));
+        try {
+            $validated = $request->validate([
+                'amount' => 'required|numeric|min:1',
+                'fees' => 'required|numeric|min:0',
+                'total' => 'required|numeric|min:1',
+                'payment_method' => 'required|string',
+                'phoneNumber' => 'required|string',
+                'currency' => 'required|string',
+            ]);
+            
+            $user = Auth::user();
+            $userWallet = $user->wallet;
+            
+            if (!$userWallet) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Portefeuille utilisateur non trouvé'
+                ], 404);
+            }
+
+            $transactionFee = TransactionFee::where('payment_method', $validated['payment_method'])
+                                                           ->where('is_active', true)->first();
+
+            if (!$transactionFee) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Cette méthode de paiement n\'est pas encore disponible'
+                ], 404);
+            }
+
+            
+            // Recalculer les frais de transaction (pourcentage configuré dans le système)
+            $globalFeesPercentage = (float) Setting::getValue('purchase_fee_percentage', 0);
+            
+            // Calcul des frais globaux basé sur le montant du paiement
+            if ($validated['currency'] == 'CDF') {
+                $globalFees = ((float)$request->original_amount) * ($globalFeesPercentage / 100);
+            } else {
+                $globalFees = ((float)$validated['amount']) * ($globalFeesPercentage / 100);
+            }
+
+            $specificFees = $transactionFee->calculateTransferFee((float) $request->original_amount ? $request->original_amount : $validated['amount'], $validated['currency']);
+            $totalAmount = $request->original_amount ? $request->original_amount : $validated['amount'] + $globalFees; //montant total à payer récalculé.
+
+            // Dans un environnement de production, nous ferions ici l'appel à l'API SerdiPay
+            // Pour cette implémentation, nous simulons une transaction réussie
+            
+            ;;// Simuler un ID de transaction
+            $transactionId = 'SP-' . time() . '-' . rand(1000, 9999);
+            
+            $taux_de_change = 0;
+            if ($validated['currency'] == 'CDF') {
+                $taux_de_change = ExchangeRates::where('currency', $validated['currency'])->where("target_currency", "USD")->first();
+                $taux_de_change = $taux_de_change->rate;
+
+                $globalFees = $this->convertToUSD($globalFees, $validated['currency']);
+                $specificFees = $this->convertToUSD($specificFees, $validated['currency']);
+                $totalAmount = $this->convertToUSD($totalAmount, $validated['currency']);
+                $validated['amount'] = $this->convertToUSD($request->original_amount, $validated['currency']);
+            }
+            
+            DB::beginTransaction();
+            // Ajouter les fonds au portefeuille de l'utilisateur
+            $userWallet->addFunds($validated['amount'], 'virtual', 'completed', [
+                'payment_method' => $validated['payment_method'],
+                'phone_number' => $validated['phoneNumber'],
+                'transaction_id' => $transactionId,
+                'fees' => $globalFees . " $",
+                'total_paid' => $validated['total'] . " $",
+                'currency' => $validated['currency'],
+                'original_amount' => $request->original_amount ? $request->original_amount . " " . $validated['currency'] : $validated['amount'] . " " . $validated['currency'],
+                'original_fees' => $request->original_fees ? $request->original_fees . " " . $validated['currency'] : $globalFees . " $",
+                'taux_de_change' => $taux_de_change,
+                'description' => 'Achat de virtuel via ' . $validated['payment_method']
+            ]);
+            
+            // Enregistrer la transaction dans le wallet system
+            $walletsystem = WalletSystem::first();
+            if (!$walletsystem) {
+                $walletsystem = WalletSystem::create(['balance' => 0]);
+            }
+            
+            $walletsystem->transactions()->create([
+                'wallet_system_id' => $walletsystem->id,
+                'amount' => $validated['total'],
+                'type' => 'virtual_sale',
+                'status' => 'completed',
+                'metadata' => [
+                    'user' => $user->name,
+                    'account_id' => $user->account_id,
+                    'payment_method' => $validated['payment_method'],
+                    'phone_number' => $validated['phoneNumber'],
+                    'transaction_id' => $transactionId,
+                    'amount' => $validated['amount'] . ' ' . $validated['currency'],
+                    'fees' => $globalFees . ' $',
+                    'frais API' => $specificFees . ' $',
+                    'total_paid' => $validated['total'] . ' $',
+                    'original_amount' => $request->original_amount ? $request->original_amount . ' ' . $validated['currency'] : $validated['amount'] . ' ' . $validated['currency'],
+                    'original_fees' => $request->original_fees ? $request->original_fees . ' ' . $validated['currency'] : $globalFees . ' $',
+                    'taux_de_change' => $taux_de_change,
+                    'description' => 'Achat de virtuel via ' . $validated['payment_method']
+                ]
+            ]);
+
+            DB::commit();
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Achat de virtuel effectué avec succès',
+                'transaction_id' => $transactionId,
+                'amount' => $validated['amount'],
+                'new_balance' => number_format($userWallet->balance, 2) . ' $'
+            ]);
+            
+        } catch (\Exception $e) {
+            DB::rollBack();
+            \Log::error('Erreur lors de l\'achat de virtuel: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Une erreur est survenue lors du traitement de votre achat',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    private function convertToUSD($amount, $currency)
+    {
+        if ($currency === 'USD') {
+            return $amount;
+        }else {
+            $amount = round($amount, 2);
+        }
+        
+        try {
+            // Récupérer le taux de conversion depuis la BD
+            $exchangeRate = ExchangeRates::where('currency', $currency)->where("target_currency", "USD")->first();
+            if ($exchangeRate) {
+                $amount = $amount * $exchangeRate->rate;
+                return round($amount, 2);
+            } else {
+                // Si le taux n'est pas trouvé, lever une exception
+                throw new \Exception("Taux de conversion non disponible pour la devise $currency");
+            }
+        } catch (\Exception $e) {
+            \Log::error('Erreur lors de la conversion de devise: ' . $e->getMessage());
+            throw new \Exception("Impossible d'utiliser cette monnaie, veuillez payer en USD pour plus de simplicité");
+        }
     }
 } 

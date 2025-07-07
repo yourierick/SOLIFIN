@@ -19,21 +19,6 @@ export const DATE_FORMAT = {
 
 // Configuration des devises
 export const CURRENCIES = {
-  XOF: {
-    symbol: "FCFA",
-    code: "XOF",
-    name: "Franc CFA BCEAO",
-  },
-  XAF: {
-    symbol: "FCFA",
-    code: "XAF",
-    name: "Franc CFA BEAC",
-  },
-  EUR: {
-    symbol: "€",
-    code: "EUR",
-    name: "Euro",
-  },
   USD: {
     symbol: "$",
     code: "USD",
@@ -65,8 +50,6 @@ export const PAYMENT_METHODS = {
     { id: "m-pesa", name: "M-Pesa" },
     { id: "afrimoney", name: "Afrimoney" },
     { id: "airtel-money", name: "Airtel Money" },
-    { id: "mtn-mobile-money", name: "MTN Mobile Money" },
-    { id: "moov-money", name: "Moov Money" },
   ],
   [PAYMENT_TYPES.CREDIT_CARD]: [
     { id: "visa", name: "Visa" },

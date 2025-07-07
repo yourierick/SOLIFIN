@@ -3,12 +3,14 @@ import { useTheme } from "../../contexts/ThemeContext";
 import axios from "axios";
 import Notification from "../../components/Notification";
 import WithdrawalForm from "../../components/WithdrawalForm";
+import VirtualPurchaseForm from "../../components/VirtualPurchaseForm";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
+import "../../styles/tooltip.css";
 import {
   BanknotesIcon,
   ArrowPathIcon,
@@ -114,6 +116,9 @@ export default function Wallets() {
   const [bonusPointsHistory, setBonusPointsHistory] = useState([]);
   const [showBonusPointsHistory, setShowBonusPointsHistory] = useState(false);
   const [showWithdrawalForm, setShowWithdrawalForm] = useState(false);
+  const [showVirtualPurchaseForm, setShowVirtualPurchaseForm] = useState(false);
+  const [selectedWalletId, setSelectedWalletId] = useState(null);
+  const [walletType, setWalletType] = useState(null);
   const [selectedWalletForWithdrawal, setSelectedWalletForWithdrawal] =
     useState(null);
   const [currentPage, setCurrentPage] = useState(1);
@@ -446,6 +451,33 @@ export default function Wallets() {
     setShowTransferModal(true);
 
     // Récupérer les frais de transfert et commissions
+    try {
+      const response = await axios.get(`/api/getTransferFees`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      });
+
+      if (response.data.success) {
+        setTransferFeePercentage(response.data.fee_percentage);
+        setTransferCommissionPercentage(response.data.fee_commission);
+      }
+    } catch (error) {
+      console.error(
+        "Erreur lors de la récupération des frais de transfert:",
+        error
+      );
+      toast.error("Impossible de récupérer les frais de transfert");
+    }
+  };
+
+  const handleVirtualPurchaseClick = () => {
+    // Ouvrir le modal d'achat de virtuel
+    setShowVirtualPurchaseForm(true);
+  };
+
+  // Fonction pour récupérer les frais de transfert
+  const fetchTransferFees = async () => {
     try {
       const response = await axios.get(`/api/getTransferFees`, {
         headers: {
@@ -1017,29 +1049,50 @@ export default function Wallets() {
                   </div>
                 </div>
               </div>
-              <div className="mt-8 space-y-2">
-                <button
-                  onClick={() => handleWithdrawalClick(userWallet.id, "admin")}
-                  className={`inline-flex items-center mr-2 px-3 py-2 border text-sm leading-4 font-medium rounded-md ${
-                    isDarkMode
-                      ? "border-gray-600 text-gray-300 hover:bg-gray-700"
-                      : "border-gray-300 text-gray-700 hover:bg-gray-100"
-                  }`}
-                >
-                  <BanknotesIcon className="h-5 w-5 mr-2" />
-                  Faire un retrait
-                </button>
-                <button
-                  onClick={handleTransferButtonClick}
-                  className={`inline-flex items-center px-3 py-2 border text-sm leading-4 font-medium rounded-md ${
-                    isDarkMode
-                      ? "border-gray-600 text-gray-300 hover:bg-gray-700"
-                      : "border-gray-300 text-gray-700 hover:bg-gray-50"
-                  }`}
-                >
-                  <FaExchangeAlt className="h-5 w-5 mr-2" />
-                  Transférer des fonds
-                </button>
+              <div className="mt-8 flex justify-center space-x-4">
+                <div className={`tooltip ${isDarkMode ? "dark-mode" : ""}`}>
+                  <button
+                    onClick={() =>
+                      handleWithdrawalClick(userWallet.id, "admin")
+                    }
+                    className={`p-3 border rounded-full transition-all duration-300 ${
+                      isDarkMode
+                        ? "border-gray-600 text-gray-300 hover:bg-gray-700 hover:text-white"
+                        : "border-gray-300 text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+                    }`}
+                  >
+                    <BanknotesIcon className="h-6 w-6" />
+                  </button>
+                  <span className="tooltip-text">Faire un retrait</span>
+                </div>
+
+                <div className={`tooltip ${isDarkMode ? "dark-mode" : ""}`}>
+                  <button
+                    onClick={handleVirtualPurchaseClick}
+                    className={`p-3 border rounded-full transition-all duration-300 ${
+                      isDarkMode
+                        ? "border-gray-600 text-gray-300 hover:bg-gray-700 hover:text-white"
+                        : "border-gray-300 text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+                    }`}
+                  >
+                    <CurrencyDollarIcon className="h-6 w-6" />
+                  </button>
+                  <span className="tooltip-text">Acheter du virtuel</span>
+                </div>
+
+                <div className={`tooltip ${isDarkMode ? "dark-mode" : ""}`}>
+                  <button
+                    onClick={handleTransferButtonClick}
+                    className={`p-3 border rounded-full transition-all duration-300 ${
+                      isDarkMode
+                        ? "border-gray-600 text-gray-300 hover:bg-gray-700 hover:text-white"
+                        : "border-gray-300 text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+                    }`}
+                  >
+                    <FaExchangeAlt className="h-6 w-6" />
+                  </button>
+                  <span className="tooltip-text">Transférer des fonds</span>
+                </div>
               </div>
             </div>
           </motion.div>
@@ -1413,6 +1466,7 @@ export default function Wallets() {
                   >
                     <option value="all">Tous les types</option>
                     <option value="purchase">Achat</option>
+                    <option value="virtual">Achat des virtuels</option>
                     <option value="sale">Vente</option>
                     <option value="withdrawal">Retrait</option>
                     <option value="commission de parrainage">
@@ -1529,6 +1583,8 @@ export default function Wallets() {
                           ? "Retrait"
                           : transaction.type === "purchase"
                           ? "Achat"
+                          : transaction.type === "virtual"
+                          ? "Virtuels"
                           : transaction.type === "reception"
                           ? "Dépot des fonds"
                           : transaction.type === "transfer"
@@ -1899,6 +1955,8 @@ export default function Wallets() {
                         ? "retrait"
                         : selectedTransaction.type === "purchase"
                         ? "achat"
+                        : selectedTransaction.type === "virtual"
+                        ? "Virtuels"
                         : selectedTransaction.type === "transfer"
                         ? "Transfert des fonds"
                         : selectedTransaction.type === "reception"
@@ -3030,6 +3088,19 @@ export default function Wallets() {
               </motion.div>
             </motion.div>
           </AnimatePresence>,
+          document.body
+        )}
+
+      {/* Modal d'achat de virtuel */}
+      {showVirtualPurchaseForm &&
+        createPortal(
+          <VirtualPurchaseForm
+            onClose={() => {
+              setShowVirtualPurchaseForm(false);
+              // Rafraîchir les données du wallet après un achat réussi
+              fetchWalletData();
+            }}
+          />,
           document.body
         )}
 

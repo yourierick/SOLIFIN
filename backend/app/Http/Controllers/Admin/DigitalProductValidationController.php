@@ -9,9 +9,24 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Auth;
 use App\Models\User;
+use Illuminate\Http\JsonResponse;
 
 class DigitalProductValidationController extends Controller
 {
+    /**
+     * Compter le nombre de produits numériques en attente
+     *
+     * @return JsonResponse
+     */
+    public function pendingCount(): JsonResponse
+    {
+        try {
+            $count = DigitalProduct::where('statut', 'en_attente')->count();
+            return response()->json(['count' => $count]);
+        } catch (\Exception $e) {
+            return response()->json(['message' => 'Erreur lors du comptage des produits numériques en attente', 'error' => $e->getMessage()], 500);
+        }
+    }
     /**
      * Récupérer tous les produits numériques en attente de validation
      *

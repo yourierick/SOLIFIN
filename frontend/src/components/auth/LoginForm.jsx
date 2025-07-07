@@ -1,10 +1,16 @@
-import React, { useState, useEffect } from 'react';
-import { useAuth } from '../../contexts/AuthContext';
-import { Link } from 'react-router-dom';
-import { useForm } from 'react-hook-form';
-import { useTheme } from '../../contexts/ThemeContext';
-import Notification from '../Notification';
-import { EnvelopeIcon, LockClosedIcon, EyeIcon, EyeSlashIcon, IdentificationIcon } from '@heroicons/react/24/outline';
+import React, { useState, useEffect } from "react";
+import { useAuth } from "../../contexts/AuthContext";
+import { Link } from "react-router-dom";
+import { useForm } from "react-hook-form";
+import { useTheme } from "../../contexts/ThemeContext";
+import Notification from "../Notification";
+import {
+  EnvelopeIcon,
+  LockClosedIcon,
+  EyeIcon,
+  EyeSlashIcon,
+  IdentificationIcon,
+} from "@heroicons/react/24/outline";
 
 const LoginForm = () => {
   const { login } = useAuth();
@@ -17,20 +23,20 @@ const LoginForm = () => {
     handleSubmit,
     formState: { errors },
     setValue,
-    watch
+    watch,
   } = useForm();
 
   // Surveiller la valeur de rememberMe
-  const rememberMe = watch('rememberMe');
+  const rememberMe = watch("rememberMe");
 
   // Charger l'identifiant stocké au montage du composant
   useEffect(() => {
-    const storedLogin = localStorage.getItem('rememberedLogin');
-    const storedRememberMe = localStorage.getItem('rememberMe') === 'true';
+    const storedLogin = localStorage.getItem("rememberedLogin");
+    const storedRememberMe = localStorage.getItem("rememberMe") === "true";
 
     if (storedLogin && storedRememberMe) {
-      setValue('login', storedLogin);
-      setValue('rememberMe', true);
+      setValue("login", storedLogin);
+      setValue("rememberMe", true);
     }
   }, [setValue]);
 
@@ -38,22 +44,22 @@ const LoginForm = () => {
     try {
       setIsLoading(true);
       const result = await login(data.login, data.password);
-      
+
       if (result.success) {
         // Gérer le stockage de l'identifiant
         if (data.rememberMe) {
-          localStorage.setItem('rememberedLogin', data.login);
-          localStorage.setItem('rememberMe', 'true');
+          localStorage.setItem("rememberedLogin", data.login);
+          localStorage.setItem("rememberMe", "true");
         } else {
-          localStorage.removeItem('rememberedLogin');
-          localStorage.removeItem('rememberMe');
+          localStorage.removeItem("rememberedLogin");
+          localStorage.removeItem("rememberMe");
         }
         Notification.success("Bonjour " + result.user.name + " !");
       } else {
         Notification.error(result.message);
       }
     } catch (error) {
-      Notification.error('Une erreur est survenue lors de la connexion');
+      Notification.error("Une erreur est survenue lors de la connexion");
     } finally {
       setIsLoading(false);
     }
@@ -62,11 +68,11 @@ const LoginForm = () => {
   // Gérer le changement de l'état "Se souvenir de moi"
   const handleRememberMeChange = (e) => {
     const checked = e.target.checked;
-    setValue('rememberMe', checked);
-    
+    setValue("rememberMe", checked);
+
     if (!checked) {
-      localStorage.removeItem('rememberedLogin');
-      localStorage.removeItem('rememberMe');
+      localStorage.removeItem("rememberedLogin");
+      localStorage.removeItem("rememberMe");
     }
   };
 
@@ -79,19 +85,21 @@ const LoginForm = () => {
           </label>
           <div className="relative">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <IdentificationIcon className={`h-5 w-5 ${
-                isDarkMode ? 'text-gray-500' : 'text-gray-400'
-              }`} />
+              <IdentificationIcon
+                className={`h-5 w-5 ${
+                  isDarkMode ? "text-gray-500" : "text-gray-400"
+                }`}
+              />
             </div>
             <input
-              {...register('login', {
-                required: 'L\'identifiant est requis'
+              {...register("login", {
+                required: "L'identifiant est requis",
               })}
               type="text"
               className={`appearance-none rounded-none relative block w-full px-3 py-2 border placeholder-gray-500 rounded-t-md focus:outline-none focus:ring-primary-500 focus:border-primary-500 focus:z-10 sm:text-sm pl-10 ${
-                isDarkMode 
-                  ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' 
-                  : 'bg-white border-gray-300 text-gray-900'
+                isDarkMode
+                  ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400"
+                  : "bg-white border-gray-300 text-gray-900"
               }`}
               placeholder="Email ou ID de compte"
             />
@@ -106,23 +114,26 @@ const LoginForm = () => {
           </label>
           <div className="relative">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <LockClosedIcon className={`h-5 w-5 ${
-                isDarkMode ? 'text-gray-500' : 'text-gray-400'
-              }`} />
+              <LockClosedIcon
+                className={`h-5 w-5 ${
+                  isDarkMode ? "text-gray-500" : "text-gray-400"
+                }`}
+              />
             </div>
             <input
-              {...register('password', {
-                required: 'Le mot de passe est requis',
+              {...register("password", {
+                required: "Le mot de passe est requis",
                 minLength: {
                   value: 8,
-                  message: 'Le mot de passe doit contenir au moins 8 caractères',
+                  message:
+                    "Le mot de passe doit contenir au moins 8 caractères",
                 },
               })}
-              type={showPassword ? 'text' : 'password'}
+              type={showPassword ? "text" : "password"}
               className={`appearance-none rounded-none relative block w-full px-3 py-2 border placeholder-gray-500 rounded-b-md focus:outline-none focus:ring-primary-500 focus:border-primary-500 focus:z-10 sm:text-sm pl-10 ${
-                isDarkMode 
-                  ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' 
-                  : 'bg-white border-gray-300 text-gray-900'
+                isDarkMode
+                  ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400"
+                  : "bg-white border-gray-300 text-gray-900"
               }`}
               placeholder="Mot de passe"
             />
@@ -132,13 +143,17 @@ const LoginForm = () => {
               className="absolute inset-y-0 right-0 pr-3 flex items-center"
             >
               {showPassword ? (
-                <EyeSlashIcon className={`h-5 w-5 ${
-                  isDarkMode ? 'text-gray-500' : 'text-gray-400'
-                }`} />
+                <EyeSlashIcon
+                  className={`h-5 w-5 ${
+                    isDarkMode ? "text-gray-500" : "text-gray-400"
+                  }`}
+                />
               ) : (
-                <EyeIcon className={`h-5 w-5 ${
-                  isDarkMode ? 'text-gray-500' : 'text-gray-400'
-                }`} />
+                <EyeIcon
+                  className={`h-5 w-5 ${
+                    isDarkMode ? "text-gray-500" : "text-gray-400"
+                  }`}
+                />
               )}
             </button>
           </div>
@@ -153,18 +168,21 @@ const LoginForm = () => {
       <div className="flex items-center justify-between">
         <div className="flex items-center">
           <input
-            {...register('rememberMe')}
+            {...register("rememberMe")}
             type="checkbox"
             onChange={handleRememberMeChange}
-            className={`h-4 w-4 rounded focus:ring-primary-500 ${
-              isDarkMode 
-                ? 'bg-gray-700 border-gray-600 text-primary-500' 
-                : 'border-gray-300 text-primary-600'
+            className={`h-4 w-4 rounded focus:ring-green-500 ${
+              isDarkMode
+                ? "bg-gray-700 border-gray-600 text-green-500"
+                : "border-gray-300 text-green-600"
             }`}
           />
-          <label htmlFor="rememberMe" className={`ml-2 block text-sm ${
-            isDarkMode ? 'text-gray-300' : 'text-gray-900'
-          }`}>
+          <label
+            htmlFor="rememberMe"
+            className={`ml-2 block text-sm ${
+              isDarkMode ? "text-gray-300" : "text-gray-900"
+            }`}
+          >
             Se souvenir de moi
           </label>
         </div>
@@ -185,8 +203,8 @@ const LoginForm = () => {
           disabled={isLoading}
           className={`group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white ${
             isLoading
-              ? 'bg-primary-400 cursor-not-allowed'
-              : 'bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500'
+              ? "bg-primary-400 cursor-not-allowed"
+              : "bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
           }`}
         >
           {isLoading ? (
@@ -214,7 +232,7 @@ const LoginForm = () => {
               Connexion en cours...
             </span>
           ) : (
-            'Se connecter'
+            "Se connecter"
           )}
         </button>
       </div>

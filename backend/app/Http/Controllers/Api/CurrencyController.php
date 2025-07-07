@@ -18,9 +18,9 @@ class CurrencyController extends Controller
     public function convert(Request $request)
     {
         // Log la requête entrante pour le débogage
-        Log::info('Requête de conversion reçue', [
-            'request_data' => $request->all()
-        ]);
+        // Log::info('Requête de conversion reçue', [
+        //     'request_data' => $request->all()
+        // ]);
 
         // Valider les données d'entrée avec des règles plus souples
         $validator = \Illuminate\Support\Facades\Validator::make($request->all(), [
@@ -75,7 +75,7 @@ class CurrencyController extends Controller
             // Arrondir à 2 décimales
             $convertedAmount = round($convertedAmount, 2);
 
-            Log::info("Conversion réussie: {$amount} {$from} = {$convertedAmount} {$to} (taux: {$rate})");
+            // Log::info("Conversion réussie: {$amount} {$from} = {$convertedAmount} {$to} (taux: {$rate})");
 
             return response()->json([
                 'success' => true,
@@ -114,9 +114,6 @@ class CurrencyController extends Controller
             
             // Vérifier si des taux ont été trouvés
             if (!empty($rates)) {
-                Log::info('Taux de conversion récupérés depuis la base de données pour ' . $baseCurrency, [
-                    'count' => count($rates)
-                ]);
                 return $rates;
             }
             
@@ -133,7 +130,6 @@ class CurrencyController extends Controller
                     ->toArray();
                 
                 if (!empty($rates)) {
-                    Log::info('Taux de conversion mis à jour et récupérés avec succès pour ' . $baseCurrency);
                     return $rates;
                 }
             }

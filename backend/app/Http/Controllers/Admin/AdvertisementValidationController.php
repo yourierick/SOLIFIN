@@ -12,9 +12,24 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Http\JsonResponse;
 
 class AdvertisementValidationController extends Controller
 {
+    /**
+     * Compter le nombre de publicités en attente
+     *
+     * @return JsonResponse
+     */
+    public function pendingCount(): JsonResponse
+    {
+        try {
+            $count = Publicite::where('statut', 'en_attente')->count();
+            return response()->json(['count' => $count]);
+        } catch (\Exception $e) {
+            return response()->json(['message' => 'Erreur lors du comptage des publicités en attente', 'error' => $e->getMessage()], 500);
+        }
+    }
     /**
      * Afficher la liste des publicités pour validation
      *

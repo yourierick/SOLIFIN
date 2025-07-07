@@ -11,9 +11,24 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Http\JsonResponse;
 
 class JobOfferValidationController extends Controller
 {
+    /**
+     * Compter le nombre d'offres d'emploi en attente
+     *
+     * @return JsonResponse
+     */
+    public function pendingCount(): JsonResponse
+    {
+        try {
+            $count = OffreEmploi::where('statut', 'en_attente')->count();
+            return response()->json(['count' => $count]);
+        } catch (\Exception $e) {
+            return response()->json(['message' => 'Erreur lors du comptage des offres d\'emploi en attente', 'error' => $e->getMessage()], 500);
+        }
+    }
     /**
      * Afficher la liste des offres d'emploi pour validation
      *

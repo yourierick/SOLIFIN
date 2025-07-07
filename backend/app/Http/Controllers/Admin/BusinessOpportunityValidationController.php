@@ -12,9 +12,24 @@ use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Carbon;
+use Illuminate\Http\JsonResponse;
 
 class BusinessOpportunityValidationController extends Controller
 {
+    /**
+     * Compter le nombre d'opportunités d'affaires en attente
+     *
+     * @return JsonResponse
+     */
+    public function pendingCount(): JsonResponse
+    {
+        try {
+            $count = OpportuniteAffaire::where('statut', 'en_attente')->count();
+            return response()->json(['count' => $count]);
+        } catch (\Exception $e) {
+            return response()->json(['message' => 'Erreur lors du comptage des opportunités d\'affaires en attente', 'error' => $e->getMessage()], 500);
+        }
+    }
     /**
      * Afficher la liste des opportunités d'affaires pour validation
      *

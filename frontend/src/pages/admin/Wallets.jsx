@@ -1113,6 +1113,7 @@ export default function Wallets() {
                     <option value="all">Tous les types</option>
                     <option value="sales">Achat</option>
                     <option value="withdrawal">Retrait</option>
+                    <option value="virtual_sale">Vente des virtuels</option>
                     <option value="commission de parrainage">
                       Commission de parrainage
                     </option>
@@ -1348,28 +1349,31 @@ export default function Wallets() {
                 <span className="hidden sm:inline">Précédent</span>
                 <span className="sm:hidden">&laquo;</span>
               </button>
-              
+
               {/* Pagination adaptative */}
               {(() => {
                 // Logique pour afficher un nombre limité de boutons de page sur mobile
                 const maxButtonsToShow = window.innerWidth < 640 ? 3 : 7;
                 let startPage = 1;
                 let endPage = totalPages;
-                
+
                 if (totalPages > maxButtonsToShow) {
                   // Calculer la plage de pages à afficher
                   const halfButtons = Math.floor(maxButtonsToShow / 2);
                   startPage = Math.max(1, currentPage - halfButtons);
-                  endPage = Math.min(totalPages, startPage + maxButtonsToShow - 1);
-                  
+                  endPage = Math.min(
+                    totalPages,
+                    startPage + maxButtonsToShow - 1
+                  );
+
                   // Ajuster si on est proche de la fin
                   if (endPage - startPage + 1 < maxButtonsToShow) {
                     startPage = Math.max(1, endPage - maxButtonsToShow + 1);
                   }
                 }
-                
+
                 const pageButtons = [];
-                
+
                 // Première page si nécessaire
                 if (startPage > 1) {
                   pageButtons.push(
@@ -1386,15 +1390,17 @@ export default function Wallets() {
                       1
                     </button>
                   );
-                  
+
                   // Ellipsis si nécessaire
                   if (startPage > 2) {
                     pageButtons.push(
-                      <span key="ellipsis1" className="px-1 text-gray-500">...</span>
+                      <span key="ellipsis1" className="px-1 text-gray-500">
+                        ...
+                      </span>
                     );
                   }
                 }
-                
+
                 // Pages numériques
                 for (let i = startPage; i <= endPage; i++) {
                   pageButtons.push(
@@ -1419,15 +1425,17 @@ export default function Wallets() {
                     </button>
                   );
                 }
-                
+
                 // Ellipsis et dernière page si nécessaire
                 if (endPage < totalPages) {
                   if (endPage < totalPages - 1) {
                     pageButtons.push(
-                      <span key="ellipsis2" className="px-1 text-gray-500">...</span>
+                      <span key="ellipsis2" className="px-1 text-gray-500">
+                        ...
+                      </span>
                     );
                   }
-                  
+
                   pageButtons.push(
                     <button
                       key="last"
@@ -1443,10 +1451,10 @@ export default function Wallets() {
                     </button>
                   );
                 }
-                
+
                 return pageButtons;
               })()}
-              
+
               {/* Bouton Suivant */}
               <button
                 onClick={() =>
@@ -2106,7 +2114,13 @@ export default function Wallets() {
                 } flex flex-col max-h-[80vh]`}
               >
                 {/* En-tête fixe */}
-                <div className={`p-6 border-b sticky top-0 z-10 ${isDarkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"}`}>
+                <div
+                  className={`p-6 border-b sticky top-0 z-10 ${
+                    isDarkMode
+                      ? "bg-gray-800 border-gray-700"
+                      : "bg-white border-gray-200"
+                  }`}
+                >
                   <h2
                     className={`text-xl font-semibold ${
                       isDarkMode ? "text-white" : "text-gray-900"
@@ -2115,7 +2129,7 @@ export default function Wallets() {
                     Confirmation du transfert
                   </h2>
                 </div>
-                
+
                 {/* Zone défilante */}
                 <div className="p-6 overflow-y-auto">
                   <div className="space-y-4">
@@ -2125,231 +2139,232 @@ export default function Wallets() {
                         isDarkMode ? "bg-gray-700" : "bg-gray-100"
                       }`}
                     >
-                    <h3
-                      className={`text-sm font-medium mb-2 flex items-center ${
-                        isDarkMode ? "text-gray-300" : "text-gray-700"
-                      }`}
-                    >
-                      <FaUser className="mr-2 text-blue-500" />
-                      Informations du destinataire
-                    </h3>
-                    <div className="space-y-1">
-                      <div className="flex justify-between items-center">
-                        <span
-                          className={`text-xs ${
-                            isDarkMode ? "text-gray-400" : "text-gray-600"
-                          }`}
-                        >
-                          Nom:
-                        </span>
-                        <span
-                          className={`text-xs font-medium ${
-                            isDarkMode ? "text-gray-300" : "text-gray-700"
-                          }`}
-                        >
-                          {recipientInfo?.name || "Utilisateur"}
-                        </span>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span
-                          className={`text-xs ${
-                            isDarkMode ? "text-gray-400" : "text-gray-600"
-                          }`}
-                        >
-                          ID du compte:
-                        </span>
-                        <span
-                          className={`text-xs font-medium ${
-                            isDarkMode ? "text-gray-300" : "text-gray-700"
-                          }`}
-                        >
-                          {transferData.recipient_account_id}
-                        </span>
-                      </div>
-                      {recipientInfo?.email && (
+                      <h3
+                        className={`text-sm font-medium mb-2 flex items-center ${
+                          isDarkMode ? "text-gray-300" : "text-gray-700"
+                        }`}
+                      >
+                        <FaUser className="mr-2 text-blue-500" />
+                        Informations du destinataire
+                      </h3>
+                      <div className="space-y-1">
                         <div className="flex justify-between items-center">
                           <span
                             className={`text-xs ${
                               isDarkMode ? "text-gray-400" : "text-gray-600"
                             }`}
                           >
-                            Email:
+                            Nom:
                           </span>
                           <span
                             className={`text-xs font-medium ${
                               isDarkMode ? "text-gray-300" : "text-gray-700"
                             }`}
                           >
-                            {recipientInfo.email}
+                            {recipientInfo?.name || "Utilisateur"}
                           </span>
                         </div>
-                      )}
+                        <div className="flex justify-between items-center">
+                          <span
+                            className={`text-xs ${
+                              isDarkMode ? "text-gray-400" : "text-gray-600"
+                            }`}
+                          >
+                            ID du compte:
+                          </span>
+                          <span
+                            className={`text-xs font-medium ${
+                              isDarkMode ? "text-gray-300" : "text-gray-700"
+                            }`}
+                          >
+                            {transferData.recipient_account_id}
+                          </span>
+                        </div>
+                        {recipientInfo?.email && (
+                          <div className="flex justify-between items-center">
+                            <span
+                              className={`text-xs ${
+                                isDarkMode ? "text-gray-400" : "text-gray-600"
+                              }`}
+                            >
+                              Email:
+                            </span>
+                            <span
+                              className={`text-xs font-medium ${
+                                isDarkMode ? "text-gray-300" : "text-gray-700"
+                              }`}
+                            >
+                              {recipientInfo.email}
+                            </span>
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  </div>
 
-                  {/* Détails du transfert */}
-                  <div
-                    className={`p-3 rounded-md ${
-                      isDarkMode ? "bg-gray-700" : "bg-gray-100"
-                    }`}
-                  >
-                    <h3
-                      className={`text-sm font-medium mb-2 flex items-center ${
-                        isDarkMode ? "text-gray-300" : "text-gray-700"
+                    {/* Détails du transfert */}
+                    <div
+                      className={`p-3 rounded-md ${
+                        isDarkMode ? "bg-gray-700" : "bg-gray-100"
                       }`}
                     >
-                      <FaMoneyBillWave className="mr-2 text-green-500" />
-                      Détails du transfert
-                    </h3>
-                    <div className="space-y-1">
-                      <div className="flex justify-between items-center">
-                        <span
+                      <h3
+                        className={`text-sm font-medium mb-2 flex items-center ${
+                          isDarkMode ? "text-gray-300" : "text-gray-700"
+                        }`}
+                      >
+                        <FaMoneyBillWave className="mr-2 text-green-500" />
+                        Détails du transfert
+                      </h3>
+                      <div className="space-y-1">
+                        <div className="flex justify-between items-center">
+                          <span
+                            className={`text-xs ${
+                              isDarkMode ? "text-gray-400" : "text-gray-600"
+                            }`}
+                          >
+                            Montant à transférer:
+                          </span>
+                          <span
+                            className={`text-xs font-medium ${
+                              isDarkMode ? "text-gray-300" : "text-gray-700"
+                            }`}
+                          >
+                            {parseFloat(transferData.amount).toFixed(2)} USD
+                          </span>
+                        </div>
+
+                        {transferFeePercentage > 0 && (
+                          <div className="flex justify-between items-center">
+                            <span
+                              className={`text-xs flex items-center ${
+                                isDarkMode ? "text-gray-400" : "text-gray-600"
+                              }`}
+                            >
+                              <FaPercentage className="mr-1 h-3 w-3" />
+                              Frais de transfert ({transferFeePercentage}%):
+                            </span>
+                            <span
+                              className={`text-xs font-medium ${
+                                isDarkMode ? "text-gray-300" : "text-gray-700"
+                              }`}
+                            >
+                              {transferFeeAmount.toFixed(2)} USD
+                            </span>
+                          </div>
+                        )}
+
+                        {transferCommissionPercentage > 0 && (
+                          <div className="flex justify-between items-center">
+                            <span
+                              className={`text-xs flex items-center ${
+                                isDarkMode ? "text-gray-400" : "text-gray-600"
+                              }`}
+                            >
+                              <FaPercentage className="mr-1 h-3 w-3" />
+                              Commission ({transferCommissionPercentage}%):
+                            </span>
+                            <span
+                              className={`text-xs font-medium ${
+                                isDarkMode ? "text-gray-300" : "text-gray-700"
+                              }`}
+                            >
+                              {transferCommissionAmount.toFixed(2)} USD
+                            </span>
+                          </div>
+                        )}
+
+                        <div className="flex justify-between items-center pt-1 mt-1 border-t border-gray-200 dark:border-gray-600">
+                          <span
+                            className={`text-xs font-medium ${
+                              isDarkMode ? "text-gray-300" : "text-gray-700"
+                            }`}
+                          >
+                            Total à débiter:
+                          </span>
+                          <span
+                            className={`text-xs font-bold ${
+                              isDarkMode ? "text-green-400" : "text-green-600"
+                            }`}
+                          >
+                            {(
+                              parseFloat(transferData.amount) + totalFeeAmount
+                            ).toFixed(2)}{" "}
+                            USD
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Description */}
+                    <div
+                      className={`p-3 rounded-md ${
+                        isDarkMode ? "bg-gray-700" : "bg-gray-100"
+                      }`}
+                    >
+                      <h3
+                        className={`text-sm font-medium mb-2 flex items-center ${
+                          isDarkMode ? "text-gray-300" : "text-gray-700"
+                        }`}
+                      >
+                        <FaFileAlt className="mr-2 text-blue-500" />
+                        Description
+                      </h3>
+                      <p
+                        className={`text-xs ${
+                          isDarkMode ? "text-gray-400" : "text-gray-600"
+                        } italic`}
+                      >
+                        {transferData.description ||
+                          "Aucune description fournie"}
+                      </p>
+                    </div>
+
+                    {/* Mot de passe */}
+                    <div
+                      className={`p-3 rounded-md ${
+                        isDarkMode ? "bg-gray-700" : "bg-gray-100"
+                      }`}
+                    >
+                      <h3
+                        className={`text-sm font-medium mb-2 flex items-center ${
+                          isDarkMode ? "text-gray-300" : "text-gray-700"
+                        }`}
+                      >
+                        <FaLock className="mr-2 text-red-500" />
+                        Confirmation de sécurité
+                      </h3>
+                      <div className="space-y-2">
+                        <p
                           className={`text-xs ${
                             isDarkMode ? "text-gray-400" : "text-gray-600"
                           }`}
                         >
-                          Montant à transférer:
-                        </span>
-                        <span
-                          className={`text-xs font-medium ${
-                            isDarkMode ? "text-gray-300" : "text-gray-700"
-                          }`}
-                        >
-                          {parseFloat(transferData.amount).toFixed(2)} USD
-                        </span>
-                      </div>
-
-                      {transferFeePercentage > 0 && (
-                        <div className="flex justify-between items-center">
-                          <span
-                            className={`text-xs flex items-center ${
-                              isDarkMode ? "text-gray-400" : "text-gray-600"
+                          Veuillez confirmer cette transaction avec votre mot de
+                          passe
+                        </p>
+                        <div className="relative">
+                          <input
+                            type="password"
+                            id="confirm_password"
+                            value={transferData.password}
+                            onChange={(e) =>
+                              setTransferData({
+                                ...transferData,
+                                password: e.target.value,
+                              })
+                            }
+                            placeholder="Entrez votre mot de passe"
+                            className={`w-full px-4 py-2 rounded-md ${
+                              isDarkMode
+                                ? "bg-gray-800 border-gray-600 text-white placeholder-gray-400 focus:ring-blue-500 focus:border-blue-500"
+                                : "bg-white border-gray-300 text-gray-900 placeholder-gray-500 focus:ring-blue-500 focus:border-blue-500"
                             }`}
-                          >
-                            <FaPercentage className="mr-1 h-3 w-3" />
-                            Frais de transfert ({transferFeePercentage}%):
-                          </span>
-                          <span
-                            className={`text-xs font-medium ${
-                              isDarkMode ? "text-gray-300" : "text-gray-700"
-                            }`}
-                          >
-                            {transferFeeAmount.toFixed(2)} USD
-                          </span>
+                          />
                         </div>
-                      )}
-
-                      {transferCommissionPercentage > 0 && (
-                        <div className="flex justify-between items-center">
-                          <span
-                            className={`text-xs flex items-center ${
-                              isDarkMode ? "text-gray-400" : "text-gray-600"
-                            }`}
-                          >
-                            <FaPercentage className="mr-1 h-3 w-3" />
-                            Commission ({transferCommissionPercentage}%):
-                          </span>
-                          <span
-                            className={`text-xs font-medium ${
-                              isDarkMode ? "text-gray-300" : "text-gray-700"
-                            }`}
-                          >
-                            {transferCommissionAmount.toFixed(2)} USD
-                          </span>
-                        </div>
-                      )}
-
-                      <div className="flex justify-between items-center pt-1 mt-1 border-t border-gray-200 dark:border-gray-600">
-                        <span
-                          className={`text-xs font-medium ${
-                            isDarkMode ? "text-gray-300" : "text-gray-700"
-                          }`}
-                        >
-                          Total à débiter:
-                        </span>
-                        <span
-                          className={`text-xs font-bold ${
-                            isDarkMode ? "text-green-400" : "text-green-600"
-                          }`}
-                        >
-                          {(
-                            parseFloat(transferData.amount) + totalFeeAmount
-                          ).toFixed(2)}{" "}
-                          USD
-                        </span>
                       </div>
                     </div>
                   </div>
 
-                  {/* Description */}
-                  <div
-                    className={`p-3 rounded-md ${
-                      isDarkMode ? "bg-gray-700" : "bg-gray-100"
-                    }`}
-                  >
-                    <h3
-                      className={`text-sm font-medium mb-2 flex items-center ${
-                        isDarkMode ? "text-gray-300" : "text-gray-700"
-                      }`}
-                    >
-                      <FaFileAlt className="mr-2 text-blue-500" />
-                      Description
-                    </h3>
-                    <p
-                      className={`text-xs ${
-                        isDarkMode ? "text-gray-400" : "text-gray-600"
-                      } italic`}
-                    >
-                      {transferData.description || "Aucune description fournie"}
-                    </p>
-                  </div>
-
-                  {/* Mot de passe */}
-                  <div
-                    className={`p-3 rounded-md ${
-                      isDarkMode ? "bg-gray-700" : "bg-gray-100"
-                    }`}
-                  >
-                    <h3
-                      className={`text-sm font-medium mb-2 flex items-center ${
-                        isDarkMode ? "text-gray-300" : "text-gray-700"
-                      }`}
-                    >
-                      <FaLock className="mr-2 text-red-500" />
-                      Confirmation de sécurité
-                    </h3>
-                    <div className="space-y-2">
-                      <p
-                        className={`text-xs ${
-                          isDarkMode ? "text-gray-400" : "text-gray-600"
-                        }`}
-                      >
-                        Veuillez confirmer cette transaction avec votre mot de
-                        passe
-                      </p>
-                      <div className="relative">
-                        <input
-                          type="password"
-                          id="confirm_password"
-                          value={transferData.password}
-                          onChange={(e) =>
-                            setTransferData({
-                              ...transferData,
-                              password: e.target.value,
-                            })
-                          }
-                          placeholder="Entrez votre mot de passe"
-                          className={`w-full px-4 py-2 rounded-md ${
-                            isDarkMode
-                              ? "bg-gray-800 border-gray-600 text-white placeholder-gray-400 focus:ring-blue-500 focus:border-blue-500"
-                              : "bg-white border-gray-300 text-gray-900 placeholder-gray-500 focus:ring-blue-500 focus:border-blue-500"
-                          }`}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                  </div>
-                  
                   <div className="flex justify-end gap-3 mt-6">
                     <motion.button
                       whileHover={{ scale: 1.05 }}

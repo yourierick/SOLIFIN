@@ -8,9 +8,24 @@ use App\Models\SocialEventReport;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Http\JsonResponse;
 
 class SocialEventAdminController extends Controller
 {
+    /**
+     * Compter le nombre de statuts sociaux en attente
+     *
+     * @return JsonResponse
+     */
+    public function pendingCount(): JsonResponse
+    {
+        try {
+            $count = SocialEvent::where('statut', 'en_attente')->count();
+            return response()->json(['count' => $count]);
+        } catch (\Exception $e) {
+            return response()->json(['message' => 'Erreur lors du comptage des statuts sociaux en attente', 'error' => $e->getMessage()], 500);
+        }
+    }
     /**
      * Afficher tous les statuts sociaux pour l'administration.
      */

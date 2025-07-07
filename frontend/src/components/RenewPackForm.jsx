@@ -38,6 +38,59 @@ import Notification from "./Notification";
 import { CURRENCIES, PAYMENT_TYPES, PAYMENT_METHODS } from "../config";
 import { countries } from "../data/countries";
 
+// Import des icônes pour les options de paiement
+import airtelIcon from "../assets/icons-mobil-money/airtel.png";
+import mtnIcon from "../assets/icons-mobil-money/mtn.png";
+import moovIcon from "../assets/icons-mobil-money/moov.png";
+import africellIcon from "../assets/icons-mobil-money/afrimoney.png";
+import mpesaIcon from "../assets/icons-mobil-money/mpesa.png";
+import orangeIcon from "../assets/icons-mobil-money/orange.png";
+import visaIcon from "../assets/icons-mobil-money/visa.png";
+import mastercardIcon from "../assets/icons-mobil-money/mastercard.png";
+import amexIcon from "../assets/icons-mobil-money/americanexpress.png";
+
+// Mapping des méthodes de paiement avec leurs icônes
+const paymentMethodsMap = {
+  [PAYMENT_TYPES.MOBILE_MONEY]: {
+    name: "Mobile Money",
+    icon: PhoneIcon,
+    options: PAYMENT_METHODS[PAYMENT_TYPES.MOBILE_MONEY].map((option) => {
+      if (option.id === "airtel-money") {
+        return { ...option, icon: airtelIcon };
+      } else if (option.id === "mtn-mobile-money") {
+        return { ...option, icon: mtnIcon };
+      } else if (option.id === "moov-money") {
+        return { ...option, icon: moovIcon };
+      } else if (option.id === "afrimoney") {
+        return { ...option, icon: africellIcon };
+      } else if (option.id === "m-pesa") {
+        return { ...option, icon: mpesaIcon };
+      } else if (option.id === "orange-money") {
+        return { ...option, icon: orangeIcon };
+      }
+      return option;
+    }),
+  },
+  [PAYMENT_TYPES.CREDIT_CARD]: {
+    name: "Carte de crédit",
+    icon: CreditCardIcon,
+    options: PAYMENT_METHODS[PAYMENT_TYPES.CREDIT_CARD].map((option) => {
+      if (option.id === "visa") {
+        return { ...option, icon: visaIcon };
+      } else if (option.id === "mastercard") {
+        return { ...option, icon: mastercardIcon };
+      } else if (option.id === "american-express") {
+        return { ...option, icon: amexIcon };
+      }
+      return option;
+    }),
+  },
+  [PAYMENT_TYPES.WALLET]: {
+    name: "Portefeuille",
+    icon: WalletIcon,
+  },
+};
+
 // Composant local pour l'indicatif téléphonique
 const SimplePhoneCode = ({ value, onChange }) => {
   // Utiliser un select standard de Material UI avec Autocomplete
@@ -397,6 +450,64 @@ export default function RenewPackForm({ open, onClose, pack, onSubmit }) {
   const [localLoading, setLocalLoading] = useState(false);
   const [loading, setLoading] = useState(false); // État pour le chargement global
 
+  // Fonction pour rendre une option de paiement avec son icône
+  const renderPaymentOptionWithIcon = (option, type) => {
+    // Récupérer les informations de la méthode de paiement depuis le mapping
+    const methodInfo = paymentMethodsMap[type] || {};
+
+    // Trouver l'option spécifique avec son icône dans le mapping
+    const optionWithIcon =
+      methodInfo.options?.find((opt) => opt.id === option.id) || option;
+
+    // Déterminer l'icône à afficher
+    if (optionWithIcon.icon) {
+      // Si l'option a une icône personnalisée (image)
+      return (
+        <div className="flex items-center gap-2">
+          <div className="w-6 h-6 flex items-center justify-center rounded-full bg-white shadow-sm">
+            <img
+              src={optionWithIcon.icon}
+              alt={option.name}
+              className="w-5 h-5 object-contain"
+            />
+          </div>
+          <span>{option.name}</span>
+        </div>
+      );
+    } else if (type === PAYMENT_TYPES.MOBILE_MONEY) {
+      // Icônes spécifiques pour le mobile money
+      let icon = <PhoneIcon className="h-5 w-5 text-orange-500" />;
+
+      return (
+        <div className="flex items-center gap-2">
+          {icon}
+          <span>{option.name}</span>
+        </div>
+      );
+    } else if (type === PAYMENT_TYPES.CREDIT_CARD) {
+      // Icônes spécifiques pour les cartes de crédit
+      let icon = <PaymentIcon className="h-5 w-5 text-blue-500" />;
+
+      if (option.id === "visa") {
+        icon = <CreditCardIcon className="h-5 w-5 text-blue-600" />;
+      } else if (option.id === "mastercard") {
+        icon = <CreditScoreIcon className="h-5 w-5 text-red-600" />;
+      } else if (option.id === "american-express") {
+        icon = <PaymentIcon className="h-5 w-5 text-purple-600" />;
+      }
+
+      return (
+        <div className="flex items-center gap-2">
+          {icon}
+          <span>{option.name}</span>
+        </div>
+      );
+    }
+
+    // Fallback pour tout autre type
+    return <span>{option.name}</span>;
+  };
+
   useEffect(() => {
     if (pack) {
       const step = getSubscriptionStep(pack.pack.abonnement);
@@ -421,30 +532,32 @@ export default function RenewPackForm({ open, onClose, pack, onSubmit }) {
     if (pack) {
       // Récupérer le pas d'abonnement (fréquence)
       const step = getSubscriptionStep(pack.pack.abonnement);
-      
+
       // Le prix du pack est le prix pour une période complète (pas)
       // Par exemple, pour un pack annuel à 20$, c'est 20$ pour 12 mois
       // Si l'utilisateur choisit plusieurs périodes, il faut multiplier le prix
-      
+
       // Calculer le nombre de périodes d'abonnement
       const periods = Math.ceil(months / step);
-      
+
       // Le montant total est le prix du pack multiplié par le nombre de périodes
       const basePrice = getPackPrice();
       const totalAmountUSD = basePrice * periods;
-      console.log(`Montant total: ${basePrice}$ x ${periods} périodes = ${totalAmountUSD}$ (${months} mois / pas de ${step} mois)`);
+      console.log(
+        `Montant total: ${basePrice}$ x ${periods} périodes = ${totalAmountUSD}$ (${months} mois / pas de ${step} mois)`
+      );
       setTotalAmount(totalAmountUSD);
-      
+
       // Si on est en USD ou en mode wallet, pas besoin de conversion spéciale
       if (currentCurrency === "USD" || paymentMethod === PAYMENT_TYPES.WALLET) {
         setConvertedAmount(totalAmountUSD);
-      } 
+      }
       // Si on a déjà un prix unitaire converti, l'utiliser pour calculer le montant total
       // Le prix unitaire converti est le prix pour une période complète
       else if (unitPriceConverted > 0) {
         // Calculer le nombre de périodes d'abonnement
         const periods = Math.ceil(months / step);
-        
+
         // Le montant converti est le prix unitaire multiplié par le nombre de périodes
         const newConvertedAmount = unitPriceConverted * periods;
         console.log(
@@ -678,19 +791,19 @@ export default function RenewPackForm({ open, onClose, pack, onSubmit }) {
       // en tenant compte de la fréquence du pack
       const step = getSubscriptionStep(pack.pack.abonnement);
       const periods = Math.ceil(months / step);
-      
+
       // Le montant converti est le prix du pack multiplié par le nombre de périodes
       const walletAmount = getPackPrice() * periods;
       setConvertedAmount(walletAmount);
-      
-      console.log('Montant pour wallet (convertCurrency):', {
+
+      console.log("Montant pour wallet (convertCurrency):", {
         prix_pack: getPackPrice(),
         duree_mois: months,
         pas_abonnement: step,
         periodes: periods,
-        montant_wallet: walletAmount
+        montant_wallet: walletAmount,
       });
-      
+
       setCurrentCurrency("USD"); // Réinitialiser à USD pour le wallet
       setUnitPriceConverted(0); // Réinitialiser le prix unitaire converti
       setTransactionFees(0);
@@ -715,7 +828,10 @@ export default function RenewPackForm({ open, onClose, pack, onSubmit }) {
 
       // Si la devise sélectionnée est la même que la devise actuelle du montant, pas besoin de conversion
       if (selectedCurrency === currentCurrency) {
-        console.log("Pas de conversion nécessaire, devise inchangée:", selectedCurrency);
+        console.log(
+          "Pas de conversion nécessaire, devise inchangée:",
+          selectedCurrency
+        );
         convertedAmt = convertedAmount || totalAmount;
       }
       // Si la devise est USD et que le montant est en USD, pas besoin de conversion
@@ -725,87 +841,109 @@ export default function RenewPackForm({ open, onClose, pack, onSubmit }) {
         // Réinitialiser le prix unitaire converti pour USD
         const basePrice = getPackPrice();
         setUnitPriceConverted(basePrice);
-      } 
+      }
       // Si on change de devise, conversion nécessaire
       else {
-        console.log(`Conversion de ${currentCurrency} vers ${selectedCurrency}`);
-        
+        console.log(
+          `Conversion de ${currentCurrency} vers ${selectedCurrency}`
+        );
+
         // Toujours passer par USD comme devise pivot pour assurer la cohérence
         let amountToConvert;
-        
+
         // Si la devise actuelle n'est pas USD et la devise cible n'est pas USD,
         // on passe par USD comme devise pivot
         if (currentCurrency !== "USD" && selectedCurrency !== "USD") {
-          console.log(`Conversion via USD: ${currentCurrency} -> USD -> ${selectedCurrency}`);
-          
+          console.log(
+            `Conversion via USD: ${currentCurrency} -> USD -> ${selectedCurrency}`
+          );
+
           // Étape 1: Convertir de la devise actuelle vers USD
           const responseToUSD = await axios.post("/api/currency/convert", {
             amount: convertedAmount,
             from: currentCurrency,
             to: "USD",
           });
-          
+
           if (!responseToUSD.data.success) {
-            console.error(`Échec de conversion de ${currentCurrency} vers USD:`, responseToUSD.data.message);
-            throw new Error(`Échec de conversion de ${currentCurrency} vers USD`);
+            console.error(
+              `Échec de conversion de ${currentCurrency} vers USD:`,
+              responseToUSD.data.message
+            );
+            throw new Error(
+              `Échec de conversion de ${currentCurrency} vers USD`
+            );
           }
-          
+
           const usdAmount = responseToUSD.data.convertedAmount;
           console.log(`Montant intermédiaire en USD: ${usdAmount}`);
-          
+
           // Étape 2: Convertir de USD vers la devise cible
           const responseFromUSD = await axios.post("/api/currency/convert", {
             amount: usdAmount,
             from: "USD",
             to: selectedCurrency,
           });
-          
+
           if (!responseFromUSD.data.success) {
-            console.error(`Échec de conversion de USD vers ${selectedCurrency}:`, responseFromUSD.data.message);
-            throw new Error(`Échec de conversion de USD vers ${selectedCurrency}`);
+            console.error(
+              `Échec de conversion de USD vers ${selectedCurrency}:`,
+              responseFromUSD.data.message
+            );
+            throw new Error(
+              `Échec de conversion de USD vers ${selectedCurrency}`
+            );
           }
-          
+
           convertedAmt = responseFromUSD.data.convertedAmount;
-          console.log(`Montant final converti: ${convertedAmt} ${selectedCurrency}`);
+          console.log(
+            `Montant final converti: ${convertedAmt} ${selectedCurrency}`
+          );
         } else {
           // Conversion directe (une des devises est USD)
           const from = currentCurrency;
           const to = selectedCurrency;
-          amountToConvert = currentCurrency === "USD" ? totalAmount : convertedAmount;
-          
-          console.log(`Conversion directe: ${amountToConvert} ${from} -> ${to}`);
+          amountToConvert =
+            currentCurrency === "USD" ? totalAmount : convertedAmount;
+
+          console.log(
+            `Conversion directe: ${amountToConvert} ${from} -> ${to}`
+          );
           const response = await axios.post("/api/currency/convert", {
             amount: amountToConvert,
             from: from,
             to: to,
           });
-          
+
           if (!response.data.success) {
-            console.error(`Échec de conversion de ${from} vers ${to}:`, response.data.message);
+            console.error(
+              `Échec de conversion de ${from} vers ${to}:`,
+              response.data.message
+            );
             throw new Error(`Échec de conversion de ${from} vers ${to}`);
           }
-          
+
           convertedAmt = response.data.convertedAmount;
           console.log(`Montant converti: ${convertedAmt} ${to}`);
         }
-        
+
         // Mettre à jour le montant converti
         setConvertedAmount(convertedAmt);
-        
+
         // Calculer le prix unitaire converti (prix pour une période)
-      if (pack && months > 0) {
-        const step = getSubscriptionStep(pack.pack.abonnement);
-        // Calculer le nombre de périodes d'abonnement
-        const periods = Math.ceil(months / step);
-        
-        // Le prix unitaire est le montant converti divisé par le nombre de périodes
-        const unitPrice = convertedAmt / periods;
-        console.log(
-          `Prix unitaire converti: ${unitPrice} ${selectedCurrency} par période de ${step} mois (${convertedAmt} ${selectedCurrency} / ${periods} périodes)`
-        );
-        setUnitPriceConverted(unitPrice);
-      }
-        
+        if (pack && months > 0) {
+          const step = getSubscriptionStep(pack.pack.abonnement);
+          // Calculer le nombre de périodes d'abonnement
+          const periods = Math.ceil(months / step);
+
+          // Le prix unitaire est le montant converti divisé par le nombre de périodes
+          const unitPrice = convertedAmt / periods;
+          console.log(
+            `Prix unitaire converti: ${unitPrice} ${selectedCurrency} par période de ${step} mois (${convertedAmt} ${selectedCurrency} / ${periods} périodes)`
+          );
+          setUnitPriceConverted(unitPrice);
+        }
+
         // Mettre à jour la devise actuelle du montant
         setCurrentCurrency(selectedCurrency);
       }
@@ -840,7 +978,7 @@ export default function RenewPackForm({ open, onClose, pack, onSubmit }) {
       setLocalLoading(false);
       setLoading(false); // Réactive le bouton de soumission après la conversion
     }
-  }
+  };
 
   const calculateFees = async () => {
     setLoadingFees(true);
@@ -983,14 +1121,22 @@ export default function RenewPackForm({ open, onClose, pack, onSubmit }) {
 
       // Pour Mobile Money, ajouter l'indicatif téléphonique
       if (paymentMethod === PAYMENT_TYPES.MOBILE_MONEY) {
-        // Inclure l'indicatif dans le numéro de téléphone
-        const phoneWithCode = `${phoneCode}${formFields.phoneNumber}`;
+        // Utiliser l'indicatif fixe 243 (sans le +) pour l'API
+        const phoneCode = "243";
+
+        // Nettoyer le numéro de téléphone (enlever espaces, tirets, etc.)
+        const cleanPhoneNumber = formFields.phoneNumber.replace(/\D/g, "");
+
+        // Créer le numéro complet sans le +
+        const phoneWithCode = `${phoneCode}${cleanPhoneNumber}`;
+
+        console.log("Numéro de téléphone formaté pour API:", phoneWithCode);
 
         paymentDetails = {
           ...paymentDetails,
           phoneCode: phoneCode,
-          phoneNumber: phoneWithCode, // Remplacer le numéro par la version avec indicatif
-          fullPhoneNumber: phoneWithCode, // Garder fullPhoneNumber pour compatibilité
+          phoneNumber: cleanPhoneNumber, // Numéro nettoyé sans indicatif
+          fullPhoneNumber: phoneWithCode, // Numéro complet sans le +
         };
       }
 
@@ -998,8 +1144,8 @@ export default function RenewPackForm({ open, onClose, pack, onSubmit }) {
       const step = getSubscriptionStep(pack.pack.abonnement);
       const periods = Math.ceil(months / step);
       const correctAmount = getPackPrice() * periods;
-      
-      console.log('Montant pour soumission:', {
+
+      console.log("Montant pour soumission:", {
         prix_pack: getPackPrice(),
         duree_mois: months,
         pas_abonnement: step,
@@ -1007,9 +1153,9 @@ export default function RenewPackForm({ open, onClose, pack, onSubmit }) {
         montant_calcule: correctAmount,
         montant_total_affiche: totalAmount,
         montant_converti: convertedAmount,
-        methode_paiement: paymentMethod
+        methode_paiement: paymentMethod,
       });
-      
+
       // Préparer les données à envoyer
       const paymentData = {
         payment_method: specificPaymentMethod, // Méthode spécifique (visa, mastercard, m-pesa, etc.)
@@ -1072,36 +1218,29 @@ export default function RenewPackForm({ open, onClose, pack, onSubmit }) {
                     setSelectedMobileOption(option.id);
                     setSelectedPaymentOption(option.id);
                   }}
-                  className={`border rounded-lg p-4 flex flex-col items-center justify-center cursor-pointer transition-all duration-200 ${
+                  className={`border rounded-xl shadow-sm p-4 flex flex-col items-center justify-center cursor-pointer transition-all duration-300 ${
                     selectedMobileOption === option.id
-                      ? "border-green-500 bg-green-50 dark:bg-green-900/20"
-                      : "border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600"
+                      ? "border-2 border-green-500 bg-green-50 dark:bg-green-900/20 shadow-md transform -translate-y-1"
+                      : "border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 hover:shadow"
                   }`}
-                  style={{ height: "100px" }}
+                  style={{ height: "120px" }}
                 >
                   <div
-                    className="mb-3"
+                    className="mb-3 flex flex-col items-center justify-center"
                     style={{
-                      minHeight: "32px",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
+                      minHeight: "40px",
                     }}
                   >
-                    {option.icon}
+                    {renderPaymentOptionWithIcon(
+                      option,
+                      PAYMENT_TYPES.MOBILE_MONEY
+                    )}
                   </div>
-                  <Typography
-                    variant="body2"
-                    className="text-center font-medium"
-                  >
-                    {option.name}
-                  </Typography>
                   <Radio
                     checked={selectedMobileOption === option.id}
                     size="small"
                     sx={{
-                      padding: "4px",
-                      marginTop: "4px",
+                      padding: "2px",
                       "&.Mui-checked": { color: "#10B981" },
                     }}
                   />
@@ -1128,36 +1267,29 @@ export default function RenewPackForm({ open, onClose, pack, onSubmit }) {
                     setSelectedCardOption(option.id);
                     setSelectedPaymentOption(option.id);
                   }}
-                  className={`border rounded-lg p-4 flex flex-col items-center justify-center cursor-pointer transition-all duration-200 ${
+                  className={`border rounded-xl shadow-sm p-4 flex flex-col items-center justify-center cursor-pointer transition-all duration-300 ${
                     selectedCardOption === option.id
-                      ? "border-purple-500 bg-purple-50 dark:bg-purple-900/20"
-                      : "border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600"
+                      ? "border-2 border-purple-500 bg-purple-50 dark:bg-purple-900/20 shadow-md transform -translate-y-1"
+                      : "border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 hover:shadow"
                   }`}
-                  style={{ height: "100px" }}
+                  style={{ height: "120px" }}
                 >
                   <div
-                    className="mb-3"
+                    className="mb-3 flex flex-col items-center justify-center"
                     style={{
-                      minHeight: "32px",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
+                      minHeight: "40px",
                     }}
                   >
-                    {option.icon}
+                    {renderPaymentOptionWithIcon(
+                      option,
+                      PAYMENT_TYPES.CREDIT_CARD
+                    )}
                   </div>
-                  <Typography
-                    variant="body2"
-                    className="text-center font-medium"
-                  >
-                    {option.name}
-                  </Typography>
                   <Radio
                     checked={selectedCardOption === option.id}
                     size="small"
                     sx={{
-                      padding: "4px",
-                      marginTop: "4px",
+                      padding: "2px",
                       "&.Mui-checked": { color: "#8B5CF6" },
                     }}
                   />
@@ -1178,37 +1310,43 @@ export default function RenewPackForm({ open, onClose, pack, onSubmit }) {
                 : ""
             }
           >
-            {/* Afficher le sélecteur d'indicatif téléphonique pour Mobile Money */}
+            {/* Champ téléphone avec indicatif fixe +243 pour Mobile Money */}
             {paymentMethod === PAYMENT_TYPES.MOBILE_MONEY &&
               selectedMobileOption && (
-                <div className="flex gap-2 mb-2">
-                  <div style={{ width: "40%" }}>
-                    <SimplePhoneCode
-                      value={phoneCode}
-                      onChange={(newCode) => setPhoneCode(newCode)}
-                    />
-                  </div>
-                  <div style={{ width: "60%" }}>
-                    {selectedMethod.fields
-                      .filter((field) => field.name === "phoneNumber")
-                      .map((field) => (
-                        <TextField
-                          key={field.name}
-                          label={field.label}
-                          type={field.type}
-                          value={formFields[field.name] || ""}
-                          onChange={(e) =>
-                            handleFieldChange(field.name, e.target.value)
-                          }
-                          fullWidth
-                          required={field.required}
-                          size="small"
-                          inputProps={{
-                            maxLength: field.maxLength,
-                          }}
-                        />
-                      ))}
-                  </div>
+                <div className="mb-4">
+                  {selectedMethod.fields
+                    .filter((field) => field.name === "phoneNumber")
+                    .map((field) => (
+                      <TextField
+                        key={field.name}
+                        label={field.label}
+                        type={field.type}
+                        value={formFields[field.name] || ""}
+                        onChange={(e) =>
+                          handleFieldChange(field.name, e.target.value)
+                        }
+                        fullWidth
+                        required={field.required}
+                        size="small"
+                        InputProps={{
+                          startAdornment: (
+                            <InputAdornment position="start">
+                              <Typography
+                                variant="body2"
+                                className="text-gray-600 dark:text-gray-300 font-medium"
+                              >
+                                +243
+                              </Typography>
+                            </InputAdornment>
+                          ),
+                        }}
+                        inputProps={{
+                          maxLength: field.maxLength,
+                          style: { paddingLeft: "4px" },
+                        }}
+                        helperText="Entrez votre numéro sans le code pays"
+                      />
+                    ))}
                 </div>
               )}
 
@@ -1296,7 +1434,7 @@ export default function RenewPackForm({ open, onClose, pack, onSubmit }) {
               className="font-bold"
               id="renew-pack-dialog-title"
             >
-              Renouveler {pack?.pack.name}
+              Renouveler le {pack?.pack.name}
             </Typography>
             <IconButton
               onClick={onClose}
@@ -1329,108 +1467,99 @@ export default function RenewPackForm({ open, onClose, pack, onSubmit }) {
                 Méthode de paiement
               </Typography>
 
-              <div className="grid grid-cols-1 gap-3">
+              <div className="grid grid-cols-3 gap-4">
                 {paymentMethods.map((method) => (
                   <div
                     key={method.id}
-                    className={`method-card cursor-pointer ${
-                      paymentMethod === method.id ? "selected" : ""
+                    className={`method-card cursor-pointer rounded-xl shadow-sm hover:shadow-md transition-all duration-300 ${
+                      paymentMethod === method.id
+                        ? "border-2 shadow-md"
+                        : "border border-gray-200 dark:border-gray-700"
                     }`}
                     onClick={() => setPaymentMethod(method.id)}
                     style={{
                       borderColor:
+                        paymentMethod === method.id ? method.color : undefined,
+                      transform:
                         paymentMethod === method.id
-                          ? method.color
-                          : "transparent",
-                      transition: "all 0.3s ease",
+                          ? "translateY(-2px)"
+                          : "none",
                     }}
                   >
-                    <div className="flex items-center">
-                      <Radio
-                        checked={paymentMethod === method.id}
-                        onChange={() => setPaymentMethod(method.id)}
-                        size="small"
-                        sx={{
-                          "&.Mui-checked": {
-                            color: method.color,
-                          },
+                    <div className="p-4 flex flex-col items-center text-center">
+                      <div
+                        className="mb-3 flex items-center justify-center"
+                        style={{
+                          width: "60px",
+                          height: "60px",
+                          borderRadius: "50%",
+                          backgroundColor: `${method.color}15`,
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
                         }}
-                      />
-                      <div className="flex items-center">
-                        <div
-                          className="mr-4 flex items-center justify-center"
-                          style={{
-                            width: "42px",
-                            height: "42px",
-                            borderRadius: "50%",
-                            backgroundColor: `${method.color}15`, // Couleur avec 15% d'opacité
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            padding: "8px",
-                          }}
-                        >
-                          {method.icon}
-                        </div>
-                        <div>
-                          <Typography variant="subtitle2">
-                            {method.name}
-                          </Typography>
-                          {method.id === PAYMENT_TYPES.WALLET && (
-                            <Typography
-                              variant="caption"
-                              color="textSecondary"
-                              className="flex items-center"
-                            >
-                              <BanknotesIcon className="h-3 w-3 mr-1" />
-                              Solde disponible: {walletBalance} USD
-                            </Typography>
-                          )}
-                          {method.id === PAYMENT_TYPES.CREDIT_CARD && (
-                            <Typography
-                              variant="caption"
-                              color="textSecondary"
-                              className="flex items-center"
-                            >
-                              <div className="flex items-center gap-2 mt-1">
-                                <Avatar
-                                  src="https://upload.wikimedia.org/wikipedia/commons/thumb/5/5e/Visa_Inc._logo.svg/800px-Visa_Inc._logo.svg.png"
-                                  alt="Visa"
-                                  variant="square"
-                                  sx={{
-                                    width: 28,
-                                    height: 18,
-                                    bgcolor: "transparent",
-                                  }}
-                                />
-                                <Avatar
-                                  src="https://upload.wikimedia.org/wikipedia/commons/thumb/2/2a/Mastercard-logo.svg/800px-Mastercard-logo.svg.png"
-                                  alt="Mastercard"
-                                  variant="square"
-                                  sx={{
-                                    width: 28,
-                                    height: 18,
-                                    bgcolor: "transparent",
-                                  }}
-                                />
-                                <span className="ml-1 text-xs">
-                                  Visa, Mastercard, American Express
-                                </span>
-                              </div>
-                            </Typography>
-                          )}
-                          {method.id === PAYMENT_TYPES.MOBILE_MONEY && (
-                            <Typography
-                              variant="caption"
-                              color="textSecondary"
-                              className="flex items-center"
-                            >
-                              <PhoneIcon className="h-3 w-3 mr-1" />
-                              Orange Money, Airtel Money, M-Pesa
-                            </Typography>
-                          )}
-                        </div>
+                      >
+                        {method.icon}
                       </div>
+                      <Typography
+                        variant="subtitle2"
+                        className="font-medium mb-1"
+                      >
+                        {method.name}
+                      </Typography>
+                      {method.id === PAYMENT_TYPES.WALLET && (
+                        <Typography
+                          variant="caption"
+                          color="textSecondary"
+                          className="flex items-center justify-center"
+                        >
+                          <BanknotesIcon className="h-3 w-3 mr-1" />
+                          Solde: {walletBalance} USD
+                        </Typography>
+                      )}
+                      {method.id === PAYMENT_TYPES.CREDIT_CARD && (
+                        <div className="flex flex-wrap items-center justify-center gap-1 mt-1">
+                          <img
+                            src={visaIcon}
+                            alt="Visa"
+                            className="h-4 w-6 object-contain"
+                          />
+                          <img
+                            src={mastercardIcon}
+                            alt="Mastercard"
+                            className="h-4 w-6 object-contain"
+                          />
+                          <img
+                            src={amexIcon}
+                            alt="Amex"
+                            className="h-4 w-6 object-contain"
+                          />
+                        </div>
+                      )}
+                      {method.id === PAYMENT_TYPES.MOBILE_MONEY && (
+                        <div className="flex flex-wrap items-center justify-center gap-1 mt-1">
+                          <img
+                            src={orangeIcon}
+                            alt="Orange"
+                            className="h-4 w-4 object-contain"
+                          />
+                          <img
+                            src={airtelIcon}
+                            alt="Airtel"
+                            className="h-4 w-4 object-contain"
+                          />
+                          <img
+                            src={mpesaIcon}
+                            alt="M-Pesa"
+                            className="h-4 w-4 object-contain"
+                          />
+                          <img
+                            src={africellIcon}
+                            alt="Africa Money"
+                            className="h-4 w-4 object-contain"
+                          />
+                        </div>
+                      )}
                     </div>
                   </div>
                 ))}

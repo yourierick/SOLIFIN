@@ -186,6 +186,8 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
 
     Route::get('/userwallet/data', [WalletUserController::class, 'getWalletData']);
     Route::get('/userwallet/balance', [WalletUserController::class, 'getWalletBalance']);
+    Route::get('/userwallet/purchase-fee', [WalletUserController::class, 'getPurchaseFeePercentage']);
+    Route::post('/userwallet/purchase-virtual', [WalletUserController::class, 'purchaseVirtual']);
     
     // Déconnexion
     Route::middleware('auth:sanctum')->post('/logout', [LoginController::class, 'logout']);
@@ -548,10 +550,12 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function ()
     Route::middleware('permission:manage-validations')->group(function () {
         // Routes pour la validation des produits numériques
         Route::get('/digital-products', [App\Http\Controllers\Admin\DigitalProductValidationController::class, 'index']);
+        Route::get('/digital-products/pending/count', [App\Http\Controllers\Admin\DigitalProductValidationController::class, 'pendingCount']);
         Route::post('/digital-products/{id}/approve', [App\Http\Controllers\Admin\DigitalProductValidationController::class, 'approve']);
         Route::post('/digital-products/{id}/reject', [App\Http\Controllers\Admin\DigitalProductValidationController::class, 'reject']);
         // Routes pour les publicités
         Route::get('/advertisements', [App\Http\Controllers\Admin\AdvertisementValidationController::class, 'index']);
+        Route::get('/advertisements/pending/count', [App\Http\Controllers\Admin\AdvertisementValidationController::class, 'pendingCount']);
         Route::post('/advertisements/{id}/approve', [App\Http\Controllers\Admin\AdvertisementValidationController::class, 'approve']);
         Route::post('/advertisements/{id}/reject', [App\Http\Controllers\Admin\AdvertisementValidationController::class, 'reject']);
         Route::patch('/advertisements/{id}/status', [App\Http\Controllers\Admin\AdvertisementValidationController::class, 'updateStatus']);
@@ -560,6 +564,7 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function ()
         
         // Routes pour les offres d'emploi
         Route::get('/job-offers', [App\Http\Controllers\Admin\JobOfferValidationController::class, 'index']);
+        Route::get('/job-offers/pending/count', [App\Http\Controllers\Admin\JobOfferValidationController::class, 'pendingCount']);
         Route::post('/job-offers/{id}/approve', [App\Http\Controllers\Admin\JobOfferValidationController::class, 'approve']);
         Route::post('/job-offers/{id}/reject', [App\Http\Controllers\Admin\JobOfferValidationController::class, 'reject']);
         Route::patch('/job-offers/{id}/status', [App\Http\Controllers\Admin\JobOfferValidationController::class, 'updateStatus']);
@@ -567,9 +572,11 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function ()
         Route::delete('/job-offers/{id}', [App\Http\Controllers\Admin\JobOfferValidationController::class, 'destroy']);
         // Routes pour les opportunités d'affaires
         Route::get('/business-opportunities', [App\Http\Controllers\Admin\BusinessOpportunityValidationController::class, 'index']);
+        Route::get('/business-opportunities/pending/count', [App\Http\Controllers\Admin\BusinessOpportunityValidationController::class, 'pendingCount']);
         Route::post('/business-opportunities/{id}/approve', [App\Http\Controllers\Admin\BusinessOpportunityValidationController::class, 'approve']);
         // Routes pour les statuts sociaux
         Route::get('/social-events', [App\Http\Controllers\Admin\SocialEventAdminController::class, 'index']);
+        Route::get('/social-events/pending/count', [App\Http\Controllers\Admin\SocialEventAdminController::class, 'pendingCount']);
         Route::post('/social-events/{id}/approve', [App\Http\Controllers\Admin\SocialEventAdminController::class, 'approve']);
         Route::post('/social-events/{id}/reject', [App\Http\Controllers\Admin\SocialEventAdminController::class, 'reject']);
         Route::patch('/social-events/{id}/status', [App\Http\Controllers\Admin\SocialEventAdminController::class, 'updateStatus']);

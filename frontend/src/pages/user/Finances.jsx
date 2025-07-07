@@ -611,6 +611,8 @@ const Finances = () => {
           ? "Com. Retrait"
           : stat.type === "commission de transfert"
           ? "Com. Transfert"
+          : stat.type === "virtual"
+          ? "Virtuels"
           : stat.type,
       montant: parseFloat(stat.total_amount || 0),
       count: parseInt(stat.count || 0),
@@ -1001,6 +1003,8 @@ const Finances = () => {
                           ? "Retrait"
                           : transaction.type === "purchase"
                           ? "Achat"
+                          : transaction.type === "virtual"
+                          ? "Virtuels"
                           : transaction.type === "sale"
                           ? "Vente"
                           : transaction.type === "transfer"
@@ -1015,7 +1019,8 @@ const Finances = () => {
                         transaction.type === "bonus" ||
                         transaction.type === "commission de parrainage" ||
                         transaction.type === "commission de retrait" ||
-                        transaction.type === "commission de transfert"
+                        transaction.type === "commission de transfert" ||
+                        transaction.type === "virtual"
                           ? "success"
                           : transaction.type === "withdrawal" ||
                             transaction.type === "transfer" ||
@@ -1027,7 +1032,8 @@ const Finances = () => {
                         transaction.type === "bonus" ||
                         transaction.type === "sale" ||
                         transaction.type === "commission de parrainage" ||
-                        transaction.type === "commission de retrait" ? (
+                        transaction.type === "commission de transfert" ||
+                        transaction.type === "virtual" ? (
                           <ArrowDownwardIcon fontSize="small" />
                         ) : transaction.type === "withdrawal" ||
                           transaction.type === "purchase" ||
@@ -1048,7 +1054,8 @@ const Finances = () => {
                         transaction.type === "bonus" ||
                         transaction.type === "commission de parrainage" ||
                         transaction.type === "commission de retrait" ||
-                        transaction.type === "commission de transfert"
+                        transaction.type === "commission de transfert" ||
+                        transaction.type === "virtual"
                           ? "success.main"
                           : transaction.type === "withdrawal" ||
                             transaction.type === "transfer" ||
@@ -1063,7 +1070,8 @@ const Finances = () => {
                     transaction.type === "commission de parrainage" ||
                     transaction.type === "commission de retrait" ||
                     transaction.type === "bonus" ||
-                    transaction.type === "commission de transfert"
+                    transaction.type === "commission de transfert" ||
+                    transaction.type === "virtual"
                       ? `+${formatAmount(transaction.amount)}`
                       : transaction.type === "withdrawal" ||
                         transaction.type === "purchase" ||
@@ -1307,6 +1315,9 @@ const Finances = () => {
             break;
           case "bonus":
             displayName = "Bonus";
+            break;
+          case "virtual":
+            displayName = "Virtuels";
             break;
           default:
             displayName = stat.type;
@@ -1831,6 +1842,10 @@ const Finances = () => {
                     ? "Commission de parrainage"
                     : type === "commission de retrait"
                     ? "Commission de retrait"
+                    : type === "commission de transfert"
+                    ? "Commission de transfert"
+                    : type === "virtual"
+                    ? "Virtuels"
                     : type}
                 </MenuItem>
               ))}
@@ -2857,13 +2872,19 @@ const Finances = () => {
                                   ? "Commission de retrait"
                                   : stat.type === "bonus"
                                   ? "Bonus"
+                                  : stat.type === "commission de transfert"
+                                  ? "Commission de transfert"
+                                  : stat.type === "virtual"
+                                  ? "Virtuels"
                                   : stat.type
                               }
                               color={
                                 stat.type === "reception" ||
                                 stat.type === "bonus" ||
                                 stat.type === "commission de parrainage" ||
-                                stat.type === "commission de retrait"
+                                stat.type === "commission de retrait" ||
+                                stat.type === "commission de transfert" ||
+                                stat.type === "virtual"
                                   ? "success"
                                   : stat.type === "withdrawal" ||
                                     stat.type === "transfer" ||
@@ -2882,7 +2903,9 @@ const Finances = () => {
                                 stat.type === "reception" ||
                                 stat.type === "bonus" ||
                                 stat.type === "commission de parrainage" ||
-                                stat.type === "commission de retrait"
+                                stat.type === "commission de retrait" ||
+                                stat.type === "commission de transfert" ||
+                                stat.type === "virtual"
                                   ? "success.main"
                                   : stat.type === "withdrawal" ||
                                     stat.type === "transfer" ||
