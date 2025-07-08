@@ -385,22 +385,22 @@ class WalletUserController extends Controller
                 $taux_de_change = ExchangeRates::where('currency', $validated['currency'])->where("target_currency", "USD")->first();
                 $taux_de_change = $taux_de_change->rate;
 
-                $globalFees = $this->convertToUSD($globalFees, $validated['currency']);
+                $globalFeesInUsd = $this->convertToUSD($globalFees, $validated['currency']);
                 $specificFeesInUsd = $this->convertToUSD($specificFees, $validated['currency']);
-                $totalAmount = $this->convertToUSD($totalAmount, $validated['currency']);
-                $validated['amount'] = $this->convertToUSD($request->original_amount, $validated['currency']);
+                $totalAmountInUsd = $this->convertToUSD($totalAmount, $validated['currency']);
+                $montant_net_in_usd = $this->convertToUSD($request->original_amount, $validated['currency']);
             }
             
             DB::beginTransaction();
             // Ajouter les fonds au portefeuille de l'utilisateur
-            $userWallet->addFunds($validated['amount'], 'virtual', 'completed', [
+            $userWallet->addFunds($montant_net_in_usd, 'virtual', 'completed', [
                 'Méthode de paiement' => $validated['payment_method'],
                 'Téléphone' => $validated['phoneNumber'],
                 'Id Transaction' => $transactionId,
                 'Dévise' => $validated['currency'],
                 'Montant net payé sans les frais' => $request->original_amount ? $request->original_amount . " " . $validated['currency'] : $validated['amount'] . " " . $validated['currency'],
-                'Frais originaux' => $request->original_fees ? $request->original_fees . " " . $validated['currency'] : $globalFees . " $",
-                'taux_de_change' => $taux_de_change,
+                'Frais de transaction' => $request->original_fees ? $request->original_fees . " " . $validated['currency'] : $globalFees . " $",
+                'Taux de change appliqué' => $taux_de_change,
                 'Déscription' => 'Achat de virtuel via ' . $validated['payment_method']
             ]);
             
@@ -412,21 +412,21 @@ class WalletUserController extends Controller
             
             $walletsystem->transactions()->create([
                 'wallet_system_id' => $walletsystem->id,
-                'amount' => $totalAmount - $specificFeesInUsd,
+                'amount' => $totalAmountInUsd - $specificFeesInUsd,
                 'type' => 'virtual_sale',
                 'status' => 'completed',
                 'metadata' => [
                     "Opération" => "Achat des virtuels",
                     'user' => $user->name,
-                    'account_id' => $user->account_id,
+                    'Id Compte' => $user->account_id,
                     'Méthode de paiement' => $validated['payment_method'],
                     'Téléphone' => $validated['phoneNumber'],
-                    'Id Transaction' => $transactionId,
+                    'Id de la Transaction' => $transactionId,
                     'Montant net payé sans les frais' => $validated['amount'] . ' ' . $validated['currency'],
-                    'Frais de transaction' => $validated['fees'] . ' ' . $validated['currency'],
+                    'Frais de transaction' => $globalFees . ' ' . $validated['currency'],
                     'Frais API' => $specificFees . ' ' . $validated['currency'],
-                    'Taux de change' => $taux_de_change,
-                    'description' => 'Achat de virtuel via ' . $validated['payment_method']
+                    'Taux de change appliqué' => $taux_de_change,
+                    'Déscription' => 'Achat de virtuel via ' . $validated['payment_method']
                 ]
             ]);
 

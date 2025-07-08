@@ -178,8 +178,7 @@ class PackController extends Controller
                 ]);
             }
             
-            // Montant total incluant les frais globaux (les frais spécifiques sont gérés par l'API de paiement)
-            $totalAmount = $paymentAmount + $globalFees;
+            // Montant total incluant les frais globaux            $totalAmount = $paymentAmount + $globalFees;
             
             // Log du montant total calculé
             \Log::info('Montant total calculé pour renouvellement de pack', [
@@ -300,18 +299,18 @@ class PackController extends Controller
 
                 // Déduire les fonds du wallet
                 $userWallet->withdrawFunds($amountInUSD, "purchase", "completed", [
-                    "pack_id" => $pack->id, 
-                    "pack_name" => $pack->name, 
-                    "duration" => $validated['duration_months'] . " mois", 
+                    "ID du pack" => $pack->id, 
+                    "Nom du pack" => $pack->name, 
+                    "Durée de souscription" => $validated['duration_months'] . " mois", 
+                    "Type de paiement" => $validated['payment_type'],
                     "Méthode de paiement" => $validated['payment_method'],
                     "Détails de paiement" => $validated['payment_details'] ?? [],
                     "Dévise" => $validated['currency'],
-                    "Montant original" => $validated['amount'] . " $",
-                    "Type de paiement" => $validated['payment_type'],
-                    "Frais globaux" => $globalFeesInUSD . "$",
+                    "Montant net payé sans les frais" => $validated['amount'] . " $",
+                    "Frais de transaction" => $globalFeesInUSD . "$",
                     "Frais API" => $specificFeesInUSD . "$",
-                    "Montant sans les frais" => $amountWithoutGlobalFeesInUSD . "$",
-                    "Taux du jour" => $taux_de_change
+                    "Taux de change appliqué" => $taux_de_change,
+                    "Description" => "Vous avez renouvelé votre pack " . $pack->name . " via " . $validated['payment_method']
                 ]);
             } else {
                 //implémenter le paiement API
@@ -329,14 +328,15 @@ class PackController extends Controller
                         "Méthode de paiement" => $validated['payment_method'],
                         "Détails de paiement" => $validated['payment_details'],
                         "Dévise" => $validated['currency'],
-                        "Montant payé" => $validated['amount'] . $paymentCurrency,
+                        "Montant net payé sans les frais" => $validated['amount'] . $paymentCurrency,
                         "Frais de transaction" => $validated['fees'] . $paymentCurrency,
-                        "Taux de change" => $taux_de_change
+                        "Taux de change appliqué" => $taux_de_change,
+                        "Description" => "Vous avez renouvelé votre pack " . $pack->name . " via " . $validated['payment_method']
                     ]
                 ]);
             }
 
-            // Ajouter le montant au wallet system
+            // enregistrer le transaction dans le wallet system transactions
             $walletsystem = WalletSystem::first();
             if (!$walletsystem) {
                 $walletsystem = WalletSystem::create(['balance' => 0]);
@@ -348,21 +348,20 @@ class PackController extends Controller
                 'type' => 'sales',
                 'status' => 'completed',
                 'metadata' => [
-                    "opération" => "Rénouvellement de pack",
+                    "Opération" => "Rénouvellement de pack",
                     "user" => $user->name, 
-                    "pack_id" => $pack->id, 
-                    "pack_name" => $pack->name, 
+                    "Id du pack" => $pack->id, 
+                    "Nom du pack" => $pack->name, 
                     "Durée de souscription" => $validated['duration_months'] . " mois", 
                     "Type de paiement" => $validated['payment_type'],
                     "Méthode de paiement" => $validated['payment_method'], 
                     "Détails de paiement" => $validated['payment_details'] ?? [],
                     "Dévise" => $validated['currency'],
-                    "Montant original" => $validated['amount'] . $paymentCurrency,
-                    "Frais de transaction" => $validated['fees'] . " " . $paymentCurrency,
+                    "Montant net payé sans les frais" => $validated['amount'] . $paymentCurrency,
+                    "Frais de transaction" => $globalFees . " " . $paymentCurrency,
                     "Frais API" => $specificFees . " " . $paymentCurrency,
-                    "Taux du jour" => $taux_de_change,
-                    "Montant net converti" => $amountWithoutGlobalFeesInUSD . " $",
-                    "Frais de transaction" => $globalFeesInUSD . " $"
+                    "Taux de change appliqué" => $taux_de_change,
+                    "Description" => "Renouvellement du pack " . $pack->name . " via " . $validated['payment_method']
                 ]
             ]);
 
@@ -412,11 +411,6 @@ class PackController extends Controller
     //Achat d'un nouveau pack
     public function purchase_a_new_pack(Request $request)
     {
-        \Log::info("request all : " . json_encode($request->all()));
-        return response()->json([
-            "success" => false,
-            "message" => " " . json_encode($request->all()),
-        ]);
         try {
             $validated = $request->validate([
                 'packId' => 'required|exists:packs,id',
@@ -630,16 +624,18 @@ class PackController extends Controller
 
                         // Déduire le montant du wallet de l'utilisateur
                         $userWallet->withdrawFunds($amountInUSD, "purchase", "completed", [
-                            "pack_id" => $pack->id, 
-                            "pack_name" => $pack->name, 
-                            "duration" => $validated['duration_months'] . " mois", 
+                            "Id du pack" => $pack->id, 
+                            "Nom du pack" => $pack->name, 
+                            "Durée de souscription" => $validated['duration_months'] . " mois", 
                             "Type de paiement" => $validated['payment_type'],
                             "Méthode de paiement" => $validated['payment_method'],
                             "Détails de paiement" => $validated['payment_details'] ?? [],
                             "Dévise" => $validated['currency'],
-                            "Montant net payé" => $validated['amount'] . " " . $paymentCurrency,
-                            "Frais de transaction" => $validated['fees'] . " " .$paymentCurrency,
-                            "Taux du jour" => $taux_de_change,
+                            "Montant net payé sans les frais" => $validated['amount'] . " " . $paymentCurrency,
+                            "Frais de transaction" => $globalFees . " " .$paymentCurrency,
+                            "Frais API" => $specificFees . " " .$paymentCurrency,
+                            "Taux de change appliqué" => $taux_de_change,
+                            "Description" => "Vous avez acheté le pack " . $pack->name . " via " . $validated['payment_method']
                         ]);
 
                         // Attacher le pack à l'utilisateur
@@ -730,9 +726,11 @@ class PackController extends Controller
                                 "Méthode de paiement" => $validated['payment_method'],
                                 "Détails de paiement" => $validated['payment_details'],
                                 "Dévise" => $validated['currency'],
-                                "Montant payé" => $validated['amount'] . $paymentCurrency,
-                                "Frais de transaction" => $validated['fees'] . $paymentCurrency,
-                                "Taux de change" => $taux_de_change
+                                "Montant net payé sans les frais" => $validated['amount'] . $paymentCurrency,
+                                "Frais de transaction" => $globalFees . $paymentCurrency,
+                                "Frais API" => $specificFees . $paymentCurrency,
+                                "Taux de change appliqué" => $taux_de_change,
+                                "Description" => "Vous avez acheté le pack " . $pack->name . " via " . $validated['payment_method']
                             ]
                         ]);
                         
@@ -758,19 +756,18 @@ class PackController extends Controller
                     'metadata' => [
                         "Opération" => "Achat d'un nouveau pack",
                         "user" => $user->name, 
-                        "pack_id" => $pack->id, 
-                        "pack_name" => $pack->name, 
+                        "Id du pack" => $pack->id, 
+                        "Nom du pack" => $pack->name, 
                         "Durée de souscription" => $validated['duration_months'] . " mois", 
                         "Type de paiement" => $validated['payment_type'],
                         "Méthode de paiement" => $validated['payment_method'], 
                         "Détails de paiement" => $validated['payment_details'] ?? [],
                         "Dévise" => $validated['currency'],
-                        "Montant net payé" => $validated['amount'] . $paymentCurrency,
-                        "Frais de transaction" => $validated['fees'] . " $",
+                        "Montant net payé sans les frais" => $validated['amount'] . $paymentCurrency,
+                        "Frais de transaction" => $globalFees . " $",
                         "Frais API" => $specificFees . " " . $paymentCurrency,
-                        "Taux du jour" => $taux_de_change,
-                        "Montant net converti" => $amountWithoutGlobalFeesInUSD . " $",
-                        "Frais de transaction" => $globalFeesInUSD . " $"
+                        "Taux de change appliqué" => $taux_de_change,
+                        "Description" => "Achat du pack " . $pack->name . " via " . $validated['payment_method']
                     ]
                 ]);
 

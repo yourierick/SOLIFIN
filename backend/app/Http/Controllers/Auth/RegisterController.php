@@ -156,16 +156,10 @@ class RegisterController extends Controller
                         "message" => "Impossible d'utiliser cette monnaie, veuillez payer en USD pour plus de simplicité"
                     ]);
                 }
-            } else {
-                \Log::info('Paiement déjà en USD, pas de conversion nécessaire');
             }
             
             // Calcul des montants nets (sans les frais)
-            // amountInUSDWithoutSpecificFees = montant total à payer sans les frais spécifiques au moyen de paiement
             $amountInUSDWithoutSpecificFees = round($amountInUSD - $specificFeesInUSD, 2);
-            
-            // amountWithoutGlobalFeesInUSD = montant correspondant au prix réel du pack sans les frais globaux
-            // C'est ce montant qui sera comparé au coût du pack
             $amountWithoutGlobalFeesInUSD = round($amountInUSD - $globalFeesInUSD, 2);
             
             \Log::info('Montants nets calculés', [
@@ -218,21 +212,28 @@ class RegisterController extends Controller
                     "total_out" => 0,
                 ]);
             }
-            $walletsystem->addFunds($amountInUSDWithoutSpecificFees, "sales", "completed", [
-                "user" => $validated["name"], 
-                "pack_id" => $pack->id, 
-                "Détails de paiement" => $validated['payment_details'],
-                "Méthode de paiement" => $paymentMethod,
-                "Type de paiement" => $paymentType,
-                "Nom du pack" => $pack->name, 
-                "Code sponsor" => $validated['sponsor_code'], 
-                "Duration" => $validated['duration_months'],
-                "Montant Original" => $paymentAmount . $paymentCurrency,
-                "Dévise Originale" => $paymentCurrency,
-                "Frais globaux" => $globalFees . $paymentCurrency,
-                "Frais spécifiques" => $specificFees . $paymentCurrency,
-                "Montant sans frais globaux en USD" => $amountWithoutGlobalFeesInUSD . "$",
-                "Taux du jour" => $taux_de_change . "%"
+            
+            $walletsystem->transactions()->create([
+                'wallet_system_id' => $walletsystem->id,
+                'amount' => $amountInUSDWithoutSpecificFees,
+                'type' => 'sales',
+                'status' => 'completed',
+                'metadata' => [
+                    "Opération" => "Achat d'un pack d'enregistrement",
+                    "user" => $user->name, 
+                    "Id du pack" => $pack->id, 
+                    "Nom du pack" => $pack->name, 
+                    "Durée de souscription" => $validated['duration_months'] . " mois", 
+                    "Type de paiement" => $validated['payment_type'],
+                    "Méthode de paiement" => $validated['payment_method'], 
+                    "Détails de paiement" => $validated['payment_details'] ?? [],
+                    "Dévise" => $paymentCurrency,
+                    "Montant net payé sans les frais" => $paymentAmount . " " . $paymentCurrency,
+                    "Frais de transaction" => $globalFees . " $",
+                    "Frais API" => $specificFees . " " . $paymentCurrency,
+                    "Taux de change appliqué" => $taux_de_change,
+                    "Description" => "Achat du pack d'enregistrement " . $pack->name . " via " . $validated['payment_method']
+                ]
             ]);
 
             // Stocker le mot de passe en clair temporairement pour l'email
@@ -270,11 +271,33 @@ class RegisterController extends Controller
             $sponsorPack = UserPack::where('referral_code', $sponsorCode)->first();
 
             // Créer le wallet
-            Wallet::create([
+            $userWallet = Wallet::create([
                 'user_id' => $user->id,
                 'balance' => 0,
                 'total_earned' => 0,
                 'total_withdrawn' => 0,
+            ]);
+
+            //enregistrer la transaction dans le wallet de l'utilisateur
+            $userWallet->transactions()->create([
+                'wallet_id' => $userWallet->id,
+                'amount' => $amountInUSD,
+                'type' => 'purchase',
+                'status' => 'completed',
+                'metadata' => [
+                    "Opération" => "Achat d'un pack d'enregistrement",
+                    "Id du pack" => $pack->id, 
+                    "Nom du pack" => $pack->name, 
+                    "Durée de souscription" => $validated['duration_months'] . " mois", 
+                    "Type de paiement" => $validated['payment_type'],
+                    "Méthode de paiement" => $validated['payment_method'], 
+                    "Détails de paiement" => $validated['payment_details'] ?? [],
+                    "Dévise" => $validated['currency'],
+                    "Montant net payé sans les frais" => $paymentAmount . "" .$paymentCurrency,
+                    "Frais de transaction" => $globalFees . " $",
+                    "Taux de change appliqué" => $taux_de_change,
+                    "Description" => "Achat du pack d'enregistrement " . $pack->name . " via " . $validated['payment_method']
+                ]
             ]);
 
             // Créer la page
@@ -375,9 +398,6 @@ class RegisterController extends Controller
             // Récupérer le taux de conversion depuis la BD
             $exchangeRate = ExchangeRates::where('currency', $currency)->where("target_currency", "USD")->first();
             if ($exchangeRate) {
-                \Log::info("Taux de conversion trouvé pour la devise $currency: " . $exchangeRate->rate);
-                \Log::info("Montant à convertir: " . $amount);
-                \Log::info("Montant converti: " . round($amount * $exchangeRate->rate, 2));
                 $amount = $amount * $exchangeRate->rate;
                 return round($amount, 2);
             } else {
