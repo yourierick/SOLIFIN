@@ -191,7 +191,7 @@ class PackController extends Controller
             // Si la devise n'est pas en USD, convertir le montant en USD (devise de base)
             $amountInUSD = $totalAmount;
             $globalFeesInUSD = $globalFees;
-            $specificFeesInUSD = $specificFees;
+            $specificFeesInUSD = $specificFees; //Frais API
             
             if ($paymentCurrency !== 'USD') {
                 try {
@@ -237,7 +237,7 @@ class PackController extends Controller
             \Log::info('Montants nets calculés pour renouvellement de pack', [
                 'montant_total_usd' => $amountInUSD,
                 'montant_sans_frais_specifiques' => $amountInUSDWithoutSpecificFees,
-                'montant_sans_frais_globaux' => $amountWithoutGlobalFeesInUSD
+                'montant_sans_frais' => $amountWithoutGlobalFeesInUSD
             ]);
             
             // Vérifier que le montant net est suffisant pour couvrir le coût du pack
@@ -306,12 +306,12 @@ class PackController extends Controller
                     "Méthode de paiement" => $validated['payment_method'],
                     "Détails de paiement" => $validated['payment_details'] ?? [],
                     "Dévise" => $validated['currency'],
-                    "Montant original" => $validated['amount'] . $paymentCurrency,
+                    "Montant original" => $validated['amount'] . " $",
                     "Type de paiement" => $validated['payment_type'],
                     "Frais globaux" => $globalFeesInUSD . "$",
-                    "Frais spécifiques" => $specificFeesInUSD . "$",
-                    "Montant sans frais globaux" => $amountWithoutGlobalFeesInUSD . "$",
-                    "Taux du jour" => $taux_de_change . "%"
+                    "Frais API" => $specificFeesInUSD . "$",
+                    "Montant sans les frais" => $amountWithoutGlobalFeesInUSD . "$",
+                    "Taux du jour" => $taux_de_change
                 ]);
             } else {
                 //implémenter le paiement API
@@ -325,12 +325,13 @@ class PackController extends Controller
                         "Opération" => "Renouvellement de pack",
                         "Nom du pack" => $pack->name,
                         "Durée de souscription" => $validated["duration_months"] . " mois",
+                        "Type de paiement" => $validated['payment_type'],
                         "Méthode de paiement" => $validated['payment_method'],
                         "Détails de paiement" => $validated['payment_details'],
-                        "Type de paiement" => $validated['payment_type'],
-                        "Montant net payé" => $validated['amount'] . $paymentCurrency,
                         "Dévise" => $validated['currency'],
-                        "Frais de transaction" => $validated['fees'] . $paymentCurrency
+                        "Montant payé" => $validated['amount'] . $paymentCurrency,
+                        "Frais de transaction" => $validated['fees'] . $paymentCurrency,
+                        "Taux de change" => $taux_de_change
                     ]
                 ]);
             }
@@ -340,46 +341,30 @@ class PackController extends Controller
             if (!$walletsystem) {
                 $walletsystem = WalletSystem::create(['balance' => 0]);
             }
-            
-            if ($validated['payment_method'] === "solifin-wallet") {
-                $walletsystem->transactions()->create([
-                    'wallet_system_id' => $walletsystem->id,
-                    'amount' => $amountInUSD,
-                    'type' => 'sales',
-                    'status' => 'completed',
-                    'metadata' => [
-                        "user" => $user->name, 
-                        "pack_id" => $pack->id, 
-                        "pack_name" => $pack->name, 
-                        "Durée de souscription" => $validated['duration_months'] . " mois", 
-                        "Méthode de paiement" => $validated['payment_method'], 
-                        "Détails de paiement" => $validated['payment_details'] ?? [],
-                        "Dévise" => $validated['currency'],
-                        "Montant original" => $validated['amount'] . $paymentCurrency,
-                        "Type de paiement" => $validated['payment_type'],
-                        "Frais globaux" => $globalFeesInUSD . "$",
-                        "Frais spécifiques" => $specificFeesInUSD . "$",
-                        "Montant sans frais globaux" => $amountWithoutGlobalFeesInUSD . "$",
-                        "Montant sans frais spécifiques" => $amountInUSDWithoutSpecificFees . "$",
-                        "Taux du jour" => $taux_de_change . "%",
-                        ]
-                ]);
-            }else {
-                $walletsystem->addFunds($amountInUSDWithoutSpecificFees, "sales", "completed", [
+
+            $walletsystem->transactions()->create([
+                'wallet_system_id' => $walletsystem->id,
+                'amount' => $amountInUSDWithoutSpecificFees,
+                'type' => 'sales',
+                'status' => 'completed',
+                'metadata' => [
+                    "opération" => "Rénouvellement de pack",
                     "user" => $user->name, 
                     "pack_id" => $pack->id, 
                     "pack_name" => $pack->name, 
-                    "Durée de souscription" => $validated['duration_months'] . "mois", 
+                    "Durée de souscription" => $validated['duration_months'] . " mois", 
+                    "Type de paiement" => $validated['payment_type'],
                     "Méthode de paiement" => $validated['payment_method'], 
                     "Détails de paiement" => $validated['payment_details'] ?? [],
                     "Dévise" => $validated['currency'],
                     "Montant original" => $validated['amount'] . $paymentCurrency,
-                    "Frais globaux" => $globalFeesInUSD . "$",
-                    "Frais spécifiques" => $specificFeesInUSD . "$",
-                    "Montant sans frais globaux" => $amountWithoutGlobalFeesInUSD . "$",
-                    "Taux du jour" => $taux_de_change . "%"
-                ]);
-            }
+                    "Frais de transaction" => $validated['fees'] . " " . $paymentCurrency,
+                    "Frais API" => $specificFees . " " . $paymentCurrency,
+                    "Taux du jour" => $taux_de_change,
+                    "Montant net converti" => $amountWithoutGlobalFeesInUSD . " $",
+                    "Frais de transaction" => $globalFeesInUSD . " $"
+                ]
+            ]);
 
             // on met à jour la date d'expiration
             $userPack->expiry_date = now()->addMonths($validated['duration_months']);
@@ -427,6 +412,11 @@ class PackController extends Controller
     //Achat d'un nouveau pack
     public function purchase_a_new_pack(Request $request)
     {
+        \Log::info("request all : " . json_encode($request->all()));
+        return response()->json([
+            "success" => false,
+            "message" => " " . json_encode($request->all()),
+        ]);
         try {
             $validated = $request->validate([
                 'packId' => 'required|exists:packs,id',
@@ -514,7 +504,6 @@ class PackController extends Controller
             
             if ($paymentCurrency !== 'USD') {
                 try {
-
                     $taux_de_change = ExchangeRates::where('currency', $paymentCurrency)->where("target_currency", "USD")->first();
                     $taux_de_change = $taux_de_change->rate;
                     // Conversion du montant total en USD
@@ -643,17 +632,14 @@ class PackController extends Controller
                         $userWallet->withdrawFunds($amountInUSD, "purchase", "completed", [
                             "pack_id" => $pack->id, 
                             "pack_name" => $pack->name, 
-                            "Durée de souscription" => $validated['duration_months'] . " mois", 
-                            "Méthode de paiement" => $validated['payment_method'], 
-                            "Type de paiement" => $validated['payment_type'], 
+                            "duration" => $validated['duration_months'] . " mois", 
+                            "Type de paiement" => $validated['payment_type'],
+                            "Méthode de paiement" => $validated['payment_method'],
                             "Détails de paiement" => $validated['payment_details'] ?? [],
-                            "Referral code" => $validated['referralCode'] ?? null,
                             "Dévise" => $validated['currency'],
-                            "Montant original" => $validated['amount'] . $paymentCurrency,
-                            "Frais" => $globalFeesInUSD . "$",
-                            "Montant sans frais globaux" => $amountWithoutGlobalFeesInUSD ."$",
-                            "Montant sans frais spécifiques" => $amountInUSDWithoutSpecificFees ."$",
-                            "Taux du jour" => $taux_de_change . "%",
+                            "Montant net payé" => $validated['amount'] . " " . $paymentCurrency,
+                            "Frais de transaction" => $validated['fees'] . " " .$paymentCurrency,
+                            "Taux du jour" => $taux_de_change,
                         ]);
 
                         // Attacher le pack à l'utilisateur
@@ -679,37 +665,7 @@ class PackController extends Controller
                                           ->first();
                     }
 
-                    // Ajouter le montant au wallet system
-                    //vu que c'est le wallet qui paie, il n'y aura aucun ajout dans le wallet system.
-                    $walletsystem = WalletSystem::first();
-                    if (!$walletsystem) {
-                        $walletsystem = WalletSystem::create(['balance' => 0]);
-                    }
-
-                    $walletsystem->transactions()->create([
-                        'wallet_system_id' => $walletsystem->id,
-                        'amount' => $amountInUSD,
-                        'type' => 'sales',
-                        'status' => 'completed',
-                        'metadata' => [
-                            "user" => $user->name, 
-                            "pack_id" => $pack->id, 
-                            "pack_name" => $pack->name, 
-                            "Détails de paiement" => $validated['payment_details'] ?? [],
-                            "Méthode de paiement" => $validated['payment_method'],
-                            "Type de paiement" => $validated['payment_type'],
-                            "Code parrain" => $validated['referralCode'] ?? null, 
-                            "Durée de souscription" => $validated['duration_months'] . " mois",
-                            "Montant original" => $validated['amount'] . $paymentCurrency,
-                            "Dévise" => $validated['currency'],
-                            "Frais globaux" => $globalFeesInUSD . "$",
-                            "Frais spécifiques" => $specificFeesInUSD . "$",
-                            "Montant sans frais globaux" => $amountWithoutGlobalFeesInUSD . "$",
-                            "Montant sans frais spécifiques" => $amountInUSDWithoutSpecificFees . "$",
-                            "Taux du jour" => $taux_de_change . "%",
-                        ]
-                    ]);
-
+                    
                 } else {
                     // Vérifier si l'utilisateur a déjà ce pack
                     $existingUserPack = UserPack::where('user_id', $user->id)
@@ -767,19 +723,16 @@ class PackController extends Controller
                             "amount" => $amountInUSD,
                             "status" => "completed",
                             "metadata" => [
-                                "pack_id" => $pack->id, 
-                                "pack_name" => $pack->name, 
-                                "Durée de souscription" => $validated['duration_months'] . " mois", 
-                                "Méthode de paiement" => $validated['payment_method'], 
-                                "Type de paiement" => $validated['payment_type'], 
-                                "Détails de paiement" => $validated['payment_details'] ?? [],
-                                "Referral code" => $validated['referralCode'] ?? null,
+                                "Opération" => "Achat d'un nouveau pack",
+                                "Nom du pack" => $pack->name,
+                                "Durée de souscription" => $validated["duration_months"] . " mois",
+                                "Type de paiement" => $validated['payment_type'],
+                                "Méthode de paiement" => $validated['payment_method'],
+                                "Détails de paiement" => $validated['payment_details'],
                                 "Dévise" => $validated['currency'],
-                                "Montant original" => $validated['amount'] . $paymentCurrency,
-                                "Frais" => $globalFeesInUSD . "$",
-                                "Montant sans frais globaux" => $amountWithoutGlobalFeesInUSD ."$",
-                                "Montant sans frais spécifiques" => $amountInUSDWithoutSpecificFees ."$",
-                                "Taux du jour" => $taux_de_change . "%",
+                                "Montant payé" => $validated['amount'] . $paymentCurrency,
+                                "Frais de transaction" => $validated['fees'] . $paymentCurrency,
+                                "Taux de change" => $taux_de_change
                             ]
                         ]);
                         
@@ -789,30 +742,37 @@ class PackController extends Controller
                                           ->where('referral_code', $referralCode)
                                           ->first();
                     }
-
-                    // Ajouter le montant au wallet system
-                    $walletsystem = WalletSystem::first();
-                    if (!$walletsystem) {
-                        $walletsystem = WalletSystem::create(['balance' => 0]);
-                    }
-                    $walletsystem->addFunds($amountInUSDWithoutSpecificFees, "sales", "completed", [
-                        "user" => $user->name, 
-                        "account_id" => $user->account_id,
-                        "pack_id" => $pack->id, 
-                        "Détails de paiement" => $validated['payment_details'],
-                        "Méthode de paiement" => $paymentMethod,
-                        "Type de paiement" => $paymentType,
-                        "Nom du pack" => $pack->name, 
-                        "Code sponsor" => $validated['referralCode'], 
-                        "Durée de souscription" => $validated['duration_months'] . " mois",
-                        "Montant total" => $paymentAmount . $paymentCurrency,
-                        "Dévise originale" => $paymentCurrency,
-                        "Frais globaux" => $globalFeesInUSD . "$",
-                        "Montant net payé en USD" => $amountInUSD,
-                        "Frais spécifique" => $specificFeesInUSD . "$",
-                        "Taux du jour" => $taux_de_change . "%",
-                    ]);
                 }
+
+                // créer la transaction dans le wallet system
+                $walletsystem = WalletSystem::first();
+                if (!$walletsystem) {
+                    $walletsystem = WalletSystem::create(['balance' => 0]);
+                }
+
+                $walletsystem->transactions()->create([
+                    'wallet_system_id' => $walletsystem->id,
+                    'amount' => $amountInUSDWithoutSpecificFees,
+                    'type' => 'sales',
+                    'status' => 'completed',
+                    'metadata' => [
+                        "Opération" => "Achat d'un nouveau pack",
+                        "user" => $user->name, 
+                        "pack_id" => $pack->id, 
+                        "pack_name" => $pack->name, 
+                        "Durée de souscription" => $validated['duration_months'] . " mois", 
+                        "Type de paiement" => $validated['payment_type'],
+                        "Méthode de paiement" => $validated['payment_method'], 
+                        "Détails de paiement" => $validated['payment_details'] ?? [],
+                        "Dévise" => $validated['currency'],
+                        "Montant net payé" => $validated['amount'] . $paymentCurrency,
+                        "Frais de transaction" => $validated['fees'] . " $",
+                        "Frais API" => $specificFees . " " . $paymentCurrency,
+                        "Taux du jour" => $taux_de_change,
+                        "Montant net converti" => $amountWithoutGlobalFeesInUSD . " $",
+                        "Frais de transaction" => $globalFeesInUSD . " $"
+                    ]
+                ]);
 
                 //Distribution des commissions
                 $this->processCommissions($userpack, $validated['duration_months']);

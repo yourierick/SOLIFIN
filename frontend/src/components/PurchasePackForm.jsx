@@ -1109,7 +1109,7 @@ export default function PurchasePackForm({
           ...paymentDetails,
           phoneCode: phoneCode,
           phoneNumber: formFields.phoneNumber, // Garder le numéro sans indicatif
-          fullPhoneNumber: phoneWithCode // Numéro complet sans le +
+          fullPhoneNumber: phoneWithCode, // Numéro complet sans le +
         };
       }
 
@@ -1276,12 +1276,12 @@ export default function PurchasePackForm({
                   ),
                 }}
                 sx={{
-                  '& .MuiOutlinedInput-root': {
-                    paddingLeft: '0',
+                  "& .MuiOutlinedInput-root": {
+                    paddingLeft: "0",
                   },
-                  '& .MuiInputAdornment-root': {
-                    marginRight: '0',
-                  }
+                  "& .MuiInputAdornment-root": {
+                    marginRight: "0",
+                  },
                 }}
               />
             </div>
@@ -1614,6 +1614,11 @@ export default function PurchasePackForm({
                               <img
                                 src={mpesaIcon}
                                 alt="M-Pesa"
+                                className="h-4 w-auto"
+                              />
+                              <img
+                                src={africellIcon}
+                                alt="AfriMoney"
                                 className="h-4 w-auto"
                               />
                             </div>

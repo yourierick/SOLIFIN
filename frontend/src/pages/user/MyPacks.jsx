@@ -201,6 +201,63 @@ const CustomNode = ({ nodeDatum, isDarkMode, toggleNode }) => {
   );
 };
 
+// Fonction pour calculer et formater le temps restant avant expiration
+const formatRemainingTime = (expiryDateStr) => {
+  const expiryDate = new Date(expiryDateStr);
+  const currentDate = new Date();
+  
+  // Différence en millisecondes
+  const diffMs = expiryDate - currentDate;
+  
+  // Si déjà expiré
+  if (diffMs <= 0) {
+    return "Expiré";
+  }
+  
+  // Convertir en jours, mois, années
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  const diffHours = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+  
+  if (diffDays === 0) {
+    if (diffHours === 0) {
+      return "Dans moins d'une heure";
+    }
+    return `Dans ${diffHours} heure${diffHours > 1 ? 's' : ''}`;
+  } else if (diffDays === 1) {
+    return "Demain";
+  } else if (diffDays < 30) {
+    return `Dans ${diffDays} jours`;
+  } else {
+    const months = Math.floor(diffDays / 30);
+    const remainingDays = diffDays % 30;
+    
+    if (remainingDays === 0) {
+      return months === 1 ? `Dans 1 mois` : `Dans ${months} mois`;
+    } else {
+      return months === 1 
+        ? `Dans 1 mois et ${remainingDays} jour${remainingDays > 1 ? 's' : ''}` 
+        : `Dans ${months} mois et ${remainingDays} jour${remainingDays > 1 ? 's' : ''}`;
+    }
+  }
+};
+
+// Fonction pour déterminer la couleur du texte en fonction du temps restant
+const getRemainingTimeColor = (expiryDateStr) => {
+  const expiryDate = new Date(expiryDateStr);
+  const currentDate = new Date();
+  
+  // Différence en jours
+  const diffDays = Math.floor((expiryDate - currentDate) / (1000 * 60 * 60 * 24));
+  
+  if (diffDays <= 7) {
+    return "error.main"; // Rouge pour moins d'une semaine
+  } else if (diffDays <= 30) {
+    return "warning.main"; // Orange pour moins d'un mois
+  } else {
+    return "success.main"; // Vert pour plus d'un mois
+  }
+};
+
 export default function MyPacks() {
   const [userPacks, setUserPacks] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -1074,9 +1131,23 @@ export default function MyPacks() {
                               ? "Expiré le"
                               : "Expire le"
                           }
-                          secondary={new Date(
-                            userPack.expiry_date
-                          ).toLocaleDateString()}
+                          secondary={
+                            <>
+                              {new Date(userPack.expiry_date).toLocaleDateString()}
+                              {userPack.status !== "expired" && (
+                                <Typography
+                                  variant="caption"
+                                  component="div"
+                                  sx={{
+                                    mt: 0.5,
+                                    color: getRemainingTimeColor(userPack.expiry_date),
+                                  }}
+                                >
+                                  {formatRemainingTime(userPack.expiry_date)}
+                                </Typography>
+                              )}
+                            </>
+                          }
                           primaryTypographyProps={{
                             variant: "caption",
                             color:

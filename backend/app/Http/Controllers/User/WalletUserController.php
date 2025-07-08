@@ -373,7 +373,7 @@ class WalletUserController extends Controller
 
             $specificFees = $transactionFee->calculateTransferFee((float) $request->original_amount ? $request->original_amount : $validated['amount'], $validated['currency']);
             $totalAmount = $request->original_amount ? $request->original_amount : $validated['amount'] + $globalFees; //montant total à payer récalculé.
-
+    
             // Dans un environnement de production, nous ferions ici l'appel à l'API SerdiPay
             // Pour cette implémentation, nous simulons une transaction réussie
             
@@ -386,7 +386,7 @@ class WalletUserController extends Controller
                 $taux_de_change = $taux_de_change->rate;
 
                 $globalFees = $this->convertToUSD($globalFees, $validated['currency']);
-                $specificFees = $this->convertToUSD($specificFees, $validated['currency']);
+                $specificFeesInUsd = $this->convertToUSD($specificFees, $validated['currency']);
                 $totalAmount = $this->convertToUSD($totalAmount, $validated['currency']);
                 $validated['amount'] = $this->convertToUSD($request->original_amount, $validated['currency']);
             }
@@ -394,16 +394,14 @@ class WalletUserController extends Controller
             DB::beginTransaction();
             // Ajouter les fonds au portefeuille de l'utilisateur
             $userWallet->addFunds($validated['amount'], 'virtual', 'completed', [
-                'payment_method' => $validated['payment_method'],
-                'phone_number' => $validated['phoneNumber'],
-                'transaction_id' => $transactionId,
-                'fees' => $globalFees . " $",
-                'total_paid' => $validated['total'] . " $",
-                'currency' => $validated['currency'],
-                'original_amount' => $request->original_amount ? $request->original_amount . " " . $validated['currency'] : $validated['amount'] . " " . $validated['currency'],
-                'original_fees' => $request->original_fees ? $request->original_fees . " " . $validated['currency'] : $globalFees . " $",
+                'Méthode de paiement' => $validated['payment_method'],
+                'Téléphone' => $validated['phoneNumber'],
+                'Id Transaction' => $transactionId,
+                'Dévise' => $validated['currency'],
+                'Montant net payé sans les frais' => $request->original_amount ? $request->original_amount . " " . $validated['currency'] : $validated['amount'] . " " . $validated['currency'],
+                'Frais originaux' => $request->original_fees ? $request->original_fees . " " . $validated['currency'] : $globalFees . " $",
                 'taux_de_change' => $taux_de_change,
-                'description' => 'Achat de virtuel via ' . $validated['payment_method']
+                'Déscription' => 'Achat de virtuel via ' . $validated['payment_method']
             ]);
             
             // Enregistrer la transaction dans le wallet system
@@ -414,22 +412,20 @@ class WalletUserController extends Controller
             
             $walletsystem->transactions()->create([
                 'wallet_system_id' => $walletsystem->id,
-                'amount' => $validated['total'],
+                'amount' => $totalAmount - $specificFeesInUsd,
                 'type' => 'virtual_sale',
                 'status' => 'completed',
                 'metadata' => [
+                    "Opération" => "Achat des virtuels",
                     'user' => $user->name,
                     'account_id' => $user->account_id,
-                    'payment_method' => $validated['payment_method'],
-                    'phone_number' => $validated['phoneNumber'],
-                    'transaction_id' => $transactionId,
-                    'amount' => $validated['amount'] . ' ' . $validated['currency'],
-                    'fees' => $globalFees . ' $',
-                    'frais API' => $specificFees . ' $',
-                    'total_paid' => $validated['total'] . ' $',
-                    'original_amount' => $request->original_amount ? $request->original_amount . ' ' . $validated['currency'] : $validated['amount'] . ' ' . $validated['currency'],
-                    'original_fees' => $request->original_fees ? $request->original_fees . ' ' . $validated['currency'] : $globalFees . ' $',
-                    'taux_de_change' => $taux_de_change,
+                    'Méthode de paiement' => $validated['payment_method'],
+                    'Téléphone' => $validated['phoneNumber'],
+                    'Id Transaction' => $transactionId,
+                    'Montant net payé sans les frais' => $validated['amount'] . ' ' . $validated['currency'],
+                    'Frais de transaction' => $validated['fees'] . ' ' . $validated['currency'],
+                    'Frais API' => $specificFees . ' ' . $validated['currency'],
+                    'Taux de change' => $taux_de_change,
                     'description' => 'Achat de virtuel via ' . $validated['payment_method']
                 ]
             ]);
