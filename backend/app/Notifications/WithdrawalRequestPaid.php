@@ -30,7 +30,7 @@ class WithdrawalRequestPaid extends Notification implements ShouldQueue
             ->subject('Votre retrait a été effectué')
             ->greeting("Bonjour {$notifiable->name},")
             ->line("Votre retrait d'un montant de {$this->withdrawalRequest['montant_a_retirer']}$ a été effectué avec succès.")
-            ->line("Le paiement a été envoyé via {$this->withdrawalRequest['payment_method']}.")
+            ->line("Le paiement a été envoyé via {$this->withdrawalRequest->payment_method}.")
             ->line("Merci de votre confiance !");
     }
 
@@ -39,7 +39,7 @@ class WithdrawalRequestPaid extends Notification implements ShouldQueue
         return [
             'withdrawal_request_id' => $this->withdrawalRequest->id,
             'amount' => $this->withdrawalRequest['montant_a_retirer'],
-            'payment_method' => $this->withdrawalRequest['payment_method'],
+            'payment_method' => $this->withdrawalRequest->payment_method,
             'paid_at' => $this->withdrawalRequest->paid_at,
         ];
     }

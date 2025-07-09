@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use App\Models\User;
 use App\Models\UserPack;
+use App\Models\Pack;
 use App\Models\Setting;
 use App\Notifications\FundsTransferred;
 use Illuminate\Support\Facades\DB;
@@ -150,6 +151,23 @@ class WalletUserController extends Controller
             if (!$walletsystem) {
                 $walletsystem = WalletSystem::create(['balance' => 0]);
             }
+            
+            if ($request->commission_amount > 0) {
+                // Gestion du parrain avec vérification de l'existence du pack et du parrain
+                $firstUserPack = UserPack::where('user_id', $user->id)->first();
+                $sponsor = $firstUserPack ? $firstUserPack->sponsor : null;
+                $pack = Pack::where('id', $firstUserPack->pack_id)->first();
+                $isActivePackSponsor = $sponsor->packs->where('pack_id', $pack->id)->where('status', 'active')->first();
+                
+                if ($sponsor && $isActivePackSponsor) {
+                    $sponsor->wallet->addFunds($request->commission_amount, "commission de transfert", "completed", [
+                        "Source" => $user->name, 
+                        "Type" => "commission de transfert",
+                        "Montant" => $request->commission_amount . " $",
+                        "Description" => "vous avez gagné une commission de ". $request->commission_amount . " $ pour le transfert d'un montant de ". $request->original_amount ." $ par votre filleul " . $user->name,
+                    ]);
+                }
+            }
 
             $walletsystem->transactions()->create([
                 'wallet_system_id' => $walletsystem->id,
@@ -158,64 +176,13 @@ class WalletUserController extends Controller
                 'status' => "completed",
                 'metadata' => [
                     "user" => $user->name, 
-                    "Montant original" => $request->original_amount . " $",
-                    "Dévise original" => "USD",
+                    "Montant" => $request->original_amount . " $",
+                    "Dévise" => "USD",
                     "Frais de transaction" => $request->fee_amount . " $",
-                    "Pourcentage de transaction" => $request->fee_percentage . " %",
-                    "Frais de commission" => $request->commission_amount . " $",
-                    "Pourcentage de commission" => $request->commission_percentage . " %",
-                    "Total des frais" => $request->total_fee_amount . " $",
+                    "Frais de commission" => $sponsor && $isActivePackSponsor ? "Paiement d'une commission de " . $request->commission_amount . " $ à " . $sponsor->name : "Aucune commission payée pour cause de non activation du pack ou d'inexistance du parrain",
                     "Déscription" => "Transfert de ". $request->original_amount . "$ par le compte " . $user->account_id . " au compte " . $request->recipient_account_id,
                 ]
             ]);
-
-            if ($request->fee_amount > 0) {
-                // Ajouter la transaction des frais de transfert au wallet system
-                $walletsystem->transactions()->create([
-                    'wallet_system_id' => $walletsystem->id,
-                    'amount' => $request->fee_amount,
-                    'type' => "frais de transfert",
-                    'status' => "completed",
-                    'metadata' => [
-                        "user" => $user->name, 
-                        "Montant original" => $request->original_amount . "$",
-                        "Dévise original" => "USD",
-                        "Frais de transaction" => $request->fee_amount . " $",
-                        "Pourcentage de transaction" => $request->fee_percentage . " %",
-                        "Déscription" => "Frais de ". $request->fee_amount . " $ pour le transfert d'un montant de ". $request->original_amount ." $ payés par le compte " . $user->account_id . " au compte " . $request->recipient_account_id,
-                    ]
-                ]);
-            }
-            
-            if ($request->commission_amount > 0) {
-                // Gestion du parrain avec vérification de l'existence du pack et du parrain
-                $firstUserPack = UserPack::where('user_id', $user->id)->first();
-                $sponsor = $firstUserPack ? $firstUserPack->sponsor : null;
-                
-                if ($sponsor) {
-                    $sponsor->wallet->addFunds($request->commission_amount, "commission de transfert", "completed", [
-                        "Source" => $user->name, 
-                        "Type" => "commission de transfert",
-                        "Montant" => $request->commission_amount . " $",
-                        "Description" => "commission de ". $request->commission_amount . " $ pour le transfert d'un montant de ". $request->original_amount ." $ par votre filleul " . $user->name,
-                    ]);
-                }
-                // Ajouter la transaction des frais de commission au wallet system
-                $walletsystem->transactions()->create([
-                    'wallet_system_id' => $walletsystem->id,
-                    'amount' => $request->commission_amount,
-                    'type' => "commission de transfert",
-                    'status' => "completed",
-                    'metadata' => [
-                        "user" => $user->name, 
-                        "Montant original" => $request->original_amount . " $",
-                        "Dévise original" => "USD",
-                        "Frais de commission" => $request->commission_amount . " $",
-                        "Pourcentage de commission" => $request->commission_percentage . " %",
-                        "Déscription" => "Paiement d'une commission de ". $request->commission_amount . " $ pour le transfert d'un montant de ". $request->original_amount ." $ par le compte " . $user->account_id . " au compte " . $request->recipient_account_id,
-                    ]
-                ]);
-            }
 
             DB::commit();
 

@@ -160,31 +160,10 @@ class WalletController extends Controller
                     "Montant original" => $request->original_amount . " $",
                     "Dévise original" => "USD",
                     "Frais de transaction" => $request->fee_amount . " $",
-                    "Pourcentage de transaction" => $request->fee_percentage . " %",
-                    "Frais de commission" => $request->commission_amount . " $",
-                    "Pourcentage de commission" => $request->commission_percentage . " %",
-                    "Total des frais" => $request->total_fee_amount . " $",
+                    "Frais de commission" => $request->commission_amount ?? 0 . " $",
                     "Déscription" => "Transfert de ". $request->original_amount . "$ par le compte " . $user->account_id . " au compte " . $request->recipient_account_id,
                 ]
             ]);
-
-            if ($request->fee_amount > 0) {
-                // Ajouter la transaction des frais de transfert au wallet system
-                $walletsystem->transactions()->create([
-                    'wallet_system_id' => $walletsystem->id,
-                    'amount' => $request->fee_amount,
-                    'type' => "frais de transfert",
-                    'status' => "completed",
-                    'metadata' => [
-                        "user" => $user->name, 
-                        "Montant original" => $request->original_amount . "$",
-                        "Dévise original" => "USD",
-                        "Frais de transaction" => $request->fee_amount . " $",
-                        "Pourcentage de transaction" => $request->fee_percentage . " %",
-                        "Déscription" => "Frais de ". $request->fee_amount . " $ pour le transfert d'un montant de ". $request->original_amount ." $ payés par le compte " . $user->account_id . " au compte " . $request->recipient_account_id,
-                    ]
-                ]);
-            }
 
             DB::commit();
 

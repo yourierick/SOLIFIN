@@ -7,6 +7,7 @@ use App\Models\WithdrawalRequest;
 use App\Models\WalletSystem;
 use App\Models\Wallet;
 use App\Models\User;
+use App\Models\Pack;
 use App\Models\Setting;
 use App\Notifications\WithdrawalRequestCreated;
 use App\Notifications\WithdrawalRequestProcessed;

@@ -256,6 +256,22 @@ export default function MyPage() {
     }
   };
 
+  // Gestionnaire pour l'ouverture du modal de boost
+  const handleBoost = (publication, type) => {
+    setPublicationToBoost(publication);
+    setBoostPublicationType(type);
+    setShowBoostModal(true);
+  };
+
+  // Gestionnaire pour la fermeture du modal de boost
+  const handleBoostModalClose = (success) => {
+    if (success) {
+      // Si le boost a réussi, rafraîchir les données
+      fetchPageData();
+    }
+    setShowBoostModal(false);
+  };
+
   // Fonction pour récupérer les livreurs d'une page
   const fetchLivreurs = async () => {
     if (!pageData?.id) return;

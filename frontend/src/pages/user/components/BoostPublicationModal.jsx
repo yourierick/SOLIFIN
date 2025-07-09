@@ -19,108 +19,64 @@ import { useTheme } from "../../../contexts/ThemeContext";
 import axios from "../../../utils/axios";
 import { CURRENCIES, PAYMENT_TYPES, PAYMENT_METHODS } from "../../../config";
 import { countries } from "../../../data/countries";
+
+// Importation des icônes de méthodes de paiement
+import mtnIcon from "../../../assets/icons-mobil-money/mtn.png";
+import airtelIcon from "../../../assets/icons-mobil-money/airtel.png";
+import orangeIcon from "../../../assets/icons-mobil-money/orange.png";
+import mpesaIcon from "../../../assets/icons-mobil-money/mpesa.png";
+import africellIcon from "../../../assets/icons-mobil-money/afrimoney.png";
+import moovIcon from "../../../assets/icons-mobil-money/moov.png";
+import visaIcon from "../../../assets/icons-mobil-money/visa.png";
+import mastercardIcon from "../../../assets/icons-mobil-money/mastercard.png";
+import amexIcon from "../../../assets/icons-mobil-money/americanexpress.png";
 import Notification from "../../../components/Notification";
-
-// Composant local pour l'indicatif téléphonique
-const SimplePhoneCode = ({ value, onChange }) => {
-  // Utiliser un select standard de Material UI avec Autocomplete
-  const [open, setOpen] = useState(false);
-
-  // Codes prioritaires à afficher en haut de la liste
-  const priorityCodes = [
-    "CD",
-    "CI",
-    "FR",
-    "US",
-    "SN",
-    "CM",
-    "BE",
-    "CA",
-    "MA",
-    "DZ",
-    "TN",
-  ];
-
-  // Créer une liste ordonnée avec les pays prioritaires en premier
-  const priorityCountries = [];
-  const otherCountries = [];
-
-  // Trier les pays
-  countries.forEach((country) => {
-    if (priorityCodes.includes(country.code)) {
-      priorityCountries.push(country);
-    } else {
-      otherCountries.push(country);
-    }
-  });
-
-  // Trier les pays prioritaires selon l'ordre défini
-  priorityCountries.sort((a, b) => {
-    return priorityCodes.indexOf(a.code) - priorityCodes.indexOf(b.code);
-  });
-
-  // Trier les autres pays par ordre alphabétique
-  otherCountries.sort((a, b) => a.name.localeCompare(b.name));
-
-  // Combiner les deux listes
-  const allCountries = [...priorityCountries, ...otherCountries];
-
-  // Trouver le pays correspondant à la valeur actuelle
-  const selectedCountry =
-    allCountries.find((country) => country.phoneCode === value) || null;
-
-  return (
-    <Autocomplete
-      fullWidth
-      open={open}
-      onOpen={() => setOpen(true)}
-      onClose={() => setOpen(false)}
-      size="small"
-      options={allCountries}
-      value={selectedCountry}
-      onChange={(event, newValue) => {
-        if (newValue) {
-          onChange(newValue.phoneCode);
-        }
-      }}
-      getOptionLabel={(option) => `${option.phoneCode} (${option.name})`}
-      renderInput={(params) => (
-        <TextField
-          {...params}
-          size="small"
-          variant="outlined"
-          placeholder="Indicatif"
-          InputProps={{
-            ...params.InputProps,
-            style: { paddingRight: "8px" },
-          }}
-          sx={{
-            "& .MuiOutlinedInput-root": {
-              height: "40px",
-            },
-          }}
-        />
-      )}
-      renderOption={(props, option) => (
-        <li {...props} key={option.code}>
-          {option.phoneCode} ({option.name})
-        </li>
-      )}
-      ListboxProps={{
-        style: { maxHeight: 300 },
-      }}
-      componentsProps={{
-        popper: {
-          style: { zIndex: 9999 },
-          className: "phone-code-menu",
-        },
-      }}
-    />
-  );
-};
 
 // Prix par défaut par jour pour le boost d'une publication (si le paramètre n'est pas défini)
 const DEFAULT_PRICE_PER_DAY = 1; // USD
+
+// Mapping des icônes pour les méthodes de paiement
+const paymentMethodsMap = {
+  [PAYMENT_TYPES.MOBILE_MONEY]: {
+    name: "Mobile Money",
+    color: "#4CAF50", // Vert
+    options: PAYMENT_METHODS[PAYMENT_TYPES.MOBILE_MONEY].map((option) => {
+      if (option.id === "airtel-money") {
+        return { ...option, icon: airtelIcon };
+      } else if (option.id === "mtn-mobile-money") {
+        return { ...option, icon: mtnIcon };
+      } else if (option.id === "moov-money") {
+        return { ...option, icon: moovIcon };
+      } else if (option.id === "afrimoney") {
+        return { ...option, icon: africellIcon };
+      } else if (option.id === "m-pesa") {
+        return { ...option, icon: mpesaIcon };
+      } else if (option.id === "orange-money") {
+        return { ...option, icon: orangeIcon };
+      }
+      return option;
+    }),
+  },
+  [PAYMENT_TYPES.CREDIT_CARD]: {
+    name: "Carte de Crédit",
+    color: "#9C27B0", // Violet
+    options: PAYMENT_METHODS[PAYMENT_TYPES.CREDIT_CARD].map((option) => {
+      if (option.id === "visa") {
+        return { ...option, icon: visaIcon };
+      } else if (option.id === "mastercard") {
+        return { ...option, icon: mastercardIcon };
+      } else if (option.id === "american-express") {
+        return { ...option, icon: amexIcon };
+      }
+      return option;
+    }),
+  },
+  [PAYMENT_TYPES.WALLET]: {
+    name: "Wallet SOLIFIN",
+    color: "#2196F3", // Bleu
+    options: [],
+  },
+};
 
 // Configuration des champs de formulaire pour chaque méthode de paiement
 const paymentMethodFields = {
@@ -384,6 +340,7 @@ export default function BoostPublicationModal({
   const [feesError, setFeesError] = useState(false);
   const [formIsValid, setFormIsValid] = useState(false);
   const [phoneCode, setPhoneCode] = useState("+243"); // Indicatif téléphonique par défaut (RDC)
+  const [paymentOption, setPaymentOption] = useState(""); // Option de paiement sélectionnée (pour Mobile Money ou Carte de Crédit)
 
   // Récupérer le solde du wallet et le prix du boost au chargement
   useEffect(() => {
@@ -433,6 +390,14 @@ export default function BoostPublicationModal({
 
     validateForm();
   }, [paymentMethod]);
+
+  // Effet pour surveiller les changements d'option de paiement (Mobile Money et Credit Card)
+  useEffect(() => {
+    if (paymentOption && (paymentMethod === PAYMENT_TYPES.MOBILE_MONEY || paymentMethod === PAYMENT_TYPES.CREDIT_CARD)) {
+      console.log("Option de paiement sélectionnée:", paymentOption);
+      validateForm();
+    }
+  }, [paymentOption, paymentMethod]);
 
   // Effet pour convertir la devise lorsque la devise sélectionnée change
   useEffect(() => {
@@ -625,22 +590,76 @@ export default function BoostPublicationModal({
     validateForm();
   };
 
-  // Fonction pour gérer le changement d'indicatif téléphonique
-  const handlePhoneCodeChange = (newPhoneCode) => {
-    setPhoneCode(newPhoneCode);
+  // Fonction pour gérer le changement d'indicatif téléphonique (non utilisée avec l'indicatif fixe)
+  const handlePhoneCodeChange = (code) => {
+    setPhoneCode(code);
     validateForm();
+  };
+
+  // Fonction pour afficher l'icône de l'option de paiement
+  const renderPaymentOptionWithIcon = (option, paymentType) => {
+    // Vérifier si l'option a une icône spécifique dans le mapping
+    const methodOptions = paymentMethodsMap[paymentType]?.options || [];
+    const optionWithIcon = methodOptions.find((opt) => opt.id === option.id);
+
+    if (optionWithIcon?.icon) {
+      // Si c'est une image importée (pour mobile money ou cartes spécifiques)
+      if (
+        typeof optionWithIcon.icon === "string" &&
+        optionWithIcon.icon.includes("/")
+      ) {
+        return (
+          <div className="flex flex-col items-center">
+            <img
+              src={optionWithIcon.icon}
+              alt={option.name}
+              className="h-8 w-auto object-contain mb-1"
+            />
+            <Typography variant="caption" className="text-center">
+              {option.name}
+            </Typography>
+          </div>
+        );
+      }
+
+      // Si c'est une icône de composant
+      return (
+        <div className="flex flex-col items-center">
+          {optionWithIcon.icon}
+          <Typography variant="caption" className="text-center mt-1">
+            {option.name}
+          </Typography>
+        </div>
+      );
+    }
+
+    // Fallback si pas d'icône trouvée
+    return <Typography variant="body2">{option.name}</Typography>;
   };
 
   // Fonction pour gérer le changement de méthode de paiement
   const handlePaymentMethodChange = (method) => {
     setPaymentMethod(method);
     setSelectedPaymentOption("");
+    setPaymentOption(""); // Réinitialiser l'option de paiement
     setFormFields({});
 
     // Si on choisit le wallet, on sélectionne automatiquement solifin-wallet et on met les frais à 0
     if (method === PAYMENT_TYPES.WALLET) {
       setSelectedPaymentOption("solifin-wallet");
       setTransactionFees(0);
+    } else if (
+      method === PAYMENT_TYPES.MOBILE_MONEY &&
+      PAYMENT_METHODS[PAYMENT_TYPES.MOBILE_MONEY].length > 0
+    ) {
+      // Sélectionner la première option de Mobile Money par défaut
+      setPaymentOption(PAYMENT_METHODS[PAYMENT_TYPES.MOBILE_MONEY][0].id);
+    } else if (
+      method === PAYMENT_TYPES.CREDIT_CARD &&
+      PAYMENT_METHODS[PAYMENT_TYPES.CREDIT_CARD].length > 0
+    ) {
+      // Sélectionner la première option de Carte de Crédit par défaut
+      setPaymentOption(PAYMENT_METHODS[PAYMENT_TYPES.CREDIT_CARD][0].id);
     } else {
       // Pour les autres méthodes, calculer les frais en fonction du pourcentage global
       if (convertedAmount && convertedAmount.convertedAmount) {
@@ -664,7 +683,13 @@ export default function BoostPublicationModal({
     let isValid = true;
 
     // Vérifier si une méthode de paiement spécifique est sélectionnée
-    isValid = isValid && selectedPaymentOption !== "";
+    if (paymentMethod === PAYMENT_TYPES.WALLET) {
+      isValid = isValid && selectedPaymentOption !== "";
+    } else if (paymentMethod === PAYMENT_TYPES.MOBILE_MONEY || paymentMethod === PAYMENT_TYPES.CREDIT_CARD) {
+      isValid = isValid && paymentOption !== "";
+    } else {
+      isValid = isValid && selectedPaymentOption !== "";
+    }
 
     // Vérifier si le nombre de jours est valide
     isValid = isValid && days > 0;
@@ -738,12 +763,20 @@ export default function BoostPublicationModal({
       }
 
       // Préparer les données pour l'API
+      // Déterminer la bonne option de paiement selon le type de paiement
+      const finalPaymentOption = 
+        paymentMethod === PAYMENT_TYPES.WALLET ? selectedPaymentOption :
+        (paymentMethod === PAYMENT_TYPES.MOBILE_MONEY || paymentMethod === PAYMENT_TYPES.CREDIT_CARD) ? paymentOption :
+        selectedPaymentOption;
+      
+      console.log("Option de paiement envoyée:", finalPaymentOption);
+      
       const paymentData = {
         ...formFields,
         days,
-        paymentMethod: selectedPaymentOption, // Méthode spécifique (solifin-wallet, visa, etc.)
+        paymentMethod: finalPaymentOption, // Méthode spécifique (solifin-wallet, visa, etc.)
         paymentType: paymentMethod, // Type général (wallet, credit-card, etc.)
-        paymentOption: selectedPaymentOption, // Garder pour compatibilité avec l'ancien code
+        paymentOption: finalPaymentOption, // Garder pour compatibilité avec l'ancien code
         currency: selectedCurrency,
         amount:
           paymentMethod === PAYMENT_TYPES.WALLET
@@ -757,7 +790,17 @@ export default function BoostPublicationModal({
         paymentMethod === PAYMENT_TYPES.MOBILE_MONEY &&
         formFields.phoneNumber
       ) {
-        paymentData.fullPhoneNumber = `${phoneCode}${formFields.phoneNumber}`;
+        // Nettoyer le numéro de téléphone (enlever espaces, tirets, etc.)
+        const cleanPhoneNumber = formFields.phoneNumber.replace(/\D/g, "");
+
+        // Créer le numéro complet sans le +
+        const phoneCode = "243";
+        const phoneWithCode = `${phoneCode}${cleanPhoneNumber}`;
+
+        console.log("Numéro de téléphone formaté pour API:", phoneWithCode);
+
+        paymentData.phoneNumber = cleanPhoneNumber;
+        paymentData.fullPhoneNumber = phoneWithCode;
       }
 
       // Envoyer la demande de boost
@@ -791,123 +834,86 @@ export default function BoostPublicationModal({
   const renderPaymentFields = () => {
     const selectedMethod = paymentMethods.find((m) => m.id === paymentMethod);
 
-    if (!selectedMethod) {
+    if (
+      !selectedMethod ||
+      !selectedMethod.fields ||
+      selectedMethod.fields.length === 0
+    ) {
       return null;
     }
 
     return (
-      <div className="space-y-2">
-        {/* Afficher les options spécifiques pour chaque type de paiement */}
-        {paymentMethod !== PAYMENT_TYPES.WALLET &&
-          selectedMethod.options &&
-          selectedMethod.options.length > 0 && (
-            <div className="mb-2">
-              <Typography variant="subtitle2" gutterBottom>
-                {paymentMethod === PAYMENT_TYPES.CREDIT_CARD
-                  ? "Choisissez votre type de carte"
-                  : "Choisissez votre opérateur"}
-              </Typography>
-              <RadioGroup
-                value={selectedPaymentOption}
-                onChange={(e) => handlePaymentOptionChange(e.target.value)}
-              >
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                  {selectedMethod.options.map((option) => (
-                    <FormControlLabel
-                      key={option.id}
-                      value={option.id}
-                      control={<Radio size="small" />}
-                      label={
-                        <div className="flex items-center">
-                          {option.icon && (
-                            <img
-                              src={option.icon}
-                              alt={option.name}
-                              className="w-6 h-6 mr-2"
-                            />
-                          )}
-                          <span>{option.name}</span>
-                        </div>
-                      }
-                    />
-                  ))}
-                </div>
-              </RadioGroup>
-            </div>
-          )}
-
+      <div className="space-y-2 mt-4">
         {/* Afficher les champs de formulaire spécifiques à la méthode de paiement */}
-        {selectedMethod.fields && selectedMethod.fields.length > 0 && (
-          <div key="payment-fields-container" className="space-y-2">
-            {selectedMethod.fields.map((field) => {
-              // Cas spécial pour le numéro de téléphone avec indicatif
-              if (
-                field.name === "phoneNumber" &&
-                paymentMethod === PAYMENT_TYPES.MOBILE_MONEY
-              ) {
-                return (
-                  <div key={field.name} className="mb-2">
-                    <Typography variant="subtitle2" gutterBottom>
-                      {field.label}
-                    </Typography>
-                    <div className="flex items-center space-x-2">
-                      <div className="w-2/5">
-                        <SimplePhoneCode
-                          value={phoneCode}
-                          onChange={handlePhoneCodeChange}
-                        />
-                      </div>
-                      <div className="flex-1">
-                        <TextField
-                          placeholder="Numéro sans indicatif ni 0 initial"
-                          type={field.type}
-                          value={formFields[field.name] || ""}
-                          onChange={(e) =>
-                            handleFieldChange(field.name, e.target.value)
-                          }
-                          required={field.required}
-                          fullWidth
-                          size="small"
-                          variant="outlined"
-                          helperText="Ne pas commencer par 0"
-                          inputProps={{
-                            maxLength: field.maxLength,
-                            pattern: "[1-9][0-9]*",
-                          }}
-                          sx={{
-                            "& .MuiOutlinedInput-root": {
-                              height: "40px",
-                            },
-                          }}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                );
-              }
-
-              // Autres champs normaux
+        <div key="payment-fields-container" className="space-y-2">
+          {selectedMethod.fields.map((field) => {
+            // Cas spécial pour le numéro de téléphone avec indicatif
+            if (
+              field.name === "phoneNumber" &&
+              paymentMethod === PAYMENT_TYPES.MOBILE_MONEY
+            ) {
               return (
-                <TextField
-                  key={field.name}
-                  label={field.label}
-                  type={field.type}
-                  value={formFields[field.name] || ""}
-                  onChange={(e) =>
-                    handleFieldChange(field.name, e.target.value)
-                  }
-                  required={field.required}
-                  fullWidth
-                  size="small"
-                  margin="dense"
-                  inputProps={{
-                    maxLength: field.maxLength,
-                  }}
-                />
+                <div key={field.name} className="mb-2">
+                  <Typography variant="subtitle2" gutterBottom>
+                    {field.label}
+                  </Typography>
+                  <TextField
+                    placeholder="Numéro sans indicatif ni 0 initial"
+                    type={field.type}
+                    value={formFields[field.name] || ""}
+                    onChange={(e) =>
+                      handleFieldChange(field.name, e.target.value)
+                    }
+                    required={field.required}
+                    fullWidth
+                    size="small"
+                    variant="outlined"
+                    InputProps={{
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <Typography
+                            variant="body2"
+                            className="text-gray-600 dark:text-gray-300 font-medium"
+                          >
+                            +243
+                          </Typography>
+                        </InputAdornment>
+                      ),
+                    }}
+                    helperText="Entrez votre numéro sans le code pays"
+                    inputProps={{
+                      maxLength: field.maxLength,
+                      style: { paddingLeft: "4px" },
+                    }}
+                    sx={{
+                      "& .MuiOutlinedInput-root": {
+                        height: "40px",
+                      },
+                    }}
+                  />
+                </div>
               );
-            })}
-          </div>
-        )}
+            }
+
+            // Autres champs normaux
+            return (
+              <TextField
+                key={field.name}
+                label={field.label}
+                type={field.type}
+                value={formFields[field.name] || ""}
+                onChange={(e) => handleFieldChange(field.name, e.target.value)}
+                required={field.required}
+                fullWidth
+                size="small"
+                margin="dense"
+                inputProps={{
+                  maxLength: field.maxLength,
+                }}
+              />
+            );
+          })}
+        </div>
       </div>
     );
   };
@@ -920,30 +926,45 @@ export default function BoostPublicationModal({
     >
       {/* Overlay semi-transparent avec effet de flou */}
       <div
-        className="absolute inset-0 bg-black bg-opacity-50 backdrop-blur-sm modal-blur-overlay"
+        className="absolute inset-0 bg-black bg-opacity-60 backdrop-blur-sm modal-blur-overlay transition-all duration-300"
         onClick={onClose}
       ></div>
 
       {/* Contenu du modal */}
       <div
-        className={`relative bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-3xl max-h-[90vh] flex flex-col ${
+        className={`relative bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col ${
           isDarkMode ? "dark" : ""
-        } modal-animation`}
+        } modal-animation transform transition-all duration-300 scale-100`}
+        style={{
+          boxShadow: isDarkMode
+            ? "0 25px 50px -12px rgba(0, 0, 0, 0.5)"
+            : "0 25px 50px -12px rgba(0, 0, 0, 0.25)",
+        }}
       >
         {/* En-tête du modal */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-primary-600 dark:bg-primary-800 text-white rounded-t-lg">
-          <div>
-            <Typography variant="h6" className="font-bold">
+        <div className="flex items-center justify-between px-6 py-5 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-primary-600 to-primary-500 dark:from-primary-800 dark:to-primary-700 text-white rounded-t-xl shadow-sm relative overflow-hidden">
+          <div className="relative z-10">
+            <Typography variant="h6" className="font-bold text-white">
               Booster votre publication
             </Typography>
-            <Typography variant="body2" className="text-gray-100">
+            <Typography
+              variant="body2"
+              className="text-gray-100 mt-1 opacity-90"
+            >
               Prolongez la durée d'affichage de votre publication
             </Typography>
           </div>
+
+          {/* Élément décoratif */}
+          <div className="absolute top-0 right-0 w-32 h-32 transform translate-x-16 -translate-y-8">
+            <div className="w-full h-full rounded-full bg-white opacity-10"></div>
+          </div>
+
           <IconButton
             onClick={onClose}
             size="small"
-            className="text-white hover:text-gray-200"
+            className="text-white hover:text-gray-200 hover:bg-primary-700 dark:hover:bg-primary-900 transition-colors duration-200 relative z-10"
+            sx={{ padding: "8px" }}
           >
             <XMarkIcon className="h-5 w-5" />
           </IconButton>
@@ -960,174 +981,353 @@ export default function BoostPublicationModal({
             )}
 
             {/* Détails de la publication */}
-            <div className="mb-6 fade-in">
-              <Typography
-                variant="h6"
-                className="mb-2 font-semibold text-gray-800 dark:text-gray-100"
-              >
-                Détails de la publication
-              </Typography>
-              <div className="bg-gray-50 dark:bg-gray-800/50 p-4 rounded-lg mb-4 border border-gray-200 dark:border-gray-700">
-                <Typography variant="subtitle1" className="font-medium">
-                  {publication?.titre || "Publication"}
-                </Typography>
+            <div className="mb-8 fade-in">
+              <div className="flex items-center mb-3">
+                <div className="w-1 h-6 bg-primary-500 dark:bg-primary-400 rounded-full mr-2"></div>
                 <Typography
-                  variant="body2"
-                  className="text-gray-600 dark:text-gray-300 mt-1"
+                  variant="h6"
+                  className="font-semibold text-gray-800 dark:text-gray-100"
                 >
-                  Type:{" "}
-                  {publicationType === "advertisement"
-                    ? "Publicité"
-                    : publicationType === "jobOffer"
-                    ? "Offre d'emploi"
-                    : "Opportunité d'affaire"}
+                  Détails de la publication
                 </Typography>
-                {publication?.duree_affichage && (
-                  <Typography
-                    key="display-duration"
-                    variant="body2"
-                    className="text-gray-600 dark:text-gray-300 mt-1"
-                  >
-                    Durée d'affichage actuelle: {publication.duree_affichage}{" "}
-                    jours
-                  </Typography>
-                )}
+              </div>
+              <div className="bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800/70 dark:to-gray-800/90 p-5 rounded-xl shadow-sm mb-4 border border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow duration-300">
+                <div className="flex items-start">
+                  <div className="flex-grow">
+                    <Typography
+                      variant="subtitle1"
+                      className="font-medium text-primary-700 dark:text-primary-300"
+                    >
+                      {publication?.titre || "Publication"}
+                    </Typography>
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+                        {publicationType === "advertisement"
+                          ? "Publicité"
+                          : publicationType === "jobOffer"
+                          ? "Offre d'emploi"
+                          : "Opportunité d'affaire"}
+                      </span>
+                      {publication?.duree_affichage && (
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                          {publication.duree_affichage} jours d'affichage
+                        </span>
+                      )}
+                    </div>
+                    <Typography
+                      variant="body2"
+                      className="text-gray-600 dark:text-gray-300 mt-3"
+                    >
+                      Augmentez la visibilité de votre publication en
+                      prolongeant sa durée d'affichage.
+                    </Typography>
+                  </div>
+                  <div className="hidden sm:flex items-center justify-center w-12 h-12 rounded-full bg-primary-100 dark:bg-primary-900 text-primary-600 dark:text-primary-300 ml-4">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-6 w-6"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"
+                      />
+                    </svg>
+                  </div>
+                </div>
               </div>
             </div>
 
             {/* Durée du boost */}
-            <div className="mb-6 slide-in">
-              <TextField
-                label="Durée du boost en jours"
-                type="number"
-                value={days}
-                onChange={(e) =>
-                  setDays(Math.max(1, parseInt(e.target.value) || 1))
-                }
-                fullWidth
-                variant="outlined"
-                InputProps={{
-                  endAdornment: (
-                    <InputAdornment position="end">jours</InputAdornment>
-                  ),
-                }}
-                inputProps={{ min: 1 }}
-                className="mb-2"
-              />
-
-              <div
-                key="price-per-day"
-                className="flex justify-between text-sm text-gray-600 dark:text-gray-300 mt-1"
-              >
-                <span>Prix par jour:</span>
-                <span>${pricePerDay.toFixed(2)}</span>
+            <div className="mb-8 slide-in">
+              <div className="flex items-center mb-3">
+                <div className="w-1 h-6 bg-primary-500 dark:bg-primary-400 rounded-full mr-2"></div>
+                <Typography
+                  variant="h6"
+                  className="font-semibold text-gray-800 dark:text-gray-100"
+                >
+                  Durée du boost
+                </Typography>
               </div>
-              <div
-                key="total-amount-info"
-                className="flex justify-between text-sm font-medium mt-1"
-              >
-                <span>Montant total:</span>
-                <span>${totalAmount.toFixed(2)}</span>
+
+              <div className="bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800/70 dark:to-gray-800/90 p-5 rounded-xl shadow-sm mb-4 border border-gray-200 dark:border-gray-700">
+                <div className="flex flex-col md:flex-row md:items-center gap-4">
+                  <div className="flex-grow">
+                    <TextField
+                      label="Durée du boost en jours"
+                      type="number"
+                      value={days}
+                      onChange={(e) =>
+                        setDays(Math.max(1, parseInt(e.target.value) || 1))
+                      }
+                      fullWidth
+                      variant="outlined"
+                      InputProps={{
+                        endAdornment: (
+                          <InputAdornment position="end">jours</InputAdornment>
+                        ),
+                      }}
+                      inputProps={{ min: 1 }}
+                      sx={{
+                        "& .MuiOutlinedInput-root": {
+                          "&:hover fieldset": {
+                            borderColor: "primary.main",
+                          },
+                        },
+                      }}
+                    />
+                  </div>
+
+                  <div className="flex-shrink-0 bg-white dark:bg-gray-700 p-4 rounded-lg border border-gray-200 dark:border-gray-600 min-w-[150px]">
+                    <div
+                      key="price-per-day"
+                      className="flex justify-between text-sm text-gray-600 dark:text-gray-300"
+                    >
+                      <span>Prix/jour:</span>
+                      <span className="font-medium">
+                        ${pricePerDay.toFixed(2)}
+                      </span>
+                    </div>
+                    <div
+                      key="total-amount-info"
+                      className="flex justify-between text-sm font-semibold mt-2 pt-2 border-t border-gray-200 dark:border-gray-600 text-primary-700 dark:text-primary-300"
+                    >
+                      <span>Total:</span>
+                      <span>${totalAmount.toFixed(2)}</span>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
 
             {/* Méthodes de paiement */}
-            <div className="mb-6 fade-in">
-              <Typography
-                variant="h6"
-                className="mb-2 font-semibold text-gray-800 dark:text-gray-100"
-              >
-                Méthode de paiement
-              </Typography>
-
-              <div key="payment-methods-container" className="space-y-2">
-                {paymentMethods.map((method) => (
-                  <div
-                    key={"method_" + method.id}
-                    className={`method-card cursor-pointer ${
-                      paymentMethod === method.id ? "selected" : ""
-                    }`}
-                    onClick={() => handlePaymentMethodChange(method.id)}
-                  >
-                    <div
-                      key={`payment-method-${method.id}-container`}
-                      className="flex items-center"
-                    >
-                      <Radio
-                        checked={paymentMethod === method.id}
-                        onChange={() => handlePaymentMethodChange(method.id)}
-                        name="payment-method-radio"
-                        color="primary"
-                      />
-                      <div
-                        key={`payment-method-${method.id}-content`}
-                        className="ml-2"
-                      >
-                        <Typography
-                          key={`payment-method-${method.id}-title`}
-                          variant="subtitle2"
-                          className="font-medium"
-                        >
-                          {method.name}
-                        </Typography>
-                        {method.id === PAYMENT_TYPES.WALLET ? (
-                          <Typography
-                            key={`payment-method-${method.id}-description`}
-                            variant="caption"
-                            className="text-gray-500 dark:text-gray-400"
-                          >
-                            Solde disponible: {walletBalance.toFixed(2)} USD
-                          </Typography>
-                        ) : method.id === PAYMENT_TYPES.CARD ? (
-                          <Typography
-                            key={`payment-method-${method.id}-description`}
-                            variant="caption"
-                            className="text-gray-500 dark:text-gray-400"
-                          >
-                            Visa, Mastercard, American Express
-                          </Typography>
-                        ) : method.id === PAYMENT_TYPES.MOBILE ? (
-                          <Typography
-                            key={`payment-method-${method.id}-description`}
-                            variant="caption"
-                            className="text-gray-500 dark:text-gray-400"
-                          >
-                            Orange Money, Airtel Money, M-Pesa
-                          </Typography>
-                        ) : method.id === PAYMENT_TYPES.BANK ? (
-                          <Typography
-                            key={`payment-method-${method.id}-description`}
-                            variant="caption"
-                            className="text-gray-500 dark:text-gray-400"
-                          >
-                            Virement bancaire
-                          </Typography>
-                        ) : method.id === PAYMENT_TYPES.TRANSFER ? (
-                          <Typography
-                            key={`payment-method-${method.id}-description`}
-                            variant="caption"
-                            className="text-gray-500 dark:text-gray-400"
-                          >
-                            Western Union, MoneyGram
-                          </Typography>
-                        ) : (
-                          <Typography
-                            key={`payment-method-${method.id}-description`}
-                            variant="caption"
-                            className="text-gray-500 dark:text-gray-400"
-                          >
-                            Paiement en espèces
-                          </Typography>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                ))}
+            <div className="mb-8 fade-in">
+              <div className="flex items-center mb-3">
+                <div className="w-1 h-6 bg-primary-500 dark:bg-primary-400 rounded-full mr-2"></div>
+                <Typography
+                  variant="h6"
+                  className="font-semibold text-gray-800 dark:text-gray-100"
+                >
+                  Méthode de paiement
+                </Typography>
               </div>
 
+              <div className="bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800/70 dark:to-gray-800/90 p-5 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
+                <div
+                  key="payment-methods-container"
+                  className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-2"
+                >
+                  {paymentMethods.map((method) => (
+                    <div
+                      key={"method_" + method.id}
+                      className={`method-card cursor-pointer rounded-xl shadow hover:shadow-lg transition-all duration-300 ${
+                        paymentMethod === method.id
+                          ? "ring-2 shadow-md"
+                          : "border border-gray-200 dark:border-gray-700"
+                      }`}
+                      onClick={() => handlePaymentMethodChange(method.id)}
+                      style={{
+                        borderColor:
+                          paymentMethod === method.id
+                            ? "transparent"
+                            : undefined,
+                        ringColor:
+                          paymentMethod === method.id
+                            ? paymentMethodsMap[method.id]?.color || "#2196F3"
+                            : "transparent",
+                        transform:
+                          paymentMethod === method.id
+                            ? "translateY(-3px) scale(1.02)"
+                            : "none",
+                        backgroundColor:
+                          paymentMethod === method.id
+                            ? isDarkMode
+                              ? "rgba(33, 150, 243, 0.1)"
+                              : "white"
+                            : isDarkMode
+                            ? "rgba(31, 41, 55, 0.5)"
+                            : "white",
+                      }}
+                    >
+                      <div className="p-4 flex items-center">
+                        <div
+                          className="mr-4 flex items-center justify-center"
+                          style={{
+                            width: "50px",
+                            height: "50px",
+                            borderRadius: "12px",
+                            backgroundColor: `${
+                              paymentMethodsMap[method.id]?.color || "#2196F3"
+                            }15`,
+                          }}
+                        >
+                          {method.id === PAYMENT_TYPES.CREDIT_CARD && (
+                            <div className="flex flex-wrap items-center justify-center gap-1">
+                              <img
+                                src={visaIcon}
+                                alt="Visa"
+                                className="h-5 w-8 object-contain"
+                              />
+                              <img
+                                src={mastercardIcon}
+                                alt="Mastercard"
+                                className="h-5 w-8 object-contain"
+                              />
+                            </div>
+                          )}
+                          {method.id === PAYMENT_TYPES.MOBILE_MONEY && (
+                            <div className="flex flex-wrap items-center justify-center gap-1">
+                              <img
+                                src={orangeIcon}
+                                alt="Orange"
+                                className="h-5 w-5 object-contain"
+                              />
+                              <img
+                                src={airtelIcon}
+                                alt="Airtel"
+                                className="h-5 w-5 object-contain"
+                              />
+                            </div>
+                          )}
+                          {method.id === PAYMENT_TYPES.WALLET && (
+                            <div className="flex items-center justify-center">
+                              <span className="text-2xl font-bold text-blue-500">
+                                $
+                              </span>
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="flex-grow">
+                          <Typography
+                            variant="subtitle2"
+                            className="font-medium"
+                          >
+                            {method.name}
+                          </Typography>
+                          {method.id === PAYMENT_TYPES.WALLET && (
+                            <Typography
+                              variant="caption"
+                              className="text-gray-500 dark:text-gray-400 block"
+                            >
+                              Solde: {walletBalance.toFixed(2)} USD
+                            </Typography>
+                          )}
+                        </div>
+
+                        <Radio
+                          checked={paymentMethod === method.id}
+                          size="small"
+                          sx={{
+                            padding: "2px",
+                            "&.Mui-checked": {
+                              color:
+                                paymentMethodsMap[method.id]?.color ||
+                                "#2196F3",
+                            },
+                          }}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Options de paiement spécifiques */}
+              {paymentMethod === PAYMENT_TYPES.MOBILE_MONEY && (
+                <div className="mt-4 p-4 bg-white dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-600 shadow-sm">
+                  <Typography
+                    variant="subtitle2"
+                    className="mb-3 font-medium text-gray-700 dark:text-gray-200"
+                  >
+                    Sélectionnez votre opérateur
+                  </Typography>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                    {PAYMENT_METHODS[PAYMENT_TYPES.MOBILE_MONEY].map(
+                      (option) => (
+                        <div
+                          key={option.id}
+                          onClick={() => setPaymentOption(option.id)}
+                          className={`cursor-pointer p-3 rounded-lg border transition-all duration-300 flex items-center ${
+                            paymentOption === option.id
+                              ? "border-primary-500 bg-primary-50 dark:bg-primary-900/30 shadow-sm transform -translate-y-1"
+                              : "border-gray-200 dark:border-gray-600 hover:border-primary-300 dark:hover:border-primary-700"
+                          }`}
+                        >
+                          <Radio
+                            checked={paymentOption === option.id}
+                            size="small"
+                            sx={{
+                              padding: 0,
+                              marginRight: "8px",
+                              "&.Mui-checked": {
+                                color: "#2196F3",
+                              },
+                            }}
+                          />
+                          {renderPaymentOptionWithIcon(
+                            option,
+                            PAYMENT_TYPES.MOBILE_MONEY
+                          )}
+                        </div>
+                      )
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {paymentMethod === PAYMENT_TYPES.CREDIT_CARD && (
+                <div className="mt-4 p-4 bg-white dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-600 shadow-sm">
+                  <Typography
+                    variant="subtitle2"
+                    className="mb-3 font-medium text-gray-700 dark:text-gray-200"
+                  >
+                    Sélectionnez votre type de carte
+                  </Typography>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                    {PAYMENT_METHODS[PAYMENT_TYPES.CREDIT_CARD].map(
+                      (option) => (
+                        <div
+                          key={option.id}
+                          onClick={() => setPaymentOption(option.id)}
+                          className={`cursor-pointer p-3 rounded-lg border transition-all duration-300 flex items-center ${
+                            paymentOption === option.id
+                              ? "border-primary-500 bg-primary-50 dark:bg-primary-900/30 shadow-sm transform -translate-y-1"
+                              : "border-gray-200 dark:border-gray-600 hover:border-primary-300 dark:hover:border-primary-700"
+                          }`}
+                        >
+                          <Radio
+                            checked={paymentOption === option.id}
+                            size="small"
+                            sx={{
+                              padding: 0,
+                              marginRight: "8px",
+                              "&.Mui-checked": {
+                                color: "#2196F3",
+                              },
+                            }}
+                          />
+                          {renderPaymentOptionWithIcon(
+                            option,
+                            PAYMENT_TYPES.CREDIT_CARD
+                          )}
+                        </div>
+                      )
+                    )}
+                  </div>
+                </div>
+              )}
+
               {paymentMethod !== PAYMENT_TYPES.WALLET && (
-                <div className="mb-4">
-                  <Typography variant="subtitle2" className="mb-2">
+                <div className="mt-4 mb-4 bg-white dark:bg-gray-700/50 p-4 rounded-lg border border-gray-200 dark:border-gray-600 shadow-sm">
+                  <Typography
+                    variant="subtitle2"
+                    className="mb-3 font-medium text-gray-700 dark:text-gray-200"
+                  >
                     Sélectionnez votre devise
                   </Typography>
                   <TextField
@@ -1136,10 +1336,26 @@ export default function BoostPublicationModal({
                     value={selectedCurrency}
                     onChange={(e) => setSelectedCurrency(e.target.value)}
                     variant="outlined"
+                    size="small"
+                    sx={{
+                      "& .MuiOutlinedInput-root": {
+                        "&:hover fieldset": {
+                          borderColor: "primary.main",
+                        },
+                      },
+                    }}
                   >
                     {Object.entries(CURRENCIES).map(([code, currency]) => (
                       <MenuItem key={code} value={code}>
-                        {currency.symbol} {currency.name} ({code})
+                        <div className="flex items-center">
+                          <span className="font-medium mr-2">
+                            {currency.symbol}
+                          </span>
+                          <span>{currency.name}</span>
+                          <span className="ml-auto text-xs text-gray-500">
+                            ({code})
+                          </span>
+                        </div>
                       </MenuItem>
                     ))}
                   </TextField>
@@ -1150,24 +1366,45 @@ export default function BoostPublicationModal({
             </div>
 
             {/* Récapitulatif */}
-            <div className="mb-6 fade-in">
-              <Typography
-                variant="h6"
-                className="mb-2 font-semibold text-gray-800 dark:text-gray-100"
-              >
-                Récapitulatif
-              </Typography>
+            <div className="mb-8 fade-in">
+              <div className="flex items-center mb-3">
+                <div className="w-1 h-6 bg-primary-500 dark:bg-primary-400 rounded-full mr-2"></div>
+                <Typography
+                  variant="h6"
+                  className="font-semibold text-gray-800 dark:text-gray-100"
+                >
+                  Récapitulatif
+                </Typography>
+              </div>
 
-              <div className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800/50">
-                <div className="space-y-2">
+              <div className="p-5 border border-gray-200 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-800 shadow-sm hover:shadow-md transition-shadow duration-300">
+                <div className="space-y-3">
                   <div
                     key="boost-duration"
-                    className="flex justify-between items-center"
+                    className="flex justify-between items-center p-2 bg-gray-50 dark:bg-gray-700/50 rounded-lg"
                   >
-                    <Typography variant="body2">
-                      Boost pour {days} jour{days > 1 ? "s" : ""}
-                    </Typography>
-                    <Typography variant="body2">
+                    <div className="flex items-center">
+                      <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center mr-3">
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          className="h-4 w-4 text-blue-600 dark:text-blue-400"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                          />
+                        </svg>
+                      </div>
+                      <Typography variant="body2" className="font-medium">
+                        Boost pour {days} jour{days > 1 ? "s" : ""}
+                      </Typography>
+                    </div>
+                    <Typography variant="body2" className="font-semibold">
                       {paymentMethod === PAYMENT_TYPES.WALLET
                         ? `${totalAmount.toFixed(2)} ${CURRENCIES.USD.symbol}`
                         : `${convertedAmount?.convertedAmount?.toFixed(2)} ${
@@ -1180,10 +1417,26 @@ export default function BoostPublicationModal({
                     paymentMethod !== PAYMENT_TYPES.WALLET && (
                       <div
                         key="exchange-rate"
-                        className="flex justify-between items-center text-xs text-gray-500 dark:text-gray-400"
+                        className="flex justify-between items-center text-xs text-gray-500 dark:text-gray-400 px-2"
                       >
-                        <span>Taux de change</span>
-                        <span>
+                        <span className="flex items-center">
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            className="h-3 w-3 mr-1"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"
+                            />
+                          </svg>
+                          Taux de change
+                        </span>
+                        <span className="font-medium">
                           1 USD = {convertedAmount.rate} {selectedCurrency}
                         </span>
                       </div>
@@ -1192,20 +1445,38 @@ export default function BoostPublicationModal({
                   {transactionFees > 0 && (
                     <div
                       key="transaction-fees"
-                      className="flex justify-between items-center"
+                      className="flex justify-between items-center p-2 bg-gray-50 dark:bg-gray-700/50 rounded-lg"
                     >
-                      <Typography variant="body2">
-                        Frais de transaction
-                        {feePercentage > 0 && (
-                          <span
-                            key="fee-percentage"
-                            className="text-xs text-gray-500 ml-1"
+                      <div className="flex items-center">
+                        <div className="w-8 h-8 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center mr-3">
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            className="h-4 w-4 text-amber-600 dark:text-amber-400"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
                           >
-                            ({feePercentage}%)
-                          </span>
-                        )}
-                      </Typography>
-                      <Typography variant="body2">
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"
+                            />
+                          </svg>
+                        </div>
+                        <Typography variant="body2" className="font-medium">
+                          Frais de transaction
+                          {feePercentage > 0 && (
+                            <span
+                              key="fee-percentage"
+                              className="text-xs text-gray-500 dark:text-gray-400 ml-1"
+                            >
+                              ({feePercentage}%)
+                            </span>
+                          )}
+                        </Typography>
+                      </div>
+                      <Typography variant="body2" className="font-semibold">
                         {transactionFees.toFixed(2)}{" "}
                         {paymentMethod === PAYMENT_TYPES.WALLET
                           ? CURRENCIES.USD.symbol
@@ -1216,10 +1487,13 @@ export default function BoostPublicationModal({
 
                   <div
                     key="total-amount"
-                    className="flex justify-between items-center mt-2 pt-2 border-t border-gray-200 dark:border-gray-600"
+                    className="flex justify-between items-center mt-3 pt-3 border-t-2 border-gray-200 dark:border-gray-600"
                   >
-                    <Typography variant="subtitle1" className="font-bold">
-                      Total
+                    <Typography
+                      variant="subtitle1"
+                      className="font-bold text-gray-800 dark:text-gray-100"
+                    >
+                      Total à payer
                     </Typography>
                     <div className="flex items-center">
                       {feesError ? (
@@ -1228,12 +1502,12 @@ export default function BoostPublicationModal({
                           size="small"
                           color="primary"
                           onClick={calculateFees}
-                          className="mr-2"
+                          className="mr-2 bg-blue-50 dark:bg-blue-900/30 hover:bg-blue-100 dark:hover:bg-blue-800/50"
                           title="Recalculer les frais"
                         >
                           <svg
                             xmlns="http://www.w3.org/2000/svg"
-                            className="h-5 w-5"
+                            className="h-4 w-4"
                             fill="none"
                             viewBox="0 0 24 24"
                             stroke="currentColor"
@@ -1254,7 +1528,7 @@ export default function BoostPublicationModal({
                         />
                       ) : null}
                       <Typography
-                        variant="subtitle1"
+                        variant="h6"
                         color="primary"
                         className="font-bold"
                       >
@@ -1292,61 +1566,114 @@ export default function BoostPublicationModal({
           )}
 
         {/* Bouton de paiement - en dehors de la zone scrollable */}
-        <div className="p-6 pt-4 flex items-center justify-between border-t border-gray-200 dark:border-gray-700">
-          <Typography
-            variant="body2"
-            color="textSecondary"
-            className="text-gray-500 dark:text-gray-400"
-          >
-            {paymentMethod === PAYMENT_TYPES.WALLET
-              ? "Paiement direct depuis votre wallet"
-              : "Procédez au paiement sécurisé"}
-          </Typography>
+        <div className="p-6 pt-4 flex flex-col sm:flex-row sm:items-center justify-between border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
+          <div className="mb-4 sm:mb-0 flex items-center">
+            {paymentMethod === PAYMENT_TYPES.WALLET ? (
+              <>
+                <div className="w-10 h-10 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center mr-3">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-5 w-5 text-green-600 dark:text-green-400"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                    />
+                  </svg>
+                </div>
+                <Typography
+                  variant="body2"
+                  className="text-gray-700 dark:text-gray-300 font-medium"
+                >
+                  Paiement direct depuis votre wallet
+                </Typography>
+              </>
+            ) : (
+              <>
+                <div className="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center mr-3">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-5 w-5 text-blue-600 dark:text-blue-400"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+                    />
+                  </svg>
+                </div>
+                <Typography
+                  variant="body2"
+                  className="text-gray-700 dark:text-gray-300 font-medium"
+                >
+                  Procédez au paiement sécurisé
+                </Typography>
+              </>
+            )}
+          </div>
 
           <div className="flex space-x-3">
             <Button
               variant="outlined"
               onClick={onClose}
-              className="px-4 py-2 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600"
-              disabled={loading}
+              className="border-gray-300 text-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700/50 transition-colors duration-200"
+              sx={{
+                borderRadius: "10px",
+                textTransform: "none",
+                fontWeight: "medium",
+              }}
             >
               Annuler
             </Button>
             <Button
-              type="submit"
               variant="contained"
               color="primary"
+              type="submit"
+              onClick={handleSubmit}
               disabled={
-                !formIsValid ||
                 loading ||
-                loadingFees ||
-                feesError ||
+                !formIsValid ||
                 (paymentMethod === PAYMENT_TYPES.WALLET &&
                   totalAmount > walletBalance)
               }
-              className="px-6 py-2"
-              onClick={handleSubmit}
+              className="bg-primary-600 hover:bg-primary-700 text-white shadow-md hover:shadow-lg transition-all duration-200"
               sx={{
-                backgroundColor: "rgb(22, 163, 74)",
-                "&:hover": {
-                  backgroundColor: "rgb(21, 128, 61)",
-                },
-                "&.Mui-disabled": {
-                  backgroundColor: "rgba(22, 163, 74, 0.5)",
-                },
+                borderRadius: "10px",
+                textTransform: "none",
+                fontWeight: "bold",
+                padding: "8px 20px",
               }}
+              startIcon={
+                loading ? (
+                  <CircularProgress size={20} color="inherit" />
+                ) : (
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-5 w-5"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                    />
+                  </svg>
+                )
+              }
             >
-              {loading ? (
-                <CircularProgress
-                  key="loading-progress"
-                  size={24}
-                  color="inherit"
-                />
-              ) : paymentMethod === PAYMENT_TYPES.WALLET ? (
-                "Payer maintenant"
-              ) : (
-                "Procéder au paiement"
-              )}
+              {loading ? "Traitement..." : "Payer maintenant"}
             </Button>
           </div>
         </div>

@@ -593,7 +593,7 @@ class UserFormationController extends Controller
 
             DB::beginTransaction();
 
-            $walletPurchaser->withdrawFunds($totalAmount, "purchase", "completed", ["formation" => $formation->title, "montant"=>$formation->price, "Vendeur"=>$formation->creator->name, "description"=>"Vous avez achaté la formation titrée " . $formation->title . "à l'utilisateur " . $formation->creator->name]);
+            $walletPurchaser->withdrawFunds($totalAmount, "purchase", "completed", ["formation" => $formation->title, "montant"=>$formation->price, "Vendeur"=>$formation->creator->name, "description"=>"Vous avez acheté la formation titrée " . $formation->title . "à l'utilisateur " . $formation->creator->name]);
             $walletSeller->addFunds($formationPrice, "sale", "completed", ["formation" => $formation->title, "montant"=>$formation->price, "Acheteur"=>$user->name, "description"=>"Vous avez vendu la formation titrée " . $formation->title ." à l'utilisateur " . $user->name]);
             
             $walletsystem = WalletSystem::first();
@@ -607,7 +607,7 @@ class UserFormationController extends Controller
 
             $walletsystem->transactions()->create([
                 "wallet_system_id" => $walletsystem->id,
-                "type" => "frais d achat",
+                "type" => "frais_de_commodite",
                 "amount" => $fees,
                 "status" => "completed",
                 "metadata" => [

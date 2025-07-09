@@ -717,24 +717,15 @@ class OpportuniteAffaireController extends Controller
      */
     public function boost(Request $request, $id)
     {
-        \Log::info(['Boosting business opportunity: ' . $id, $request->all()]);
         try {
-            $validator = Validator::make($request->all(), [
+            $validator = $request->validate([
                 'days' => 'required|integer|min:1',
                 'paymentMethod' => 'required|string',
                 'paymentType' => 'required|string',
-                'paymentOption' => 'required|string',
                 'currency' => 'required|string',
                 'fees' => 'required|numeric|min:0',
+                'amount' => 'required|numeric|min:0',
             ]);
-
-            if ($validator->fails()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Validation error',
-                    'errors' => $validator->errors()
-                ], 422);
-            }
 
             // Récupérer l'opportunité d'affaire
             $opportuniteAffaire = OpportuniteAffaire::findOrFail($id);
@@ -747,7 +738,7 @@ class OpportuniteAffaireController extends Controller
                 ], 400);
             }
             
-            // Vérifier que l'utilisateur est propriétaire de l'opportunité d'affaire
+            // Vérifier que l'utilisateur est propriétaire de la publication
             $user = Auth::user();
             $page = Page::findOrFail($opportuniteAffaire->page_id);
             
@@ -760,80 +751,112 @@ class OpportuniteAffaireController extends Controller
             
             // Récupérer les données de paiement
             $paymentMethod = $request->paymentMethod;
-            $paymentOption = $request->paymentOption;
             $paymentType = $request->paymentType;
+            $paymentAmount = $request->amount;
             $days = $request->days;
             $currency = $request->currency;
-            
+            $taux_de_change = 0;
+
             // Calculer le montant en fonction du nombre de jours
             // Récupérer le paramètre de prix du boost
-            $setting = Setting::where('key', 'boost_price')->first();
-            
+            $boostPercentage = $user->pack_de_publication->boost_percentage;
+            $packPrice = $user->pack_de_publication->price;
+            $price = $packPrice * $boostPercentage / 100;
+
             // Valeur par défaut si le paramètre n'est pas défini
             $defaultPrice = 1;
             
             // Si le paramètre existe, utiliser sa valeur, sinon utiliser la valeur par défaut
-            $pricePerDay = $setting ? $setting->value : $defaultPrice;
-            $amount = $pricePerDay * $days;
+            $pricePerDay = $price ? $price : $defaultPrice;
 
-            // Recalculer les frais globaux de transaction
-            $globalFeePercentage = (float) Setting::getValue('transfer_fee_percentage', 0);
-            $globalFees = ((float)$amount) * ($globalFeePercentage / 100);
-            
-            // Récupérer les frais de transaction depuis la base de données
-            $transactionFeeModel = TransactionFee::where('payment_method', $paymentMethod)
-                ->where('is_active', true);
-            
-            $transactionFee = $transactionFeeModel->first();
-            
-            // Calculer les frais de transaction
             $specificFees = 0;
-            if ($transactionFee) {
-                $specificFees = $transactionFee->calculateTransferFee((float) $amount, $currency);
+            $globalFees = 0;
+            if ($paymentMethod !== 'solifin-wallet') {
+                $transactionFeeModel = TransactionFee::where('payment_method', $paymentMethod)
+                                                           ->where('is_active', true);
+                $transactionFee = $transactionFeeModel->first();
+                
+                // Recalculer les frais de transaction (pourcentage configuré dans le système)
+                $globalFeePercentage = (float) Setting::getValue('purchase_fee_percentage', 0);
+                
+                // Calcul des frais globaux basé sur le montant du paiement
+                $globalFees = ((float)$paymentAmount) * ($globalFeePercentage / 100);
+                
+                // Log des frais globaux calculés
+                \Log::info('Frais globaux calculés pour achat de pack', [
+                    'montant' => $paymentAmount,
+                    'pourcentage' => $globalFeePercentage,
+                    'frais_globaux' => $globalFees
+                ]);
+
+                $specificFees = $transactionFee->calculateTransferFee((float) $paymentAmount, $currency);
+                    
+                // Log des frais spécifiques calculés
+                \Log::info('Frais spécifiques calculés pour boost d\'opportunité d\'affaire', [
+                    'montant' => $paymentAmount,
+                    'methode_paiement' => $paymentMethod,
+                    'devise' => $currency,
+                    'frais_specifiques' => $specificFees
+                ]);
             }
             
             // Montant total incluant les frais
-            $totalAmount = $amount + $globalFees;
+            $totalAmount = $paymentAmount + $globalFees;
             
             // Si la devise n'est pas en USD, convertir le montant en USD (devise de base)
             $amountInUSD = $totalAmount;
-            // if ($currency !== 'USD') {
-            //     try {
-            //         // Récupérer le taux de conversion depuis la BD ou un service
-            //         $exchangeRate = ExchangeRates::where('currency', $currency)
-            //             ->where('target_currency', 'USD')
-            //             ->first();
+            $globalFeesInUSD = $globalFees;
+            $specificFeesInUSD = $specificFees;
+            if ($currency !== 'USD') {
+                try {
+                    // Récupérer le taux de conversion depuis la BD ou un service
+                    $taux_de_change = ExchangeRates::where('currency', $currency)->where("target_currency", "USD")->first();
+                    $taux_de_change = $taux_de_change->rate;
+
+                    // Conversion du montant total en USD
+                    $amountInUSD = $this->convertToUSD($totalAmount, $currency);
+                    $amountInUSD = round($amountInUSD, 2);
                     
-            //         if ($exchangeRate) {
-            //             $amountInUSD = $totalAmount * $exchangeRate->rate;
-            //             $amountInUSD = round($amountInUSD, 2);
-            //             $globalFees = $globalFees * $exchangeRate->rate;
-            //             $globalFees = round($globalFees, 2);
-            //             $specificFees = $specificFees * $exchangeRate->rate;
-            //             $specificFees = round($specificFees, 2);
-            //         } else {
-            //            return response()->json([
-            //                 "succes" => false,
-            //                 "message" => "La conversion de dévise a échoué, veuillez utiliser le $"    
-            //            ]);
-            //         }
-            //     } catch (\Exception $e) {
-            //         return response()->json([
-            //             "succes" => false,
-            //             "message" => "La conversion de dévise a échoué, veuillez utiliser le $"    
-            //         ]);
-            //     }
-            // }
+                    // Conversion des frais globaux en USD
+                    $globalFeesInUSD = $this->convertToUSD($globalFees, $currency);
+                    $globalFeesInUSD = round($globalFeesInUSD, 2);
+                    
+                    // Conversion des frais spécifiques en USD
+                    $specificFeesInUSD = $this->convertToUSD($specificFees, $currency);
+                    $specificFeesInUSD = round($specificFeesInUSD, 2);
+                    
+                    // Log des montants convertis
+                    \Log::info('Montants convertis en USD pour boost de opportunité d\'affaire', [
+                        'montant_total_usd' => $amountInUSD,
+                        'frais_globaux_usd' => $globalFeesInUSD,
+                        'frais_specifiques_usd' => $specificFeesInUSD,
+                        'devise_originale' => $paymentCurrency
+                    ]);
+                } catch (\Exception $e) {
+                    return response()->json([
+                        "succes" => false,
+                        "message" => "La conversion de dévise a échoué, veuillez utiliser le $"    
+                    ]);
+                }
+            }
             
-            $netAmountInUSD = round($amountInUSD - $globalFees, 0);
-            $amountInUSDWithoutSpecificFees = round($amountInUSD - $specificFees, 2);
+            // Calcul des montants nets (sans les différents types de frais)
+            $amountInUSDWithoutSpecificFees = round($amountInUSD - $specificFeesInUSD, 2); // Montant total sans frais spécifiques
+            $amountWithoutGlobalFeesInUSD = round($amountInUSD - $globalFeesInUSD, 2); // Montant total sans frais globaux
+
+            // Log des montants nets calculés
+            \Log::info('Montants nets calculés pour boost d\'opportunité d\'affaire', [
+                'montant_total_usd' => $amountInUSD,
+                'montant_sans_frais_specifiques' => $amountInUSDWithoutSpecificFees,
+                'montant_sans_frais_globaux' => $amountWithoutGlobalFeesInUSD
+            ]);
 
             // Vérifier que le montant net est suffisant pour couvrir le coût du pack
             $boostPrice = $pricePerDay * $days;
-            if ($netAmountInUSD < $boostPrice) {
+            if ($amountWithoutGlobalFeesInUSD < $boostPrice) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Le montant payé est insuffisant pour couvrir le coût du pack'
+                    'message' => 'Le montant payé est insuffisant pour couvrir le coût du boost'
                 ], 400);
             }
             
@@ -854,19 +877,40 @@ class OpportuniteAffaireController extends Controller
                 // Débiter le wallet
                 $wallet->withdrawFunds($amountInUSD, 'purchase', 'completed', [
                     'Opération' => "Boost de publication",
-                    'publication_id' => $opportuniteAffaire->id,
-                    'publication_type' => 'opportunite_affaire',
-                    'Durée' => $days . " jours",
-                    'Montant total' => $amount,
-                    'Dévise' => $currency,
-                    'Frais' => $globalFees,
+                    'Id de la publication' => $opportuniteAffaire->id,
+                    'Type de publication' => 'opportunite d\'affaire',
+                    'Type de paiement' => $paymentType,
                     'Méthode de paiement' => $paymentMethod,
-                    'Type de paiement' => $paymentType
+                    'Durée' => $days . " jours",
+                    'Montant net payé sans les frais' => $paymentAmount . " " . $currency,
+                    'Dévise' => $currency,
+                    'Frais' => $globalFees . " " . $currency,
+                    'Taux de change appliqué' => $taux_de_change,
+                    'Description' => "Vous avez booster votre opportunité d\'affaire titrée " . $opportuniteAffaire->titre . " pour " . $days . " jours"
                 ]);
             } else {
-                // Pour les autres méthodes de paiement, enregistrer la demande
-                // Dans un système réel, il faudrait intégrer avec un service de paiement externe
-                // Dans un système réel, rediriger vers la passerelle de paiement
+                //implémenter le paiement API
+
+                $wallet = $user->wallet;
+                $wallet->transactions()->create([
+                    "wallet_id" => $wallet->id,
+                    "type" => "purchase",
+                    "amount" => $amountInUSD,
+                    "status" => "completed",
+                    "metadata" => [
+                        "Opération" => "Boost de publication",
+                        "Id de la publication" => $opportuniteAffaire->id,
+                        "Type de publication" => "opportunite d' affaire",
+                        "Durée" => $days . " jours",
+                        "Type de paiement" => $paymentType,
+                        "Méthode de paiement" => $paymentMethod,
+                        "Dévise" => $currency,
+                        "Montant net payé sans les frais" => $paymentAmount . " " . $currency,
+                        "Frais de transaction" => $globalFees . " " . $currency,
+                        "Taux de change appliqué" =>$taux_de_change,
+                        "Description" => "Vous avez booster votre opportunité d' affaire titrée " . $opportuniteAffaire->titre . " pour " . $days . " jours"
+                    ]
+                ]);
             }
             
             // Ajouter le montant au wallet system (sans les frais)
@@ -874,39 +918,28 @@ class OpportuniteAffaireController extends Controller
             if (!$walletsystem) {
                 $walletsystem = WalletSystem::create(['balance' => 0]);
             }
-            if ($paymentMethod === "solifin-wallet") {
-                $walletsystem->transactions()->create([
-                    'wallet_system_id' => $walletsystem->id,
-                    'amount' => $amountInUSD,
-                    'type' => 'sales',
-                    'status' => 'completed',
-                    'metadata' => [
-                        "user" => $user->name, 
-                        "Opération" => "Boost d'opportunité d'affaire",
-                        "Durée" => $days, 
-                        "Méthode de paiement" => $paymentMethod, 
-                        "Dévise" => $currency,
-                        "Montant total" => $amount,
-                        "Type de paiement" => $paymentType,
-                        "Méthode de paiement" => $paymentMethod,
-                        "Frais globaux" => $globalFees
-                    ]
-                ]);
-            } else {
-                $walletsystem->addFunds($amountInUSDWithoutSpecificFees, 'sales', 'completed', [
-                    'Opération' => "Boost de publication",
-                    'user' => $user->name,
-                    'publication_id' => $opportuniteAffaire->id,
-                    'Type de publication' => 'opportunité d\'affaire',
-                    'Durée' => $days . " jours",
-                    'Montant total' => $amount,
-                    'Frais globaux' => $globalFees,
-                    'Frais spécific' => $specificFees,
-                    'Dévise' => $currency,
-                    'Méthode de paiement' => $paymentMethod,
-                    'Type de paiement' => $paymentType
-                ]);
-            }
+            
+            $walletsystem->transactions()->create([
+                'wallet_system_id' => $walletsystem->id,
+                'amount' => $amountInUSDWithoutSpecificFees,
+                'type' => 'sales',
+                'status' => 'completed',
+                'metadata' => [
+                    "user" => $user->name, 
+                    "Opération" => "Boost de publication",
+                    "Id de la publication" => $opportuniteAffaire->id,
+                    "Type de publication" => "opportunite d' affaire",
+                    "Type de paiement" => $paymentType,
+                    "Méthode de paiement" => $paymentMethod,
+                    "Durée" => $days . " jours",
+                    "Dévise" => $currency,
+                    "Montant net payé sans les frais" => $paymentAmount . " " . $currency,
+                    "Frais de transaction" => $globalFees . " " . $currency,
+                    "Frais API" => $specificFees . " " . $currency,
+                    "Taux du jour" => $taux_de_change,
+                    "Description" => "Boost de publication pour " . $opportuniteAffaire->titre . " pour " . $days . " jours"
+                ]
+            ]);
             
             // Mettre à jour la durée d'affichage
             $opportuniteAffaire->duree_affichage = ($opportuniteAffaire->duree_affichage ?? 0) + $days;
@@ -916,13 +949,12 @@ class OpportuniteAffaireController extends Controller
             
             return response()->json([
                 'success' => true,
-                'message' => 'Opportunité d\'affaire boostée avec succès pour ' . $days . ' jours supplémentaires.',
-                'publication' => $opportuniteAffaire,
+                'message' => 'Opportunite d\'affaire boostée avec succès pour ' . $days . ' jours supplémentaires.',
+                'opportunite_d_affaire' => $opportuniteAffaire,
                 'payment_details' => [
-                    'amount' => $amount,
+                    'amount' => $amount . $currency,
                     'fees' => $globalFees,
-                    'specific_fees' => $specificFees,
-                    'total' => $totalAmount,
+                    'total' => $totalAmount . $currency,
                     'currency' => $currency
                 ]
             ]);

@@ -331,7 +331,7 @@ class DigitalProductController extends Controller
                 ]);
             }
 
-            // Récupérer le pourcentage des frais d'achat
+            // Récupérer le pourcentage des frais de commodité system
             $feePercentage = \App\Models\Setting::where('key', 'purchase_commission_system')->first();
             if (!$feePercentage) {
                 $purchaseFeePercentage = 0;
@@ -418,7 +418,7 @@ class DigitalProductController extends Controller
             // Créer une transaction pour les frais dans le portefeuille système
             $systemWallet->transactions()->create([
                 "wallet_system_id" => $systemWallet->id,
-                "type" => "frais d achat",
+                "type" => "frais_de_commodite",
                 "amount" => $fees,
                 "status" => "completed",
                 "metadata" => [
@@ -432,10 +432,6 @@ class DigitalProductController extends Controller
                     "Frais" => $fees . "$",
                 ]
             ]);
-            
-            // Mettre à jour le solde du portefeuille système
-            $systemWallet->balance += $fees;
-            $systemWallet->save();
 
             // Mettre à jour le nombre de ventes
             $product->nombre_ventes += 1;
