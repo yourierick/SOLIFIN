@@ -690,7 +690,13 @@ class JetonEsengoController extends Controller
             $perPage = $request->input('per_page', 10);
             
             // Construire la requête avec les filtres
-            $query = TicketGagnant::with('user', 'cadeau')->where('consomme', true);
+            $query = TicketGagnant::with('user', 'cadeau');
+            
+            // Filtre par statut de consommation
+            if ($request->has('consomme') && $request->input('consomme') !== '') {
+                $consomme = filter_var($request->input('consomme'), FILTER_VALIDATE_BOOLEAN);
+                $query->where('consomme', $consomme);
+            }
             
             // Filtre par recherche textuelle
             if ($request->has('search') && !empty($request->input('search'))) {
@@ -743,7 +749,8 @@ class JetonEsengoController extends Controller
                         'email' => $ticket->user->email
                     ],
                     'date_consommation' => $ticket->date_consommation->format('Y-m-d H:i:s'),
-                    'date_expiration' => $ticket->date_expiration->format('Y-m-d H:i:s')
+                    'date_expiration' => $ticket->date_expiration->format('Y-m-d H:i:s'),
+                    'consomme' => $ticket->consomme
                 ];
             });
 

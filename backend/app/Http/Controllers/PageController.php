@@ -146,9 +146,6 @@ class PageController extends Controller
             'opportunitesAffaires' => function($query) {
                 $query->where('statut', '!=', 'rejeté')->where('statut', '!=', 'en_attente');
             },
-            'produitsNumeriques' => function($query) {
-                $query->where('statut', '!=', 'rejeté')->where('statut', '!=', 'en_attente');
-            },
             'user'
         ])->findOrFail($id);
 
@@ -167,14 +164,12 @@ class PageController extends Controller
         $publiciteIds = $page->publicites->pluck('id')->toArray();
         $offreEmploiIds = $page->offresEmploi->pluck('id')->toArray();
         $opportuniteAffaireIds = $page->opportunitesAffaires->pluck('id')->toArray();
-        $produitNumeriqueIds = $page->produitsNumeriques->pluck('id')->toArray();
         
         $publiciteCount = !empty($publiciteIds) ? PubliciteLike::whereIn('publicite_id', $publiciteIds)->count() : 0;
         $offreEmploiCount = !empty($offreEmploiIds) ? OffreEmploiLike::whereIn('offre_emploi_id', $offreEmploiIds)->count() : 0;
         $opportuniteAffaireCount = !empty($opportuniteAffaireIds) ? OpportuniteAffaireLike::whereIn('opportunite_affaire_id', $opportuniteAffaireIds)->count() : 0;
-        $produitNumeriqueCount = !empty($produitNumeriqueIds) ? DigitalProductLike::whereIn('digital_product_id', $produitNumeriqueIds)->count() : 0;
         
-        $page->nombre_likes = $publiciteCount + $offreEmploiCount + $opportuniteAffaireCount + $produitNumeriqueCount;
+        $page->nombre_likes = $publiciteCount + $offreEmploiCount + $opportuniteAffaireCount;
 
         // Traitement des images pour les publicités
         foreach ($page->publicites as $publicite) {
@@ -319,53 +314,6 @@ class PageController extends Controller
 
         if ($page->user->picture) {
             $page->user->picture = asset('storage/' . $page->user->picture);
-        }
-
-        // Traitement des produits numériques
-        foreach ($page->produitsNumeriques as $produit) {
-            // Ajouter les URLs des fichiers
-            if ($produit->file) {
-                $produit->file_url = asset('storage/' . $produit->file);
-            }
-
-            // Ajouter les URLs des images de couverture
-            if ($produit->cover_image) {
-                $produit->cover_image_url = asset('storage/' . $produit->cover_image);
-            }
-
-            // Ajouter les statistiques de likes et commentaires
-            $produit->likes_count = DigitalProductLike::where('digital_product_id', $produit->id)->count();
-            $produit->comments_count = DigitalProductComment::where('digital_product_id', $produit->id)->count();
-            $produit->shares_count = DigitalProductShare::where('digital_product_id', $produit->id)->count();
-            $produit->purchases_count = DigitalProductPurchase::where('digital_product_id', $produit->id)->count();
-            $produit->post_type = $produit->type;
-            $produit->type = "digital-products";
-            
-            // Vérifier si l'utilisateur connecté a aimé cette publication
-            if ($userId) {
-                $produit->liked_by_current_user = DigitalProductLike::where('digital_product_id', $produit->id)
-                    ->where('user_id', $userId)
-                    ->exists();
-                    
-                // Vérifier si l'utilisateur a acheté ce produit
-                $produit->purchased_by_current_user = DigitalProductPurchase::where('digital_product_id', $produit->id)
-                    ->where('user_id', $userId)
-                    ->exists();
-            } else {
-                $produit->liked_by_current_user = false;
-                $produit->purchased_by_current_user = false;
-            }
-            
-            // Récupérer les 3 derniers commentaires
-            $produit->comments = DigitalProductComment::where('digital_product_id', $produit->id)
-                ->with('user')
-                ->orderBy('created_at', 'desc')
-                ->take(3)
-                ->get()
-                ->map(function($comment) {
-                    $comment->user->picture = $comment->user->picture ? asset('storage/' . $comment->user->picture) : null;
-                    return $comment;
-                });
         }
 
         return response()->json([

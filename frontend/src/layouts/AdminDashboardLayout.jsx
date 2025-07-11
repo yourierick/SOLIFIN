@@ -88,36 +88,36 @@ const navigationItems = [
     icon: ShieldCheckIcon,
     permission: "manage-admins",
   },
-  {
-    name: "Demandes de retrait",
-    href: "/admin/withdrawal-requests",
-    icon: BanknotesIcon,
-    permission: "manage-withdrawals",
-  },
-  {
-    name: "Portefeuilles",
-    href: "/admin/wallets",
-    icon: WalletIcon,
-    permission: "manage-wallets",
-  },
+  // {
+  //   name: "Demandes de retrait",
+  //   href: "/admin/withdrawal-requests",
+  //   icon: BanknotesIcon,
+  //   permission: "manage-withdrawals",
+  // },
+  // {
+  //   name: "Portefeuilles",
+  //   href: "/admin/wallets",
+  //   icon: WalletIcon,
+  //   permission: "manage-wallets",
+  // },
   {
     name: "Packs",
     href: "/admin/packs",
     icon: ListBulletIcon,
     permission: "manage-packs",
   },
-  {
-    name: "Mes packs",
-    href: "/admin/mespacks",
-    icon: CubeIcon,
-    permission: "manage-own-packs",
-  },
-  {
-    name: "Commissions",
-    href: "/admin/commissions",
-    icon: CreditCardIcon,
-    permission: "manage-commissions",
-  },
+  // {
+  //   name: "Mes packs",
+  //   href: "/admin/mespacks",
+  //   icon: CubeIcon,
+  //   permission: "manage-own-packs",
+  // },
+  // {
+  //   name: "Commissions",
+  //   href: "/admin/commissions",
+  //   icon: CreditCardIcon,
+  //   permission: "manage-commissions",
+  // },
   {
     name: "Finances",
     href: "/admin/finances",
@@ -130,40 +130,45 @@ const navigationItems = [
     icon: GiftIcon,
     permission: "manage-gifts",
   },
+  // {
+  //   name: "Vérification tickets",
+  //   href: "/admin/tickets-verification",
+  //   icon: TicketIcon,
+  //   permission: "verify-tickets",
+  // },
+  // {
+  //   name: "Témoignages",
+  //   href: "/admin/testimonials",
+  //   icon: ChatBubbleLeftRightIcon,
+  //   permission: "manage-testimonials",
+  // },
+
+  // {
+  //   name: "Formations",
+  //   href: "/admin/formations",
+  //   icon: AcademicCapIcon,
+  //   permission: "manage-courses",
+  //   badge: (pendingFormationsCount) =>
+  //     pendingFormationsCount > 0 ? pendingFormationsCount : null,
+  //   badgeColor: "red",
+  // },
   {
-    name: "Vérification tickets",
-    href: "/admin/tickets-verification",
-    icon: TicketIcon,
-    permission: "verify-tickets",
-  },
-  {
-    name: "Témoignages",
-    href: "/admin/testimonials",
-    icon: ChatBubbleLeftRightIcon,
-    permission: "manage-testimonials",
-  },
-  {
-    name: "FAQ",
-    href: "/admin/faqs",
-    icon: QuestionMarkCircleIcon,
-    permission: "manage-faqs",
-  },
-  {
-    name: "Formations",
-    href: "/admin/formations",
-    icon: AcademicCapIcon,
-    permission: "manage-courses",
-    badge: (pendingFormationsCount) =>
-      pendingFormationsCount > 0 ? pendingFormationsCount : null,
-    badgeColor: "red",
-  },
-  {
-    name: "Validations",
-    href: "/admin/validations",
+    name: "Gestion des contenus",
+    href: "/admin/content-management",
     icon: CheckBadgeIcon,
     permission: "manage-validations",
-    badge: (pendingPublicationsCount) =>
-      pendingPublicationsCount > 0 ? pendingPublicationsCount : null,
+    badge: (
+      pendingPublicationsCount,
+      pendingFormationsCount,
+      pendingTestimonialsCount
+    ) =>
+      pendingPublicationsCount > 0 ||
+      pendingFormationsCount > 0 ||
+      pendingTestimonialsCount > 0
+        ? pendingPublicationsCount +
+          pendingFormationsCount +
+          pendingTestimonialsCount
+        : null,
     badgeColor: "yellow",
   },
   {
@@ -172,10 +177,21 @@ const navigationItems = [
     icon: Cog6ToothIcon,
     permission: "manage-system",
   },
+
+  {
+    name: "FAQ",
+    href: "/admin/faqs",
+    icon: QuestionMarkCircleIcon,
+    permission: "manage-faqs",
+  },
 ];
 
 // Fonction pour filtrer les éléments de navigation en fonction des permissions de l'utilisateur
-const getNavigation = (pendingFormationsCount = 0, pendingPublicationsCount = 0, userPermissions = []) => {
+const getNavigation = (
+  pendingFormationsCount = 0,
+  pendingPublicationsCount = 0,
+  userPermissions = []
+) => {
   // Si l'utilisateur est super admin ou si aucune permission n'est fournie, afficher tous les éléments
   if (userPermissions.includes("super-admin") || userPermissions.length === 0) {
     return navigationItems.map((item) => ({
@@ -240,7 +256,7 @@ export default function AdminDashboardLayout() {
   // Ajout du style CSS pour les barres de défilement
   useEffect(() => {
     // Création d'une feuille de style pour les barres de défilement
-    const styleElement = document.createElement('style');
+    const styleElement = document.createElement("style");
     styleElement.textContent = `
       /* Style pour la barre de défilement - caché par défaut */
       .sidebar-container::-webkit-scrollbar {
@@ -271,7 +287,7 @@ export default function AdminDashboardLayout() {
       }
     `;
     document.head.appendChild(styleElement);
-    
+
     // Nettoyage lors du démontage du composant
     return () => {
       document.head.removeChild(styleElement);
@@ -283,7 +299,7 @@ export default function AdminDashboardLayout() {
     overflowY: "auto",
     scrollbarWidth: "none" /* Pour Firefox */,
     msOverflowStyle: "none" /* Pour Internet Explorer et Edge */,
-    WebkitScrollbar: { display: "none" } /* Pour Chrome, Safari et Opera */
+    WebkitScrollbar: { display: "none" } /* Pour Chrome, Safari et Opera */,
   });
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [openSubmenu, setOpenSubmenu] = useState(null);
@@ -358,7 +374,7 @@ export default function AdminDashboardLayout() {
   const handleSubmenuClick = (menuName) => {
     // Vérifier si l'élément de menu existe dans la navigation filtrée
     const menuItem = navigation.find((item) => item.name === menuName);
-    
+
     // Ne permet d'ouvrir que les menus auxquels l'utilisateur a accès
     // et qui ont des sous-menus non vides
     if (menuItem && menuItem.children && menuItem.children.length > 0) {
@@ -389,8 +405,12 @@ export default function AdminDashboardLayout() {
   }, [dropdownRef]);
 
   // Créer la navigation avec le nombre de formations et publications en attente et les permissions de l'utilisateur
-  const navigation = getNavigation(pendingFormationsCount, pendingPublicationsCount, userPermissions);
-  
+  const navigation = getNavigation(
+    pendingFormationsCount,
+    pendingPublicationsCount,
+    userPermissions
+  );
+
   // S'assurer que tous les menus sont fermés par défaut
   useEffect(() => {
     setOpenSubmenu(null);
@@ -571,7 +591,9 @@ export default function AdminDashboardLayout() {
 
   return (
     <div
-      className={`min-h-screen flex flex-col ${isDarkMode ? "bg-gray-900" : "bg-gray-100"}`}
+      className={`min-h-screen flex flex-col ${
+        isDarkMode ? "bg-gray-900" : "bg-gray-100"
+      }`}
     >
       {/* Sidebar mobile */}
       <motion.div
@@ -610,14 +632,14 @@ export default function AdminDashboardLayout() {
             <XMarkIcon className="h-6 w-6" />
           </button>
         </div>
-        <nav 
-          className="flex-1 space-y-1 px-3 py-4 overflow-y-auto h-full sidebar-container" 
+        <nav
+          className="flex-1 space-y-1 px-3 py-4 overflow-y-auto h-full sidebar-container"
           onMouseEnter={() => setSidebarHover(true)}
           onMouseLeave={() => setSidebarHover(false)}
           style={{
             scrollbarWidth: sidebarHover ? "thin" : "none",
             msOverflowStyle: sidebarHover ? "auto" : "none",
-            WebkitOverflowScrolling: "touch"
+            WebkitOverflowScrolling: "touch",
           }}
         >
           {loadingPermissions ? (
@@ -627,13 +649,22 @@ export default function AdminDashboardLayout() {
                 <div className="h-full bg-primary-600 rounded-full animate-pulse w-2/3"></div>
               </div>
               <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                <div className="h-full bg-primary-600 rounded-full animate-pulse w-3/4" style={{ animationDelay: "0.2s" }}></div>
+                <div
+                  className="h-full bg-primary-600 rounded-full animate-pulse w-3/4"
+                  style={{ animationDelay: "0.2s" }}
+                ></div>
               </div>
               <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                <div className="h-full bg-primary-600 rounded-full animate-pulse w-1/2" style={{ animationDelay: "0.4s" }}></div>
+                <div
+                  className="h-full bg-primary-600 rounded-full animate-pulse w-1/2"
+                  style={{ animationDelay: "0.4s" }}
+                ></div>
               </div>
               <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                <div className="h-full bg-primary-600 rounded-full animate-pulse w-4/5" style={{ animationDelay: "0.6s" }}></div>
+                <div
+                  className="h-full bg-primary-600 rounded-full animate-pulse w-4/5"
+                  style={{ animationDelay: "0.6s" }}
+                ></div>
               </div>
             </div>
           ) : (
@@ -683,7 +714,7 @@ export default function AdminDashboardLayout() {
             msOverflowStyle: sidebarHover ? "auto" : "none",
             maxHeight: "100vh",
             /* Styles pour Chrome, Safari et Opera */
-            WebkitOverflowScrolling: "touch"
+            WebkitOverflowScrolling: "touch",
           }}
         >
           <div className="flex h-16 shrink-0 items-center">
@@ -713,13 +744,22 @@ export default function AdminDashboardLayout() {
                         <div className="h-full bg-primary-600 rounded-full animate-pulse w-2/3"></div>
                       </div>
                       <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                        <div className="h-full bg-primary-600 rounded-full animate-pulse w-3/4" style={{ animationDelay: "0.2s" }}></div>
+                        <div
+                          className="h-full bg-primary-600 rounded-full animate-pulse w-3/4"
+                          style={{ animationDelay: "0.2s" }}
+                        ></div>
                       </div>
                       <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                        <div className="h-full bg-primary-600 rounded-full animate-pulse w-1/2" style={{ animationDelay: "0.4s" }}></div>
+                        <div
+                          className="h-full bg-primary-600 rounded-full animate-pulse w-1/2"
+                          style={{ animationDelay: "0.4s" }}
+                        ></div>
                       </div>
                       <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                        <div className="h-full bg-primary-600 rounded-full animate-pulse w-4/5" style={{ animationDelay: "0.6s" }}></div>
+                        <div
+                          className="h-full bg-primary-600 rounded-full animate-pulse w-4/5"
+                          style={{ animationDelay: "0.6s" }}
+                        ></div>
                       </div>
                     </div>
                   ) : (
@@ -953,7 +993,11 @@ export default function AdminDashboardLayout() {
           </div>
         </div>
 
-        <main className={`py-10 flex-1 overflow-y-auto ${isDarkMode ? "bg-gray-900" : "bg-gray-100"}`}>
+        <main
+          className={`py-10 flex-1 overflow-y-auto ${
+            isDarkMode ? "bg-gray-900" : "bg-gray-100"
+          }`}
+        >
           <div className="px-4 sm:px-6 lg:px-8">
             <Outlet />
           </div>

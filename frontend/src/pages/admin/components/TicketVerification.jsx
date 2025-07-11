@@ -18,10 +18,12 @@ import {
   FunnelIcon,
   ChevronDownIcon,
   ChevronUpIcon,
+  ArrowDownTrayIcon,
 } from "@heroicons/react/24/outline";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import Notification from "../../../components/Notification";
+import * as XLSX from "xlsx";
 
 /**
  * Composant pour la vérification des tickets gagnants
@@ -44,7 +46,10 @@ const TicketVerification = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterDateDebut, setFilterDateDebut] = useState("");
   const [filterDateFin, setFilterDateFin] = useState("");
+  const [filterConsomme, setFilterConsomme] = useState("");
+  const [showExportMenu, setShowExportMenu] = useState(false); // "", "true", "false"
   const [showFilters, setShowFilters] = useState(false);
+  const [allTickets, setAllTickets] = useState([]); // Pour l'exportation Excel
 
   // Couleurs pour le thème
   const themeColors = {
@@ -148,6 +153,18 @@ const TicketVerification = () => {
     return new Date(ticket.date_expiration) < new Date();
   };
 
+  // Fonction pour récupérer tous les tickets (pour l'export)
+  const fetchAllTickets = async () => {
+    try {
+      const response = await axios.get('/api/admin/tickets/historique?per_page=1000');
+      if (response.data.success) {
+        setAllTickets(response.data.data.data);
+      }
+    } catch (error) {
+      console.error("Erreur lors de la récupération de tous les tickets:", error);
+    }
+  };
+  
   // Charger l'historique des tickets consommés
   const loadHistoriqueTickets = async (page = 1) => {
     setHistoriqueLoading(true);
@@ -168,6 +185,11 @@ const TicketVerification = () => {
 
       if (filterDateFin) {
         params.append("date_fin", filterDateFin);
+      }
+      
+      // Ajout du filtre de consommation
+      if (filterConsomme !== "") {
+        params.append("consomme", filterConsomme);
       }
 
       const response = await axios.get(
@@ -200,9 +222,120 @@ const TicketVerification = () => {
   // Charger l'historique quand on change d'onglet
   useEffect(() => {
     if (activeTab === "historique") {
-      loadHistoriqueTickets();
+      loadHistoriqueTickets(1);
     }
+    // Fermer le menu d'exportation lors du changement d'onglet
+    setShowExportMenu(false);
   }, [activeTab]);
+  
+  // Effet pour fermer le menu d'exportation quand on clique ailleurs sur la page
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (showExportMenu && !event.target.closest('.export-menu-container')) {
+        setShowExportMenu(false);
+      }
+    };
+    
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showExportMenu]);
+  
+  // Fonction pour exporter les données vers Excel
+  const exportToExcel = async (type) => {
+    try {
+      let dataToExport = [];
+      
+      if (type === 'page') {
+        // Exporter uniquement la page actuelle (déjà chargée)
+        dataToExport = historiqueTickets;
+      } else if (type === 'filtered') {
+        // Exporter toutes les données avec les filtres actuels
+        setHistoriqueLoading(true);
+        
+        // Construction des paramètres de requête avec les filtres actuels
+        const params = new URLSearchParams();
+        params.append("per_page", 1000); // Augmenter la limite pour récupérer plus de données
+        
+        if (searchTerm.trim()) {
+          params.append("search", searchTerm.trim());
+        }
+        
+        if (filterDateDebut) {
+          params.append("date_debut", filterDateDebut);
+        }
+        
+        if (filterDateFin) {
+          params.append("date_fin", filterDateFin);
+        }
+        
+        if (filterConsomme !== "") {
+          params.append("consomme", filterConsomme);
+        }
+        
+        const response = await axios.get(`/api/admin/tickets/historique?${params.toString()}`);
+        
+        if (response.data.success) {
+          dataToExport = response.data.data.data;
+        } else {
+          throw new Error(response.data.message || "Erreur lors de la récupération des données");
+        }
+      } else if (type === 'all') {
+        // Exporter toutes les données sans filtre
+        setHistoriqueLoading(true);
+        
+        const params = new URLSearchParams();
+        params.append("per_page", 1000); // Augmenter la limite pour récupérer plus de données
+        
+        const response = await axios.get(`/api/admin/tickets/historique?${params.toString()}`);
+        
+        if (response.data.success) {
+          dataToExport = response.data.data.data;
+        } else {
+          throw new Error(response.data.message || "Erreur lors de la récupération des données");
+        }
+      }
+      
+      // Formater les données pour l'export
+      const formattedData = dataToExport.map(ticket => ({
+        'Code': ticket.code_verification || 'N/A',
+        'Cadeau': ticket.cadeau?.nom || 'N/A',
+        'Valeur': ticket.cadeau?.valeur || 0,
+        'Utilisateur': ticket.user?.name || 'N/A',
+        'Email': ticket.user?.email || 'N/A',
+        'Date de consommation': ticket.date_consommation ? format(new Date(ticket.date_consommation), 'dd/MM/yyyy HH:mm') : 'N/A',
+        'Date d\'expiration': ticket.date_expiration ? format(new Date(ticket.date_expiration), 'dd/MM/yyyy HH:mm') : 'N/A',
+        'Consommé': ticket.consomme ? 'Oui' : 'Non'
+      }));
+      
+      // Créer un workbook Excel
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.json_to_sheet(formattedData);
+      
+      // Ajouter la feuille au workbook
+      XLSX.utils.book_append_sheet(wb, ws, 'Historique Tickets');
+      
+      // Générer le fichier Excel et le télécharger
+      const dateStr = format(new Date(), 'yyyy-MM-dd');
+      let fileName = `historique_tickets_${dateStr}`;
+      
+      if (type === 'filtered' && (searchTerm || filterDateDebut || filterDateFin || filterConsomme !== "")) {
+        fileName += '_filtres';
+      } else if (type === 'page') {
+        fileName += `_page${currentPage}`;
+      }
+      
+      XLSX.writeFile(wb, `${fileName}.xlsx`);
+      
+      Notification.success("Export Excel réussi");
+    } catch (error) {
+      console.error("Erreur lors de l'export Excel:", error);
+      Notification.error("Erreur lors de l'export Excel");
+    } finally {
+      setHistoriqueLoading(false);
+    }
+  };
 
   return (
     <div
@@ -452,18 +585,67 @@ const TicketVerification = () => {
       {activeTab === "historique" && (
         <div>
           <div className="flex justify-between items-center mb-4">
-            <h3 className="text-lg font-medium">
-              Historique des cadeaux remis
-            </h3>
+            <h3 className="text-lg font-medium">Historique des cadeaux</h3>
             <div className="flex space-x-2">
               <button
                 onClick={() => setShowFilters(!showFilters)}
                 className={`${themeColors.buttonSecondary} p-2 rounded-md flex items-center`}
-                title={showFilters ? "Masquer les filtres" : "Afficher les filtres"}
+                title={
+                  showFilters ? "Masquer les filtres" : "Afficher les filtres"
+                }
               >
                 <FunnelIcon className="h-5 w-5 mr-1" />
-                {showFilters ? <ChevronUpIcon className="h-4 w-4" /> : <ChevronDownIcon className="h-4 w-4" />}
+                {showFilters ? (
+                  <ChevronUpIcon className="h-4 w-4" />
+                ) : (
+                  <ChevronDownIcon className="h-4 w-4" />
+                )}
               </button>
+              <div className="relative export-menu-container">
+                <button
+                  onClick={() => setShowExportMenu(!showExportMenu)}
+                  className={`${themeColors.buttonSecondary} p-2 rounded-md flex items-center`}
+                  title="Exporter"
+                >
+                  <ArrowDownTrayIcon className="h-5 w-5" />
+                </button>
+                {showExportMenu && (
+                  <div className="absolute right-0 mt-2 w-64 bg-white dark:bg-gray-800 rounded-md shadow-lg overflow-hidden z-20">
+                    <div className="py-1">
+                      <button
+                        onClick={() => {
+                          exportToExcel('filtered');
+                          setShowExportMenu(false);
+                        }}
+                        className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center"
+                      >
+                        <ArrowDownTrayIcon className="h-4 w-4 mr-2" />
+                        Exporter les données filtrées
+                      </button>
+                      <button
+                        onClick={() => {
+                          exportToExcel('page');
+                          setShowExportMenu(false);
+                        }}
+                        className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center"
+                      >
+                        <ArrowDownTrayIcon className="h-4 w-4 mr-2" />
+                        Exporter la page actuelle
+                      </button>
+                      <button
+                        onClick={() => {
+                          exportToExcel('all');
+                          setShowExportMenu(false);
+                        }}
+                        className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center"
+                      >
+                        <ArrowDownTrayIcon className="h-4 w-4 mr-2" />
+                        Exporter tous les cadeaux
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
               <button
                 onClick={() => loadHistoriqueTickets(1)}
                 className={`${themeColors.buttonSecondary} p-2 rounded-md flex items-center`}
@@ -507,7 +689,7 @@ const TicketVerification = () => {
           {/* Filtres avancés (cachés par défaut) */}
           {showFilters && (
             <div className="mb-6 bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {/* Filtre date début */}
                 <div>
                   <label
@@ -540,6 +722,26 @@ const TicketVerification = () => {
                     onChange={(e) => setFilterDateFin(e.target.value)}
                     className={`w-full px-4 py-2 border ${themeColors.border} rounded-md ${themeColors.input}`}
                   />
+                </div>
+                
+                {/* Filtre statut de consommation */}
+                <div>
+                  <label
+                    htmlFor="consomme"
+                    className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                  >
+                    Statut de consommation
+                  </label>
+                  <select
+                    id="consomme"
+                    value={filterConsomme}
+                    onChange={(e) => setFilterConsomme(e.target.value)}
+                    className={`w-full px-4 py-2 border ${themeColors.border} rounded-md ${themeColors.input}`}
+                  >
+                    <option value="">Tous les tickets</option>
+                    <option value="true">Tickets consommés</option>
+                    <option value="false">Tickets non consommés</option>
+                  </select>
                 </div>
               </div>
 
@@ -577,6 +779,7 @@ const TicketVerification = () => {
                     setSearchTerm("");
                     setFilterDateDebut("");
                     setFilterDateFin("");
+                    setFilterConsomme("");
                     setCurrentPage(1);
                     loadHistoriqueTickets(1);
                   }}
@@ -608,7 +811,8 @@ const TicketVerification = () => {
               <p>Aucun ticket consommé n'a été trouvé.</p>
               {(searchTerm || filterDateDebut || filterDateFin) && (
                 <p className="mt-2 text-sm">
-                  Essayez de modifier vos critères de recherche ou de réinitialiser les filtres.
+                  Essayez de modifier vos critères de recherche ou de
+                  réinitialiser les filtres.
                 </p>
               )}
             </div>
@@ -618,127 +822,165 @@ const TicketVerification = () => {
             <div>
               <div className="mb-4 text-sm text-gray-600 dark:text-gray-400 flex justify-between items-center">
                 <div>
-                  <span className="font-medium">{historiqueTickets.length}</span> résultat(s) affiché(s)
+                  <span className="font-medium">
+                    {historiqueTickets.length}
+                  </span>{" "}
+                  résultat(s) affiché(s)
                   {(searchTerm || filterDateDebut || filterDateFin) && (
                     <span> pour les filtres appliqués</span>
                   )}
                 </div>
                 {totalPages > 1 && (
                   <div>
-                    Page <span className="font-medium">{currentPage}</span> sur <span className="font-medium">{totalPages}</span>
+                    Page <span className="font-medium">{currentPage}</span> sur{" "}
+                    <span className="font-medium">{totalPages}</span>
                   </div>
                 )}
               </div>
               <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                <thead className="bg-gray-50 dark:bg-gray-800">
-                  <tr>
-                    <th
-                      scope="col"
-                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
-                    >
-                      Cadeau
-                    </th>
-                    <th
-                      scope="col"
-                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
-                    >
-                      Utilisateur
-                    </th>
-                    <th
-                      scope="col"
-                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
-                    >
-                      Date de consommation
-                    </th>
-                    <th
-                      scope="col"
-                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
-                    >
-                      Valeur
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
-                  {historiqueTickets.map((ticket) => (
-                    <tr
-                      key={ticket.id}
-                      className="hover:bg-gray-50 dark:hover:bg-gray-800"
-                    >
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center">
-                          {ticket.cadeau?.image_url && (
-                            <img
-                              src={ticket.cadeau.image_url}
-                              alt={ticket.cadeau.nom}
-                              className="h-10 w-10 rounded-full mr-3 object-cover"
-                            />
-                          )}
-                          <div>
-                            <div className="text-sm font-medium">
-                              {ticket.cadeau?.nom || "N/A"}
-                            </div>
-                            {ticket.code_verification && (
-                              <div className="text-xs text-gray-500 dark:text-gray-400">
-                                Code: {ticket.code_verification}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm">
-                          {ticket.user?.name || "N/A"}
-                        </div>
-                        <div className="text-xs text-gray-500 dark:text-gray-400">
-                          {ticket.user?.email || ""}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm">
-                        {formatDate(ticket.date_consommation)}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm">
-                        {ticket.cadeau?.valeur
-                          ? `${ticket.cadeau.valeur} $`
-                          : "N/A"}
-                      </td>
+                <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700 border-collapse border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+                  <thead className="bg-gray-100 dark:bg-gray-800">
+                    <tr>
+                      <th
+                        scope="col"
+                        className="px-6 py-3 text-left text-xs font-medium text-gray-600 dark:text-gray-300 uppercase tracking-wider"
+                      >
+                        Cadeau
+                      </th>
+                      <th
+                        scope="col"
+                        className="px-6 py-3 text-left text-xs font-medium text-gray-600 dark:text-gray-300 uppercase tracking-wider"
+                      >
+                        Utilisateur
+                      </th>
+                      <th
+                        scope="col"
+                        className="px-6 py-3 text-left text-xs font-medium text-gray-600 dark:text-gray-300 uppercase tracking-wider"
+                      >
+                        Date de consommation
+                      </th>
+                      <th
+                        scope="col"
+                        className="px-6 py-3 text-left text-xs font-medium text-gray-600 dark:text-gray-300 uppercase tracking-wider"
+                      >
+                        Date d'expiration
+                      </th>
+                      <th
+                        scope="col"
+                        className="px-6 py-3 text-left text-xs font-medium text-gray-600 dark:text-gray-300 uppercase tracking-wider"
+                      >
+                        Consommé
+                      </th>
+                      <th
+                        scope="col"
+                        className="px-6 py-3 text-left text-xs font-medium text-gray-600 dark:text-gray-300 uppercase tracking-wider"
+                      >
+                        Valeur
+                      </th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
+                    {historiqueTickets.map((ticket) => (
+                      <tr
+                        key={ticket.id}
+                        className={`hover:bg-gray-50 dark:hover:bg-gray-800 ${ticket.consomme ? '' : 'bg-yellow-50 dark:bg-yellow-900/20'}`}
+                      >
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex items-center">
+                            {ticket.cadeau?.image_url && (
+                              <img
+                                src={ticket.cadeau.image_url}
+                                alt={ticket.cadeau.nom}
+                                className="h-10 w-10 rounded-full mr-3 object-cover"
+                              />
+                            )}
+                            <div>
+                              <div className="text-sm font-medium">
+                                {ticket.cadeau?.nom || "N/A"}
+                              </div>
+                              {ticket.code_verification && (
+                                <div className="text-xs text-gray-500 dark:text-gray-400">
+                                  Code: {ticket.code_verification}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm">
+                            {ticket.user?.name || "N/A"}
+                          </div>
+                          <div className="text-xs text-gray-500 dark:text-gray-400">
+                            {ticket.user?.email || ""}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm">
+                          {formatDate(ticket.date_consommation)}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm">
+                          {ticket.date_expiration
+                            ? formatDate(ticket.date_expiration)
+                            : "N/A"}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm">
+                          {ticket.consomme ? (
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                              <CheckCircleIcon className="h-4 w-4 mr-1" />
+                              Oui
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">
+                              <ClockIcon className="h-4 w-4 mr-1" />
+                              Non
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm">
+                          {ticket.cadeau?.valeur
+                            ? `${ticket.cadeau.valeur} $`
+                            : "N/A"}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
 
-              {/* Pagination */}
-              {totalPages > 1 && (
-                <div className="mt-4 flex justify-center">
-                  <nav className="flex items-center">
-                    <button
-                      onClick={() => loadHistoriqueTickets(currentPage - 1)}
-                      disabled={currentPage === 1 || historiqueLoading}
-                      className={`${
-                        currentPage === 1 ? "opacity-50 cursor-not-allowed" : ""
-                      } p-2 mx-1 rounded-md ${themeColors.buttonSecondary}`}
-                    >
-                      Précédent
-                    </button>
+                {/* Pagination */}
+                {totalPages > 1 && (
+                  <div className="mt-4 flex justify-center">
+                    <nav className="flex items-center">
+                      <button
+                        onClick={() => loadHistoriqueTickets(currentPage - 1)}
+                        disabled={currentPage === 1 || historiqueLoading}
+                        className={`${
+                          currentPage === 1
+                            ? "opacity-50 cursor-not-allowed"
+                            : ""
+                        } p-2 mx-1 rounded-md ${themeColors.buttonSecondary}`}
+                      >
+                        Précédent
+                      </button>
 
-                    <div className="mx-2 text-sm">
-                      Page {currentPage} sur {totalPages}
-                    </div>
+                      <div className="mx-2 text-sm">
+                        Page {currentPage} sur {totalPages}
+                      </div>
 
-                    <button
-                      onClick={() => loadHistoriqueTickets(currentPage + 1)}
-                      disabled={currentPage === totalPages || historiqueLoading}
-                      className={`${
-                        currentPage === totalPages
-                          ? "opacity-50 cursor-not-allowed"
-                          : ""
-                      } p-2 mx-1 rounded-md ${themeColors.buttonSecondary}`}
-                    >
-                      Suivant
-                    </button>
-                  </nav>
-                </div>
-              )}
+                      <button
+                        onClick={() => loadHistoriqueTickets(currentPage + 1)}
+                        disabled={
+                          currentPage === totalPages || historiqueLoading
+                        }
+                        className={`${
+                          currentPage === totalPages
+                            ? "opacity-50 cursor-not-allowed"
+                            : ""
+                        } p-2 mx-1 rounded-md ${themeColors.buttonSecondary}`}
+                      >
+                        Suivant
+                      </button>
+                    </nav>
+                  </div>
+                )}
               </div>
             </div>
           )}

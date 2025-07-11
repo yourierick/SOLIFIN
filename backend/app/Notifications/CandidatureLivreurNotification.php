@@ -76,15 +76,12 @@ class CandidatureLivreurNotification extends Notification implements ShouldQueue
     public function toArray(object $notifiable): array
     {
         return [
-            'type' => 'candidature_livreur',
-            'applicant_id' => $this->applicant->id,
-            'applicant_name' => $this->applicant->name,
-            'page_id' => $this->page->id,
-            'page_name' => $this->page->nom ?? 'Votre page',
+            'type' => 'info',
+            'titre' => 'Candidature de livraison',
             'link' => '/dashboard/my-page',
-            'titre' => 'Nouvelle candidature de livreur',
             'message' => 'L\'utilisateur ' . $this->applicant->name . ' a postulé en tant que livreur pour votre page.',
-            'created_at' => now()->toIso8601String(),
+            'icon' => 'info',
+            'color' => 'primary',
         ];
     }
 }

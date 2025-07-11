@@ -706,8 +706,16 @@ export default function AdvertisementValidation() {
   const renderItemList = (items, type) => {
     if (items.length === 0) {
       return (
-        <div className="text-center py-10 text-gray-500 dark:text-gray-400">
-          <p>Aucun élément correspondant aux filtres</p>
+        <div className="text-center py-16 px-4">
+          <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-8 shadow-sm">
+            <DocumentTextIcon className="h-12 w-12 mx-auto text-gray-400 dark:text-gray-500 mb-3" />
+            <p className="text-gray-500 dark:text-gray-400 font-medium">
+              Aucun élément correspondant aux filtres
+            </p>
+            <p className="text-gray-400 dark:text-gray-500 text-sm mt-1">
+              Essayez de modifier vos critères de recherche
+            </p>
+          </div>
         </div>
       );
     }
@@ -721,47 +729,67 @@ export default function AdvertisementValidation() {
           {paginatedItems.map((item) => (
             <div
               key={item.id}
-              className={`bg-white dark:bg-gray-800 shadow rounded-lg p-4 border ${
+              className={`bg-white dark:bg-gray-800 shadow-sm hover:shadow-md transition-all duration-200 rounded-xl p-5 border-l-4 ${
                 type === "socialEvent" && item.needs_attention
-                  ? "border-red-500 dark:border-red-500"
-                  : getStatusBorderColor(item.statut)
+                  ? "border-l-red-500 dark:border-l-red-500"
+                  : getStatusBorderColor(item.statut).replace(
+                      "border",
+                      "border-l"
+                    )
               }`}
             >
-              <div className="flex justify-between items-start">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <h3 className="font-medium text-gray-900 dark:text-white">
+              <div className="flex flex-col md:flex-row justify-between gap-4">
+                <div className="flex-1">
+                  <div className="flex flex-wrap items-center gap-2 mb-2">
+                    <h3 className="font-semibold text-gray-900 dark:text-white text-lg">
                       {item.titre || item.content}
                     </h3>
-                    <StatusBadge status={item.statut} />
-                    {item.etat && <StateBadge state={item.etat} />}
+                    <div className="flex flex-wrap gap-2 items-center">
+                      <StatusBadge status={item.statut} />
+                      {item.etat && <StateBadge state={item.etat} />}
 
-                    {/* Badge de signalement pour les statuts sociaux */}
-                    {type === "socialEvent" && item.reports_count > 0 && (
-                      <span
-                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                          item.needs_attention
-                            ? "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300"
-                            : "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300"
-                        }`}
-                        title={`${item.reports_count} signalement${
-                          item.reports_count > 1 ? "s" : ""
-                        }`}
-                      >
-                        <ExclamationCircleIcon className="h-3 w-3 mr-1" />
-                        {item.reports_count}
-                      </span>
-                    )}
+                      {/* Badge de signalement pour les statuts sociaux */}
+                      {type === "socialEvent" && item.reports_count > 0 && (
+                        <span
+                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                            item.needs_attention
+                              ? "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300"
+                              : "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300"
+                          }`}
+                          title={`${item.reports_count} signalement${
+                            item.reports_count > 1 ? "s" : ""
+                          }`}
+                        >
+                          <ExclamationCircleIcon className="h-3 w-3 mr-1" />
+                          {item.reports_count}
+                        </span>
+                      )}
+                    </div>
                   </div>
-                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                    {item.user?.nom || item.user?.name} {item.user?.prenom} •{" "}
-                    {new Date(item.created_at).toLocaleDateString()}
-                  </p>
-                  <p className="text-sm text-gray-600 dark:text-gray-300 mt-2 line-clamp-2">
-                    {item.description || item.content}
-                  </p>
+
+                  <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 mb-3">
+                    <span className="inline-flex items-center">
+                      <span className="font-medium">
+                        {item.user?.nom || item.user?.name} {item.user?.prenom}
+                      </span>
+                    </span>
+                    <span className="inline-block h-1 w-1 rounded-full bg-gray-400 dark:bg-gray-600"></span>
+                    <span>
+                      {new Date(item.created_at).toLocaleDateString("fr-FR", {
+                        year: "numeric",
+                        month: "short",
+                        day: "numeric",
+                      })}
+                    </span>
+                  </div>
+
+                  <div className="bg-gray-50 dark:bg-gray-800/50 rounded-lg p-3 mt-1">
+                    <p className="text-sm text-gray-600 dark:text-gray-300 line-clamp-2">
+                      {item.description || item.content}
+                    </p>
+                  </div>
                 </div>
-                <div className="flex space-x-2">
+                <div className="flex flex-wrap md:flex-nowrap gap-2 items-center justify-end md:justify-start mt-4 md:mt-0">
                   {/* Bouton pour voir les signalements (uniquement pour les statuts sociaux) */}
                   {type === "socialEvent" && item.reports_count > 0 && (
                     <button
@@ -772,10 +800,13 @@ export default function AdvertisementValidation() {
                         setSelectedReportedStatus(item);
                         setReportModalOpen(true);
                       }}
-                      className={`p-2 rounded-full ${
+                      className={`p-2 rounded-full transition-all duration-200 ${
                         item.needs_attention
-                          ? "text-red-500 hover:bg-red-100 dark:hover:bg-red-900/30"
-                          : "text-yellow-500 hover:bg-yellow-100 dark:hover:bg-yellow-900/30"
+                          ? "text-red-500 bg-red-50 hover:bg-red-100 dark:bg-red-900/20 dark:hover:bg-red-900/30"
+                          : "text-yellow-500 bg-yellow-50 hover:bg-yellow-100 dark:bg-yellow-900/20 dark:hover:bg-yellow-900/30"
+                      }`}
+                      aria-label={`Voir les ${item.reports_count} signalement${
+                        item.reports_count > 1 ? "s" : ""
                       }`}
                     >
                       <ShieldExclamationIcon className="h-5 w-5" />
@@ -783,36 +814,40 @@ export default function AdvertisementValidation() {
                   )}
 
                   <button
-                    title="Voir"
+                    title="Voir les détails"
                     onClick={() => openPreviewModal(item, type)}
-                    className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
+                    className="p-2 rounded-full bg-gray-50 hover:bg-gray-100 text-gray-600 transition-all duration-200 dark:bg-gray-700/50 dark:hover:bg-gray-700 dark:text-gray-300"
+                    aria-label="Voir les détails"
                   >
-                    <EyeIcon className="h-5 w-5 text-gray-500 dark:text-gray-400" />
+                    <EyeIcon className="h-5 w-5" />
                   </button>
                   {item.statut !== "approuvé" && (
                     <button
                       title="Approuver"
                       onClick={() => handleApprove(item.id, type)}
-                      className="p-2 rounded-full hover:bg-green-100 dark:hover:bg-green-900/30"
+                      className="p-2 rounded-full bg-green-50 hover:bg-green-100 text-green-600 transition-all duration-200 dark:bg-green-900/20 dark:hover:bg-green-900/30 dark:text-green-400"
+                      aria-label="Approuver"
                     >
-                      <CheckCircleIcon className="h-5 w-5 text-green-600 dark:text-green-500" />
+                      <CheckCircleIcon className="h-5 w-5" />
                     </button>
                   )}
                   {item.statut === "rejeté" ? (
                     <button
                       title="Annuler le rejet"
                       onClick={() => handleCancelReject(item.id, type)}
-                      className="p-2 rounded-full hover:bg-yellow-100 dark:hover:bg-yellow-900/30"
+                      className="p-2 rounded-full bg-yellow-50 hover:bg-yellow-100 text-yellow-600 transition-all duration-200 dark:bg-yellow-900/20 dark:hover:bg-yellow-900/30 dark:text-yellow-400"
+                      aria-label="Annuler le rejet"
                     >
-                      <ArrowPathIcon className="h-5 w-5 text-yellow-600 dark:text-yellow-500" />
+                      <ArrowPathIcon className="h-5 w-5" />
                     </button>
                   ) : (
                     <button
                       title="Rejeter"
                       onClick={() => openRejectModal(item, type)}
-                      className="p-2 rounded-full hover:bg-red-100 dark:hover:bg-red-900/30"
+                      className="p-2 rounded-full bg-red-50 hover:bg-red-100 text-red-600 transition-all duration-200 dark:bg-red-900/20 dark:hover:bg-red-900/30 dark:text-red-400"
+                      aria-label="Rejeter"
                     >
-                      <XCircleIcon className="h-5 w-5 text-red-600 dark:text-red-500" />
+                      <XCircleIcon className="h-5 w-5" />
                     </button>
                   )}
                   {/* Ne pas afficher le bouton "Changer l'état" pour les statuts sociaux */}
@@ -826,17 +861,19 @@ export default function AdvertisementValidation() {
                           item.etat === "disponible" ? "terminé" : "disponible"
                         )
                       }
-                      className="p-2 rounded-full hover:bg-blue-100 dark:hover:bg-blue-900/30"
+                      className="p-2 rounded-full bg-blue-50 hover:bg-blue-100 text-blue-600 transition-all duration-200 dark:bg-blue-900/20 dark:hover:bg-blue-900/30 dark:text-blue-400"
+                      aria-label="Changer l'état"
                     >
-                      <TagIcon className="h-5 w-5 text-blue-600 dark:text-blue-500" />
+                      <TagIcon className="h-5 w-5" />
                     </button>
                   )}
                   <button
                     title="Supprimer"
                     onClick={() => openDeleteModal(item.id, type)}
-                    className="p-2 rounded-full hover:bg-red-100 dark:hover:bg-red-900/30"
+                    className="p-2 rounded-full bg-red-50 hover:bg-red-100 text-red-600 transition-all duration-200 dark:bg-red-900/20 dark:hover:bg-red-900/30 dark:text-red-400"
+                    aria-label="Supprimer"
                   >
-                    <TrashIcon className="h-5 w-5 text-red-600 dark:text-red-500" />
+                    <TrashIcon className="h-5 w-5" />
                   </button>
                 </div>
               </div>
@@ -1311,7 +1348,7 @@ export default function AdvertisementValidation() {
                   </span>
                 )}
                 <DocumentTextIcon className="h-5 w-5 mr-2" />
-                Produits numériques
+                Numériques
               </div>
             </Tab>
             <Tab
@@ -1423,7 +1460,7 @@ export default function AdvertisementValidation() {
       {isPreviewModalOpen && renderPreviewModal()}
       {isRejectModalOpen && renderRejectModal()}
       {reportModalOpen && renderReportModal()}
-      
+
       {/* Modal de confirmation de suppression */}
       <ConfirmationModal
         isOpen={isDeleteModalOpen}

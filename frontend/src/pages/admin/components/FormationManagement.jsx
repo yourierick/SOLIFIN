@@ -40,6 +40,11 @@ import {
   Search as SearchIcon,
   FilterList as FilterListIcon,
   Publish as PublishIcon,
+  HourglassEmpty as HourglassEmptyIcon,
+  EditNote as EditNoteIcon,
+  HelpOutline as HelpOutlineIcon,
+  AdminPanelSettings as AdminPanelSettingsIcon,
+  Person as PersonIcon,
 } from "@mui/icons-material";
 import axios from "axios";
 import { useTheme } from "@mui/material/styles";
@@ -222,79 +227,246 @@ const FormationManagement = () => {
   // Fonction pour afficher le statut avec la couleur appropriée
   const renderStatus = (status, formation) => {
     const statusConfig = {
-      draft: {
-        label: "Brouillon",
-        color: "default",
-        variant: formation?.type === "admin" ? "outlined" : "filled",
-        icon:
-          formation?.type === "admin" ? <PublishIcon fontSize="small" /> : null,
-      },
       pending: {
         label: "En attente",
-        color: "warning",
-        variant: "filled",
-        icon: null,
+        icon: <HourglassEmptyIcon fontSize="small" sx={{ mr: 0.5 }} />,
+        colors: {
+          dark: {
+            bg: "rgba(144, 205, 244, 0.15)",
+            color: "#90CDF4",
+            border: "1px solid rgba(144, 205, 244, 0.3)"
+          },
+          light: {
+            bg: "rgba(43, 108, 176, 0.08)",
+            color: "#2B6CB0",
+            border: "1px solid rgba(43, 108, 176, 0.2)"
+          }
+        }
       },
       published: {
-        label: "Publié",
-        color: "success",
-        variant: "filled",
-        icon: null,
+        label: "Publiée",
+        icon: <CheckCircleIcon fontSize="small" sx={{ mr: 0.5 }} />,
+        colors: {
+          dark: {
+            bg: "rgba(154, 230, 180, 0.15)",
+            color: "#9AE6B4",
+            border: "1px solid rgba(154, 230, 180, 0.3)"
+          },
+          light: {
+            bg: "rgba(39, 103, 73, 0.08)",
+            color: "#276749",
+            border: "1px solid rgba(39, 103, 73, 0.2)"
+          }
+        }
       },
       rejected: {
-        label: "Rejeté",
-        color: "error",
-        variant: "filled",
-        icon: null,
+        label: "Rejetée",
+        icon: <CancelIcon fontSize="small" sx={{ mr: 0.5 }} />,
+        colors: {
+          dark: {
+            bg: "rgba(254, 178, 178, 0.15)",
+            color: "#FEB2B2",
+            border: "1px solid rgba(254, 178, 178, 0.3)"
+          },
+          light: {
+            bg: "rgba(197, 48, 48, 0.08)",
+            color: "#C53030",
+            border: "1px solid rgba(197, 48, 48, 0.2)"
+          }
+        }
       },
+      draft: {
+        label: "Brouillon",
+        icon: <EditNoteIcon fontSize="small" sx={{ mr: 0.5 }} />,
+        colors: {
+          dark: {
+            bg: "rgba(246, 224, 94, 0.15)",
+            color: "#F6E05E",
+            border: "1px solid rgba(246, 224, 94, 0.3)"
+          },
+          light: {
+            bg: "rgba(151, 90, 22, 0.08)",
+            color: "#975A16",
+            border: "1px solid rgba(151, 90, 22, 0.2)"
+          }
+        }
+      },
+      default: {
+        label: "Inconnu",
+        icon: <HelpOutlineIcon fontSize="small" sx={{ mr: 0.5 }} />,
+        colors: {
+          dark: {
+            bg: "rgba(226, 232, 240, 0.15)",
+            color: "#E2E8F0",
+            border: "1px solid rgba(226, 232, 240, 0.3)"
+          },
+          light: {
+            bg: "rgba(74, 85, 104, 0.08)",
+            color: "#4A5568",
+            border: "1px solid rgba(74, 85, 104, 0.2)"
+          }
+        }
+      }
     };
 
-    const config = statusConfig[status] || {
-      label: status,
-      color: "default",
-      variant: "filled",
-      icon: null,
-    };
+    const config = statusConfig[status] || statusConfig.default;
+    const theme = isDarkMode ? config.colors.dark : config.colors.light;
 
     return (
-      <Chip
-        label={config.label}
-        color={config.color}
-        size="small"
-        variant={config.variant}
-        icon={config.icon}
-      />
+      <Box
+        sx={{
+          display: "inline-flex",
+          alignItems: "center",
+          borderRadius: "16px",
+          py: 0.5,
+          px: 1.5,
+          backgroundColor: theme.bg,
+          color: theme.color,
+          border: theme.border,
+          fontWeight: 500,
+          fontSize: "0.75rem",
+          transition: "all 0.2s ease",
+          "&:hover": {
+            boxShadow: `0 0 0 1px ${theme.color}`,
+            transform: "translateY(-1px)"
+          }
+        }}
+      >
+        {config.icon}
+        {config.label}
+      </Box>
     );
   };
 
   // Fonction pour afficher le type avec la couleur appropriée
   const renderType = (type) => {
     const typeConfig = {
-      admin: { label: "Admin", color: "primary" },
-      user: { label: "Utilisateur", color: "secondary" },
+      admin: {
+        label: "Admin",
+        icon: <AdminPanelSettingsIcon fontSize="small" sx={{ mr: 0.5 }} />,
+        colors: {
+          dark: {
+            bg: "rgba(99, 179, 237, 0.15)",
+            color: "#63B3ED",
+            border: "1px solid rgba(99, 179, 237, 0.3)"
+          },
+          light: {
+            bg: "rgba(44, 82, 130, 0.08)",
+            color: "#2C5282",
+            border: "1px solid rgba(44, 82, 130, 0.2)"
+          }
+        }
+      },
+      user: {
+        label: "Utilisateur",
+        icon: <PersonIcon fontSize="small" sx={{ mr: 0.5 }} />,
+        colors: {
+          dark: {
+            bg: "rgba(183, 148, 244, 0.15)",
+            color: "#B794F4",
+            border: "1px solid rgba(183, 148, 244, 0.3)"
+          },
+          light: {
+            bg: "rgba(85, 60, 154, 0.08)",
+            color: "#553C9A",
+            border: "1px solid rgba(85, 60, 154, 0.2)"
+          }
+        }
+      },
+      default: {
+        label: "Inconnu",
+        icon: <HelpOutlineIcon fontSize="small" sx={{ mr: 0.5 }} />,
+        colors: {
+          dark: {
+            bg: "rgba(226, 232, 240, 0.15)",
+            color: "#E2E8F0",
+            border: "1px solid rgba(226, 232, 240, 0.3)"
+          },
+          light: {
+            bg: "rgba(74, 85, 104, 0.08)",
+            color: "#4A5568",
+            border: "1px solid rgba(74, 85, 104, 0.2)"
+          }
+        }
+      }
     };
 
-    const config = typeConfig[type] || { label: type, color: "default" };
+    const config = typeConfig[type] || typeConfig.default;
+    const theme = isDarkMode ? config.colors.dark : config.colors.light;
 
-    return <Chip label={config.label} color={config.color} size="small" />;
+    return (
+      <Box
+        sx={{
+          display: "inline-flex",
+          alignItems: "center",
+          borderRadius: "16px",
+          py: 0.5,
+          px: 1.5,
+          backgroundColor: theme.bg,
+          color: theme.color,
+          border: theme.border,
+          fontWeight: 500,
+          fontSize: "0.75rem",
+          transition: "all 0.2s ease",
+          "&:hover": {
+            boxShadow: `0 0 0 1px ${theme.color}`,
+            transform: "translateY(-1px)"
+          }
+        }}
+      >
+        {config.icon}
+        {config.label}
+      </Box>
+    );
   };
 
   return (
-    <Box sx={{ p: 3 }}>
+    <Box sx={{ p: { xs: 2, sm: 3 } }}>
       <Typography variant="h5" gutterBottom>
         Gestion des Formations
       </Typography>
 
       {/* Filtres et recherche */}
       <Card
+        elevation={2}
         sx={{
           mb: 3,
           bgcolor: isDarkMode ? "#1f2937" : "#fff",
           background: isDarkMode ? "#1f2937" : "#fff",
-          boxShadow: "none",
+          borderRadius: "12px",
+          overflow: "hidden",
+          transition: "all 0.3s ease",
+          '&:hover': {
+            boxShadow: isDarkMode 
+              ? '0 8px 24px rgba(0, 0, 0, 0.4)' 
+              : '0 8px 24px rgba(0, 0, 0, 0.1)'
+          }
         }}
       >
-        <CardContent>
+        <CardContent sx={{ p: 3 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+            <FilterListIcon sx={{ mr: 1, color: 'primary.main' }} />
+            <Typography variant="h6" component="div" sx={{ flexGrow: 1, fontWeight: 600 }}>
+              Filtres
+            </Typography>
+            <Button 
+              size="small" 
+              onClick={() => {
+                setSearchQuery('');
+                setStatusFilter('');
+                setTypeFilter('');
+                setPage(1);
+                fetchFormations();
+              }}
+              sx={{ 
+                textTransform: 'none',
+                fontSize: '0.8rem',
+                color: 'text.secondary'
+              }}
+            >
+              Réinitialiser
+            </Button>
+          </Box>
           <Grid container spacing={2} alignItems="center">
             <Grid item xs={12} sm={4}>
               <TextField
@@ -306,6 +478,13 @@ const FormationManagement = () => {
                 onChange={(e) => setSearchQuery(e.target.value)}
                 InputProps={{
                   endAdornment: <SearchIcon color="action" />,
+                  sx: {
+                    borderRadius: '8px',
+                    '&:hover': {
+                      boxShadow: '0 0 0 1px rgba(0, 0, 0, 0.1)'
+                    },
+                    transition: 'all 0.2s'
+                  }
                 }}
               />
             </Grid>
@@ -316,6 +495,13 @@ const FormationManagement = () => {
                   value={statusFilter}
                   label="Statut"
                   onChange={(e) => setStatusFilter(e.target.value)}
+                  sx={{
+                    borderRadius: '8px',
+                    '&:hover': {
+                      boxShadow: '0 0 0 1px rgba(0, 0, 0, 0.1)'
+                    },
+                    transition: 'all 0.2s'
+                  }}
                 >
                   <MenuItem value="">Tous</MenuItem>
                   <MenuItem value="draft">Brouillon</MenuItem>
@@ -332,6 +518,13 @@ const FormationManagement = () => {
                   value={typeFilter}
                   label="Type"
                   onChange={(e) => setTypeFilter(e.target.value)}
+                  sx={{
+                    borderRadius: '8px',
+                    '&:hover': {
+                      boxShadow: '0 0 0 1px rgba(0, 0, 0, 0.1)'
+                    },
+                    transition: 'all 0.2s'
+                  }}
                 >
                   <MenuItem value="">Tous</MenuItem>
                   <MenuItem value="admin">Admin</MenuItem>
@@ -346,6 +539,17 @@ const FormationManagement = () => {
                 startIcon={<AddIcon />}
                 onClick={handleAddFormation}
                 fullWidth
+                sx={{
+                  borderRadius: '8px',
+                  textTransform: 'none',
+                  fontWeight: 600,
+                  boxShadow: '0 4px 10px rgba(0, 0, 0, 0.1)',
+                  '&:hover': {
+                    boxShadow: '0 6px 15px rgba(0, 0, 0, 0.15)',
+                    transform: 'translateY(-1px)'
+                  },
+                  transition: 'all 0.2s'
+                }}
               >
                 Ajouter
               </Button>
@@ -356,181 +560,269 @@ const FormationManagement = () => {
 
       {/* Tableau des formations */}
       {loading ? (
-        <div className="flex justify-center items-center h-64">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
-        </div>
+        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '300px' }}>
+          <CircularProgress size={40} thickness={4} />
+        </Box>
       ) : error ? (
-        <Alert severity="error" sx={{ my: 2 }}>
+        <Alert 
+          severity="error" 
+          sx={{ 
+            my: 2,
+            borderRadius: '8px',
+            boxShadow: '0 2px 10px rgba(0, 0, 0, 0.08)'
+          }}
+        >
           {error}
         </Alert>
       ) : (
         <>
-          <TableContainer
-            component={Paper}
+          {/* Nouveau design du tableau avec ascenseur horizontal fonctionnel */}
+          <Box
             sx={{
-              bgcolor: isDarkMode ? "#1f2937" : "#fff",
-              background: isDarkMode ? "#1f2937" : "#fff",
-              borderRadius: "10px",
-              overflow: "hidden",
-              boxShadow: isDarkMode
-                ? "0 4px 20px rgba(0, 0, 0, 0.3)"
-                : "0 4px 20px rgba(0, 0, 0, 0.1)",
-              "& .MuiTableRow-root:hover": {
-                backgroundColor: isDarkMode
-                  ? "rgba(255, 255, 255, 0.05)"
-                  : "rgba(0, 0, 0, 0.02)",
-              },
+              position: 'relative',
+              width: '100%',
+              mb: 3,
+              borderRadius: '16px',
+              overflow: 'hidden',
+              boxShadow: isDarkMode 
+                ? '0 8px 32px rgba(0, 0, 0, 0.4)' 
+                : '0 8px 32px rgba(0, 0, 0, 0.1)'
             }}
           >
-            <Table stickyHeader>
-              <TableHead>
-                <TableRow>
-                  <TableCell
-                    sx={{
-                      fontWeight: "bold",
-                      backgroundColor: isDarkMode ? "#2d3748" : "#f5f7fa",
-                      color: isDarkMode ? "#e2e8f0" : "#4a5568",
-                      fontSize: "0.875rem",
-                      letterSpacing: "0.05em",
-                      textTransform: "uppercase",
-                    }}
-                  >
-                    Titre
-                  </TableCell>
-                  <TableCell
-                    sx={{
-                      fontWeight: "bold",
-                      backgroundColor: isDarkMode ? "#2d3748" : "#f5f7fa",
-                      color: isDarkMode ? "#e2e8f0" : "#4a5568",
-                      fontSize: "0.875rem",
-                      letterSpacing: "0.05em",
-                      textTransform: "uppercase",
-                    }}
-                  >
-                    Type
-                  </TableCell>
-                  <TableCell
-                    sx={{
-                      fontWeight: "bold",
-                      backgroundColor: isDarkMode ? "#2d3748" : "#f5f7fa",
-                      color: isDarkMode ? "#e2e8f0" : "#4a5568",
-                      fontSize: "0.875rem",
-                      letterSpacing: "0.05em",
-                      textTransform: "uppercase",
-                    }}
-                  >
-                    Statut
-                  </TableCell>
-                  <TableCell
-                    sx={{
-                      fontWeight: "bold",
-                      backgroundColor: isDarkMode ? "#2d3748" : "#f5f7fa",
-                      color: isDarkMode ? "#e2e8f0" : "#4a5568",
-                      fontSize: "0.875rem",
-                      letterSpacing: "0.05em",
-                      textTransform: "uppercase",
-                    }}
-                  >
-                    Créé par
-                  </TableCell>
-                  <TableCell
-                    sx={{
-                      fontWeight: "bold",
-                      backgroundColor: isDarkMode ? "#2d3748" : "#f5f7fa",
-                      color: isDarkMode ? "#e2e8f0" : "#4a5568",
-                      fontSize: "0.875rem",
-                      letterSpacing: "0.05em",
-                      textTransform: "uppercase",
-                    }}
-                  >
-                    Date de création
-                  </TableCell>
-                  <TableCell
-                    align="center"
-                    sx={{
-                      fontWeight: "bold",
-                      backgroundColor: isDarkMode ? "#2d3748" : "#f5f7fa",
-                      color: isDarkMode ? "#e2e8f0" : "#4a5568",
-                      fontSize: "0.875rem",
-                      letterSpacing: "0.05em",
-                      textTransform: "uppercase",
-                    }}
-                  >
-                    Actions
-                  </TableCell>
-                </TableRow>
-              </TableHead>
+            <Box
+              sx={{
+                width: '100%',
+                overflowX: 'auto',
+                backgroundColor: isDarkMode ? '#1f2937' : '#fff',
+                borderRadius: '16px',
+                // Styles de l'ascenseur horizontal
+                '&::-webkit-scrollbar': {
+                  height: '12px',
+                  display: 'block'
+                },
+                '&::-webkit-scrollbar-track': {
+                  backgroundColor: isDarkMode ? '#2d3748' : '#f1f5f9',
+                  borderRadius: '8px',
+                },
+                '&::-webkit-scrollbar-thumb': {
+                  backgroundColor: isDarkMode ? '#4a5568' : '#94a3b8',
+                  borderRadius: '8px',
+                  border: isDarkMode ? '2px solid #2d3748' : '2px solid #f1f5f9',
+                  '&:hover': {
+                    backgroundColor: isDarkMode ? '#718096' : '#64748b',
+                  },
+                },
+                // Firefox
+                scrollbarWidth: 'thin',
+                scrollbarColor: isDarkMode ? '#4a5568 #2d3748' : '#94a3b8 #f1f5f9',
+              }}
+            >
+              <Table 
+                stickyHeader 
+                sx={{ 
+                  minWidth: 1000,
+                  borderCollapse: 'separate',
+                  borderSpacing: '0 8px'
+                }}
+              >
+                <TableHead>
+                  <TableRow>
+                    {[
+                      { id: 'title', label: 'Titre' },
+                      { id: 'type', label: 'Type' },
+                      { id: 'status', label: 'Statut' },
+                      { id: 'creator', label: 'Créé par' },
+                      { id: 'date', label: 'Date' },
+                      { id: 'actions', label: 'Actions', align: 'center' }
+                    ].map((column) => (
+                      <TableCell
+                        key={column.id}
+                        align={column.align || 'left'}
+                        sx={{
+                          fontWeight: 600,
+                          fontSize: '0.875rem',
+                          letterSpacing: '0.025em',
+                          textTransform: 'uppercase',
+                          backgroundColor: isDarkMode ? "#2d3748" : "#edf2f7",
+                          color: isDarkMode ? "#e2e8f0" : "#1a202c",
+                          borderBottom: isDarkMode 
+                            ? '2px solid #4a5568' 
+                            : '2px solid #cbd5e0',
+                          py: 2.5,
+                          position: 'relative',
+                          '&:after': {
+                            content: '""',
+                            position: 'absolute',
+                            bottom: 0,
+                            left: 0,
+                            width: '0%',
+                            height: '2px',
+                            backgroundColor: isDarkMode ? '#3182ce' : '#4299e1',
+                            transition: 'width 0.3s ease',
+                          },
+                          '&:hover:after': {
+                            width: '100%'
+                          },
+                          transition: 'all 0.2s ease',
+                          '&:hover': {
+                            backgroundColor: isDarkMode ? "#3d4a5f" : "#e2e8f0",
+                          }
+                        }}
+                      >
+                        {column.label}
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                </TableHead>
               <TableBody>
                 {formations.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={6} align="center">
-                      <Typography variant="body1" sx={{ py: 3 }}>
-                        Aucune formation trouvée
-                      </Typography>
+                      <Box sx={{ py: 6, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+                        <Box sx={{ 
+                          width: 60, 
+                          height: 60, 
+                          borderRadius: '50%', 
+                          display: 'flex', 
+                          alignItems: 'center', 
+                          justifyContent: 'center',
+                          backgroundColor: isDarkMode ? 'rgba(49, 130, 206, 0.1)' : 'rgba(66, 153, 225, 0.1)',
+                          mb: 1
+                        }}>
+                          <SearchIcon sx={{ 
+                            fontSize: 30, 
+                            color: isDarkMode ? '#3182ce' : '#4299e1'
+                          }} />
+                        </Box>
+                        <Typography variant="h6" sx={{ fontWeight: 500 }}>
+                          Aucune formation trouvée
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary" sx={{ maxWidth: 300, textAlign: 'center' }}>
+                          Essayez de modifier vos critères de recherche ou d'ajouter une nouvelle formation
+                        </Typography>
+                      </Box>
                     </TableCell>
                   </TableRow>
                 ) : (
                   formations.map((formation) => (
                     <TableRow
                       key={formation.id}
-                      sx={{ "&:last-child td, &:last-child th": { border: 0 } }}
+                      sx={{
+                        '&:last-child td, &:last-child th': { border: 0 },
+                        transition: 'all 0.2s ease',
+                        borderRadius: '8px',
+                        backgroundColor: isDarkMode ? '#1e293b' : '#ffffff',
+                        boxShadow: isDarkMode 
+                          ? '0 1px 3px rgba(0, 0, 0, 0.2)' 
+                          : '0 1px 3px rgba(0, 0, 0, 0.05)',
+                        '&:hover': {
+                          backgroundColor: isDarkMode ? '#2d3748' : '#f8fafc',
+                          transform: 'translateY(-2px)',
+                          boxShadow: isDarkMode 
+                            ? '0 4px 6px rgba(0, 0, 0, 0.3)' 
+                            : '0 4px 6px rgba(0, 0, 0, 0.1)',
+                        }
+                      }}
                     >
                       <TableCell
                         sx={{
-                          borderLeft: isDarkMode
-                            ? "3px solid #2d3748"
-                            : "3px solid #f5f7fa",
-                          fontWeight: "medium",
-                          py: 2,
+                          py: 2.5,
+                          px: 2,
+                          whiteSpace: "nowrap",
                         }}
                       >
-                        <Typography
-                          variant="body1"
-                          fontWeight="500"
-                          noWrap
-                          sx={{ maxWidth: 200 }}
-                        >
-                          {formation.title}
-                        </Typography>
+                        <Tooltip title={formation.title} placement="top-start" arrow>
+                          <Typography
+                            variant="body1"
+                            fontWeight="500"
+                            noWrap
+                            sx={{ 
+                              maxWidth: 200,
+                              overflow: "hidden",
+                              textOverflow: "ellipsis",
+                              color: isDarkMode ? '#e2e8f0' : '#2d3748',
+                              transition: 'color 0.2s ease',
+                              '&:hover': {
+                                color: isDarkMode ? '#3182ce' : '#4299e1'
+                              }
+                            }}
+                          >
+                            {formation.title}
+                          </Typography>
+                        </Tooltip>
                       </TableCell>
-                      <TableCell sx={{ py: 2 }}>
+                      <TableCell sx={{ 
+                        py: 2.5, 
+                        px: 2, 
+                        whiteSpace: "nowrap",
+                        borderBottom: isDarkMode ? '1px solid rgba(255, 255, 255, 0.05)' : '1px solid rgba(0, 0, 0, 0.05)',
+                      }}>
                         {renderType(formation.type)}
                       </TableCell>
-                      <TableCell sx={{ py: 2 }}>
+                      <TableCell sx={{ 
+                        py: 2.5, 
+                        px: 2, 
+                        whiteSpace: "nowrap",
+                        borderBottom: isDarkMode ? '1px solid rgba(255, 255, 255, 0.05)' : '1px solid rgba(0, 0, 0, 0.05)',
+                      }}>
                         {renderStatus(formation.status, formation)}
                       </TableCell>
-                      <TableCell sx={{ py: 2 }}>
+                      <TableCell sx={{ 
+                        py: 2.5, 
+                        px: 2, 
+                        whiteSpace: "nowrap",
+                        borderBottom: isDarkMode ? '1px solid rgba(255, 255, 255, 0.05)' : '1px solid rgba(0, 0, 0, 0.05)',
+                      }}>
                         <Typography
                           variant="body2"
-                          color={isDarkMode ? "text.secondary" : "text.primary"}
+                          sx={{
+                            color: isDarkMode ? "rgba(226, 232, 240, 0.8)" : "rgba(45, 55, 72, 0.8)",
+                            fontWeight: 500
+                          }}
                         >
                           {formation.creator?.name || "N/A"}
                         </Typography>
                       </TableCell>
-                      <TableCell sx={{ py: 2 }}>
+                      <TableCell sx={{ 
+                        py: 2.5, 
+                        px: 2, 
+                        whiteSpace: "nowrap",
+                        borderBottom: isDarkMode ? '1px solid rgba(255, 255, 255, 0.05)' : '1px solid rgba(0, 0, 0, 0.05)',
+                      }}>
                         <Typography
                           variant="body2"
-                          color={isDarkMode ? "text.secondary" : "text.primary"}
+                          sx={{
+                            color: isDarkMode ? "rgba(226, 232, 240, 0.8)" : "rgba(45, 55, 72, 0.8)",
+                            fontWeight: 500,
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 0.5
+                          }}
                         >
                           {new Date(formation.created_at).toLocaleDateString()}
                         </Typography>
                       </TableCell>
-                      <TableCell align="center">
+                      <TableCell align="center" sx={{ 
+                        py: 2.5, 
+                        px: 2, 
+                        whiteSpace: "nowrap",
+                        borderBottom: isDarkMode ? '1px solid rgba(255, 255, 255, 0.05)' : '1px solid rgba(0, 0, 0, 0.05)',
+                      }}>
                         <Box
                           sx={{
                             display: "flex",
                             justifyContent: "center",
                             gap: 1,
                             "& .MuiIconButton-root": {
-                              transition: "all 0.2s ease-in-out",
-                              boxShadow: isDarkMode
-                                ? "0 0 5px rgba(255, 255, 255, 0.1)"
-                                : "0 0 5px rgba(0, 0, 0, 0.1)",
+                              transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+                              backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.03)',
+                              borderRadius: '8px',
+                              padding: '8px',
                               "&:hover": {
-                                transform: "scale(1.1)",
+                                transform: "translateY(-3px)",
                                 boxShadow: isDarkMode
-                                  ? "0 0 8px rgba(255, 255, 255, 0.2)"
-                                  : "0 0 8px rgba(0, 0, 0, 0.2)",
+                                  ? "0 8px 16px rgba(0, 0, 0, 0.4)"
+                                  : "0 8px 16px rgba(0, 0, 0, 0.1)",
                               },
                             },
                           }}
@@ -553,87 +845,87 @@ const FormationManagement = () => {
                               <VisibilityIcon fontSize="small" />
                             </IconButton>
                           </Tooltip>
+
                           <Tooltip title="Modifier" arrow placement="top">
                             <IconButton
-                              color="primary"
-                              onClick={() => handleEditFormation(formation)}
                               size="small"
+                              onClick={() => handleEditFormation(formation)}
                               sx={{
-                                bgcolor: isDarkMode
-                                  ? "rgba(25, 118, 210, 0.1)"
-                                  : "rgba(25, 118, 210, 0.05)",
+                                color: isDarkMode ? "#a0aec0" : "#4a5568",
+                                '&:hover': {
+                                  backgroundColor: isDarkMode ? 'rgba(160, 174, 192, 0.1)' : 'rgba(74, 85, 104, 0.1)',
+                                }
                               }}
                             >
                               <EditIcon fontSize="small" />
                             </IconButton>
                           </Tooltip>
+
                           <Tooltip title="Supprimer" arrow placement="top">
                             <IconButton
-                              color="error"
-                              onClick={() => handleDeleteClick(formation)}
                               size="small"
+                              onClick={() => handleDeleteClick(formation)}
                               sx={{
-                                bgcolor: isDarkMode
-                                  ? "rgba(211, 47, 47, 0.1)"
-                                  : "rgba(211, 47, 47, 0.05)",
+                                color: isDarkMode ? "#fc8181" : "#e53e3e",
+                                '&:hover': {
+                                  backgroundColor: isDarkMode ? 'rgba(252, 129, 129, 0.1)' : 'rgba(229, 62, 62, 0.1)',
+                                }
                               }}
                             >
                               <DeleteIcon fontSize="small" />
                             </IconButton>
                           </Tooltip>
-                          {formation.status === "pending" &&
-                            formation.type === "user" && (
-                              <Tooltip
-                                title="Valider/Rejeter"
-                                arrow
-                                placement="top"
+
+                          {formation.status === "pending" && (
+                            <Tooltip title="Valider/Rejeter" arrow placement="top">
+                              <IconButton
+                                size="small"
+                                onClick={() => handleReviewClick(formation)}
+                                sx={{
+                                  color: isDarkMode ? "#68d391" : "#38a169",
+                                  '&:hover': {
+                                    backgroundColor: isDarkMode ? 'rgba(104, 211, 145, 0.1)' : 'rgba(56, 161, 105, 0.1)',
+                                  }
+                                }}
                               >
-                                <IconButton
-                                  color="success"
-                                  onClick={() => handleReviewClick(formation)}
-                                  size="small"
-                                  sx={{
-                                    bgcolor: isDarkMode
-                                      ? "rgba(46, 125, 50, 0.1)"
-                                      : "rgba(46, 125, 50, 0.05)",
-                                  }}
-                                >
-                                  <CheckCircleIcon fontSize="small" />
-                                </IconButton>
-                              </Tooltip>
-                            )}
-                          {formation.status === "draft" &&
-                            formation.type === "admin" && (
-                              <Tooltip title="Publier" arrow placement="top">
-                                <IconButton
-                                  color="success"
-                                  onClick={() => handlePublishClick(formation)}
-                                  size="small"
-                                  sx={{
-                                    bgcolor: isDarkMode
-                                      ? "rgba(46, 125, 50, 0.1)"
-                                      : "rgba(46, 125, 50, 0.05)",
-                                    animation: "pulse 1.5s infinite",
-                                    "@keyframes pulse": {
-                                      "0%": {
-                                        boxShadow:
-                                          "0 0 0 0 rgba(46, 125, 50, 0.4)",
-                                      },
-                                      "70%": {
-                                        boxShadow:
-                                          "0 0 0 5px rgba(46, 125, 50, 0)",
-                                      },
-                                      "100%": {
-                                        boxShadow:
-                                          "0 0 0 0 rgba(46, 125, 50, 0)",
-                                      },
-                                    },
-                                  }}
-                                >
-                                  <PublishIcon fontSize="small" />
-                                </IconButton>
-                              </Tooltip>
-                            )}
+                                <CheckCircleIcon fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
+                          )}
+
+                          {formation.status === "published" && (
+                            <Tooltip title="Dépublier" arrow placement="top">
+                              <IconButton
+                                size="small"
+                                onClick={() => handlePublishClick(formation)}
+                                sx={{
+                                  color: isDarkMode ? "#fbd38d" : "#dd6b20",
+                                  '&:hover': {
+                                    backgroundColor: isDarkMode ? 'rgba(251, 211, 141, 0.1)' : 'rgba(221, 107, 32, 0.1)',
+                                  }
+                                }}
+                              >
+                                <CancelIcon fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
+                          )}
+
+                          {formation.status === "draft" && (
+                            <Tooltip title="Publier" arrow placement="top">
+                              <IconButton
+                                size="small"
+                                onClick={() => handlePublishClick(formation)}
+                                sx={{
+                                  color: isDarkMode ? "#68d391" : "#38a169",
+                                  '&:hover': {
+                                    backgroundColor: isDarkMode ? 'rgba(104, 211, 145, 0.1)' : 'rgba(56, 161, 105, 0.1)',
+                                  }
+                                }}
+                              >
+                                <PublishIcon fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
+                          )}  
                         </Box>
                       </TableCell>
                     </TableRow>
@@ -641,15 +933,98 @@ const FormationManagement = () => {
                 )}
               </TableBody>
             </Table>
-          </TableContainer>
+            </Box>
+          </Box>
 
           {/* Pagination */}
-          <Box sx={{ display: "flex", justifyContent: "center", mt: 3 }}>
+          <Box
+            sx={{
+              display: "flex",
+              flexDirection: { xs: 'column', sm: 'row' },
+              justifyContent: "space-between",
+              alignItems: { xs: 'stretch', sm: 'center' },
+              gap: 2,
+              mt: 4,
+              mb: 2,
+              px: 1,
+              '& > *': {
+                mb: { xs: 1, sm: 0 }
+              }
+            }}
+          >
+            <Box
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 1,
+                backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.03)' : 'rgba(0, 0, 0, 0.02)',
+                borderRadius: '10px',
+                py: 1,
+                px: 2,
+              }}
+            >
+              <Box
+                sx={{
+                  width: 32,
+                  height: 32,
+                  borderRadius: '8px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  backgroundColor: isDarkMode ? 'rgba(49, 130, 206, 0.1)' : 'rgba(66, 153, 225, 0.1)',
+                }}
+              >
+                <Typography 
+                  variant="body1" 
+                  sx={{ 
+                    fontWeight: 600, 
+                    color: isDarkMode ? '#3182ce' : '#4299e1'
+                  }}
+                >
+                  {formations.length}
+                </Typography>
+              </Box>
+              <Typography 
+                variant="body2" 
+                sx={{ 
+                  color: isDarkMode ? 'rgba(226, 232, 240, 0.8)' : 'rgba(45, 55, 72, 0.8)',
+                  fontWeight: 500
+                }}
+              >
+                {formations.length > 0 ? 
+                  `Formation${formations.length > 1 ? 's' : ''} affichée${formations.length > 1 ? 's' : ''}` : 
+                  'Aucune formation'}
+              </Typography>
+            </Box>
+            
             <Pagination
               count={totalPages}
               page={page}
               onChange={(e, value) => setPage(value)}
               color="primary"
+              shape="rounded"
+              size="medium"
+              sx={{
+                '& .MuiPaginationItem-root': {
+                  borderRadius: '8px',
+                  margin: '0 2px',
+                  fontWeight: 500,
+                  transition: 'all 0.2s ease',
+                  '&.Mui-selected': {
+                    boxShadow: isDarkMode 
+                      ? '0 4px 12px rgba(49, 130, 206, 0.4)' 
+                      : '0 4px 12px rgba(66, 153, 225, 0.25)',
+                    backgroundColor: isDarkMode ? '#3182ce' : '#4299e1',
+                    color: '#fff',
+                    '&:hover': {
+                      backgroundColor: isDarkMode ? '#2b6cb0' : '#3182ce',
+                    }
+                  },
+                  '&:hover': {
+                    backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.03)',
+                  }
+                }
+              }}
             />
           </Box>
         </>

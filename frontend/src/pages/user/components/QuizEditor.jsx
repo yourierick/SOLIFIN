@@ -31,7 +31,7 @@ import {
   Save as SaveIcon,
   Help as HelpIcon,
 } from "@mui/icons-material";
-import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
+import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 
 const QuizEditor = ({ initialContent, onChange, readOnly }) => {
   const theme = useTheme();

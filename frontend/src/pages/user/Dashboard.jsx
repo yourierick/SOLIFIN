@@ -71,13 +71,6 @@ export default function UserDashboard() {
       className={`space-y-8 ${isDarkMode ? "text-gray-100" : "text-gray-900"}`}
     >
       <div>
-        <h1
-          className={`text-2xl font-semibold ${
-            isDarkMode ? "text-white" : "text-gray-900"
-          }`}
-        >
-          Mon tableau de bord
-        </h1>
         <p
           className={`mt-2 text-sm ${
             isDarkMode ? "text-gray-400" : "text-gray-700"

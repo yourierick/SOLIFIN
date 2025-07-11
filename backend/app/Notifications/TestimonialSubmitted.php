@@ -64,14 +64,11 @@ class TestimonialSubmitted extends Notification
     public function toArray($notifiable)
     {
         return [
-            'type' => 'testimonial',
-            'titre' => $this->data['titre'],
-            'message' => 'en attente de traitement',
-            'id' => $this->data['id'],
-            'rating' => $this->data['rating'],
-            'user_id' => $this->data['user_id'],
-            'user_name' => $this->data['user_name'],
-            'link' => '/admin/testimonials'
+            'type' => 'warning',
+            'icon' => 'exclamation-triangle',
+            'titre' => "Nouveau témoignage",
+            'message' => 'Un nouveau témoignage a été soumis par ' . $this->data['user_name'] . ' en attente de traitement',
+            'link' => '/admin/content-management'
         ];
     }
 }

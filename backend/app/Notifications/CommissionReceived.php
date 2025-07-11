@@ -37,18 +37,17 @@ class CommissionReceived extends Notification implements ShouldQueue
             ->line('- Montant: ' . number_format($this->commission, 2) . '$')
             ->line('- Pack: ' . $this->pack->name)
             ->line('- Génération: ' . $this->generation)
-            ->action('Voir mon tableau de bord', url('/dashboard'))
             ->line('Merci de votre participation au programme de parrainage!');
     }
 
     public function toArray($notifiable)
     {
         return [
-            'amount' => $this->commission,
-            'pack_id' => $this->pack->id,
-            'pack_name' => $this->pack->name,
-            'generation' => $this->generation,
-            'type' => 'commission_received'
+            'type' => 'info',
+            'titre' => 'Commission de parrainage',
+            'message' => 'Vous avez reçu une nouvelle commission!',
+            'icon' => 'exclamation-circle',
+            'color' => 'primary',
         ];
     }
 }

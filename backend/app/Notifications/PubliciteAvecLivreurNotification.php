@@ -51,11 +51,11 @@ class PubliciteAvecLivreurNotification extends Notification implements ShouldQue
         return (new MailMessage)
                     ->subject('Nouvelle publicité avec besoin de livreurs')
                     ->greeting('Bonjour ' . $notifiable->name . '!')
-                    ->line('Une nouvelle publicité nécessitant des livreurs a été approuvée.')
+                    ->line('Une nouvelle publicité nécessitant des livreurs a été publiée.')
                     ->line('Titre: ' . $this->publicite->titre)
                     ->line('Vous pouvez contacter le propriétaire via les coordonnées de la publicité si vous êtes intéressé.')
-                    ->action('Voir la publicité', url('/publicites/' . $this->publicite->id))
-                    ->line('Merci d\'utiliser notre plateforme!');
+                    ->action('Voir la publicité', env('FRONTEND_URL') . '/dashboard/pages/' . $this->publicite->page_id)
+                    ->line('Merci d\'utiliser SOLIFIN!');
     }
 
     /**
@@ -67,12 +67,11 @@ class PubliciteAvecLivreurNotification extends Notification implements ShouldQue
     public function toArray(object $notifiable): array
     {
         return [
-            'type' => 'publicite_livreur',
-            'publicite_id' => $this->publicite->id,
-            'publicite_titre' => $this->publicite->titre,
-            'page_id' => $this->publicite->page_id,
-            'message' => 'Une nouvelle publicité nécessitant des livreurs a été approuvée: ' . $this->publicite->titre,
-            'created_at' => now()->toIso8601String(),
+            'type' => 'info',
+            'icon' => 'exclamation-circle',
+            'link' => '/dashboard/pages/' . $this->publicite->page_id,
+            'titre' => 'Une nouvelle publicité avec besoin de livreurs',
+            'message' => 'Une nouvelle publicité nécessitant des livreurs a été publiée: ' . $this->publicite->titre,
         ];
     }
 }

@@ -49,7 +49,7 @@ class PublicationSubmitted extends Notification
             ->line(Lang::get('Une nouvelle publication a été soumise et est en attente d\'approbation.'))
             ->line(Lang::get('Titre: :titre', ['titre' => $this->data['titre']]))
             ->line(Lang::get('Soumise par: :user', ['user' => $this->data['user_name']]))
-            ->action(Lang::get('Voir la publication'), url('/admin/validation-publications'));
+            ->action(Lang::get('Voir la publication'), env('FRONTEND_URL') . '/admin/content-management');
     }
 
     /**
@@ -61,12 +61,10 @@ class PublicationSubmitted extends Notification
     public function toArray($notifiable)
     {
         return [
-            'type' => $this->data['type'],
-            'id' => $this->data['id'],
-            'titre' => $this->data['titre'],
-            'user_id' => $this->data['user_id'],
-            'user_name' => $this->data['user_name'],
-            'link' => '/admin/validations'
+            'type' => 'warning',
+            'titre' => 'Nouvelle publication en attente d\'approbation',
+            'icon' => 'exclamation-circle',
+            'link' => '/admin/content-management'
         ];
     }
 }

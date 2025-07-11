@@ -54,7 +54,7 @@ class LivreurRevoqueNotification extends Notification implements ShouldQueue
             ->greeting('Bonjour ' . $notifiable->name)
             ->line('Votre statut de livreur pour la page "' . $this->page->nom . '" a été révoqué.')
             ->line('Si vous avez des questions, veuillez contacter le propriétaire de la page.')
-            ->action('Voir la page', url('/page/' . $this->page->id))
+            ->action('Voir la page', env('FRONTEND_URL') . '/dashboard/pages/' . $this->page->id)
             ->line('Merci d\'utiliser notre application!');
     }
 
@@ -67,13 +67,11 @@ class LivreurRevoqueNotification extends Notification implements ShouldQueue
     public function toArray($notifiable)
     {
         return [
-            'type' => 'livreur_revoque',
-            'page_id' => $this->page->id,
-            'page_name' => $this->page->nom ?? 'La page',
-            'titre' => 'Statut de livreur révoqué',
-            'message' => 'Votre statut de livreur pour la page "' . $this->page->nom . '" a été révoqué.',
-            'created_at' => now()->toIso8601String(),
-            'read_at' => null,
+            'type' => 'danger',
+            'titre' => 'Revocation de livraison',
+            'icon' => 'exclamation-triangle',
+            'link' => '/dashboard/pages/' . $this->page->id,
+            'message' => 'Votre statut de livreur pour la page de l\'utilisateur "' . $this->page->user->name . '" a été révoqué.',
         ];
     }
 }

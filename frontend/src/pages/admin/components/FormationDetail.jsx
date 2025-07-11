@@ -52,7 +52,7 @@ import {
 import { useTheme } from "@mui/material/styles";
 import axios from "axios";
 import ModuleForm from "./ModuleForm";
-import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
+import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import { getModalStyle } from "../../../styles/modalStyles";
 import AdminModuleViewer from "./AdminModuleViewer";
 
@@ -567,20 +567,21 @@ const FormationDetail = ({ formationId, onClose }) => {
                                   </Box>
                                 </Box>
                               }
+                              secondaryTypographyProps={{
+                                component: 'div',
+                                variant: 'body2',
+                                color: 'text.secondary'
+                              }}
                               secondary={
-                                <Box>
-                                  <Typography
-                                    variant="body2"
-                                    color="text.secondary"
-                                    sx={{ mt: 0.5 }}
-                                  >
+                                <>
+                                  <div style={{ marginTop: '4px' }}>
                                     {module.description}
-                                  </Typography>
-                                  <Box
-                                    sx={{
+                                  </div>
+                                  <div
+                                    style={{
                                       display: "flex",
                                       alignItems: "center",
-                                      mt: 1,
+                                      marginTop: '8px',
                                     }}
                                   >
                                     <Chip
@@ -594,8 +595,8 @@ const FormationDetail = ({ formationId, onClose }) => {
                                         size="small"
                                       />
                                     )}
-                                  </Box>
-                                </Box>
+                                  </div>
+                                </>
                               }
                             />
                           </ListItem>

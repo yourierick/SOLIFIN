@@ -114,13 +114,10 @@ class ReferralInvitationNotification extends Notification implements ShouldQueue
     public function toArray(object $notifiable): array
     {
         return [
-            'invitation_id' => $this->invitation->id,
-            'invitation_code' => $this->invitation->invitation_code,
-            'user_id' => $this->invitation->user_id,
-            'user_pack_id' => $this->invitation->user_pack_id,
-            'email' => $this->invitation->email,
-            'status' => $this->invitation->status,
-            'expires_at' => $this->invitation->expires_at->toIso8601String(),
+            'type' => 'info',
+            'icon' => 'exclamation-circle',
+            'titre' => 'Une nouvelle invitation de parrainage',
+            'message' => 'Une nouvelle invitation de parrainage ' . $this->invitation->invitation_code . ' a été envoyée',
         ];
     }
 }

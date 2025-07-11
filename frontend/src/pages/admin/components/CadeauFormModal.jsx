@@ -46,7 +46,7 @@ const CadeauFormModal = ({ open, onClose, onSave, cadeau }) => {
     buttonSecondary: isDarkMode
       ? "bg-gray-700 hover:bg-gray-600 text-white"
       : "bg-gray-200 hover:bg-gray-300 text-gray-800",
-    overlay: "",
+    overlay: isDarkMode ? "bg-black/60" : "bg-gray-800/40",
   };
 
   // Récupérer les packs actifs
@@ -237,7 +237,7 @@ const CadeauFormModal = ({ open, onClose, onSave, cadeau }) => {
     <div className="fixed inset-0 z-50 overflow-y-auto">
       <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
         <div
-          className="fixed inset-0 transition-opacity backdrop-blur-sm bg-white/30 dark:bg-black/30"
+          className={`fixed inset-0 transition-opacity backdrop-blur-sm ${themeColors.overlay}`}
           onClick={onClose}
         ></div>
 

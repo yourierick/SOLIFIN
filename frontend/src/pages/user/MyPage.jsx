@@ -1,20 +1,23 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Tab } from "@headlessui/react";
 import {
   PlusIcon,
   CheckCircleIcon,
-  XMarkIcon,
-  ExclamationTriangleIcon,
   XCircleIcon,
-  UserGroupIcon,
-  ChatBubbleLeftRightIcon,
-  AcademicCapIcon,
+  ClockIcon,
   UserIcon,
-  UsersIcon,
-  DocumentTextIcon,
+  NewspaperIcon,
   MagnifyingGlassIcon,
   FunnelIcon,
-  ArrowDownTrayIcon as DownloadIcon,
+  AcademicCapIcon,
+  UsersIcon,
+  DocumentTextIcon,
+  ChatBubbleLeftRightIcon,
+  ArrowPathIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  ExclamationTriangleIcon,
+  ArrowDownTrayIcon,
 } from "@heroicons/react/24/outline";
 import axios from "../../utils/axios";
 import { useAuth } from "../../contexts/AuthContext";
@@ -37,7 +40,6 @@ import Formations from "./components/Formations";
 import NewsFeed from "./NewsFeed";
 import PageSearch from "./components/PageSearch";
 import SubTabsPanel from "./components/SubTabsPanel";
-import { NewspaperIcon } from "@heroicons/react/24/outline";
 import DigitalProductCard from "../../components/DigitalProductCard";
 import DigitalProductForm from "../../components/DigitalProductForm";
 import PurchaseDigitalProductModal from "./components/PurchaseDigitalProductModal";
@@ -90,6 +92,13 @@ export default function MyPage() {
     type: "tous", // 'tous', 'ebook', 'fichier_admin'
   });
   const [showFilters, setShowFilters] = useState(false);
+
+  // État pour la pagination des produits numériques
+  const [digitalProductsPagination, setDigitalProductsPagination] = useState({
+    currentPage: 1,
+    totalPages: 1,
+    itemsPerPage: 6,
+  });
 
   // Fonction pour réinitialiser les filtres
   const resetFilters = () => {
@@ -982,116 +991,149 @@ export default function MyPage() {
       {/* Main Content */}
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow tabs-container">
         <Tab.Group>
-          <Tab.List className="flex space-x-1 rounded-t-lg bg-primary-50 dark:bg-gray-700 p-1 overflow-x-auto whitespace-nowrap scrollbar-modern">
-            <Tab
-              className={({ selected }) =>
-                classNames(
-                  "flex-shrink-0 min-w-[120px] py-3 px-3 text-sm font-medium rounded-lg",
-                  "focus:outline-none focus:ring-2 ring-offset-2 ring-offset-primary-400 ring-white ring-opacity-60",
-                  selected
-                    ? "bg-white dark:bg-gray-600 shadow text-primary-700 dark:text-white"
-                    : "text-gray-600 dark:text-gray-300 hover:bg-white/[0.12] hover:text-primary-600"
-                )
-              }
+          {/* Custom Tab Navigation avec flèches de défilement */}
+          <div className="relative">
+            {/* Flèche de défilement gauche */}
+            <button
+              className="absolute left-0 top-1/2 -translate-y-1/2 z-10 bg-white dark:bg-gray-800 rounded-full p-1 shadow-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary-500 disabled:opacity-40 disabled:cursor-not-allowed"
+              onClick={() => {
+                const tabList = document.querySelector(".tab-list-container");
+                tabList.scrollBy({ left: -200, behavior: "smooth" });
+              }}
             >
-              Publicités
-            </Tab>
-            <Tab
-              className={({ selected }) =>
-                classNames(
-                  "flex-shrink-0 min-w-[120px] py-3 px-3 text-sm font-medium rounded-lg",
-                  "focus:outline-none focus:ring-2 ring-offset-2 ring-offset-primary-400 ring-white ring-opacity-60",
-                  selected
-                    ? "bg-white dark:bg-gray-600 shadow text-primary-700 dark:text-white"
-                    : "text-gray-600 dark:text-gray-300 hover:bg-white/[0.12] hover:text-primary-600"
-                )
-              }
+              <ChevronLeftIcon className="h-5 w-5 text-primary-600 dark:text-primary-400" />
+            </button>
+
+            {/* Conteneur de défilement avec masque de dégradé */}
+            <div className="overflow-hidden mx-8 relative">
+              <div className="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-indigo-50 to-transparent dark:from-gray-700 dark:to-transparent z-[1]"></div>
+              <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-indigo-50 to-transparent dark:from-gray-700 dark:to-transparent z-[1]"></div>
+
+              <div className="tab-list-container overflow-x-auto scrollbar-hide">
+                <Tab.List className="flex space-x-1 rounded-t-lg bg-indigo-50 dark:bg-gray-700 p-1 whitespace-nowrap min-w-max">
+                  <Tab
+                    className={({ selected }) =>
+                      classNames(
+                        "flex-shrink-0 min-w-[120px] py-3 px-4 text-sm font-medium rounded-lg transition-all duration-200",
+                        "focus:outline-none focus:ring-2 ring-offset-2 ring-offset-indigo-400 ring-white ring-opacity-60",
+                        selected
+                          ? "bg-white dark:bg-gray-600 shadow-md text-primary-700 dark:text-white transform scale-105"
+                          : "text-gray-600 dark:text-gray-300 hover:bg-white/[0.15] hover:text-primary-600 hover:transform hover:scale-105"
+                      )
+                    }
+                  >
+                    Publicités
+                  </Tab>
+                  <Tab
+                    className={({ selected }) =>
+                      classNames(
+                        "flex-shrink-0 min-w-[120px] py-3 px-4 text-sm font-medium rounded-lg transition-all duration-200",
+                        "focus:outline-none focus:ring-2 ring-offset-2 ring-offset-indigo-400 ring-white ring-opacity-60",
+                        selected
+                          ? "bg-white dark:bg-gray-600 shadow-md text-indigo-700 dark:text-white transform scale-105"
+                          : "text-gray-600 dark:text-gray-300 hover:bg-white/[0.15] hover:text-indigo-600 hover:transform hover:scale-105"
+                      )
+                    }
+                  >
+                    Offres d'emploi
+                  </Tab>
+                  <Tab
+                    className={({ selected }) =>
+                      classNames(
+                        "flex-shrink-0 min-w-[120px] py-3 px-4 text-sm font-medium rounded-lg transition-all duration-200",
+                        "focus:outline-none focus:ring-2 ring-offset-2 ring-offset-primary-400 ring-white ring-opacity-60",
+                        selected
+                          ? "bg-white dark:bg-gray-600 shadow-md text-primary-700 dark:text-white transform scale-105"
+                          : "text-gray-600 dark:text-gray-300 hover:bg-white/[0.15] hover:text-primary-600 hover:transform hover:scale-105"
+                      )
+                    }
+                  >
+                    Opportunités
+                  </Tab>
+                  <Tab
+                    className={({ selected }) =>
+                      classNames(
+                        "flex-shrink-0 min-w-[120px] py-3 px-4 text-sm font-medium rounded-lg transition-all duration-200",
+                        "focus:outline-none focus:ring-2 ring-offset-2 ring-offset-primary-400 ring-white ring-opacity-60",
+                        selected
+                          ? "bg-white dark:bg-gray-600 shadow-md text-primary-700 dark:text-white transform scale-105"
+                          : "text-gray-600 dark:text-gray-300 hover:bg-white/[0.15] hover:text-primary-600 hover:transform hover:scale-105"
+                      )
+                    }
+                  >
+                    Livreurs
+                  </Tab>
+                  <Tab
+                    className={({ selected }) =>
+                      classNames(
+                        "flex-shrink-0 min-w-[120px] py-3 px-4 text-sm font-medium rounded-lg transition-all duration-200",
+                        "focus:outline-none focus:ring-2 ring-offset-2 ring-offset-primary-400 ring-white ring-opacity-60",
+                        selected
+                          ? "bg-white dark:bg-gray-600 shadow-md text-primary-700 dark:text-white transform scale-105"
+                          : "text-gray-600 dark:text-gray-300 hover:bg-white/[0.15] hover:text-primary-600 hover:transform hover:scale-105"
+                      )
+                    }
+                  >
+                    <AcademicCapIcon className="h-5 w-5 inline-block mr-1" />
+                    Formations
+                  </Tab>
+                  <Tab
+                    className={({ selected }) =>
+                      classNames(
+                        "flex-shrink-0 min-w-[120px] py-3 px-4 text-sm font-medium rounded-lg transition-all duration-200",
+                        "focus:outline-none focus:ring-2 ring-offset-2 ring-offset-primary-400 ring-white ring-opacity-60",
+                        selected
+                          ? "bg-white dark:bg-gray-600 shadow-md text-primary-700 dark:text-white transform scale-105"
+                          : "text-gray-600 dark:text-gray-300 hover:bg-white/[0.15] hover:text-primary-600 hover:transform hover:scale-105"
+                      )
+                    }
+                  >
+                    <UsersIcon className="h-5 w-5 inline-block mr-1" />
+                    Pages
+                  </Tab>
+                  <Tab
+                    className={({ selected }) =>
+                      classNames(
+                        "flex-shrink-0 min-w-[120px] py-3 px-4 text-sm font-medium rounded-lg transition-all duration-200",
+                        "focus:outline-none focus:ring-2 ring-offset-2 ring-offset-primary-400 ring-white ring-opacity-60",
+                        selected
+                          ? "bg-white dark:bg-gray-600 shadow-md text-primary-700 dark:text-white transform scale-105"
+                          : "text-gray-600 dark:text-gray-300 hover:bg-white/[0.15] hover:text-primary-600 hover:transform hover:scale-105"
+                      )
+                    }
+                  >
+                    <DocumentTextIcon className="h-5 w-5 inline-block mr-1" />
+                    Produits numériques
+                  </Tab>
+                  <Tab
+                    className={({ selected }) =>
+                      classNames(
+                        "flex-shrink-0 min-w-[120px] py-3 px-4 text-sm font-medium rounded-lg transition-all duration-200",
+                        "focus:outline-none focus:ring-2 ring-offset-2 ring-offset-primary-400 ring-white ring-opacity-60",
+                        selected
+                          ? "bg-white dark:bg-gray-600 shadow-md text-primary-700 dark:text-white transform scale-105"
+                          : "text-gray-600 dark:text-gray-300 hover:bg-white/[0.15] hover:text-primary-600 hover:transform hover:scale-105"
+                      )
+                    }
+                  >
+                    <ChatBubbleLeftRightIcon className="h-5 w-5 inline-block mr-1" />
+                    Social
+                  </Tab>
+                </Tab.List>
+              </div>
+            </div>
+
+            {/* Flèche de défilement droite */}
+            <button
+              className="absolute right-0 top-1/2 -translate-y-1/2 z-10 bg-white dark:bg-gray-800 rounded-full p-1 shadow-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary-500 disabled:opacity-40 disabled:cursor-not-allowed"
+              onClick={() => {
+                const tabList = document.querySelector(".tab-list-container");
+                tabList.scrollBy({ left: 200, behavior: "smooth" });
+              }}
             >
-              Offres d'emploi
-            </Tab>
-            <Tab
-              className={({ selected }) =>
-                classNames(
-                  "flex-shrink-0 min-w-[120px] py-3 px-3 text-sm font-medium rounded-lg",
-                  "focus:outline-none focus:ring-2 ring-offset-2 ring-offset-primary-400 ring-white ring-opacity-60",
-                  selected
-                    ? "bg-white dark:bg-gray-600 shadow text-primary-700 dark:text-white"
-                    : "text-gray-600 dark:text-gray-300 hover:bg-white/[0.12] hover:text-primary-600"
-                )
-              }
-            >
-              Opportunités
-            </Tab>
-            <Tab
-              className={({ selected }) =>
-                classNames(
-                  "flex-shrink-0 min-w-[120px] py-3 px-3 text-sm font-medium rounded-lg",
-                  "focus:outline-none focus:ring-2 ring-offset-2 ring-offset-primary-400 ring-white ring-opacity-60",
-                  selected
-                    ? "bg-white dark:bg-gray-600 shadow text-primary-700 dark:text-white"
-                    : "text-gray-600 dark:text-gray-300 hover:bg-white/[0.12] hover:text-primary-600"
-                )
-              }
-            >
-              Livreurs
-            </Tab>
-            <Tab
-              className={({ selected }) =>
-                classNames(
-                  "flex-shrink-0 min-w-[120px] py-3 px-3 text-sm font-medium rounded-lg",
-                  "focus:outline-none focus:ring-2 ring-offset-2 ring-offset-primary-400 ring-white ring-opacity-60",
-                  selected
-                    ? "bg-white dark:bg-gray-600 shadow text-primary-700 dark:text-white"
-                    : "text-gray-600 dark:text-gray-300 hover:bg-white/[0.12] hover:text-primary-600"
-                )
-              }
-            >
-              <AcademicCapIcon className="h-5 w-5 inline-block mr-1" />
-              Formations
-            </Tab>
-            <Tab
-              className={({ selected }) =>
-                classNames(
-                  "flex-shrink-0 min-w-[120px] py-3 px-3 text-sm font-medium rounded-lg",
-                  "focus:outline-none focus:ring-2 ring-offset-2 ring-offset-primary-400 ring-white ring-opacity-60",
-                  selected
-                    ? "bg-white dark:bg-gray-600 shadow text-primary-700 dark:text-white"
-                    : "text-gray-600 dark:text-gray-300 hover:bg-white/[0.12] hover:text-primary-600"
-                )
-              }
-            >
-              <UsersIcon className="h-5 w-5 inline-block mr-1" />
-              Pages
-            </Tab>
-            <Tab
-              className={({ selected }) =>
-                classNames(
-                  "flex-shrink-0 min-w-[120px] py-3 px-3 text-sm font-medium rounded-lg",
-                  "focus:outline-none focus:ring-2 ring-offset-2 ring-offset-primary-400 ring-white ring-opacity-60",
-                  selected
-                    ? "bg-white dark:bg-gray-600 shadow text-primary-700 dark:text-white"
-                    : "text-gray-600 dark:text-gray-300 hover:bg-white/[0.12] hover:text-primary-600"
-                )
-              }
-            >
-              <DocumentTextIcon className="h-5 w-5 inline-block mr-1" />
-              Produits numériques
-            </Tab>
-            <Tab
-              className={({ selected }) =>
-                classNames(
-                  "flex-shrink-0 min-w-[120px] py-3 px-3 text-sm font-medium rounded-lg",
-                  "focus:outline-none focus:ring-2 ring-offset-2 ring-offset-primary-400 ring-white ring-opacity-60",
-                  selected
-                    ? "bg-white dark:bg-gray-600 shadow text-primary-700 dark:text-white"
-                    : "text-gray-600 dark:text-gray-300 hover:bg-white/[0.12] hover:text-primary-600"
-                )
-              }
-            >
-              <ChatBubbleLeftRightIcon className="h-5 w-5 inline-block mr-1" />
-              Social
-            </Tab>
-          </Tab.List>
+              <ChevronRightIcon className="h-5 w-5 text-primary-600 dark:text-primary-400" />
+            </button>
+          </div>
           <Tab.Panels>
             {/* Advertisements Panel */}
             <Tab.Panel className="p-4">
@@ -1619,32 +1661,151 @@ export default function MyPage() {
                             <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-600"></div>
                           </div>
                         ) : publications.digitalProducts.length > 0 ? (
-                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                            {getFilteredPublications(
-                              "digitalProduct",
-                              true
-                            ).map((product) => (
-                              <div key={product.id} className="mb-4">
-                                <DigitalProductCard
-                                  product={product}
-                                  onEdit={() => {
-                                    setSelectedDigitalProduct(product);
-                                    setIsDigitalProductFormOpen(true);
-                                  }}
-                                  onDelete={(id) =>
-                                    handleDeleteConfirm(id, "digitalProduct")
-                                  }
-                                  onChangeStatus={(id, newStatus) =>
-                                    handleChangeState(
-                                      id,
-                                      "digitalProduct",
-                                      newStatus
-                                    )
-                                  }
-                                />
+                          <>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                              {getFilteredPublications("digitalProduct", true)
+                                // Pagination: slice pour n'afficher que les éléments de la page courante
+                                .slice(
+                                  (digitalProductsPagination.currentPage - 1) *
+                                    digitalProductsPagination.itemsPerPage,
+                                  digitalProductsPagination.currentPage *
+                                    digitalProductsPagination.itemsPerPage
+                                )
+                                .map((product) => (
+                                  <div key={product.id} className="mb-4">
+                                    <DigitalProductCard
+                                      product={product}
+                                      onEdit={() => {
+                                        setSelectedDigitalProduct(product);
+                                        setIsDigitalProductFormOpen(true);
+                                      }}
+                                      onDelete={(id) =>
+                                        handleDeleteConfirm(
+                                          id,
+                                          "digitalProduct"
+                                        )
+                                      }
+                                      onChangeStatus={(id, newStatus) =>
+                                        handleChangeState(
+                                          id,
+                                          "digitalProduct",
+                                          newStatus
+                                        )
+                                      }
+                                    />
+                                  </div>
+                                ))}
+                            </div>
+
+                            {/* Pagination */}
+                            {Math.ceil(
+                              getFilteredPublications("digitalProduct", true)
+                                .length / digitalProductsPagination.itemsPerPage
+                            ) > 1 && (
+                              <div className="flex justify-center mt-6">
+                                <nav className="flex items-center space-x-2">
+                                  <button
+                                    onClick={() =>
+                                      setDigitalProductsPagination((prev) => ({
+                                        ...prev,
+                                        currentPage: Math.max(
+                                          1,
+                                          prev.currentPage - 1
+                                        ),
+                                      }))
+                                    }
+                                    disabled={
+                                      digitalProductsPagination.currentPage ===
+                                      1
+                                    }
+                                    className={`px-3 py-1 rounded-md ${
+                                      digitalProductsPagination.currentPage ===
+                                      1
+                                        ? "bg-gray-200 text-gray-500 cursor-not-allowed dark:bg-gray-700 dark:text-gray-400"
+                                        : "bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
+                                    }`}
+                                  >
+                                    Précédent
+                                  </button>
+
+                                  {Array.from(
+                                    {
+                                      length: Math.ceil(
+                                        getFilteredPublications(
+                                          "digitalProduct",
+                                          true
+                                        ).length /
+                                          digitalProductsPagination.itemsPerPage
+                                      ),
+                                    },
+                                    (_, i) => i + 1
+                                  ).map((page) => (
+                                    <button
+                                      key={page}
+                                      onClick={() =>
+                                        setDigitalProductsPagination(
+                                          (prev) => ({
+                                            ...prev,
+                                            currentPage: page,
+                                          })
+                                        )
+                                      }
+                                      className={`px-3 py-1 rounded-md ${
+                                        digitalProductsPagination.currentPage ===
+                                        page
+                                          ? "bg-blue-600 text-white dark:bg-blue-500"
+                                          : "bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
+                                      }`}
+                                    >
+                                      {page}
+                                    </button>
+                                  ))}
+
+                                  <button
+                                    onClick={() =>
+                                      setDigitalProductsPagination((prev) => ({
+                                        ...prev,
+                                        currentPage: Math.min(
+                                          Math.ceil(
+                                            getFilteredPublications(
+                                              "digitalProduct",
+                                              true
+                                            ).length /
+                                              digitalProductsPagination.itemsPerPage
+                                          ),
+                                          prev.currentPage + 1
+                                        ),
+                                      }))
+                                    }
+                                    disabled={
+                                      digitalProductsPagination.currentPage ===
+                                      Math.ceil(
+                                        getFilteredPublications(
+                                          "digitalProduct",
+                                          true
+                                        ).length /
+                                          digitalProductsPagination.itemsPerPage
+                                      )
+                                    }
+                                    className={`px-3 py-1 rounded-md ${
+                                      digitalProductsPagination.currentPage ===
+                                      Math.ceil(
+                                        getFilteredPublications(
+                                          "digitalProduct",
+                                          true
+                                        ).length /
+                                          digitalProductsPagination.itemsPerPage
+                                      )
+                                        ? "bg-gray-200 text-gray-500 cursor-not-allowed dark:bg-gray-700 dark:text-gray-400"
+                                        : "bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
+                                    }`}
+                                  >
+                                    Suivant
+                                  </button>
+                                </nav>
                               </div>
-                            ))}
-                          </div>
+                            )}
+                          </>
                         ) : (
                           <div className="text-center py-8">
                             <p className="text-gray-500 dark:text-gray-400">
@@ -1857,7 +2018,7 @@ export default function MyPage() {
                                                 }
                                               }}
                                             >
-                                              <DownloadIcon className="h-5 w-5 mr-2" />
+                                              <ArrowDownTrayIcon className="h-5 w-5 mr-2" />
                                               Télécharger
                                             </button>
                                           </>
@@ -1911,7 +2072,7 @@ export default function MyPage() {
                                                 }
                                               }}
                                             >
-                                              <DownloadIcon className="h-5 w-5 mr-2" />
+                                              <ArrowDownTrayIcon className="h-5 w-5 mr-2" />
                                               Télécharger
                                             </button>
                                           </>

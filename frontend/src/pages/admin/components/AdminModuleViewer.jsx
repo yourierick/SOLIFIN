@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   Box,
   Typography,
@@ -24,6 +24,31 @@ const AdminModuleViewer = ({ module }) => {
   const theme = useTheme();
   const isDarkMode = theme.palette.mode === "dark";
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+  const [videoError, setVideoError] = useState(false);
+  
+  // Fonction pour normaliser les URLs YouTube
+  const normalizeYoutubeUrl = (url) => {
+    if (!url) return "";
+    
+    // Essayer d'extraire l'ID de la vidéo à partir de différents formats d'URL YouTube
+    let videoId = "";
+    
+    // Format: youtu.be/VIDEO_ID
+    const shortMatch = url.match(/youtu\.be\/([^\/?&]+)/);
+    if (shortMatch) videoId = shortMatch[1];
+    
+    // Format: youtube.com/watch?v=VIDEO_ID ou youtube.com/v/VIDEO_ID
+    const standardMatch = url.match(/(?:youtube\.com\/(?:watch\?v=|v\/)|youtube\.com\/embed\/)([^\/?&]+)/);
+    if (standardMatch) videoId = standardMatch[1];
+    
+    // Si on a trouvé un ID, construire une URL canonique
+    if (videoId) {
+      return `https://www.youtube.com/watch?v=${videoId}`;
+    }
+    
+    // Si on n'a pas pu extraire l'ID, retourner l'URL d'origine
+    return url;
+  };
 
   if (!module) {
     return (
@@ -53,29 +78,41 @@ const AdminModuleViewer = ({ module }) => {
       case "video":
         return (
           <Box sx={{ mt: 2 }}>
-            <Box
-              sx={{
-                position: "relative",
-                paddingTop: "56.25%", // 16:9 aspect ratio
-                mb: 2,
-              }}
-            >
-              <ReactPlayer
-                url={module.video_url}
-                width="100%"
-                height="100%"
-                controls
-                style={{ position: "absolute", top: 0, left: 0 }}
-                config={{
-                  youtube: {
-                    playerVars: {
-                      origin: window.location.origin,
-                      host: window.location.origin,
-                    },
-                  },
+            {videoError ? (
+              <Alert severity="error" sx={{ mb: 2 }}>
+                Erreur de chargement de la vidéo. L'URL fournie pourrait être invalide ou la vidéo n'est pas disponible.
+                <br />
+                URL: {module.video_url}
+              </Alert>
+            ) : (
+              <Box
+                sx={{
+                  position: "relative",
+                  paddingTop: "56.25%", // 16:9 aspect ratio
+                  mb: 2,
                 }}
-              />
-            </Box>
+              >
+                <ReactPlayer
+                  url={normalizeYoutubeUrl(module.video_url)}
+                  width="100%"
+                  height="100%"
+                  controls
+                  onError={(e) => {
+                    console.error("Erreur de lecture vidéo:", e);
+                    setVideoError(true);
+                  }}
+                  style={{ position: "absolute", top: 0, left: 0 }}
+                  config={{
+                    youtube: {
+                      playerVars: {
+                        origin: window.location.origin,
+                        host: window.location.origin,
+                      },
+                    },
+                  }}
+                />
+              </Box>
+            )}
 
             {module.content && (
               <Box sx={{ mt: 3 }}>

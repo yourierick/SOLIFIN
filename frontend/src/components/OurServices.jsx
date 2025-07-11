@@ -104,105 +104,72 @@ export default function OurServices() {
           initial="hidden"
           whileInView="visible"
           viewport={{ once: true }}
-          className="mt-16 grid gap-8"
+          className="mt-16 grid gap-8 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
         >
-          {/* Premier service sur toute la largeur */}
-          <motion.div
-            variants={itemVariants}
-            className={`col-span-12 md:col-span-12 lg:col-span-12 xl:col-span-12 mb-8`}
-          >
-            <div
-              className={`flex flex-col lg:flex-row h-full rounded-2xl overflow-hidden shadow-lg ${
+          {services.map((service, index) => (
+            <motion.div
+              key={index}
+              variants={itemVariants}
+              className={`flex flex-col h-full p-0 rounded-2xl transition-all duration-300 overflow-hidden shadow-lg ${
                 isDarkMode
                   ? "bg-gray-800 hover:shadow-green-900/30 border border-gray-700"
                   : "bg-white hover:shadow-green-500/30 border border-gray-100"
               }`}
             >
-              <div className="w-full lg:w-1/2 h-64 lg:h-auto">
-                <Swiper
-                  spaceBetween={30}
-                  centeredSlides={true}
-                  autoplay={{
-                    delay: 3000,
-                    disableOnInteraction: false,
-                  }}
-                  pagination={{
-                    clickable: true,
-                  }}
-                  navigation={true}
-                  modules={[Autoplay, Pagination, Navigation]}
-                  className="h-full w-full"
-                >
-                  {services[0].images.map((img, imgIndex) => (
-                    <SwiperSlide key={imgIndex} className="w-full h-full">
-                      <img
-                        src={img}
-                        alt={`${services[0].title} ${imgIndex + 1}`}
-                        className="w-full h-full object-cover"
-                        loading="lazy"
-                      />
-                    </SwiperSlide>
-                  ))}
-                </Swiper>
-              </div>
-              <div className="flex flex-col flex-1 p-8">
-                <h3
-                  className={`text-2xl font-bold mb-4 ${
-                    isDarkMode ? "text-white" : "text-gray-900"
-                  }`}
-                >
-                  {services[0].title}
-                </h3>
-                <p
-                  className={`text-lg ${
-                    isDarkMode ? "text-gray-300" : "text-gray-600"
-                  }`}
-                >
-                  {services[0].description}
-                </p>
-              </div>
-            </div>
-          </motion.div>
-
-          {/* Autres services en grille */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
-            {services.slice(1).map((service, index) => (
-              <motion.div
-                key={index + 1}
-                variants={itemVariants}
-                className={`flex flex-col h-full p-0 rounded-2xl transition-all duration-300 overflow-hidden shadow-lg ${
-                  isDarkMode
-                    ? "bg-gray-800 hover:shadow-green-900/30 border border-gray-700"
-                    : "bg-white hover:shadow-green-500/30 border border-gray-100"
-                }`}
-              >
-                <div className="w-full h-40 md:h-44 lg:h-48 xl:h-44 overflow-hidden bg-gray-100 dark:bg-gray-900">
+              <div className="w-full h-40 md:h-44 lg:h-48 xl:h-44 overflow-hidden bg-gray-100 dark:bg-gray-900">
+                {index === 0 ? (
+                  <Swiper
+                    spaceBetween={30}
+                    centeredSlides={true}
+                    autoplay={{
+                      delay: 3000,
+                      disableOnInteraction: false,
+                    }}
+                    pagination={{
+                      clickable: true,
+                    }}
+                    navigation={true}
+                    modules={[Autoplay, Pagination, Navigation]}
+                    className="h-full w-full rounded-t-2xl"
+                  >
+                    {service.images.map((img, imgIndex) => (
+                      <SwiperSlide key={imgIndex} className="w-full h-full">
+                        <img
+                          src={img}
+                          alt={`${service.title} ${imgIndex + 1}`}
+                          className="w-full h-full object-cover"
+                          loading="lazy"
+                        />
+                      </SwiperSlide>
+                    ))}
+                  </Swiper>
+                ) : (
                   <img
                     src={service.image}
                     alt={service.title}
                     className="object-cover w-full h-full rounded-t-2xl"
                     loading="lazy"
                   />
-                </div>
-                <div className="flex flex-col flex-1 p-6">
-                  <h3
-                    className={`text-lg font-semibold mb-3 ${
-                      isDarkMode ? "text-white" : "text-gray-900"
-                    }`}
-                  >
-                    {service.title}
-                  </h3>
-                  <p
-                    className={`mb-2 flex-grow ${
-                      isDarkMode ? "text-gray-300" : "text-gray-600"
-                    }`}
-                  >
-                    {service.description}
-                  </p>
-                </div>
-              </motion.div>
-            ))}
-          </div>
+                )}
+              </div>
+              <div className="flex flex-col flex-1 p-6">
+                <h3
+                  className={`text-lg font-semibold mb-3 ${
+                    isDarkMode ? "text-white" : "text-gray-900"
+                  }`}
+                >
+                  {service.title}
+                </h3>
+                <p
+                  className={`mb-2 flex-grow ${
+                    isDarkMode ? "text-gray-300" : "text-gray-600"
+                  }`}
+                >
+                  {service.description}
+                </p>
+              </div>
+            </motion.div>
+          ))}
         </motion.div>
       </motion.div>
     </div>

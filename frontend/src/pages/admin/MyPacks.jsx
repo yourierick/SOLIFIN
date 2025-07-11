@@ -738,41 +738,7 @@ export default function MyPacks() {
   };
 
   return (
-    <Container sx={{ py: 4 }}>
-      <Box
-        sx={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          mb: 4,
-        }}
-      >
-        <Typography
-          variant="h4"
-          sx={{
-            fontWeight: 700,
-            letterSpacing: "-0.5px",
-          }}
-        >
-          Mes Packs
-        </Typography>
-
-        <Button
-          variant="contained"
-          startIcon={<PlusIcon className="h-5 w-5" />}
-          onClick={() => navigate("../packs")}
-          sx={{
-            borderRadius: "8px",
-            fontWeight: 600,
-            py: 1.2,
-            px: 2.5,
-            textTransform: "none",
-          }}
-        >
-          Ajouter un pack
-        </Button>
-      </Box>
-
+    <Container sx={{ py: 4, bgcolor: isDarkMode ? "#2a3441" : "#fff" }}>
       {userPacks.length === 0 ? (
         <Paper
           elevation={0}
@@ -813,20 +779,6 @@ export default function MyPacks() {
             Ajoutez des packs pour permettre aux utilisateurs de s'inscrire et
             de parrainer d'autres membres.
           </Typography>
-          <Button
-            variant="contained"
-            onClick={() => navigate("../packs")}
-            sx={{
-              mt: 1,
-              borderRadius: "8px",
-              fontWeight: 600,
-              py: 1.2,
-              px: 3,
-              textTransform: "none",
-            }}
-          >
-            Ajouter des packs
-          </Button>
         </Paper>
       ) : (
         <Grid container spacing={3}>

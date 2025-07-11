@@ -60,12 +60,11 @@ class DigitalProductSold extends Notification
     public function toArray($notifiable)
     {
         return [
-            'type' => 'digital_product_sold',
-            'product_id' => $this->data['product_id'],
-            'product_title' => $this->data['product_title'],
-            'amount' => $this->data['amount'],
-            'currency' => $this->data['currency'],
-            'buyer_name' => $this->data['buyer_name'],
+            'type' => 'info',
+            'titre' => 'Vente de produit numérique',
+            'icon' => 'exclamation-circle',
+            'color' => 'primary',
+            'link' => '/dashboard/finances',
             'message' => 'Votre produit numérique "' . $this->data['product_title'] . '" a été acheté par ' . $this->data['buyer_name'] . ' pour ' . $this->data['amount'] . ' ' . $this->data['currency'] . '.'
         ];
     }

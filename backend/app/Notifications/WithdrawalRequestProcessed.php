@@ -30,6 +30,14 @@ class WithdrawalRequestProcessed extends Notification implements ShouldQueue
             ? 'approuvée' 
             : 'rejetée';
 
+        $type = $this->withdrawalRequest->status === 'approved' 
+            ? 'info' 
+            : 'danger';
+
+        $icon = $this->withdrawalRequest->status === 'approved' 
+            ? 'exclamation-circle' 
+            : 'exclamation-triangle';
+
         return (new MailMessage)
             ->subject("Votre demande de retrait a été {$status}")
             ->greeting("Bonjour {$notifiable->name},")
@@ -46,14 +54,12 @@ class WithdrawalRequestProcessed extends Notification implements ShouldQueue
     public function toArray($notifiable)
     {
         return [
-            'title' => 'Confirmation de retrait',
+            'type' => $type,
+            'icon' => $icon,
+            'titre' => 'Confirmation de retrait',
             'message' => $this->withdrawalRequest->status === 'approved' 
             ? 'Votre demande de retrait d\'un montant de ' . $this->withdrawalRequest->amount . '$ a été approuvée.' 
             : 'Votre demande de retrait d\'un montant de ' . $this->withdrawalRequest->amount . '$ a été rejetée.',
-            'withdrawal_request_id' => $this->withdrawalRequest->id,
-            'amount' => $this->withdrawalRequest->amount,
-            'status' => $this->withdrawalRequest->status,
-            'note' => $this->withdrawalRequest->admin_note,
         ];
     }
 }

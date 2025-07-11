@@ -59,13 +59,19 @@ import {
   CreditCard as CreditCardIcon,
   BarChart as BarChartIcon,
   CardGiftcard as CardGiftcardIcon,
+  MonetizationOn as MonetizationOnIcon,
+  Payment as PaymentIcon,
 } from "@mui/icons-material";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import * as XLSX from "xlsx";
 
-// Import du composant Wallets avec lazy loading
+// Import des composants avec lazy loading
 const Wallets = lazy(() => import("./Wallets"));
+const Commissions = lazy(() => import("./Commissions"));
+const WithdrawalRequests = lazy(() =>
+  import("../../components/WithdrawalRequests")
+);
 
 // Composant principal
 const Finances = () => {
@@ -1178,6 +1184,26 @@ const Finances = () => {
             onMouseLeave={() => setTabHover(null)}
             sx={{
               transform: tabHover === 3 ? "translateY(-2px)" : "none",
+            }}
+          />
+          <Tab
+            icon={<MonetizationOnIcon fontSize="small" />}
+            iconPosition="start"
+            label="Commissions"
+            onMouseEnter={() => setTabHover(4)}
+            onMouseLeave={() => setTabHover(null)}
+            sx={{
+              transform: tabHover === 4 ? "translateY(-2px)" : "none",
+            }}
+          />
+          <Tab
+            icon={<PaymentIcon fontSize="small" />}
+            iconPosition="start"
+            label="Retraits"
+            onMouseEnter={() => setTabHover(5)}
+            onMouseLeave={() => setTabHover(null)}
+            sx={{
+              transform: tabHover === 5 ? "translateY(-2px)" : "none",
             }}
           />
         </Tabs>
@@ -2819,6 +2845,52 @@ const Finances = () => {
                 </Grid>
               </Box>
             )}
+          </Box>
+        )}
+
+        {activeTab === 4 && (
+          <Box p={3}>
+            {/* Composant Commissions */}
+            <Suspense
+              fallback={
+                <Box
+                  display="flex"
+                  justifyContent="center"
+                  alignItems="center"
+                  height="400px"
+                >
+                  <CircularProgress color="primary" />
+                  <Typography variant="body1" ml={2} color="textSecondary">
+                    Chargement des commissions...
+                  </Typography>
+                </Box>
+              }
+            >
+              <Commissions />
+            </Suspense>
+          </Box>
+        )}
+
+        {activeTab === 5 && (
+          <Box p={3}>
+            {/* Composant WithdrawalRequests */}
+            <Suspense
+              fallback={
+                <Box
+                  display="flex"
+                  justifyContent="center"
+                  alignItems="center"
+                  height="400px"
+                >
+                  <CircularProgress color="primary" />
+                  <Typography variant="body1" ml={2} color="textSecondary">
+                    Chargement des demandes de retrait...
+                  </Typography>
+                </Box>
+              }
+            >
+              <WithdrawalRequests />
+            </Suspense>
           </Box>
         )}
       </Paper>

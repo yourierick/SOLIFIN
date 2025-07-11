@@ -67,7 +67,6 @@ class ReferralInvitationConverted extends Notification implements ShouldQueue
             ->line('Nous avons le plaisir de vous informer que votre invitation a été convertie en filleul.')
             ->line('**' . $this->newUser->name . '** s\'est inscrit(e) sur SOLIFIN en utilisant votre code d\'invitation.')
             ->line('Vous pouvez consulter votre réseau de parrainage dans votre tableau de bord.')
-            ->action('Voir mon tableau de bord', $dashboardUrl)
             ->line('Merci de contribuer à la croissance de la communauté SOLIFIN !')
             ->salutation('Cordialement,  L\'équipe SOLIFIN');
     }
@@ -80,13 +79,10 @@ class ReferralInvitationConverted extends Notification implements ShouldQueue
     public function toArray(object $notifiable): array
     {
         return [
-            'invitation_id' => $this->invitation->id,
-            'invitation_code' => $this->invitation->invitation_code,
-            'new_user_id' => $this->newUser->id,
-            'new_user_name' => $this->newUser->name,
-            'registered_at' => $this->invitation->registered_at->toIso8601String(),
-            'message' => 'Votre invitation a été convertie en filleul. ' . $this->newUser->name . ' a rejoint SOLIFIN !',
-            'type' => 'referral_converted'
+            'type' => 'info',
+            'icon' => 'exclamation-circle',
+            'titre' => 'Invitation de parrainage',
+            'message' => 'Votre invitation ' . $this->invitation->invitation_code . ' a été convertie en filleul. ' . $this->newUser->name . ' a rejoint SOLIFIN !',
         ];
     }
 }

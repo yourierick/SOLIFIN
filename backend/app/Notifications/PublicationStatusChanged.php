@@ -103,9 +103,7 @@ class PublicationStatusChanged extends Notification implements ShouldQueue
             'type' => $type,
             'message' => $message,
             'link' => $link,
-            'publication_id' => $this->data['id'],
-            'publication_type' => $this->data['type'],
-            'statut' => $this->data['statut'],
+            'icon' => 'exclamation-circle',
             'titre' => $this->data['titre']
         ];
     }

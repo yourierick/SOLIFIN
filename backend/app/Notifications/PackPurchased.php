@@ -31,21 +31,21 @@ class PackPurchased extends Notification implements ShouldQueue
         // Si le notifiable est l'acheteur
         if ($notifiable->id === $this->buyer->id) {
             return [
+                'type' => 'success',
+                'titre' => 'Achat de pack',
+                'icon' => 'check-circle',
+                'color' => 'success',
+                'link' => 'dashboard/packs/:id',
                 'message' => 'Vous avez acheté le pack ' . $this->pack->name,
-                'pack_id' => $this->pack->id,
-                'pack_name' => $this->pack->name,
-                'amount' => $this->pack->price,
-                'purchase_date' => now()->format('d/m/Y H:i'),
             ];
         }
 
         // Si le notifiable est un parrain qui reçoit une commission
         return [
+            'type' => 'info',
+            'titre' => 'Commission de parrainage',
+            'icon' => 'exclamation-circle',
             'message' => $this->buyer->name . ' a acheté le pack ' . $this->pack->name . ' - Commission reçue',
-            'pack_id' => $this->pack->id,
-            'pack_name' => $this->pack->name,
-            'buyer_name' => $this->buyer->name,
-            'purchase_date' => now()->format('d/m/Y H:i'),
         ];
     }
 } 

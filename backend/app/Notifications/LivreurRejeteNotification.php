@@ -54,7 +54,7 @@ class LivreurRejeteNotification extends Notification implements ShouldQueue
             ->greeting('Bonjour ' . $notifiable->name)
             ->line('Nous sommes désolés de vous informer que votre candidature pour devenir livreur de la page "' . $this->page->nom . '" a été rejetée.')
             ->line('Vous pouvez contacter le propriétaire de la page pour plus d\'informations.')
-            ->action('Voir la page', url('/page/' . $this->page->id))
+            ->action('Voir la page', env('FRONTEND_URL') . '/dashboard/pages/' . $this->page->id)
             ->line('Merci d\'utiliser notre application!');
     }
 
@@ -67,13 +67,11 @@ class LivreurRejeteNotification extends Notification implements ShouldQueue
     public function toArray($notifiable)
     {
         return [
-            'type' => 'livreur_rejete',
-            'page_id' => $this->page->id,
-            'page_name' => $this->page->nom ?? 'La page',
-            'titre' => 'Candidature de livreur rejetée',
-            'message' => 'Nous sommes désolés de vous informer que votre candidature pour devenir livreur de la page "' . $this->page->nom . '" a été rejetée.',
-            'created_at' => now()->toIso8601String(),
-            'read_at' => null,
+            'type' => 'danger',
+            'titre' => 'Rejet de livraison',
+            'icon' => 'exclamation-triangle',
+            'link' => '/dashboard/pages/' . $this->page->id,
+            'message' => 'Nous sommes désolés de vous informer que votre candidature pour devenir livreur de la page de l\'utilisateur "' . $this->page->user->name . '" a été rejetée.',
         ];
     }
 }

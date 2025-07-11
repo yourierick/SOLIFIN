@@ -16,6 +16,7 @@ class FundsTransferred extends Notification implements ShouldQueue
     private $recipientName;
     private $isRecipient;
     private $description;
+    private $is_admin;
 
     /**
      * Create a new notification instance.
@@ -33,6 +34,7 @@ class FundsTransferred extends Notification implements ShouldQueue
         $this->recipientName = $recipientName;
         $this->isRecipient = $isRecipient;
         $this->description = $description;
+        $this->is_admin = $is_admin;
     }
 
     /**
@@ -57,24 +59,20 @@ class FundsTransferred extends Notification implements ShouldQueue
         if ($this->isRecipient) {
             // Notification pour le destinataire du transfert
             return [
-                'title' => 'Fonds reçus',
+                'type' => 'info',
+                'icon' => 'exclamation-circle',
+                'link' => $this->is_admin ? '/admin/finances' : '/dashboard/finances',
+                'titre' => 'Réception de fonds',
                 'message' => 'Vous avez reçu ' . $this->amount . ' $ de ' . $this->senderName . '.',
-                'amount' => $this->amount,
-                'sender_name' => $this->senderName,
-                'recipient_name' => $this->recipientName,
-                'description' => $this->description,
-                'type' => 'funds_received'
             ];
         } else {
             // Notification pour l'expéditeur du transfert
             return [
-                'title' => 'Transfert réussi',
+                'type' => 'success',
+                'icon' => 'check-circle',
+                'link' => $this->is_admin ? '/admin/finances' : '/dashboard/finances',
+                'titre' => 'Transfert des fonds',
                 'message' => 'Vous avez transféré ' . $this->amount . ' $ à ' . $this->recipientName . '.',
-                'amount' => $this->amount,
-                'sender_name' => $this->senderName,
-                'recipient_name' => $this->recipientName,
-                'description' => $this->description,
-                'type' => 'funds_sent'
             ];
         }
     }

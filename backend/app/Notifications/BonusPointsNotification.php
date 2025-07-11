@@ -43,7 +43,7 @@ class BonusPointsNotification extends Notification implements ShouldQueue
      */
     public function via($notifiable)
     {
-        return ['database', 'broadcast'];
+        return ['database'];
     }
 
     /**
@@ -55,12 +55,11 @@ class BonusPointsNotification extends Notification implements ShouldQueue
     public function toArray($notifiable)
     {
         return [
-            'title' => $this->title,
+            'titre' => $this->title,
             'message' => $this->message,
-            'points' => $this->points,
-            'type' => $this->type,
-            'icon' => $this->type === BonusRates::TYPE_DELAIS ? 'clock' : 'ticket',
-            'color' => $this->type === BonusRates::TYPE_DELAIS ? 'success' : 'primary',
+            'type' => "info",
+            'icon' => 'exclamation-circle',
+            'color' => 'primary',
         ];
     }
 
@@ -75,11 +74,9 @@ class BonusPointsNotification extends Notification implements ShouldQueue
         return new BroadcastMessage([
             'title' => $this->title,
             'message' => $this->message,
-            'points' => $this->points,
-            'type' => $this->type,
-            'icon' => $this->type === BonusRates::TYPE_DELAIS ? 'clock' : 'ticket',
-            'color' => $this->type === BonusRates::TYPE_DELAIS ? 'success' : 'primary',
-            'time' => now()->toIso8601String(),
+            'type' => "info",
+            'icon' => 'info',
+            'color' => 'primary',
         ]);
     }
 }

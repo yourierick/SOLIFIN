@@ -98,6 +98,11 @@ const DigitalProductForm = ({ product, onSubmit, onCancel }) => {
       newErrors.prix = "Veuillez entrer un prix valide";
     }
 
+    // Vérification de l'image (maintenant obligatoire)
+    if (!formData.image && !imagePreview) {
+      newErrors.image = "L'image de couverture est requise";
+    }
+
     if (!product && !formData.fichier) {
       newErrors.fichier = "Le fichier est requis";
     }
@@ -255,7 +260,7 @@ const DigitalProductForm = ({ product, onSubmit, onCancel }) => {
 
         <div>
           <label className="block text-sm font-medium text-gray-700">
-            Image de couverture (optionnelle)
+            Image de couverture <span className="text-red-500">*</span>
           </label>
           <div className="mt-1 flex items-center">
             {imagePreview ? (
@@ -301,6 +306,9 @@ const DigitalProductForm = ({ product, onSubmit, onCancel }) => {
               </div>
             )}
           </div>
+          {errors.image && (
+            <p className="mt-1 text-sm text-red-600">{errors.image}</p>
+          )}
         </div>
 
         <div>

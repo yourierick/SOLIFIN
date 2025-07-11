@@ -192,7 +192,8 @@ class WalletUserController extends Controller
                 $user->name,
                 $recipient->name,
                 false,
-                $request->description
+                $request->description,
+                $user->is_admin
             ));
             
             // Notification à l'utilisateur qui a reçu les fonds
@@ -201,7 +202,8 @@ class WalletUserController extends Controller
                 $user->name,
                 $recipient->name,
                 true,
-                $request->description
+                $request->description,
+                $user->is_admin
             ));
             
             return response()->json([

@@ -37,10 +37,10 @@ class WithdrawalRequestPaid extends Notification implements ShouldQueue
     public function toArray($notifiable)
     {
         return [
-            'withdrawal_request_id' => $this->withdrawalRequest->id,
-            'amount' => $this->withdrawalRequest['montant_a_retirer'],
-            'payment_method' => $this->withdrawalRequest->payment_method,
-            'paid_at' => $this->withdrawalRequest->paid_at,
+            'type' => 'success',
+            'icon' => 'check-circle',
+            'titre' => 'Retrait effectué',
+            'message' => 'Votre retrait d\'un montant de ' . $this->withdrawalRequest['montant_a_retirer'] . '$ a été effectué avec succès.',
         ];
     }
 }

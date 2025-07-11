@@ -56,23 +56,11 @@ class TicketGagnantNotification extends Notification implements ShouldQueue
     public function toArray($notifiable)
     {
         return [
-            'title' => $this->title,
+            'type' => 'info',
+            'icon' => 'exclamation-circle',
+            'titre' => $this->title,
             'message' => $this->message,
-            'cadeau' => [
-                'id' => $this->cadeau->id,
-                'nom' => $this->cadeau->nom,
-                'description' => $this->cadeau->description,
-                'image_url' => $this->cadeau->image_url,
-                'valeur' => $this->cadeau->valeur,
-            ],
-            'ticket' => [
-                'id' => $this->ticket->id,
-                'code_verification' => $this->ticket->code_verification,
-                'date_expiration' => $this->ticket->date_expiration->format('Y-m-d H:i:s'),
-                'consomme' => $this->ticket->consomme,
-            ],
-            'icon' => 'gift',
-            'color' => 'warning',
+            'link' => '/dashboard/finances',
         ];
     }
 
@@ -85,24 +73,11 @@ class TicketGagnantNotification extends Notification implements ShouldQueue
     public function toBroadcast($notifiable)
     {
         return new BroadcastMessage([
-            'title' => $this->title,
+            'titre' => $this->title,
             'message' => $this->message,
-            'cadeau' => [
-                'id' => $this->cadeau->id,
-                'nom' => $this->cadeau->nom,
-                'description' => $this->cadeau->description,
-                'image_url' => $this->cadeau->image_url,
-                'valeur' => $this->cadeau->valeur,
-            ],
-            'ticket' => [
-                'id' => $this->ticket->id,
-                'code_verification' => $this->ticket->code_verification,
-                'date_expiration' => $this->ticket->date_expiration->format('Y-m-d H:i:s'),
-                'consomme' => $this->ticket->consomme,
-            ],
-            'icon' => 'gift',
-            'color' => 'warning',
-            'time' => now()->toIso8601String(),
+            'type' => 'info',
+            'icon' => 'exclamation-circle',
+            'link' => '/dashboard/finances',
         ]);
     }
     
@@ -128,7 +103,7 @@ class TicketGagnantNotification extends Notification implements ShouldQueue
             ->line('Code de vérification : ' . $this->ticket->code_verification)
             ->line('Date d\'expiration : ' . $expirationDate)
             ->line('Conservez précieusement ce code pour récupérer votre cadeau !')
-            ->action('Voir mes tickets', env('FRONTEND_URL') . '/dashboard/jetons-esengo')
+            ->action('Voir mes finances', env('FRONTEND_URL') . '/dashboard/finances')
             ->line('Merci d\'utiliser notre application !');
     }
 }

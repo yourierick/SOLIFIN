@@ -1,4 +1,4 @@
-import { useState, useEffect, Fragment } from "react";
+import { useState, useEffect, Fragment, lazy, Suspense } from "react";
 import { Link } from "react-router-dom";
 import axios from "axios";
 import {
@@ -17,8 +17,26 @@ import { XMarkIcon } from "@heroicons/react/24/solid";
 import { useToast } from "../../hooks/useToast";
 import Notification from "../../components/Notification";
 import { Tooltip } from "react-tooltip";
+import {
+  Tabs,
+  Tab,
+  Box,
+  Paper,
+  CircularProgress,
+  Typography,
+} from "@mui/material";
+import { useTheme as useAppTheme } from "../../contexts/ThemeContext";
+
+// Import du composant MyPacks avec lazy loading
+const MyPacks = lazy(() => import("./MyPacks"));
 
 export default function Packs() {
+  // État pour gérer les onglets
+  const [activeTab, setActiveTab] = useState(0);
+  const [tabHover, setTabHover] = useState(null);
+  const { isDarkMode } = useAppTheme();
+
+  // États existants
   const [packs, setPacks] = useState([]);
   const [filteredPacks, setFilteredPacks] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -62,6 +80,11 @@ export default function Packs() {
     points_attribues: "",
     valeur_point: "",
   });
+
+  // Fonction pour gérer le changement d'onglet
+  const handleTabChange = (event, newValue) => {
+    setActiveTab(newValue);
+  };
 
   useEffect(() => {
     fetchPacks();
@@ -530,35 +553,122 @@ export default function Packs() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto py-8">
-      <div className="sm:flex sm:items-center sm:justify-between">
-        <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">
-          Gestion des packs
+    <div className="container mx-auto px-4 py-8">
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold">
+          {activeTab === 0 ? "Gestion des Packs" : "Mes Packs"}
         </h1>
-        <div className="mt-4 sm:mt-0 flex space-x-3">
-          <button
-            onClick={() => setShowFilters(!showFilters)}
-            className="inline-flex items-center px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600"
-          >
-            <FunnelIcon className="h-5 w-5" />
-          </button>
-          <button
-            onClick={fetchPacks}
-            className="inline-flex items-center px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600"
-          >
-            <ArrowPathIcon className="h-5 w-5" />
-          </button>
-          <Link
-            to="/admin/packs/add"
-            className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 dark:bg-primary-500 dark:hover:bg-primary-600"
-          >
-            <PlusIcon className="h-5 w-5 mr-2" />
-            Ajouter un pack
-          </Link>
+        <div className="flex space-x-2">
+          {activeTab === 0 && (
+            <>
+              <button
+                onClick={() => setShowFilters(!showFilters)}
+                className="inline-flex items-center px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600"
+              >
+                <FunnelIcon className="h-5 w-5" />
+              </button>
+              <button
+                onClick={fetchPacks}
+                className="inline-flex items-center px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600"
+              >
+                <ArrowPathIcon className="h-5 w-5" />
+              </button>
+              <Link
+                to="/admin/packs/add"
+                className="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-md flex items-center"
+              >
+                <PlusIcon className="h-5 w-5 mr-2" />
+                Ajouter un pack
+              </Link>
+            </>
+          )}
         </div>
       </div>
 
-      {showFilters && (
+      {/* Onglets avec design moderne */}
+      <Paper
+        elevation={isDarkMode ? 2 : 3}
+        sx={{
+          p: 0,
+          mb: 3,
+          bgcolor: isDarkMode ? "#1f2937" : "#fff",
+          borderRadius: 2,
+          overflow: "hidden",
+          transition: "all 0.3s ease",
+          boxShadow: isDarkMode
+            ? "0 4px 20px rgba(0,0,0,0.3)"
+            : "0 4px 20px rgba(0,0,0,0.1)",
+        }}
+      >
+        <Tabs
+          value={activeTab}
+          onChange={handleTabChange}
+          variant="scrollable"
+          scrollButtons="auto"
+          allowScrollButtonsMobile
+          TabIndicatorProps={{
+            style: {
+              backgroundColor: isDarkMode ? "#3b82f6" : "#2563eb",
+              height: 3,
+              borderRadius: "3px 3px 0 0",
+            },
+          }}
+          sx={{
+            borderBottom: 1,
+            borderColor: isDarkMode
+              ? "rgba(55, 65, 81, 0.5)"
+              : "rgba(0, 0, 0, 0.08)",
+            bgcolor: isDarkMode ? "#111827" : "#f8fafc",
+            "& .MuiTabs-flexContainer": {
+              gap: 1,
+              px: 1,
+              pt: 1,
+            },
+            "& .MuiTab-root": {
+              minHeight: 48,
+              transition: "all 0.2s ease",
+              borderRadius: "8px 8px 0 0",
+              fontWeight: 500,
+              textTransform: "none",
+              fontSize: "0.95rem",
+              "&:hover": {
+                backgroundColor: isDarkMode
+                  ? "rgba(59, 130, 246, 0.1)"
+                  : "rgba(37, 99, 235, 0.05)",
+                color: isDarkMode ? "#60a5fa" : "#3b82f6",
+              },
+              "&.Mui-selected": {
+                color: isDarkMode ? "#60a5fa" : "#2563eb",
+                fontWeight: 600,
+              },
+            },
+          }}
+        >
+          <Tab
+            icon={<FunnelIcon className="h-5 w-5" />}
+            iconPosition="start"
+            label="Gestion des packs"
+            onMouseEnter={() => setTabHover(0)}
+            onMouseLeave={() => setTabHover(null)}
+            sx={{
+              transform: tabHover === 0 ? "translateY(-2px)" : "none",
+            }}
+          />
+          <Tab
+            icon={<PlusIcon className="h-5 w-5" />}
+            iconPosition="start"
+            label="Mes packs"
+            onMouseEnter={() => setTabHover(1)}
+            onMouseLeave={() => setTabHover(null)}
+            sx={{
+              transform: tabHover === 1 ? "translateY(-2px)" : "none",
+            }}
+          />
+        </Tabs>
+      </Paper>
+
+      {/* Contenu de l'onglet Gestion des packs */}
+      {activeTab === 0 && showFilters && (
         <div className="mt-4 bg-white dark:bg-gray-800 p-4 rounded-lg shadow border border-gray-200 dark:border-gray-700">
           <div className="flex flex-wrap gap-4">
             <div className="flex-1 min-w-[200px]">
@@ -626,273 +736,170 @@ export default function Packs() {
         </div>
       )}
 
-      <div className="mt-8 flex flex-col">
-        <div className="-my-2 -mx-4 overflow-x-auto sm:-mx-6 lg:-mx-8">
-          <div className="inline-block min-w-full py-2 align-middle md:px-6 lg:px-8">
-            <div className="overflow-hidden shadow ring-1 ring-black ring-opacity-5 dark:ring-white dark:ring-opacity-10 md:rounded-lg">
-              <table className="min-w-full divide-y divide-gray-300 dark:divide-gray-600">
-                <thead className="bg-gray-50 dark:bg-gray-700">
-                  <tr>
-                    <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900 dark:text-gray-200">
-                      N°
-                    </th>
-                    <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900 dark:text-gray-200">
-                      Catégorie
-                    </th>
-                    <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900 dark:text-gray-200">
-                      Nom
-                    </th>
-                    <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900 dark:text-gray-200">
-                      Type d'abonnement
-                    </th>
-                    <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900 dark:text-gray-200">
-                      Prix
-                    </th>
-                    <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900 dark:text-gray-200">
-                      Status
-                    </th>
-                    <th className="px-3 py-3.5 text-center text-sm font-semibold text-gray-900 dark:text-gray-200">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-200 dark:divide-gray-700 bg-white dark:bg-gray-800">
-                  {filteredPacks.map((pack) => (
-                    <tr
-                      key={pack.id}
-                      className="hover:bg-gray-50 dark:hover:bg-gray-700"
-                    >
-                      <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-900 dark:text-gray-200">
-                        {filteredPacks.indexOf(pack) + 1}
-                      </td>
-                      <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-900 dark:text-gray-200">
-                        {pack.categorie}
-                      </td>
-                      <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-900 dark:text-gray-200">
-                        {pack.name}
-                      </td>
-                      <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-900 dark:text-gray-200">
-                        {pack.abonnement}
-                      </td>
-                      <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-900 dark:text-gray-200">
-                        {pack.price} $
-                      </td>
-                      <td className="whitespace-nowrap px-3 py-4 text-sm">
-                        <button
-                          onClick={() => togglePackStatus(pack.id)}
-                          className={`px-2 py-1 rounded-full text-xs font-medium ${
-                            pack.status
-                              ? "bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200"
-                              : "bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200"
-                          }`}
-                        >
-                          {pack.status ? "Actif" : "Inactif"}
-                        </button>
-                      </td>
-                      <td className="whitespace-nowrap px-3 py-4 text-sm text-center">
-                        <div className="flex items-center justify-center">
-                          <div className="flex space-x-1">
-                            <button
-                              onClick={() => showCommissionModal(pack.id)}
-                              className="p-1 rounded-md text-primary-600 dark:text-primary-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200"
-                              title="Gérer les commissions"
-                            >
-                              <CurrencyDollarIcon className="h-4 w-4" />
-                            </button>
-                            
-                            <Link
-                              to={`/admin/packs/edit/${pack.id}`}
-                              className="p-1 rounded-md text-primary-600 dark:text-primary-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200"
-                              title="Modifier ce pack"
-                            >
-                              <PencilIcon className="h-4 w-4" />
-                            </Link>
-                            
-                            <button
-                              onClick={() => showBonusModal(pack.id, pack.name)}
-                              className="p-1 rounded-md text-green-600 dark:text-green-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200"
-                              title="Configurer les bonus"
-                            >
-                              <GiftIcon className="h-4 w-4" />
-                            </button>
-                            
-                            <button
-                              onClick={() => showDeleteModal(pack.id, pack.name)}
-                              className="p-1 rounded-md text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200"
-                              title="Supprimer ce pack"
-                            >
-                              <TrashIcon className="h-4 w-4" />
-                            </button>
-                          </div>
-                        </div>
-                      </td>
+      {/* Table des packs */}
+      {activeTab === 0 && (
+        <div className="mt-8 flex flex-col">
+          <div className="-my-2 -mx-4 overflow-x-auto sm:-mx-6 lg:-mx-8">
+            <div className="inline-block min-w-full py-2 align-middle md:px-6 lg:px-8">
+              <div className="overflow-hidden shadow ring-1 ring-black ring-opacity-5 dark:ring-white dark:ring-opacity-10 md:rounded-lg">
+                <table className="min-w-full divide-y divide-gray-300 dark:divide-gray-600">
+                  <thead className="bg-gray-50 dark:bg-gray-700">
+                    <tr>
+                      <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900 dark:text-gray-200">
+                        N°
+                      </th>
+                      <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900 dark:text-gray-200">
+                        Catégorie
+                      </th>
+                      <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900 dark:text-gray-200">
+                        Nom
+                      </th>
+                      <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900 dark:text-gray-200">
+                        Type d'abonnement
+                      </th>
+                      <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900 dark:text-gray-200">
+                        Prix
+                      </th>
+                      <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900 dark:text-gray-200">
+                        Status
+                      </th>
+                      <th className="px-3 py-3.5 text-center text-sm font-semibold text-gray-900 dark:text-gray-200">
+                        Actions
+                      </th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {isCommissionModalVisible && (
-        <div
-          className="fixed inset-0 z-50 bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center"
-          onClick={() => setIsCommissionModalVisible(false)}
-        >
-          <div
-            className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-2xl w-full mx-4 shadow-xl max-h-[90vh] overflow-y-auto"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">
-                Modifier les taux de commission
-              </h3>
-              <button
-                onClick={() => setIsCommissionModalVisible(false)}
-                className="text-gray-400 hover:text-gray-500"
-              >
-                <XMarkIcon className="h-5 w-5" />
-              </button>
-            </div>
-            <hr className="my-4 border-gray-200 dark:border-gray-700" />
-
-            <div className="mt-4">
-              <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-                Définissez les taux de commission pour chaque niveau de
-                parrainage. Ces taux seront appliqués sur les achats effectués
-                par les filleuls.
-              </p>
-
-              <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg mb-6">
-                <div className="space-y-4">
-                  {[1, 2, 3, 4].map((level) => (
-                    <div
-                      key={level}
-                      className="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-4 p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors duration-150"
-                    >
-                      <span className="font-medium text-gray-700 dark:text-gray-200 w-48">
-                        {level === 1 && "Première génération"}
-                        {level === 2 && "Deuxième génération"}
-                        {level === 3 && "Troisième génération"}
-                        {level === 4 && "Quatrième génération"}
-                      </span>
-                      <form
-                        className="flex items-center space-x-2 flex-1 justify-end"
-                        onSubmit={(e) => {
-                          e.preventDefault();
-                          const rate = parseFloat(e.target.rate.value);
-                          handleCommissionSubmit(level, rate);
-                        }}
+                  </thead>
+                  <tbody className="divide-y divide-gray-200 dark:divide-gray-700 bg-white dark:bg-gray-800">
+                    {filteredPacks.map((pack) => (
+                      <tr
+                        key={pack.id}
+                        className="hover:bg-gray-50 dark:hover:bg-gray-700"
                       >
-                        <div className="relative">
-                          <input
-                            type="number"
-                            name="rate"
-                            step="0.01"
-                            min="0"
-                            max="100"
-                            defaultValue={commissionRates[level]}
-                            className="block w-24 rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white shadow-sm focus:border-primary-500 focus:ring-primary-500"
-                          />
-                          <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-gray-400 pointer-events-none">
-                            %
-                          </span>
-                        </div>
-                        <button
-                          type="submit"
-                          className="inline-flex items-center px-3 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors duration-200"
-                        >
-                          Enregistrer
-                        </button>
-                      </form>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="mt-6 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-900/30 rounded-md p-4">
-                <div className="flex">
-                  <div className="flex-shrink-0">
-                    <svg
-                      className="h-5 w-5 text-blue-400"
-                      xmlns="http://www.w3.org/2000/svg"
-                      viewBox="0 0 20 20"
-                      fill="currentColor"
-                    >
-                      <path
-                        fillRule="evenodd"
-                        d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
-                        clipRule="evenodd"
-                      />
-                    </svg>
-                  </div>
-                  <div className="ml-3">
-                    <h3 className="text-sm font-medium text-blue-800 dark:text-blue-200">
-                      Information
-                    </h3>
-                    <div className="mt-2 text-sm text-blue-700 dark:text-blue-300">
-                      <p>
-                        Les taux de commission sont appliqués sur les achats
-                        effectués par vos filleuls. Par exemple, si vous
-                        définissez un taux de <strong>10%</strong> pour la
-                        première génération, les parrains recevront 10% du
-                        montant des achats effectués par leurs filleuls directs.
-                      </p>
-                    </div>
-                  </div>
-                </div>
+                        <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-900 dark:text-gray-200">
+                          {filteredPacks.indexOf(pack) + 1}
+                        </td>
+                        <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-900 dark:text-gray-200">
+                          {pack.categorie}
+                        </td>
+                        <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-900 dark:text-gray-200">
+                          {pack.name}
+                        </td>
+                        <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-900 dark:text-gray-200">
+                          {pack.abonnement}
+                        </td>
+                        <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-900 dark:text-gray-200">
+                          {pack.price} $
+                        </td>
+                        <td className="whitespace-nowrap px-3 py-4 text-sm">
+                          <button
+                            onClick={() => togglePackStatus(pack.id)}
+                            className={`px-2 py-1 rounded-full text-xs font-medium ${
+                              pack.status
+                                ? "bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200"
+                                : "bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200"
+                            }`}
+                          >
+                            {pack.status ? "Actif" : "Inactif"}
+                          </button>
+                        </td>
+                        <td className="whitespace-nowrap px-3 py-4 text-sm text-center">
+                          <div className="flex items-center justify-center">
+                            <div className="flex space-x-1">
+                              <button
+                                onClick={() => showCommissionModal(pack.id)}
+                                className="p-1 rounded-md text-primary-600 dark:text-primary-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200"
+                                title="Gérer les commissions"
+                              >
+                                <CurrencyDollarIcon className="h-4 w-4" />
+                              </button>
+                              <Link
+                                to={`/admin/packs/edit/${pack.id}`}
+                                className="p-1 rounded-md text-primary-600 dark:text-primary-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200"
+                                title="Modifier ce pack"
+                              >
+                                <PencilIcon className="h-4 w-4" />
+                              </Link>
+                              <button
+                                onClick={() =>
+                                  showBonusModal(pack.id, pack.name)
+                                }
+                                className="p-1 rounded-md text-green-600 dark:text-green-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200"
+                                title="Configurer les bonus"
+                              >
+                                <GiftIcon className="h-4 w-4" />
+                              </button>
+                              <button
+                                onClick={() =>
+                                  showDeleteModal(pack.id, pack.name)
+                                }
+                                className="p-1 rounded-md text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200"
+                                title="Supprimer ce pack"
+                              >
+                                <TrashIcon className="h-4 w-4" />
+                              </button>
+                            </div>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             </div>
           </div>
         </div>
       )}
 
-      {/* Modal de confirmation de suppression */}
-      {isDeleteModalVisible && (
-        <div
-          className="fixed inset-0 z-50 bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center"
-          onClick={hideDeleteModal}
-        >
-          <div
-            className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full mx-4 shadow-xl"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="sm:flex sm:items-start">
-              <div className="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-red-100 dark:bg-red-900 sm:mx-0 sm:h-10 sm:w-10">
-                <ExclamationTriangleIcon
-                  className="h-6 w-6 text-red-600 dark:text-red-400"
-                  aria-hidden="true"
-                />
-              </div>
-              <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
-                <h3 className="text-lg leading-6 font-medium text-gray-900 dark:text-gray-100">
-                  Supprimer le pack
-                </h3>
-                <div className="mt-2">
-                  <p className="text-sm text-gray-500 dark:text-gray-400">
-                    Êtes-vous sûr de vouloir supprimer le pack{" "}
-                    <span className="font-semibold">{packToDeleteName}</span> ?
-                    Cette action est irréversible et supprimera définitivement
-                    ce pack et toutes les données associées.
-                  </p>
-                </div>
-              </div>
-            </div>
-            <div className="mt-6">
-              <button
-                type="button"
-                className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:ml-3 sm:w-auto sm:text-sm"
-                onClick={handleDelete}
+      {/* Onglet "Mes packs" */}
+      {activeTab === 1 && (
+        <Box sx={{ mt: 2 }}>
+          <Suspense
+            fallback={
+              <Box
+                display="flex"
+                justifyContent="center"
+                alignItems="center"
+                height="400px"
               >
-                Supprimer
-              </button>
+                <CircularProgress color="primary" />
+                <Typography variant="body1" ml={2} color="textSecondary">
+                  Chargement des packs...
+                </Typography>
+              </Box>
+            }
+          >
+            <MyPacks />
+          </Suspense>
+        </Box>
+      )}
+
+      {/* Modal de suppression */}
+      {isDeleteModalVisible && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full">
+            <div className="flex items-center mb-4 text-red-500">
+              <ExclamationTriangleIcon className="h-6 w-6 mr-2" />
+              <h3 className="text-lg font-semibold">
+                Confirmer la suppression
+              </h3>
+            </div>
+            <p className="mb-6 text-gray-600 dark:text-gray-300">
+              Êtes-vous sûr de vouloir supprimer le pack{" "}
+              <span className="font-semibold">{packToDeleteName}</span> ? Cette
+              action est irréversible.
+            </p>
+            <div className="flex justify-end space-x-3">
               <button
                 type="button"
                 className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 dark:border-gray-600 shadow-sm px-4 py-2 bg-white dark:bg-gray-700 text-base font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 sm:mt-0 sm:w-auto sm:text-sm"
                 onClick={hideDeleteModal}
               >
                 Annuler
+              </button>
+              <button
+                onClick={handleDelete}
+                className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
+              >
+                Supprimer
               </button>
             </div>
           </div>
