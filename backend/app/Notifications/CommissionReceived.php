@@ -47,7 +47,6 @@ class CommissionReceived extends Notification implements ShouldQueue
             'titre' => 'Commission de parrainage',
             'message' => 'Vous avez reçu une nouvelle commission!',
             'icon' => 'exclamation-circle',
-            'color' => 'primary',
         ];
     }
 }

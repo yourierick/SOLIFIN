@@ -16,9 +16,9 @@ class ExchangeRatesController extends Controller
      */
     protected $currencies = [
         'USD', // Dollar américain (devise de base)
-        'EUR', // Euro
-        'XOF', // Franc CFA BCEAO
-        'XAF', // Franc CFA BEAC
+        // 'EUR', // Euro
+        // 'XOF', // Franc CFA BCEAO
+        // 'XAF', // Franc CFA BEAC
         'CDF', // Franc Congolais
     ];
 

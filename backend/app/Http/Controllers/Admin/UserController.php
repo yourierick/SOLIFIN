@@ -87,8 +87,12 @@ class UserController extends BaseController
 
     /**
      * Display the specified user.
+     * 
+     * @param \Illuminate\Http\Request $request
+     * @param int $id
+     * @return \Illuminate\Http\JsonResponse
      */
-    public function show($id)
+    public function show(Request $request, $id)
     {
         try {
             $user = User::with(['packs', 'referrals'])
@@ -103,20 +107,85 @@ class UserController extends BaseController
                 'total_withdrawn' => number_format($userWallet->total_withdrawn, 2) . ' $',
             ] : null;
 
-            // Récupérer les transactions du wallet
-            $transactions = WalletTransaction::with('wallet')->where('wallet_id', $userWallet->id)
-                ->orderBy('created_at', 'desc')
+            // Récupérer les transactions du wallet avec pagination et filtres
+            $query = WalletTransaction::with('wallet')->where('wallet_id', $userWallet->id);
+            
+            // Appliquer les filtres si présents dans la requête
+            if ($request->has('type')) {
+                $query->where('type', $request->type);
+            }
+            
+            if ($request->has('status')) {
+                $query->where('status', $request->status);
+            }
+            
+            if ($request->has('date_from')) {
+                $query->whereDate('created_at', '>=', $request->date_from);
+            }
+            
+            if ($request->has('date_to')) {
+                $query->whereDate('created_at', '<=', $request->date_to);
+            }
+            
+            if ($request->has('amount_min')) {
+                $query->where('amount', '>=', $request->amount_min);
+            }
+            
+            if ($request->has('amount_max')) {
+                $query->where('amount', '<=', $request->amount_max);
+            }
+            
+            if ($request->has('search')) {
+                $search = $request->search;
+                $query->where(function($q) use ($search) {
+                    $q->where('id', 'like', "%{$search}%")
+                      ->orWhere('type', 'like', "%{$search}%")
+                      ->orWhere('status', 'like', "%{$search}%")
+                      ->orWhere('metadata', 'like', "%{$search}%");
+                });
+            }
+            
+            // Pagination
+            $perPage = $request->input('per_page', 10);
+            $page = $request->input('page', 1);
+            
+            // Obtenir le nombre total de transactions après filtrage
+            $totalTransactions = $query->count();
+            
+            // Obtenir les transactions paginées
+            $transactionsData = $query->orderBy('created_at', 'desc')
+                ->skip(($page - 1) * $perPage)
+                ->take($perPage)
                 ->get()
                 ->map(function ($transaction) {
                     return [
                         'id' => $transaction->id,
                         'amount' => number_format($transaction->amount, 2) . ' $',
-                        'type' => $transaction->type,
+                        'amount_raw' => $transaction->amount, // Pour le tri
+                        'type' => match($transaction->type) {
+                            'virtual' => 'achat des virtuels',
+                            'sales', 'purchase' => 'achat',
+                            'withdrawal' => 'retrait',
+                            'transfer' => 'transfert des fonds',
+                            'reception' => 'réception des fonds',
+                            default => $transaction->type,
+                        },
+                        'type_raw' => $transaction->type, // Pour le filtrage
                         'status' => $transaction->status,
                         'metadata' => $transaction->metadata,
-                        'created_at' => $transaction->created_at->format('d/m/Y H:i:s')
+                        'created_at' => $transaction->created_at->format('d/m/Y H:i:s'),
+                        'created_at_raw' => $transaction->created_at->toIso8601String() // Pour le tri
                     ];
                 });
+                
+            // Préparer la réponse paginée
+            $transactions = [
+                'data' => $transactionsData,
+                'total' => $totalTransactions,
+                'per_page' => $perPage,
+                'current_page' => $page,
+                'last_page' => ceil($totalTransactions / $perPage)
+            ];
             
             
             $userPacks = UserPack::with(['pack', 'sponsor'])
@@ -242,6 +311,7 @@ class UserController extends BaseController
 
         } catch (\Exception $e) {
             \Log::error('Erreur dans UserController@show: ' . $e->getMessage());
+            \Log::error('Erreur dans UserController@show: ' . $e->getLine());
             return response()->json([
                 'success' => false,
                 'message' => 'Une erreur est survenue lors de la récupération des détails de l\'utilisateur'

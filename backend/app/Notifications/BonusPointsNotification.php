@@ -59,7 +59,6 @@ class BonusPointsNotification extends Notification implements ShouldQueue
             'message' => $this->message,
             'type' => "info",
             'icon' => 'exclamation-circle',
-            'color' => 'primary',
         ];
     }
 

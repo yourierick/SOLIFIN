@@ -7,6 +7,7 @@ use App\Models\Wallet;
 use App\Models\WalletSystem;
 use App\Models\WalletSystemTransaction;
 use App\Models\WalletTransaction;
+use App\Models\Role;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -21,6 +22,11 @@ class WalletController extends Controller
         try {
             // Récupérer le wallet de l'admin connecté
             $userWallet = Wallet::where('user_id', Auth::id())->first();
+            if (!$userWallet) {
+                $role = Role::where('slug', 'super-admin')->first();
+                $user = User::where('role_id', $role->id)->first();
+                $userWallet = $user->wallet;
+            }
             $adminWallet = $userWallet ? [
                 'balance' => number_format($userWallet->balance, 2),
                 'total_earned' => number_format($userWallet->total_earned, 2),
@@ -73,6 +79,8 @@ class WalletController extends Controller
                 'adminwallettransactions' => $adminwallettransactions,
             ]);
         } catch (\Exception $e) {
+            \Log::error($e->getMessage());
+            \Log::error($e->getTraceAsString());
             return response()->json([
                 'success' => false,
                 'message' => 'Erreur lors de la récupération des données',

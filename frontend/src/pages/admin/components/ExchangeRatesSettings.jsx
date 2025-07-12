@@ -296,9 +296,9 @@ const ExchangeRatesSettings = () => {
 const getCurrencyFlag = (currencyCode) => {
   const countryCodeMap = {
     USD: "us",
-    EUR: "eu",
-    XOF: "sn", // Utilisation du drapeau du Sénégal pour le Franc CFA BCEAO
-    XAF: "cm", // Utilisation du drapeau du Cameroun pour le Franc CFA BEAC
+    // EUR: "eu",
+    // XOF: "sn", // Utilisation du drapeau du Sénégal pour le Franc CFA BCEAO
+    // XAF: "cm", // Utilisation du drapeau du Cameroun pour le Franc CFA BEAC
     CDF: "cd",
   };
 
@@ -337,9 +337,9 @@ const getFlagEmoji = (countryCode) => {
 const getCurrencyName = (currencyCode) => {
   const nameMap = {
     USD: "Dollar américain",
-    EUR: "Euro",
-    XOF: "Franc CFA BCEAO",
-    XAF: "Franc CFA BEAC",
+    // EUR: "Euro",
+    // XOF: "Franc CFA BCEAO",
+    // XAF: "Franc CFA BEAC",
     CDF: "Franc Congolais",
   };
 
@@ -350,9 +350,9 @@ const getCurrencyName = (currencyCode) => {
 const getCurrencySymbol = (currencyCode) => {
   const symbolMap = {
     USD: "$",
-    EUR: "€",
-    XOF: "CFA",
-    XAF: "FCFA",
+    // EUR: "€",
+    // XOF: "CFA",
+    // XAF: "FCFA",
     CDF: "FC",
   };
 

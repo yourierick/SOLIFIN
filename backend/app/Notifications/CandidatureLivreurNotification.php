@@ -80,8 +80,7 @@ class CandidatureLivreurNotification extends Notification implements ShouldQueue
             'titre' => 'Candidature de livraison',
             'link' => '/dashboard/my-page',
             'message' => 'L\'utilisateur ' . $this->applicant->name . ' a postulé en tant que livreur pour votre page.',
-            'icon' => 'info',
-            'color' => 'primary',
+            'icon' => 'exclamation-circle',
         ];
     }
 }

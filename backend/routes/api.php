@@ -614,7 +614,7 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function ()
         });
     });
     
-    Route::middleware('permission:view-finances')->group(function () {
+    Route::middleware('permission:view-finances', 'permission:manage-wallets')->group(function () {
         // Routes pour la gestion des finances
         Route::get('/finances', [\App\Http\Controllers\Admin\FinanceController::class, 'index']);
         Route::get('/finances/stats-by-type', [\App\Http\Controllers\Admin\FinanceController::class, 'getStatsByType']);

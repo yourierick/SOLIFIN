@@ -63,7 +63,6 @@ class DigitalProductSold extends Notification
             'type' => 'info',
             'titre' => 'Vente de produit numérique',
             'icon' => 'exclamation-circle',
-            'color' => 'primary',
             'link' => '/dashboard/finances',
             'message' => 'Votre produit numérique "' . $this->data['product_title'] . '" a été acheté par ' . $this->data['buyer_name'] . ' pour ' . $this->data['amount'] . ' ' . $this->data['currency'] . '.'
         ];

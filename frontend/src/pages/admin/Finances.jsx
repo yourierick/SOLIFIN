@@ -1,5 +1,6 @@
 import React, { useState, useEffect, lazy, Suspense } from "react";
 import axios from "../../utils/axios";
+import { useAuth } from "../../contexts/AuthContext";
 import { useTheme } from "@mui/material/styles";
 import useMediaQuery from "@mui/material/useMediaQuery";
 import { useTheme as useAppTheme } from "../../contexts/ThemeContext";
@@ -119,6 +120,10 @@ const Finances = () => {
   const [activeTab, setActiveTab] = useState(0);
   const [activeBonusTab, setActiveBonusTab] = useState(0);
 
+  // État pour les permissions
+  const [userPermissions, setUserPermissions] = useState([]);
+  const { user } = useAuth();
+
   // État pour l'animation des onglets
   const [tabHover, setTabHover] = useState(null);
 
@@ -160,6 +165,27 @@ const Finances = () => {
       }
     }
   }, [filters]);
+
+  // Récupérer les permissions de l'utilisateur
+  useEffect(() => {
+    const fetchUserPermissions = async () => {
+      try {
+        const response = await axios.get(`/api/user/permissions`);
+        if (response.data && response.data.permissions) {
+          const permissionSlugs = response.data.permissions.map(
+            (permission) => permission.slug
+          );
+          setUserPermissions(permissionSlugs);
+        }
+      } catch (error) {
+        console.error("Erreur lors de la récupération des permissions:", error);
+      }
+    };
+
+    if (user) {
+      fetchUserPermissions();
+    }
+  }, [user]);
 
   // Fonction pour récupérer les transactions
   const fetchTransactions = async () => {
@@ -752,341 +778,358 @@ const Finances = () => {
       <Typography variant="subtitle1" color="text.secondary" paragraph>
         Consultez et analysez les transactions financières du système
       </Typography>
-
       {/* Cartes de résumé financier */}
-      {systemBalance && (
-        <Grid container spacing={3} sx={{ mb: 4 }}>
-          <Grid item xs={12} sm={6} md={3}>
-            <Card
+      <Grid container spacing={3} sx={{ mb: 4 }}>
+        {/* Carte 1: Solde actuel */}
+        <Grid item xs={12} sm={6} md={3}>
+          <Card
+            sx={{
+              bgcolor: isDarkMode
+                ? "rgba(59, 130, 246, 0.1)"
+                : "rgba(59, 130, 246, 0.05)",
+              boxShadow: "none",
+              border: `1px solid ${
+                isDarkMode
+                  ? "rgba(59, 130, 246, 0.2)"
+                  : "rgba(59, 130, 246, 0.1)"
+              }`,
+              borderRadius: 3,
+              height: "100%",
+              position: "relative",
+              overflow: "hidden",
+              transition: "all 0.3s ease",
+              "&:hover": {
+                transform: "translateY(-3px)",
+                boxShadow: isDarkMode
+                  ? "0 8px 20px rgba(0, 0, 0, 0.3)"
+                  : "0 8px 20px rgba(0, 0, 0, 0.1)",
+              },
+            }}
+          >
+            <Box
               sx={{
-                bgcolor: isDarkMode
-                  ? "rgba(59, 130, 246, 0.1)"
-                  : "rgba(59, 130, 246, 0.05)",
-                boxShadow: "none",
-                border: `1px solid ${
-                  isDarkMode
-                    ? "rgba(59, 130, 246, 0.2)"
-                    : "rgba(59, 130, 246, 0.1)"
-                }`,
-                borderRadius: 3,
-                height: "100%",
-                position: "relative",
-                overflow: "hidden",
-                transition: "all 0.3s ease",
-                "&:hover": {
-                  transform: "translateY(-3px)",
-                  boxShadow: isDarkMode
-                    ? "0 8px 20px rgba(0, 0, 0, 0.3)"
-                    : "0 8px 20px rgba(0, 0, 0, 0.1)",
-                },
+                position: "absolute",
+                top: -15,
+                right: -15,
+                width: 80,
+                height: 80,
+                borderRadius: "50%",
+                bgcolor: "primary.main",
+                opacity: 0.1,
               }}
-            >
+            />
+            <CardContent sx={{ position: "relative", p: 3 }}>
               <Box
                 sx={{
-                  position: "absolute",
-                  top: -15,
-                  right: -15,
-                  width: 80,
-                  height: 80,
-                  borderRadius: "50%",
-                  bgcolor: "primary.main",
-                  opacity: 0.1,
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "flex-start",
+                  mb: 2,
                 }}
-              />
-              <CardContent sx={{ position: "relative", p: 3 }}>
+              >
+                <Typography
+                  variant="subtitle1"
+                  color="primary"
+                  sx={{ fontWeight: 600, fontSize: "0.9rem" }}
+                >
+                  Solde actuel
+                </Typography>
                 <Box
                   sx={{
                     display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "flex-start",
-                    mb: 2,
+                    alignItems: "center",
+                    justifyContent: "center",
+                    bgcolor: "primary.main",
+                    color: "white",
+                    width: 36,
+                    height: 36,
+                    borderRadius: "50%",
                   }}
                 >
-                  <Typography
-                    variant="subtitle1"
-                    color="primary"
-                    sx={{ fontWeight: 600, fontSize: "0.9rem" }}
-                  >
-                    Solde actuel
-                  </Typography>
-                  <Box
-                    sx={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      bgcolor: "primary.main",
-                      color: "white",
-                      width: 36,
-                      height: 36,
-                      borderRadius: "50%",
-                    }}
-                  >
-                    <AccountBalanceIcon sx={{ fontSize: "1.2rem" }} />
-                  </Box>
+                  <AccountBalanceIcon sx={{ fontSize: "1.2rem" }} />
                 </Box>
-                <Typography
-                  variant="h5"
-                  component="div"
-                  sx={{
-                    fontSize: "1.4rem",
-                    fontWeight: 700,
-                    color: isDarkMode ? "#fff" : "text.primary",
-                  }}
-                >
-                  {formatAmount(systemBalance.balance)}
-                </Typography>
-              </CardContent>
-            </Card>
-          </Grid>
-          <Grid item xs={12} sm={6} md={3}>
-            <Card
-              sx={{
-                bgcolor: isDarkMode
-                  ? "rgba(16, 185, 129, 0.1)"
-                  : "rgba(16, 185, 129, 0.05)",
-                boxShadow: "none",
-                border: `1px solid ${
-                  isDarkMode
-                    ? "rgba(16, 185, 129, 0.2)"
-                    : "rgba(16, 185, 129, 0.1)"
-                }`,
-                borderRadius: 3,
-                height: "100%",
-                position: "relative",
-                overflow: "hidden",
-                transition: "all 0.3s ease",
-                "&:hover": {
-                  transform: "translateY(-3px)",
-                  boxShadow: isDarkMode
-                    ? "0 8px 20px rgba(0, 0, 0, 0.3)"
-                    : "0 8px 20px rgba(0, 0, 0, 0.1)",
-                },
-              }}
-            >
-              <Box
+              </Box>
+              <Typography
+                variant="h5"
+                component="div"
                 sx={{
-                  position: "absolute",
-                  top: -15,
-                  right: -15,
-                  width: 80,
-                  height: 80,
-                  borderRadius: "50%",
-                  bgcolor: "success.main",
-                  opacity: 0.1,
+                  fontSize: "1.4rem",
+                  fontWeight: 700,
+                  color: isDarkMode ? "#fff" : "text.primary",
                 }}
-              />
-              <CardContent sx={{ position: "relative", p: 3 }}>
-                <Box
-                  sx={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "flex-start",
-                    mb: 2,
-                  }}
-                >
-                  <Typography
-                    variant="subtitle1"
-                    color="success.main"
-                    sx={{ fontWeight: 600, fontSize: "0.9rem" }}
-                  >
-                    Total des entrées
-                  </Typography>
-                  <Box
-                    sx={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      bgcolor: "success.main",
-                      color: "white",
-                      width: 36,
-                      height: 36,
-                      borderRadius: "50%",
-                    }}
-                  >
-                    <AttachMoneyIcon sx={{ fontSize: "1.2rem" }} />
-                  </Box>
-                </Box>
-                <Typography
-                  variant="h5"
-                  component="div"
-                  sx={{
-                    fontSize: "1.4rem",
-                    fontWeight: 700,
-                    color: isDarkMode ? "#fff" : "text.primary",
-                  }}
-                >
-                  {formatAmount(systemBalance.total_in)}
-                </Typography>
-              </CardContent>
-            </Card>
-          </Grid>
-          <Grid item xs={12} sm={6} md={3}>
-            <Card
-              sx={{
-                bgcolor: isDarkMode
-                  ? "rgba(239, 68, 68, 0.1)"
-                  : "rgba(239, 68, 68, 0.05)",
-                boxShadow: "none",
-                border: `1px solid ${
-                  isDarkMode
-                    ? "rgba(239, 68, 68, 0.2)"
-                    : "rgba(239, 68, 68, 0.1)"
-                }`,
-                borderRadius: 3,
-                height: "100%",
-                position: "relative",
-                overflow: "hidden",
-                transition: "all 0.3s ease",
-                "&:hover": {
-                  transform: "translateY(-3px)",
-                  boxShadow: isDarkMode
-                    ? "0 8px 20px rgba(0, 0, 0, 0.3)"
-                    : "0 8px 20px rgba(0, 0, 0, 0.1)",
-                },
-              }}
-            >
-              <Box
-                sx={{
-                  position: "absolute",
-                  top: -15,
-                  right: -15,
-                  width: 80,
-                  height: 80,
-                  borderRadius: "50%",
-                  bgcolor: "error.main",
-                  opacity: 0.1,
-                }}
-              />
-              <CardContent sx={{ position: "relative", p: 3 }}>
-                <Box
-                  sx={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "flex-start",
-                    mb: 2,
-                  }}
-                >
-                  <Typography
-                    variant="subtitle1"
-                    color="error.main"
-                    sx={{ fontWeight: 600, fontSize: "0.9rem" }}
-                  >
-                    Total des sorties
-                  </Typography>
-                  <Box
-                    sx={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      bgcolor: "error.main",
-                      color: "white",
-                      width: 36,
-                      height: 36,
-                      borderRadius: "50%",
-                    }}
-                  >
-                    <MoneyOffIcon sx={{ fontSize: "1.2rem" }} />
-                  </Box>
-                </Box>
-                <Typography
-                  variant="h5"
-                  component="div"
-                  sx={{
-                    fontSize: "1.4rem",
-                    fontWeight: 700,
-                    color: isDarkMode ? "#fff" : "text.primary",
-                  }}
-                >
-                  {formatAmount(systemBalance.total_out)}
-                </Typography>
-              </CardContent>
-            </Card>
-          </Grid>
-          <Grid item xs={12} sm={6} md={3}>
-            <Card
-              sx={{
-                bgcolor: isDarkMode
-                  ? "rgba(79, 70, 229, 0.1)"
-                  : "rgba(79, 70, 229, 0.05)",
-                boxShadow: "none",
-                border: `1px solid ${
-                  isDarkMode
-                    ? "rgba(79, 70, 229, 0.2)"
-                    : "rgba(79, 70, 229, 0.1)"
-                }`,
-                borderRadius: 3,
-                height: "100%",
-                position: "relative",
-                overflow: "hidden",
-                transition: "all 0.3s ease",
-                "&:hover": {
-                  transform: "translateY(-3px)",
-                  boxShadow: isDarkMode
-                    ? "0 8px 20px rgba(0, 0, 0, 0.3)"
-                    : "0 8px 20px rgba(0, 0, 0, 0.1)",
-                },
-              }}
-            >
-              <Box
-                sx={{
-                  position: "absolute",
-                  top: -15,
-                  right: -15,
-                  width: 80,
-                  height: 80,
-                  borderRadius: "50%",
-                  bgcolor: "info.main",
-                  opacity: 0.1,
-                }}
-              />
-              <CardContent sx={{ position: "relative", p: 3 }}>
-                <Box
-                  sx={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "flex-start",
-                    mb: 2,
-                  }}
-                >
-                  <Typography
-                    variant="subtitle1"
-                    color="info.main"
-                    sx={{ fontWeight: 600, fontSize: "0.9rem" }}
-                  >
-                    Transactions
-                  </Typography>
-                  <Box
-                    sx={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      bgcolor: "info.main",
-                      color: "white",
-                      width: 36,
-                      height: 36,
-                      borderRadius: "50%",
-                    }}
-                  >
-                    <TrendingUpIcon sx={{ fontSize: "1.2rem" }} />
-                  </Box>
-                </Box>
-                <Typography
-                  variant="h5"
-                  component="div"
-                  sx={{
-                    fontSize: "1.4rem",
-                    fontWeight: 700,
-                    color: isDarkMode ? "#fff" : "text.primary",
-                  }}
-                >
-                  {transactions.length > 0 ? transactions.length : "---"}
-                </Typography>
-              </CardContent>
-            </Card>
-          </Grid>
+              >
+                {userPermissions.includes("manage-wallets") ||
+                userPermissions.includes("super-admin")
+                  ? formatAmount(systemBalance?.balance || 0)
+                  : formatAmount(0)}
+              </Typography>
+            </CardContent>
+          </Card>
         </Grid>
-      )}
 
+        {/* Carte 2: Total des entrées */}
+        <Grid item xs={12} sm={6} md={3}>
+          <Card
+            sx={{
+              bgcolor: isDarkMode
+                ? "rgba(16, 185, 129, 0.1)"
+                : "rgba(16, 185, 129, 0.05)",
+              boxShadow: "none",
+              border: `1px solid ${
+                isDarkMode
+                  ? "rgba(16, 185, 129, 0.2)"
+                  : "rgba(16, 185, 129, 0.1)"
+              }`,
+              borderRadius: 3,
+              height: "100%",
+              position: "relative",
+              overflow: "hidden",
+              transition: "all 0.3s ease",
+              "&:hover": {
+                transform: "translateY(-3px)",
+                boxShadow: isDarkMode
+                  ? "0 8px 20px rgba(0, 0, 0, 0.3)"
+                  : "0 8px 20px rgba(0, 0, 0, 0.1)",
+              },
+            }}
+          >
+            <Box
+              sx={{
+                position: "absolute",
+                top: -15,
+                right: -15,
+                width: 80,
+                height: 80,
+                borderRadius: "50%",
+                bgcolor: "success.main",
+                opacity: 0.1,
+              }}
+            />
+            <CardContent sx={{ position: "relative", p: 3 }}>
+              <Box
+                sx={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "flex-start",
+                  mb: 2,
+                }}
+              >
+                <Typography
+                  variant="subtitle1"
+                  color="success.main"
+                  sx={{ fontWeight: 600, fontSize: "0.9rem" }}
+                >
+                  Total des entrées
+                </Typography>
+                <Box
+                  sx={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    bgcolor: "success.main",
+                    color: "white",
+                    width: 36,
+                    height: 36,
+                    borderRadius: "50%",
+                  }}
+                >
+                  <AttachMoneyIcon sx={{ fontSize: "1.2rem" }} />
+                </Box>
+              </Box>
+              <Typography
+                variant="h5"
+                component="div"
+                sx={{
+                  fontSize: "1.4rem",
+                  fontWeight: 700,
+                  color: isDarkMode ? "#fff" : "text.primary",
+                }}
+              >
+                {userPermissions.includes("manage-wallets") ||
+                userPermissions.includes("super-admin")
+                  ? formatAmount(systemBalance?.total_in || 0)
+                  : formatAmount(0)}
+              </Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        {/* Carte 3: Total des sorties */}
+        <Grid item xs={12} sm={6} md={3}>
+          <Card
+            sx={{
+              bgcolor: isDarkMode
+                ? "rgba(239, 68, 68, 0.1)"
+                : "rgba(239, 68, 68, 0.05)",
+              boxShadow: "none",
+              border: `1px solid ${
+                isDarkMode
+                  ? "rgba(239, 68, 68, 0.2)"
+                  : "rgba(239, 68, 68, 0.1)"
+              }`,
+              borderRadius: 3,
+              height: "100%",
+              position: "relative",
+              overflow: "hidden",
+              transition: "all 0.3s ease",
+              "&:hover": {
+                transform: "translateY(-3px)",
+                boxShadow: isDarkMode
+                  ? "0 8px 20px rgba(0, 0, 0, 0.3)"
+                  : "0 8px 20px rgba(0, 0, 0, 0.1)",
+              },
+            }}
+          >
+            <Box
+              sx={{
+                position: "absolute",
+                top: -15,
+                right: -15,
+                width: 80,
+                height: 80,
+                borderRadius: "50%",
+                bgcolor: "error.main",
+                opacity: 0.1,
+              }}
+            />
+            <CardContent sx={{ position: "relative", p: 3 }}>
+              <Box
+                sx={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "flex-start",
+                  mb: 2,
+                }}
+              >
+                <Typography
+                  variant="subtitle1"
+                  color="error.main"
+                  sx={{ fontWeight: 600, fontSize: "0.9rem" }}
+                >
+                  Total des sorties
+                </Typography>
+                <Box
+                  sx={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    bgcolor: "error.main",
+                    color: "white",
+                    width: 36,
+                    height: 36,
+                    borderRadius: "50%",
+                  }}
+                >
+                  <MoneyOffIcon sx={{ fontSize: "1.2rem" }} />
+                </Box>
+              </Box>
+              <Typography
+                variant="h5"
+                component="div"
+                sx={{
+                  fontSize: "1.4rem",
+                  fontWeight: 700,
+                  color: isDarkMode ? "#fff" : "text.primary",
+                }}
+              >
+                {userPermissions.includes("manage-wallets") ||
+                userPermissions.includes("super-admin")
+                  ? formatAmount(systemBalance?.total_out || 0)
+                  : formatAmount(0)}
+              </Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        {/* Carte 4: Transactions */}
+        <Grid item xs={12} sm={6} md={3}>
+          <Card
+            sx={{
+              bgcolor: isDarkMode
+                ? "rgba(79, 70, 229, 0.1)"
+                : "rgba(79, 70, 229, 0.05)",
+              boxShadow: "none",
+              border: `1px solid ${
+                isDarkMode
+                  ? "rgba(79, 70, 229, 0.2)"
+                  : "rgba(79, 70, 229, 0.1)"
+              }`,
+              borderRadius: 3,
+              height: "100%",
+              position: "relative",
+              overflow: "hidden",
+              transition: "all 0.3s ease",
+              "&:hover": {
+                transform: "translateY(-3px)",
+                boxShadow: isDarkMode
+                  ? "0 8px 20px rgba(0, 0, 0, 0.3)"
+                  : "0 8px 20px rgba(0, 0, 0, 0.1)",
+              },
+            }}
+          >
+            <Box
+              sx={{
+                position: "absolute",
+                top: -15,
+                right: -15,
+                width: 80,
+                height: 80,
+                borderRadius: "50%",
+                bgcolor: "info.main",
+                opacity: 0.1,
+              }}
+            />
+            <CardContent sx={{ position: "relative", p: 3 }}>
+              <Box
+                sx={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "flex-start",
+                  mb: 2,
+                }}
+              >
+                <Typography
+                  variant="subtitle1"
+                  color="info.main"
+                  sx={{ fontWeight: 600, fontSize: "0.9rem" }}
+                >
+                  Transactions
+                </Typography>
+                <Box
+                  sx={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    bgcolor: "info.main",
+                    color: "white",
+                    width: 36,
+                    height: 36,
+                    borderRadius: "50%",
+                  }}
+                >
+                  <TrendingUpIcon sx={{ fontSize: "1.2rem" }} />
+                </Box>
+              </Box>
+              <Typography
+                variant="h5"
+                component="div"
+                sx={{
+                  fontSize: "1.4rem",
+                  fontWeight: 700,
+                  color: isDarkMode ? "#fff" : "text.primary",
+                }}
+              >
+                {userPermissions.includes("manage-wallets") ||
+                userPermissions.includes("super-admin")
+                  ? transactions.length > 0
+                    ? transactions.length
+                    : "---"
+                  : "0"}
+              </Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+      </Grid>
       {/* Onglets avec design moderne */}
       <Paper
         elevation={isDarkMode ? 2 : 3}
@@ -1152,8 +1195,21 @@ const Finances = () => {
             label="Portefeuille"
             onMouseEnter={() => setTabHover(0)}
             onMouseLeave={() => setTabHover(null)}
+            disabled={
+              !userPermissions.includes("manage-wallets") &&
+              !userPermissions.includes("super-admin")
+            }
             sx={{
               transform: tabHover === 0 ? "translateY(-2px)" : "none",
+              opacity:
+                !userPermissions.includes("manage-wallets") &&
+                !userPermissions.includes("super-admin")
+                  ? 0.5
+                  : 1,
+              "&.Mui-disabled": {
+                color: "text.disabled",
+                cursor: "not-allowed",
+              },
             }}
           />
           <Tab
@@ -1162,8 +1218,21 @@ const Finances = () => {
             label="Transactions"
             onMouseEnter={() => setTabHover(1)}
             onMouseLeave={() => setTabHover(null)}
+            disabled={
+              !userPermissions.includes("manage-wallets") &&
+              !userPermissions.includes("super-admin")
+            }
             sx={{
               transform: tabHover === 1 ? "translateY(-2px)" : "none",
+              opacity:
+                !userPermissions.includes("manage-wallets") &&
+                !userPermissions.includes("super-admin")
+                  ? 0.5
+                  : 1,
+              "&.Mui-disabled": {
+                color: "text.disabled",
+                cursor: "not-allowed",
+              },
             }}
           />
           <Tab
@@ -1172,8 +1241,21 @@ const Finances = () => {
             label="Statistiques"
             onMouseEnter={() => setTabHover(2)}
             onMouseLeave={() => setTabHover(null)}
+            disabled={
+              !userPermissions.includes("manage-wallets") &&
+              !userPermissions.includes("super-admin")
+            }
             sx={{
               transform: tabHover === 2 ? "translateY(-2px)" : "none",
+              opacity:
+                !userPermissions.includes("manage-wallets") &&
+                !userPermissions.includes("super-admin")
+                  ? 0.5
+                  : 1,
+              "&.Mui-disabled": {
+                color: "text.disabled",
+                cursor: "not-allowed",
+              },
             }}
           />
           <Tab
@@ -1182,8 +1264,21 @@ const Finances = () => {
             label="Points Bonus"
             onMouseEnter={() => setTabHover(3)}
             onMouseLeave={() => setTabHover(null)}
+            disabled={
+              !userPermissions.includes("manage-wallets") &&
+              !userPermissions.includes("super-admin")
+            }
             sx={{
               transform: tabHover === 3 ? "translateY(-2px)" : "none",
+              opacity:
+                !userPermissions.includes("manage-wallets") &&
+                !userPermissions.includes("super-admin")
+                  ? 0.5
+                  : 1,
+              "&.Mui-disabled": {
+                color: "text.disabled",
+                cursor: "not-allowed",
+              },
             }}
           />
           <Tab
@@ -1192,8 +1287,21 @@ const Finances = () => {
             label="Commissions"
             onMouseEnter={() => setTabHover(4)}
             onMouseLeave={() => setTabHover(null)}
+            disabled={
+              !userPermissions.includes("manage-commissions") &&
+              !userPermissions.includes("super-admin")
+            }
             sx={{
               transform: tabHover === 4 ? "translateY(-2px)" : "none",
+              opacity:
+                !userPermissions.includes("manage-commissions") &&
+                !userPermissions.includes("super-admin")
+                  ? 0.5
+                  : 1,
+              "&.Mui-disabled": {
+                color: "text.disabled",
+                cursor: "not-allowed",
+              },
             }}
           />
           <Tab
@@ -1202,8 +1310,21 @@ const Finances = () => {
             label="Retraits"
             onMouseEnter={() => setTabHover(5)}
             onMouseLeave={() => setTabHover(null)}
+            disabled={
+              !userPermissions.includes("manage-withdrawals") &&
+              !userPermissions.includes("super-admin")
+            }
             sx={{
               transform: tabHover === 5 ? "translateY(-2px)" : "none",
+              opacity:
+                !userPermissions.includes("manage-withdrawals") &&
+                !userPermissions.includes("super-admin")
+                  ? 0.5
+                  : 1,
+              "&.Mui-disabled": {
+                color: "text.disabled",
+                cursor: "not-allowed",
+              },
             }}
           />
         </Tabs>
@@ -2894,7 +3015,6 @@ const Finances = () => {
           </Box>
         )}
       </Paper>
-
       {/* Modal de détails de transaction */}
       <Dialog
         open={openTransactionModal}

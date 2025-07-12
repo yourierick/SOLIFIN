@@ -79,6 +79,13 @@ return new class extends Migration
                 'updated_at' => now(),
             ],
             [
+                'nom' => 'Consulter les transactions',
+                'slug' => 'view-transactions',
+                'description' => 'Accéder aux transactions systèmes et statistiques',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
                 'nom' => 'Gérer les cadeaux',
                 'slug' => 'manage-gifts',
                 'description' => 'Créer, modifier et supprimer des cadeaux',

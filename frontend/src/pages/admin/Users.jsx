@@ -907,8 +907,9 @@ const Users = () => {
         }}
         PaperProps={{
           style: {
-            backgroundColor: isDarkMode ? "rgb(31, 41, 55)" : "#fff",
+            backgroundColor: isDarkMode ? "#1f2937" : "#fff",
             color: isDarkMode ? "#fff" : "#000",
+            background: isDarkMode ? "#1f2937" : "#fff",
           },
         }}
       >
