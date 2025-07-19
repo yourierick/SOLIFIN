@@ -263,6 +263,7 @@ class FinanceController extends Controller
                     DB::raw('COUNT(*) as count'),
                     DB::raw('SUM(amount) as total_amount')
                 )
+                ->where('status', 'completed')
                 ->groupBy('type')
                 ->get();
 
@@ -272,7 +273,7 @@ class FinanceController extends Controller
                 ->sum('amount');
 
             $totalOut = WalletSystemTransaction::whereBetween('created_at', [$startDate, $endDate])
-                ->where('type', 'withdrawal')
+                ->where('type', 'withdrawal')->where('status', 'completed')
                 ->sum('amount');
 
             // Récupérer le nombre de transactions par jour pour la période

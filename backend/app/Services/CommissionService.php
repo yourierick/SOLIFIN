@@ -15,7 +15,10 @@ class CommissionService
     {
         $currentUser = $purchase->user;
         $currentSponsor = User::find($purchase->sponsor_id);
-        $packPrice = $purchase->pack->price * $duration_months;
+        $step = $this->getSubscriptionStep($purchase->pack->abonnement);
+        $periods = ceil($duration_months / $step);
+        $packPrice = $purchase->pack->price * $periods;
+
         $level = 1;
         $maxLevel = 4; // Maximum 4 générations
 
@@ -127,6 +130,39 @@ class CommissionService
             ]);
 
             return false;
+        }
+    }
+
+    /**
+     * Détermine le pas d'abonnement en mois selon le type d'abonnement
+     *
+     * @param string|null $subscriptionType Type d'abonnement (mensuel, trimestriel, etc.)
+     * @return int Pas d'abonnement en mois
+     */
+    private function getSubscriptionStep($subscriptionType)
+    {
+        $type = strtolower($subscriptionType ?? '');
+        
+        switch ($type) {
+            case 'monthly':
+            case 'mensuel':
+                return 1; // Pas de 1 mois pour abonnement mensuel
+            case 'quarterly':
+            case 'trimestriel':
+                return 3; // Pas de 3 mois pour abonnement trimestriel
+            case 'biannual':
+            case 'semestriel':
+                return 6; // Pas de 6 mois pour abonnement semestriel
+            case 'annual':
+            case 'yearly':
+            case 'annuel':
+                return 12; // Pas de 12 mois pour abonnement annuel
+            case 'triennal':
+                return 36;
+            case 'quinquennal':
+                return 60;
+            default:
+                return 1; // Par défaut, pas de 1 mois
         }
     }
 }

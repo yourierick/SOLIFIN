@@ -6,10 +6,13 @@ import React, {
   useCallback,
 } from "react";
 import axios from "axios";
+import MoneyOffIcon from '@mui/icons-material/MoneyOff';
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
-import Wallets from "./Wallet";
+import { toast } from "react-toastify";
+import WithdrawalRequests from "./components/WithdrawalRequests";
 import JetonsEsengo from "./components/JetonsEsengo";
+import Wallets from "./Wallet";
 import {
   Box,
   Container,
@@ -65,6 +68,8 @@ import {
   TrendingUp as TrendingUpIcon,
   AccountBalanceWallet as WalletIcon,
   LocalAtm as TokenIcon,
+  ChevronLeft as ChevronLeftIcon,
+  ChevronRight as ChevronRightIcon,
 } from "@mui/icons-material";
 import {
   BarChart,
@@ -85,6 +90,7 @@ const Finances = () => {
   const isSmallScreen = useMediaQuery(theme.breakpoints.down("md"));
 
   // Références
+  const tabsRef = useRef(null);
 
   // États pour les onglets
   const [activeTab, setActiveTab] = useState(0);
@@ -190,6 +196,40 @@ const Finances = () => {
     setActiveTab(newValue);
     resetFilters();
   };
+
+  // Gestionnaires pour le défilement horizontal de la barre d'onglets
+  const handleScrollLeft = () => {
+    if (tabsRef.current) {
+      const container = tabsRef.current.querySelector('.MuiTabs-scroller');
+      if (container) {
+        // Défilement d'une distance équivalente à la largeur d'un onglet (environ 150px)
+        container.scrollBy({ left: -150, behavior: 'smooth' });
+      }
+    }
+  };
+
+  const handleScrollRight = () => {
+    if (tabsRef.current) {
+      const container = tabsRef.current.querySelector('.MuiTabs-scroller');
+      if (container) {
+        // Défilement d'une distance équivalente à la largeur d'un onglet (environ 150px)
+        container.scrollBy({ left: 150, behavior: 'smooth' });
+      }
+    }
+  };
+  
+  // Effet pour configurer l'affichage initial des onglets sur mobile
+  useEffect(() => {
+    if (isSmallScreen && tabsRef.current) {
+      // Assure que l'onglet actif est visible lors du chargement initial
+      setTimeout(() => {
+        const activeTabElement = tabsRef.current.querySelector('.Mui-selected');
+        if (activeTabElement) {
+          activeTabElement.scrollIntoView({ behavior: 'smooth', inline: 'center' });
+        }
+      }, 100);
+    }
+  }, [isSmallScreen, activeTab]);
 
   // Gestionnaire de changement de page pour les transactions
   const handleTransactionPageChange = (event, newPage) => {
@@ -611,7 +651,7 @@ const Finances = () => {
           ? "Com. Retrait"
           : stat.type === "commission de transfert"
           ? "Com. Transfert"
-          : stat.type === "virtual"
+          : stat.type === "virtual_purchase"
           ? "Virtuels"
           : stat.type,
       montant: parseFloat(stat.total_amount || 0),
@@ -1003,7 +1043,7 @@ const Finances = () => {
                           ? "Retrait"
                           : transaction.type === "purchase"
                           ? "Achat"
-                          : transaction.type === "virtual"
+                          : transaction.type === "virtual_purchase"
                           ? "Virtuels"
                           : transaction.type === "sale"
                           ? "Vente"
@@ -1020,7 +1060,7 @@ const Finances = () => {
                         transaction.type === "commission de parrainage" ||
                         transaction.type === "commission de retrait" ||
                         transaction.type === "commission de transfert" ||
-                        transaction.type === "virtual"
+                        transaction.type === "virtual_purchase"
                           ? "success"
                           : transaction.type === "withdrawal" ||
                             transaction.type === "transfer" ||
@@ -1033,7 +1073,7 @@ const Finances = () => {
                         transaction.type === "sale" ||
                         transaction.type === "commission de parrainage" ||
                         transaction.type === "commission de transfert" ||
-                        transaction.type === "virtual" ? (
+                        transaction.type === "virtual_purchase" ? (
                           <ArrowDownwardIcon fontSize="small" />
                         ) : transaction.type === "withdrawal" ||
                           transaction.type === "purchase" ||
@@ -1055,7 +1095,7 @@ const Finances = () => {
                         transaction.type === "commission de parrainage" ||
                         transaction.type === "commission de retrait" ||
                         transaction.type === "commission de transfert" ||
-                        transaction.type === "virtual"
+                        transaction.type === "virtual_purchase"
                           ? "success.main"
                           : transaction.type === "withdrawal" ||
                             transaction.type === "transfer" ||
@@ -1071,7 +1111,7 @@ const Finances = () => {
                     transaction.type === "commission de retrait" ||
                     transaction.type === "bonus" ||
                     transaction.type === "commission de transfert" ||
-                    transaction.type === "virtual"
+                    transaction.type === "virtual_purchase"
                       ? `+${formatAmount(transaction.amount)}`
                       : transaction.type === "withdrawal" ||
                         transaction.type === "purchase" ||
@@ -1316,7 +1356,7 @@ const Finances = () => {
           case "bonus":
             displayName = "Bonus";
             break;
-          case "virtual":
+          case "virtual_purchase":
             displayName = "Virtuels";
             break;
           default:
@@ -1844,7 +1884,7 @@ const Finances = () => {
                     ? "Commission de retrait"
                     : type === "commission de transfert"
                     ? "Commission de transfert"
-                    : type === "virtual"
+                    : type === "virtual_purchase"
                     ? "Virtuels"
                     : type}
                 </MenuItem>
@@ -2446,27 +2486,98 @@ const Finances = () => {
       )}
 
       {/* Onglets */}
-      <Paper
-        sx={{
-          borderRadius: 2,
-          mb: 3,
-          overflow: "hidden",
-          bgcolor: isDarkMode ? "#1f2937" : "rgba(249, 250, 251, 0.8)",
-        }}
-        elevation={0}
-      >
-        <Tabs
-          value={activeTab}
-          onChange={handleTabChange}
-          variant={isSmallScreen ? "fullWidth" : "standard"}
+      <Box sx={{ position: "relative", mb: 3, minHeight: 48, overflow: "visible" }}>
+        {/* Bouton de navigation gauche */}
+        <IconButton
+          onClick={handleScrollLeft}
+          
+          size="small"
           sx={{
-            "& .MuiTabs-indicator": {
-              height: 3,
-              borderTopLeftRadius: 3,
-              borderTopRightRadius: 3,
+            position: "absolute",
+            left: 0,
+            top: "50%",
+            transform: "translateY(-50%)",
+            zIndex: 10,
+            bgcolor: isDarkMode ? "rgba(31, 41, 55, 0.5)" : "rgba(255, 255, 255, 0.7)",
+            color: isDarkMode ? "rgba(255, 255, 255, 0.7)" : "rgba(0, 0, 0, 0.5)",
+            boxShadow: 1,
+            width: 32,
+            height: 32,
+            transition: "all 0.2s ease",
+            opacity: 0.7,
+            "&:hover": {
+              bgcolor: isDarkMode ? "rgba(31, 41, 55, 0.7)" : "rgba(255, 255, 255, 0.9)",
+              opacity: 0.9,
+              transform: "translateY(-50%)",
             },
+            display: "flex",
           }}
         >
+          <ChevronLeftIcon />
+        </IconButton>
+
+        {/* Bouton de navigation droite */}
+        <IconButton
+          onClick={handleScrollRight}
+          
+          size="small"
+          sx={{
+            position: "absolute",
+            right: 0,
+            top: "50%",
+            transform: "translateY(-50%)",
+            zIndex: 10,
+            bgcolor: isDarkMode ? "rgba(31, 41, 55, 0.5)" : "rgba(255, 255, 255, 0.7)",
+            color: isDarkMode ? "rgba(255, 255, 255, 0.7)" : "rgba(0, 0, 0, 0.5)",
+            boxShadow: 1,
+            width: 32,
+            height: 32,
+            transition: "all 0.2s ease",
+            opacity: 0.7,
+            "&:hover": {
+              bgcolor: isDarkMode ? "rgba(31, 41, 55, 0.7)" : "rgba(255, 255, 255, 0.9)",
+              opacity: 0.9,
+              transform: "translateY(-50%)",
+            },
+            display: "flex",
+          }}
+        >
+          <ChevronRightIcon />
+        </IconButton>
+
+        <Paper
+          sx={{
+            borderRadius: 2,
+            overflow: "hidden",
+            bgcolor: isDarkMode ? "#1f2937" : "rgba(249, 250, 251, 0.8)",
+            position: "relative",
+            zIndex: 1,
+          }}
+          elevation={0}
+        >
+          <Tabs
+            ref={tabsRef}
+            value={activeTab}
+            onChange={handleTabChange}
+            variant="scrollable"
+            scrollButtons={false} // Désactivation des boutons de défilement natifs car nous avons nos propres boutons
+            sx={{
+              "& .MuiTabs-indicator": {
+                height: 3,
+                borderTopLeftRadius: 3,
+                borderTopRightRadius: 3,
+              },
+              "& .MuiTabs-flexContainer": {
+                justifyContent: isSmallScreen ? "flex-start" : "center",
+              },
+              "& .MuiTabs-scroller": {
+                scrollbarWidth: "none", // Masquer la barre de défilement sur Firefox
+                "&::-webkit-scrollbar": {
+                  display: "none", // Masquer la barre de défilement sur Chrome/Safari
+                },
+              },
+            }}
+          >
           <Tab
             label="Portefeuille"
             icon={<WalletIcon />}
@@ -2497,8 +2608,15 @@ const Finances = () => {
             iconPosition="start"
             sx={{ fontWeight: 600, textTransform: "none" }}
           />
+          <Tab
+            label="Demandes de retrait"
+            icon={<MoneyOffIcon />}
+            iconPosition="start"
+            sx={{ fontWeight: 600, textTransform: "none" }}
+          />
         </Tabs>
       </Paper>
+      </Box>
 
       {/* Contenu des onglets */}
       <Box sx={{ mt: 3 }}>
@@ -2874,7 +2992,7 @@ const Finances = () => {
                                   ? "Bonus"
                                   : stat.type === "commission de transfert"
                                   ? "Commission de transfert"
-                                  : stat.type === "virtual"
+                                  : stat.type === "virtual_purchase"
                                   ? "Virtuels"
                                   : stat.type
                               }
@@ -2884,7 +3002,7 @@ const Finances = () => {
                                 stat.type === "commission de parrainage" ||
                                 stat.type === "commission de retrait" ||
                                 stat.type === "commission de transfert" ||
-                                stat.type === "virtual"
+                                stat.type === "virtual_purchase"
                                   ? "success"
                                   : stat.type === "withdrawal" ||
                                     stat.type === "transfer" ||
@@ -2905,7 +3023,7 @@ const Finances = () => {
                                 stat.type === "commission de parrainage" ||
                                 stat.type === "commission de retrait" ||
                                 stat.type === "commission de transfert" ||
-                                stat.type === "virtual"
+                                stat.type === "virtual_purchase"
                                   ? "success.main"
                                   : stat.type === "withdrawal" ||
                                     stat.type === "transfer" ||
@@ -2995,6 +3113,9 @@ const Finances = () => {
 
         {/* Onglet Jetons Esengo */}
         {activeTab === 4 && <JetonsEsengo />}
+
+        {/* Onglet Demandes de retrait */}
+        {activeTab === 5 && <WithdrawalRequests />}
       </Box>
     </Container>
   );

@@ -126,7 +126,7 @@ export default function UserDashboard() {
                       isDarkMode ? "text-white" : "text-gray-900"
                     }`}
                   >
-                    {stats?.general_stats?.wallet.balance} $
+                    {stats?.general_stats?.wallet?.balance} $
                   </div>
                 </dd>
               </dl>

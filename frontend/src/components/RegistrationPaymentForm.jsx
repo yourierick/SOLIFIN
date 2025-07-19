@@ -690,6 +690,7 @@ export default function RegistrationPaymentForm({
     // Utiliser la fonction onSubmit fournie par le parent
     try {
       await onSubmit(paymentData);
+
       setLocalLoading(false);
     } catch (error) {
       setError(

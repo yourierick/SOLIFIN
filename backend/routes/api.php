@@ -43,16 +43,22 @@ Route::get('/testimonials/approved', [App\Http\Controllers\TestimonialController
 // Routes pour les statistiques publiques
 Route::get('/stats/home', [App\Http\Controllers\StatsController::class, 'getHomeStats']);
 
-
-
 // Routes publiques pour SerdiPay (paiements sans authentification)
 Route::prefix('serdipay')->group(function () {
     // Endpoint pour initier un paiement sans authentification (achat de pack)
     Route::post('/guest/payment', [App\Http\Controllers\SerdiPayController::class, 'initiateGuestPayment']);
     // Endpoint pour vérifier le statut d'une transaction sans authentification
-    Route::post('/guest/status', [App\Http\Controllers\SerdiPayController::class, 'checkGuestStatus']);
+    Route::get('/guest/status/{transactionId}', [App\Http\Controllers\SerdiPayController::class, 'checkGuestStatus']);
+    
+    // Endpoints pour les paiements authentifiés
+    Route::middleware(['auth:sanctum'])->group(function () {
+        // Initier un paiement pour l'achat d'un pack
+        Route::post('/payment', [App\Http\Controllers\SerdiPayController::class, 'initiatePayment']);
+    });
     // Endpoint pour recevoir les callbacks de SerdiPay
     Route::post('/callback', [App\Http\Controllers\SerdiPayController::class, 'handleCallback']);
+    // Endpoint pour réessayer une inscription après un échec (sans payer à nouveau)
+    Route::post('/retry-registration', [App\Http\Controllers\SerdiPayController::class, 'retryRegistration']);
 });
 
 //Récupération des paramètres publics
@@ -207,17 +213,9 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
     // Routes pour les demandes de retrait
     Route::post('/withdrawal/request/{walletId}', [WithdrawalController::class, 'request']);
     Route::post('/withdrawal/request/{id}/cancel', [WithdrawalController::class, 'cancel']);
+    Route::delete('/withdrawal/requests/{id}', [WithdrawalController::class, 'delete']);
     Route::get('/withdrawal/referral-commission', [WithdrawalController::class, 'getReferralCommissionPercentage']);
-
-    // Routes pour SerdiPay (paiements authentifiés)
-    Route::prefix('serdipay')->group(function () {
-        // Endpoint pour initier un paiement
-        Route::post('/payment', [App\Http\Controllers\SerdiPayController::class, 'initiatePayment']);
-        // Endpoint pour initier un retrait
-        Route::post('/withdrawal', [App\Http\Controllers\SerdiPayController::class, 'initiateWithdrawal']);
-        // Endpoint pour vérifier le statut d'une transaction
-        Route::post('/status', [App\Http\Controllers\SerdiPayController::class, 'checkStatus']);
-    });
+    Route::get('/withdrawal/requests', [WithdrawalController::class, 'getUserWithdrawalRequests']);
     
     // Routes pour les finances de l'utilisateur
     Route::prefix('user/finances')->group(function () {
@@ -446,34 +444,6 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
 
 // Routes admin
 Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function () {
-    Route::patch('digital-products/{id}/status', [App\Http\Controllers\Admin\DigitalProductValidationController::class, 'updateStatus']);
-    // Routes pour la modération des témoignages
-    Route::prefix('testimonials')->middleware('permission:manage-testimonials')->group(function () {
-        // Récupérer tous les témoignages avec pagination et filtres
-        Route::get('/', [\App\Http\Controllers\Admin\TestimonialController::class, 'index']);
-        
-        // Compter les témoignages en attente
-        Route::get('/count-pending', [\App\Http\Controllers\Admin\TestimonialController::class, 'countPending']);
-        
-        // Récupérer un témoignage spécifique
-        Route::get('/{id}', [\App\Http\Controllers\Admin\TestimonialController::class, 'show']);
-        
-        // Approuver un témoignage
-        Route::post('/{id}/approve', [\App\Http\Controllers\Admin\TestimonialController::class, 'approve']);
-        
-        // Rejeter un témoignage
-        Route::post('/{id}/reject', [\App\Http\Controllers\Admin\TestimonialController::class, 'reject']);
-        
-        // Mettre en avant un témoignage
-        Route::post('/{id}/feature', [\App\Http\Controllers\Admin\TestimonialController::class, 'feature']);
-        
-        // Retirer la mise en avant d'un témoignage
-        Route::post('/{id}/unfeature', [\App\Http\Controllers\Admin\TestimonialController::class, 'unfeature']);
-        
-        // Supprimer un témoignage
-        Route::delete('/{id}', [\App\Http\Controllers\Admin\TestimonialController::class, 'destroy']);
-    });
-
     Route::middleware('permission:manage-packs')->group(function () {
         // Gestion des packs
         Route::apiResource('packs', \App\Http\Controllers\Admin\PackController::class);
@@ -523,10 +493,6 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function ()
         Route::get('/withdrawal/requests', [WithdrawalController::class, 'getRequests']);
         Route::post('/withdrawal/requests/{id}/approve', [WithdrawalController::class, 'approve']);
         Route::post('/withdrawal/requests/{id}/reject', [WithdrawalController::class, 'reject']);
-        Route::delete('/withdrawal/requests/{id}', [WithdrawalController::class, 'delete']);
-        //Route::get('withdrawal-requests', [WithdrawalRequestController::class, 'index']);
-        //Route::get('withdrawal-requests/{withdrawalRequest}', [WithdrawalRequestController::class, 'show']);
-        //Route::post('withdrawal-requests/{withdrawalRequest}/process', [WithdrawalRequestController::class, 'process']);
     });
 
     
@@ -547,8 +513,57 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function ()
         Route::post('/wallet/funds-transfer', [App\Http\Controllers\Admin\WalletController::class, 'funds_transfer']);
     });
 
-    Route::middleware('permission:manage-validations')->group(function () {
+    Route::middleware('permission:manage-content')->group(function () {
+        // Routes pour la modération des témoignages
+        Route::prefix('testimonials')->group(function () {
+            // Récupérer tous les témoignages avec pagination et filtres
+            Route::get('/', [\App\Http\Controllers\Admin\TestimonialController::class, 'index']);
+            
+            // Compter les témoignages en attente
+            Route::get('/count-pending', [\App\Http\Controllers\Admin\TestimonialController::class, 'countPending']);
+            
+            // Récupérer un témoignage spécifique
+            Route::get('/{id}', [\App\Http\Controllers\Admin\TestimonialController::class, 'show']);
+            
+            // Approuver un témoignage
+            Route::post('/{id}/approve', [\App\Http\Controllers\Admin\TestimonialController::class, 'approve']);
+            
+            // Rejeter un témoignage
+            Route::post('/{id}/reject', [\App\Http\Controllers\Admin\TestimonialController::class, 'reject']);
+            
+            // Mettre en avant un témoignage
+            Route::post('/{id}/feature', [\App\Http\Controllers\Admin\TestimonialController::class, 'feature']);
+            
+            // Retirer la mise en avant d'un témoignage
+            Route::post('/{id}/unfeature', [\App\Http\Controllers\Admin\TestimonialController::class, 'unfeature']);
+            
+            // Supprimer un témoignage
+            Route::delete('/{id}', [\App\Http\Controllers\Admin\TestimonialController::class, 'destroy']);
+        });
+
+        // Routes pour la gestion des formations (admin)
+        Route::prefix('/formations')->group(function () {
+            Route::get('/', [\App\Http\Controllers\Admin\FormationController::class, 'index']);
+            Route::post('/', [\App\Http\Controllers\Admin\FormationController::class, 'store']);
+            Route::get('/packs', [\App\Http\Controllers\Admin\FormationController::class, 'getPacks']);
+            Route::get('/pending/count', [\App\Http\Controllers\Admin\FormationController::class, 'pendingCount']);
+            Route::get('/{id}', [\App\Http\Controllers\Admin\FormationController::class, 'show']);
+            Route::put('/{id}', [\App\Http\Controllers\Admin\FormationController::class, 'update']);
+            Route::delete('/{id}', [\App\Http\Controllers\Admin\FormationController::class, 'destroy']);
+            Route::post('/{id}/review', [\App\Http\Controllers\Admin\FormationController::class, 'reviewFormation']);
+            Route::post('/{id}/publish', [\App\Http\Controllers\Admin\FormationController::class, 'publish']);
+            
+            // Routes pour la gestion des modules (admin)
+            Route::post('/{formationId}/modules', [\App\Http\Controllers\Admin\FormationModuleController::class, 'store']);
+            Route::get('/{formationId}/modules', [\App\Http\Controllers\Admin\FormationModuleController::class, 'index']);
+            Route::get('/{formationId}/modules/{moduleId}', [\App\Http\Controllers\Admin\FormationModuleController::class, 'show']);
+            Route::delete('/{formationId}/modules/{moduleId}', [\App\Http\Controllers\Admin\FormationModuleController::class, 'destroy']);
+            Route::post('/{formationId}/modules/reorder', [\App\Http\Controllers\Admin\FormationModuleController::class, 'reorder']);
+            Route::post('/{formationId}/modules/{moduleId}/review', [\App\Http\Controllers\Admin\FormationModuleController::class, 'reviewModule']);
+        });
+        
         // Routes pour la validation des produits numériques
+        Route::patch('digital-products/{id}/status', [App\Http\Controllers\Admin\DigitalProductValidationController::class, 'updateStatus']);    
         Route::get('/digital-products', [App\Http\Controllers\Admin\DigitalProductValidationController::class, 'index']);
         Route::get('/digital-products/pending/count', [App\Http\Controllers\Admin\DigitalProductValidationController::class, 'pendingCount']);
         Route::post('/digital-products/{id}/approve', [App\Http\Controllers\Admin\DigitalProductValidationController::class, 'approve']);
@@ -599,9 +614,7 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function ()
     
     // Routes pour la gestion des tickets gagnants
     Route::middleware('permission:verify-tickets')->group(function () {
-        Route::get('/tickets/historique', [\App\Http\Controllers\JetonEsengoController::class, 'getHistoriqueTicketsConsommes']);
-        Route::get('/tickets/{code}', [\App\Http\Controllers\JetonEsengoController::class, 'verifierTicket']);
-        Route::post('/tickets/{id}/consommer', [\App\Http\Controllers\JetonEsengoController::class, 'consommerTicket']);
+        
     });
 
     Route::middleware('permission:manage-gifts')->group(function () {
@@ -612,6 +625,10 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function ()
             Route::put('/{id}', [\App\Http\Controllers\JetonEsengoController::class, 'saveCadeau']);
             Route::delete('/{id}', [\App\Http\Controllers\JetonEsengoController::class, 'deleteCadeau']);
         });
+
+        Route::get('/tickets/historique', [\App\Http\Controllers\JetonEsengoController::class, 'getHistoriqueTicketsConsommes']);
+        Route::get('/tickets/{code}', [\App\Http\Controllers\JetonEsengoController::class, 'verifierTicket']);
+        Route::post('/tickets/{id}/consommer', [\App\Http\Controllers\JetonEsengoController::class, 'consommerTicket']);
     });
     
     Route::middleware('permission:view-finances', 'permission:manage-wallets')->group(function () {
@@ -645,29 +662,6 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function ()
         Route::post('/faq/categories', [\App\Http\Controllers\FaqController::class, 'storeCategory']);
         Route::put('/faq/categories/{id}', [\App\Http\Controllers\FaqController::class, 'updateCategory']);
         Route::delete('/faq/categories/{id}', [\App\Http\Controllers\FaqController::class, 'destroyCategory']);
-    });
-    
-    Route::middleware('permission:manage-courses')->group(function () {
-        // Routes pour la gestion des formations (admin)
-        Route::prefix('/formations')->group(function () {
-            Route::get('/', [\App\Http\Controllers\Admin\FormationController::class, 'index']);
-            Route::post('/', [\App\Http\Controllers\Admin\FormationController::class, 'store']);
-            Route::get('/packs', [\App\Http\Controllers\Admin\FormationController::class, 'getPacks']);
-            Route::get('/pending/count', [\App\Http\Controllers\Admin\FormationController::class, 'pendingCount']);
-            Route::get('/{id}', [\App\Http\Controllers\Admin\FormationController::class, 'show']);
-            Route::put('/{id}', [\App\Http\Controllers\Admin\FormationController::class, 'update']);
-            Route::delete('/{id}', [\App\Http\Controllers\Admin\FormationController::class, 'destroy']);
-            Route::post('/{id}/review', [\App\Http\Controllers\Admin\FormationController::class, 'reviewFormation']);
-            Route::post('/{id}/publish', [\App\Http\Controllers\Admin\FormationController::class, 'publish']);
-            
-            // Routes pour la gestion des modules (admin)
-            Route::post('/{formationId}/modules', [\App\Http\Controllers\Admin\FormationModuleController::class, 'store']);
-            Route::get('/{formationId}/modules', [\App\Http\Controllers\Admin\FormationModuleController::class, 'index']);
-            Route::get('/{formationId}/modules/{moduleId}', [\App\Http\Controllers\Admin\FormationModuleController::class, 'show']);
-            Route::delete('/{formationId}/modules/{moduleId}', [\App\Http\Controllers\Admin\FormationModuleController::class, 'destroy']);
-            Route::post('/{formationId}/modules/reorder', [\App\Http\Controllers\Admin\FormationModuleController::class, 'reorder']);
-            Route::post('/{formationId}/modules/{moduleId}/review', [\App\Http\Controllers\Admin\FormationModuleController::class, 'reviewModule']);
-        });
     });
     
     // Routes pour la gestion des rôles et permissions (super-admin uniquement)

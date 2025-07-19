@@ -21,12 +21,18 @@ use App\Models\TransactionFee;
 
 class WalletUserController extends Controller
 {
+    const TYPE_VIRTUAL_PURCHASE = 'virtual_purchase';
+    const STATUS_COMPLETED = 'completed';
+    const TYPE_VIRTUAL_SALE = 'virtual_sale';
     // Récupérer les données du wallet de l'utilisateur connecté
     public function getWalletData()
     {
         try {
+
+            $walletservice = new \App\Services\WalletService();
             // Récupérer le wallet de l'utilisateur connecté
             $userWallet = Wallet::where('user_id', Auth::id())->first();
+            $userWallet ?? $userWallet = $walletservice->createUserWallet(Auth::id());
             $Wallet = $userWallet ? [
                 'balance' => number_format($userWallet->balance, 2) . ' $',
                 'total_earned' => number_format($userWallet->total_earned, 2) . ' $',
@@ -85,6 +91,9 @@ class WalletUserController extends Controller
 
     /**
      * Transfert de fonds entre wallets
+     * 
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
      */
     public function funds_transfer(Request $request)
     {
@@ -98,7 +107,8 @@ class WalletUserController extends Controller
                 'commission_amount' => 'required|numeric',
                 'commission_percentage' => 'required|numeric',
                 'total_fee_amount' => 'required|numeric',
-                'password' => 'required'
+                'password' => 'required',
+                'description' => 'nullable|string'
             ]);
 
             // Vérifier le mot de passe de l'utilisateur
@@ -110,7 +120,11 @@ class WalletUserController extends Controller
                 ], 401);
             }
 
-            $userWallet = $user->wallet;
+            // Initialiser le service wallet
+            $walletService = new \App\Services\WalletService();
+            
+            // Récupérer les wallets
+            $userWallet = $user->wallet ?? $walletService->createUserWallet($user->id);
             $recipient = User::where("account_id", $request->recipient_account_id)->first();
             
             if (!$recipient) {
@@ -120,15 +134,9 @@ class WalletUserController extends Controller
                 ], 404);
             }
             
-            $recipientWallet = $recipient->wallet;
+            $recipientWallet = $recipient->wallet ?? $walletService->createUserWallet($recipient->id);
 
-            if (!$recipientWallet) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Compte du bénéficiaire non trouvé'
-                ], 404);
-            }
-
+            // Vérifications
             if ($userWallet->id == $recipientWallet->id) {
                 return response()->json([
                     'success' => false,
@@ -143,80 +151,135 @@ class WalletUserController extends Controller
                 ], 400);
             }
 
-            DB::beginTransaction();
-            $userWallet->withdrawFunds($request->amount, "transfer", "completed", ["bénéficiaire" => $recipientWallet->user->name, "montant"=>$request->original_amount, "description"=>$request->description, "Vous avez transferé" => $request->original_amount . " $ au compte " . $recipientWallet->user->account_id]);
-            $recipientWallet->addFunds($request->original_amount, "reception", "completed", ["créditeur" => $userWallet->user->name, "montant"=>$request->original_amount, "description"=>$request->description, "Vous avez reçu" => $request->original_amount . " $ du compte " . $userWallet->user->account_id]);
+            // Préparer les métadonnées pour l'expéditeur
+            $senderMetadata = [
+                "Bénéficiaire" => $recipientWallet->user->name,
+                "Montant" => number_format($request->original_amount, 2) . " $",
+                "Description" => $request->description ?? 'Transfert de fonds',
+                "Détails" => "Vous avez transféré " . number_format($request->original_amount, 2) . " $ au compte " . $recipientWallet->user->account_id
+            ];
 
-            $walletsystem = WalletSystem::first();
-            if (!$walletsystem) {
-                $walletsystem = WalletSystem::create(['balance' => 0]);
-            }
+            // Préparer les métadonnées pour le destinataire
+            $recipientMetadata = [
+                "Expéditeur" => $userWallet->user->name,
+                "Montant" => number_format($request->original_amount, 2) . " $",
+                "Description" => $request->description ?? 'Transfert de fonds',
+                "Détails" => "Vous avez reçu " . number_format($request->original_amount, 2) . " $ du compte " . $userWallet->user->account_id
+            ];
+
+            DB::beginTransaction();
+            
+            // Effectuer les transactions
+            $userWallet->withdrawFunds(
+                $request->amount, 
+                "transfer", 
+                self::STATUS_COMPLETED, 
+                $senderMetadata
+            );
+            
+            $recipientWallet->addFunds(
+                $request->original_amount, 
+                "reception", 
+                self::STATUS_COMPLETED, 
+                $recipientMetadata
+            );
+
+            // Gestion des commissions
+            $sponsorWallet = null;
+            $sponsorName = null;
             
             if ($request->commission_amount > 0) {
                 // Gestion du parrain avec vérification de l'existence du pack et du parrain
                 $firstUserPack = UserPack::where('user_id', $user->id)->first();
-                $sponsor = $firstUserPack ? $firstUserPack->sponsor : null;
-                $pack = Pack::where('id', $firstUserPack->pack_id)->first();
-                $isActivePackSponsor = $sponsor->packs->where('pack_id', $pack->id)->where('status', 'active')->first();
+                $sponsor = $firstUserPack ? User::find($firstUserPack->sponsor_id) : null;
                 
-                if ($sponsor && $isActivePackSponsor) {
-                    $sponsor->wallet->addFunds($request->commission_amount, "commission de transfert", "completed", [
-                        "Source" => $user->name, 
-                        "Type" => "commission de transfert",
-                        "Montant" => $request->commission_amount . " $",
-                        "Description" => "vous avez gagné une commission de ". $request->commission_amount . " $ pour le transfert d'un montant de ". $request->original_amount ." $ par votre filleul " . $user->name,
-                    ]);
+                if ($sponsor && $firstUserPack) {
+                    $pack = Pack::find($firstUserPack->pack_id);
+                    $isActivePackSponsor = $sponsor->packs()
+                        ->where('pack_id', $pack->id)
+                        ->where('status', 'active')
+                        ->exists();
+                    
+                    if ($isActivePackSponsor) {
+                        $sponsorWallet = $sponsor->wallet ?? $walletService->createUserWallet($sponsor->id);
+                        $sponsorName = $sponsor->name;
+                        
+                        $sponsorMetadata = [
+                            "Source" => $user->name, 
+                            "Type" => "commission de transfert",
+                            "Montant" => number_format($request->commission_amount, 2) . " $",
+                            "Description" => "Vous avez gagné une commission de ". number_format($request->commission_amount, 2) . 
+                                            " $ pour le transfert d'un montant de ". number_format($request->original_amount, 2) .
+                                            " $ par votre filleul " . $user->name,
+                        ];
+                        
+                        $sponsorWallet->addFunds(
+                            $request->commission_amount, 
+                            "commission de transfert", 
+                            self::STATUS_COMPLETED, 
+                            $sponsorMetadata
+                        );
+                    }
                 }
             }
 
-            $walletsystem->transactions()->create([
-                'wallet_system_id' => $walletsystem->id,
+            // Enregistrer la transaction système
+            $systemMetadata = [
+                "user" => $user->name, 
+                "Montant" => number_format($request->original_amount, 2) . " $",
+                "Dévise" => "USD",
+                "Frais de transaction" => number_format($request->fee_amount, 2) . " $",
+                "Frais de commission" => $sponsorWallet ? 
+                    "Paiement d'une commission de " . number_format($request->commission_amount, 2) . " $ à " . $sponsorName : 
+                    "Aucune commission payée pour cause de non activation du pack ou d'inexistance du parrain",
+                "Description" => "Transfert de ". number_format($request->original_amount, 2) . 
+                                "$ par le compte " . $user->account_id . " au compte " . $request->recipient_account_id,
+            ];
+            
+            $walletService->recordSystemTransaction([
                 'amount' => $request->original_amount,
                 'type' => "transfer",
-                'status' => "completed",
-                'metadata' => [
-                    "user" => $user->name, 
-                    "Montant" => $request->original_amount . " $",
-                    "Dévise" => "USD",
-                    "Frais de transaction" => $request->fee_amount . " $",
-                    "Frais de commission" => $sponsor && $isActivePackSponsor ? "Paiement d'une commission de " . $request->commission_amount . " $ à " . $sponsor->name : "Aucune commission payée pour cause de non activation du pack ou d'inexistance du parrain",
-                    "Déscription" => "Transfert de ". $request->original_amount . "$ par le compte " . $user->account_id . " au compte " . $request->recipient_account_id,
-                ]
+                'status' => self::STATUS_COMPLETED,
+                'metadata' => $systemMetadata
             ]);
 
             DB::commit();
 
-            // Notification à l'utilisateur qui a transféré les fonds
+            // Notifications
             $user->notify(new FundsTransferred(
                 $request->original_amount,
                 $user->name,
                 $recipient->name,
                 false,
-                $request->description,
+                $request->description ?? 'Transfert de fonds',
                 $user->is_admin
             ));
             
-            // Notification à l'utilisateur qui a reçu les fonds
             $recipient->notify(new FundsTransferred(
                 $request->original_amount,
                 $user->name,
                 $recipient->name,
                 true,
-                $request->description,
+                $request->description ?? 'Transfert de fonds',
                 $user->is_admin
             ));
             
             return response()->json([
                 'success' => true,
-                'message' => 'Transfert effectué avec succès'
+                'message' => 'Transfert effectué avec succès',
+                'new_balance' => number_format($userWallet->balance, 2) . ' $'
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
-            \Log::error($e->getMessage());
+            \Log::error('Erreur lors du transfert de fonds: ' . $e->getMessage(), [
+                'user_id' => Auth::id(),
+                'recipient' => $request->recipient_account_id ?? null,
+                'amount' => $request->amount ?? null
+            ]);
+            
             return response()->json([
                 'success' => false,
-                'message' => 'Erreur lors du transfert',
-                'error' => 'Erreur lors du transfert'
+                'message' => 'Erreur lors du transfert'
             ], 500);
         }
     }
@@ -298,124 +361,69 @@ class WalletUserController extends Controller
      */
     public function purchaseVirtual(Request $request)
     {
-        \Log::info('Achat de virtuel via SerdiPay : ' . json_encode($request->all()));
         try {
-            $validated = $request->validate([
-                'amount' => 'required|numeric|min:1',
-                'fees' => 'required|numeric|min:0',
-                'total' => 'required|numeric|min:1',
-                'payment_method' => 'required|string',
-                'phoneNumber' => 'required|string',
-                'currency' => 'required|string',
-            ]);
-            
-            $user = Auth::user();
+            $walletService = new \App\Services\WalletService();
+            $user = isset($request->user_id) ? User::findOrFail($request->user_id) : Auth::user();
             $userWallet = $user->wallet;
-            
+
             if (!$userWallet) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Portefeuille utilisateur non trouvé'
-                ], 404);
+                $userWallet = $walletService->createUserWallet($user->id);
             }
 
-            $transactionFee = TransactionFee::where('payment_method', $validated['payment_method'])
-                                                           ->where('is_active', true)->first();
-
-            if (!$transactionFee) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Cette méthode de paiement n\'est pas encore disponible'
-                ], 404);
-            }
-
-            
-            // Recalculer les frais de transaction (pourcentage configuré dans le système)
-            $globalFeesPercentage = (float) Setting::getValue('purchase_fee_percentage', 0);
-            
-            // Calcul des frais globaux basé sur le montant du paiement
-            if ($validated['currency'] == 'CDF') {
-                $globalFees = ((float)$request->original_amount) * ($globalFeesPercentage / 100);
-            } else {
-                $globalFees = ((float)$validated['amount']) * ($globalFeesPercentage / 100);
-            }
-
-            $specificFees = $transactionFee->calculateTransferFee((float) $request->original_amount ? $request->original_amount : $validated['amount'], $validated['currency']);
-            $totalAmount = $request->original_amount ? $request->original_amount : $validated['amount'] + $globalFees; //montant total à payer récalculé.
-    
-            // Dans un environnement de production, nous ferions ici l'appel à l'API SerdiPay
-            // Pour cette implémentation, nous simulons une transaction réussie
-            
-            ;;// Simuler un ID de transaction
-            $transactionId = 'SP-' . time() . '-' . rand(1000, 9999);
-            
-            $taux_de_change = 0;
-            if ($validated['currency'] == 'CDF') {
-                $taux_de_change = ExchangeRates::where('currency', $validated['currency'])->where("target_currency", "USD")->first();
-                $taux_de_change = $taux_de_change->rate;
-
-                $globalFeesInUsd = $this->convertToUSD($globalFees, $validated['currency']);
-                $specificFeesInUsd = $this->convertToUSD($specificFees, $validated['currency']);
-                $totalAmountInUsd = $this->convertToUSD($totalAmount, $validated['currency']);
-                $montant_net_in_usd = $this->convertToUSD($request->original_amount, $validated['currency']);
-            }
-            
             DB::beginTransaction();
+
+            // Préparer les métadonnées pour la transaction utilisateur
+            $metadata = [
+                'Méthode de paiement' => $request->payment_method,
+                'Téléphone' => $request->phoneNumber,
+                'Dévise' => $request->currency,
+                'Montant net payé' => number_format($request->amount, 2) . " " . $request->currency,
+                'Frais de transaction' => number_format($request->fees, 2) . " " . $request->currency,
+                'Taux de change appliqué' => $request->taux_de_change,
+                'Description' => 'Achat des virtuels solifin via ' . $request->payment_method
+            ];
+
             // Ajouter les fonds au portefeuille de l'utilisateur
-            $userWallet->addFunds($montant_net_in_usd, 'virtual', 'completed', [
-                'Méthode de paiement' => $validated['payment_method'],
-                'Téléphone' => $validated['phoneNumber'],
-                'Id Transaction' => $transactionId,
-                'Dévise' => $validated['currency'],
-                'Montant net payé sans les frais' => $request->original_amount ? $request->original_amount . " " . $validated['currency'] : $validated['amount'] . " " . $validated['currency'],
-                'Frais de transaction' => $request->original_fees ? $request->original_fees . " " . $validated['currency'] : $globalFees . " $",
-                'Taux de change appliqué' => $taux_de_change,
-                'Déscription' => 'Achat de virtuel via ' . $validated['payment_method']
-            ]);
-            
-            // Enregistrer la transaction dans le wallet system
-            $walletsystem = WalletSystem::first();
-            if (!$walletsystem) {
-                $walletsystem = WalletSystem::create(['balance' => 0]);
-            }
-            
-            $walletsystem->transactions()->create([
-                'wallet_system_id' => $walletsystem->id,
-                'amount' => $totalAmountInUsd - $specificFeesInUsd,
-                'type' => 'virtual_sale',
-                'status' => 'completed',
-                'metadata' => [
-                    "Opération" => "Achat des virtuels",
+            $userWallet->addFunds(
+                $request->montantusd_sans_frais, 
+                self::TYPE_VIRTUAL_PURCHASE,
+                self::STATUS_COMPLETED,
+                array_merge($metadata, [
+                    'Opération' => 'Achat des virtuels'
+                ])
+            );
+
+            // Enregistrer la transaction système
+            $walletService->recordSystemTransaction([
+                'amount' => $request->montantusd_sans_frais_api,
+                'type' => self::TYPE_VIRTUAL_SALE,
+                'status' => self::STATUS_COMPLETED,
+                'metadata' => array_merge($metadata, [
+                    'Opération' => 'Vente des virtuels',
                     'user' => $user->name,
                     'Id Compte' => $user->account_id,
-                    'Méthode de paiement' => $validated['payment_method'],
-                    'Téléphone' => $validated['phoneNumber'],
-                    'Id de la Transaction' => $transactionId,
-                    'Montant net payé sans les frais' => $validated['amount'] . ' ' . $validated['currency'],
-                    'Frais de transaction' => $globalFees . ' ' . $validated['currency'],
-                    'Frais API' => $specificFees . ' ' . $validated['currency'],
-                    'Taux de change appliqué' => $taux_de_change,
-                    'Déscription' => 'Achat de virtuel via ' . $validated['payment_method']
-                ]
+                    'Frais API' => number_format($request->frais_api, 2) . " " . $request->currency
+                ])
             ]);
 
             DB::commit();
-            
+
             return response()->json([
                 'success' => true,
                 'message' => 'Achat de virtuel effectué avec succès',
-                'transaction_id' => $transactionId,
-                'amount' => $validated['amount'],
+                'amount' => $request->amount,
                 'new_balance' => number_format($userWallet->balance, 2) . ' $'
             ]);
-            
+
         } catch (\Exception $e) {
             DB::rollBack();
-            \Log::error('Erreur lors de l\'achat de virtuel: ' . $e->getMessage());
+            \Log::error('Erreur lors de l\'achat de virtuel: ' . $e->getMessage(), [
+                'user_id' => $request->user_id ?? Auth::id(),
+                'request' => $request->all()
+            ]);
             return response()->json([
                 'success' => false,
-                'message' => 'Une erreur est survenue lors du traitement de votre achat',
-                'error' => $e->getMessage()
+                'message' => 'Une erreur est survenue lors du traitement de votre achat'
             ], 500);
         }
     }

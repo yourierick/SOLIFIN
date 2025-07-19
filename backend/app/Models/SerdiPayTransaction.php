@@ -19,13 +19,14 @@ class SerdiPayTransaction extends Model
         'wallet_id',
         'email',
         'phone_number',
-        'telecom',
+        'payment_method',
         'amount',
         'currency',
         'session_id',
         'transaction_id',
         'reference',
         'type',
+        'payment_type',
         'direction',
         'status',
         'purpose',
@@ -33,6 +34,10 @@ class SerdiPayTransaction extends Model
         'response_data',
         'callback_data',
         'callback_received_at',
+        'card_number',
+        'card_holder_name',
+        'card_expiry',
+        'card_type',
     ];
 
     /**
@@ -123,6 +128,26 @@ class SerdiPayTransaction extends Model
     {
         return $this->type === 'withdrawal';
     }
+    
+    /**
+     * Vérifie si la transaction est un paiement par carte.
+     *
+     * @return bool
+     */
+    public function isCardPayment()
+    {
+        return $this->payment_type === 'card';
+    }
+    
+    /**
+     * Vérifie si la transaction est un paiement par mobile money.
+     *
+     * @return bool
+     */
+    public function isMobileMoneyPayment()
+    {
+        return $this->payment_type === 'mobile_money';
+    }
 
     /**
      * Scope pour filtrer les transactions par statut.
@@ -146,5 +171,21 @@ class SerdiPayTransaction extends Model
     public function scopeWithDirection($query, $direction)
     {
         return $query->where('direction', $direction);
+    }
+    
+    /**
+     * Scope pour filtrer les transactions par type de paiement.
+     */
+    public function scopeWithPaymentType($query, $paymentType)
+    {
+        return $query->where('payment_type', $paymentType);
+    }
+    
+    /**
+     * Scope pour filtrer les transactions par méthode de paiement.
+     */
+    public function scopeWithPaymentMethod($query, $paymentMethod)
+    {
+        return $query->where('payment_method', $paymentMethod);
     }
 }

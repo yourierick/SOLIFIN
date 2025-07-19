@@ -825,284 +825,32 @@ class PubliciteController extends Controller
         try {
             $validator = $request->validate([
                 'days' => 'required|integer|min:1',
-                'paymentMethod' => 'required|string',
-                'paymentType' => 'required|string',
-                'currency' => 'required|string',
-                'fees' => 'required|numeric|min:0',
+                'paymentMethod' => 'required|string|in:solifin-wallet',
+                'paymentType' => 'required|string|in:wallet',
                 'amount' => 'required|numeric|min:0',
             ]);
 
             // Récupérer la publicité
             $publicite = Publicite::findOrFail($id);
             
-            // Vérifier que la publicité est approuvée et disponible
-            if ($publicite->statut !== 'approuvé' && $publicite->statut !== 'expiré') {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Cette publicité ne peut pas être boostée'
-                ], 400);
-            }
+            // Utiliser le service de boost
+            $boostService = app(\App\Services\BoostService::class);
+            $result = $boostService->boostPublication(
+                $publicite, 
+                $request->days, 
+                $request->amount, 
+                'publicite'
+            );
             
-            // Vérifier que l'utilisateur est propriétaire de la publicité
-            $user = Auth::user();
-            $page = Page::findOrFail($publicite->page_id);
+            return response()->json($result, $result['status_code']);
             
-            if ($page->user_id !== $user->id) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Vous n\'êtes pas autorisé à booster cette publicité.'
-                ], 403);
-            }
-            
-            // Récupérer les données de paiement
-            $paymentMethod = $request->paymentMethod;
-            $paymentType = $request->paymentType;
-            $paymentAmount = $request->amount;
-            $days = $request->days;
-            $currency = $request->currency;
-            $taux_de_change = 0;
-
-            // Calculer le montant en fonction du nombre de jours
-            // Récupérer le paramètre de prix du boost
-            $boostPercentage = $user->pack_de_publication->boost_percentage;
-            $packPrice = $user->pack_de_publication->price;
-            $price = $packPrice * $boostPercentage / 100;
-
-            // Valeur par défaut si le paramètre n'est pas défini
-            $defaultPrice = 1;
-            
-            // Si le paramètre existe, utiliser sa valeur, sinon utiliser la valeur par défaut
-            $pricePerDay = $price ? $price : $defaultPrice;
-
-            $specificFees = 0;
-            $globalFees = 0;
-            if ($paymentMethod !== 'solifin-wallet') {
-                $transactionFeeModel = TransactionFee::where('payment_method', $paymentMethod)
-                                                           ->where('is_active', true);
-                $transactionFee = $transactionFeeModel->first();
-                
-                // Recalculer les frais de transaction (pourcentage configuré dans le système)
-                $globalFeePercentage = (float) Setting::getValue('purchase_fee_percentage', 0);
-                
-                // Calcul des frais globaux basé sur le montant du paiement
-                $globalFees = ((float)$paymentAmount) * ($globalFeePercentage / 100);
-                
-                // Log des frais globaux calculés
-                \Log::info('Frais globaux calculés pour boost de publicité', [
-                    'montant' => $paymentAmount,
-                    'pourcentage' => $globalFeePercentage,
-                    'frais_globaux' => $globalFees
-                ]);
-
-                $specificFees = $transactionFee->calculateTransferFee((float) $paymentAmount, $currency);
-                    
-                // Log des frais spécifiques calculés
-                \Log::info('Frais spécifiques calculés pour boost de publicité', [
-                    'montant' => $paymentAmount,
-                    'methode_paiement' => $paymentMethod,
-                    'devise' => $currency,
-                    'frais_specifiques' => $specificFees
-                ]);
-            }
-            
-            // Montant total incluant les frais
-            $totalAmount = $paymentAmount + $globalFees;
-            
-            // Si la devise n'est pas en USD, convertir le montant en USD (devise de base)
-            $amountInUSD = $totalAmount;
-            $globalFeesInUSD = $globalFees;
-            $specificFeesInUSD = $specificFees;
-            if ($currency !== 'USD') {
-                try {
-                    // Récupérer le taux de conversion depuis la BD ou un service
-                    $taux_de_change = ExchangeRates::where('currency', $currency)->where("target_currency", "USD")->first();
-                    $taux_de_change = $taux_de_change->rate;
-
-                    // Conversion du montant total en USD
-                    $amountInUSD = $this->convertToUSD($totalAmount, $currency);
-                    $amountInUSD = round($amountInUSD, 2);
-                    
-                    // Conversion des frais globaux en USD
-                    $globalFeesInUSD = $this->convertToUSD($globalFees, $currency);
-                    $globalFeesInUSD = round($globalFeesInUSD, 2);
-                    
-                    // Conversion des frais spécifiques en USD
-                    $specificFeesInUSD = $this->convertToUSD($specificFees, $currency);
-                    $specificFeesInUSD = round($specificFeesInUSD, 2);
-                    
-                    // Log des montants convertis
-                    \Log::info('Montants convertis en USD pour boost de publicité', [
-                        'montant_total_usd' => $amountInUSD,
-                        'frais_globaux_usd' => $globalFeesInUSD,
-                        'frais_specifiques_usd' => $specificFeesInUSD,
-                        'devise_originale' => $paymentCurrency
-                    ]);
-                } catch (\Exception $e) {
-                    return response()->json([
-                        "succes" => false,
-                        "message" => "La conversion de dévise a échoué, veuillez utiliser le $"    
-                    ]);
-                }
-            }
-            
-            // Calcul des montants nets (sans les différents types de frais)
-            $amountInUSDWithoutSpecificFees = round($amountInUSD - $specificFeesInUSD, 2); // Montant total sans frais spécifiques
-            $amountWithoutGlobalFeesInUSD = round($amountInUSD - $globalFeesInUSD, 2); // Montant total sans frais globaux
-
-            // Log des montants nets calculés
-            \Log::info('Montants nets calculés pour achat de pack', [
-                'montant_total_usd' => $amountInUSD,
-                'montant_sans_frais_specifiques' => $amountInUSDWithoutSpecificFees,
-                'montant_sans_frais_globaux' => $amountWithoutGlobalFeesInUSD
-            ]);
-
-            // Vérifier que le montant net est suffisant pour couvrir le coût du pack
-            $boostPrice = $pricePerDay * $days;
-            if ($amountWithoutGlobalFeesInUSD < $boostPrice) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Le montant payé est insuffisant pour couvrir le coût du boost'
-                ], 400);
-            }
-            
-            DB::beginTransaction();
-            
-            // Si paiement par wallet
-            if ($paymentMethod === 'solifin-wallet') {
-                // Vérifier le solde du wallet
-                $wallet = $user->wallet;
-                
-                if (!$wallet || $wallet->balance < $amountInUSD) {
-                    return response()->json([
-                        'success' => false,
-                        'message' => 'Solde insuffisant dans votre wallet.'
-                    ], 400);
-                }
-                
-                // Débiter le wallet
-                $wallet->withdrawFunds($amountInUSD, 'purchase', 'completed', [
-                    'Opération' => "Boost de publication",
-                    'Id de la publicité' => $publicite->id,
-                    'Type de publication' => 'publicité',
-                    'Type de paiement' => $paymentType,
-                    'Méthode de paiement' => $paymentMethod,
-                    'Durée' => $days . " jours",
-                    'Montant net payé sans les frais' => $paymentAmount . " " . $currency,
-                    'Dévise' => $currency,
-                    'Frais' => $globalFees . " " . $currency,
-                    'Taux de change appliqué' => $taux_de_change,
-                    'Description' => "Vous avez booster votre publicité titrée " . $publicite->titre . " pour " . $days . " jours"
-                ]);
-            } else {
-                //implémenter le paiement API
-
-                $wallet = $user->wallet;
-                $wallet->transactions()->create([
-                    "wallet_id" => $wallet->id,
-                    "type" => "purchase",
-                    "amount" => $amountInUSD,
-                    "status" => "completed",
-                    "metadata" => [
-                        "Opération" => "Boost de publication",
-                        "Id de la publication" => $publicite->id,
-                        "Type de publication" => "publicité",
-                        "Durée" => $days . " jours",
-                        "Type de paiement" => $paymentType,
-                        "Méthode de paiement" => $paymentMethod,
-                        "Dévise" => $currency,
-                        "Montant net payé sans les frais" => $paymentAmount . " " . $currency,
-                        "Frais de transaction" => $globalFees . " " . $currency,
-                        "Taux de change appliqué" =>$taux_de_change,
-                        "Description" => "Vous avez booster votre publicité titrée " . $publicite->titre . " pour " . $days . " jours"
-                    ]
-                ]);
-            }
-            
-            // Ajouter le montant au wallet system (sans les frais)
-            $walletsystem = WalletSystem::first();
-            if (!$walletsystem) {
-                $walletsystem = WalletSystem::create(['balance' => 0]);
-            }
-            
-            $walletsystem->transactions()->create([
-                'wallet_system_id' => $walletsystem->id,
-                'amount' => $amountInUSDWithoutSpecificFees,
-                'type' => 'sales',
-                'status' => 'completed',
-                'metadata' => [
-                    "user" => $user->name, 
-                    "Opération" => "Boost de publication",
-                    "Id de la publication" => $publicite->id,
-                    "Type de publication" => "publicité",
-                    "Type de paiement" => $paymentType,
-                    "Méthode de paiement" => $paymentMethod,
-                    "Durée" => $days . " jours",
-                    "Dévise" => $currency,
-                    "Montant net payé sans les frais" => $paymentAmount . " " . $currency,
-                    "Frais de transaction" => $globalFees . " " . $currency,
-                    "Frais API" => $specificFees . " " . $currency,
-                    "Taux du jour" => $taux_de_change,
-                    "Description" => "Boost de publicité pour " . $publicite->titre . " pour " . $days . " jours"
-                ]
-            ]);
-            
-            // Mettre à jour la durée d'affichage
-            $publicite->duree_affichage = ($publicite->duree_affichage ?? 0) + $days;
-            $publicite->save();
-            
-            DB::commit();
-            
-            return response()->json([
-                'success' => true,
-                'message' => 'Publicité boostée avec succès pour ' . $days . ' jours supplémentaires.',
-                'publication' => $publicite,
-                'payment_details' => [
-                    'amount' => $amount . $currency,
-                    'fees' => $globalFees,
-                    'total' => $totalAmount . $currency,
-                    'currency' => $currency
-                ]
-            ]);
         } catch (\Exception $e) {
-            DB::rollback();
             \Log::error('Erreur lors du boost de la publicité: ' . $e->getMessage());
             \Log::error('Stack trace: ' . $e->getTraceAsString());
             return response()->json([
                 'success' => false,
                 'message' => 'Une erreur est survenue lors du boost de la publicité: ' . $e->getMessage()
             ], 500);
-        }
-    }
-    
-    
-    /**
-     * Convertit un montant d'une devise en USD
-     * 
-     * @param float $amount Montant à convertir
-     * @param string $currency Devise d'origine
-     * @return float Montant en USD
-     */
-    private function convertToUSD($amount, $currency)
-    {
-        if ($currency === 'USD') {
-            return $amount;
-        }else {
-            $amount = round($amount, 2);
-        }
-        
-        try {
-            // Récupérer le taux de conversion depuis la BD
-            $exchangeRate = ExchangeRates::where('currency', $currency)->where("target_currency", "USD")->first();
-            if ($exchangeRate) {
-                $amount = $amount * $exchangeRate->rate;
-                return round($amount, 2);
-            } else {
-                // Si le taux n'est pas trouvé, lever une exception
-                throw new \Exception("Taux de conversion non disponible pour la devise $currency");
-            }
-        } catch (\Exception $e) {
-            \Log::error('Erreur lors de la conversion de devise: ' . $e->getMessage());
-            throw new \Exception("Impossible d'utiliser cette monnaie, veuillez payer en USD pour plus de simplicité");
         }
     }
 }

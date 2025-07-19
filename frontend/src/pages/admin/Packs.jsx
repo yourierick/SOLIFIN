@@ -1,6 +1,7 @@
 import { useState, useEffect, Fragment, lazy, Suspense } from "react";
 import { Link } from "react-router-dom";
 import axios from "axios";
+import { useAuth } from "../../contexts/AuthContext";
 import {
   PlusIcon,
   ArrowPathIcon,
@@ -40,6 +41,10 @@ export default function Packs() {
   const [packs, setPacks] = useState([]);
   const [filteredPacks, setFilteredPacks] = useState([]);
   const [loading, setLoading] = useState(true);
+  
+  // État pour les permissions utilisateur
+  const [userPermissions, setUserPermissions] = useState([]);
+  const { user } = useAuth();
   const { showToast } = useToast();
   const [isCommissionModalVisible, setIsCommissionModalVisible] =
     useState(false);
@@ -93,6 +98,27 @@ export default function Packs() {
   useEffect(() => {
     applyFilters();
   }, [packs, filters]);
+  
+  // Récupérer les permissions de l'utilisateur
+  useEffect(() => {
+    const fetchUserPermissions = async () => {
+      try {
+        const response = await axios.get(`/api/user/permissions`);
+        if (response.data && response.data.permissions) {
+          const permissionSlugs = response.data.permissions.map(
+            (permission) => permission.slug
+          );
+          setUserPermissions(permissionSlugs);
+        }
+      } catch (error) {
+        console.error("Erreur lors de la récupération des permissions:", error);
+      }
+    };
+
+    if (user) {
+      fetchUserPermissions();
+    }
+  }, [user]);
 
   const fetchPacks = async () => {
     try {
@@ -660,8 +686,14 @@ export default function Packs() {
             label="Mes packs"
             onMouseEnter={() => setTabHover(1)}
             onMouseLeave={() => setTabHover(null)}
+            disabled={!userPermissions.includes("manage-own-packs") && !userPermissions.includes("super-admin")}
             sx={{
               transform: tabHover === 1 ? "translateY(-2px)" : "none",
+              opacity: !userPermissions.includes("manage-own-packs") && !userPermissions.includes("super-admin") ? 0.5 : 1,
+              "&.Mui-disabled": {
+                color: "text.disabled",
+                cursor: "not-allowed",
+              },
             }}
           />
         </Tabs>

@@ -61,6 +61,7 @@ const PUBLIC_ROUTES = [
   "/reset-password",
   "/verification-success",
   "/verification-error",
+  "/purchase-pack/:id",
 ];
 
 // Fonction pour vérifier si une route est publique, y compris les routes dynamiques comme reset-password avec token

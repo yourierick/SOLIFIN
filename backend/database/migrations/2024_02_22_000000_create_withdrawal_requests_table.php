@@ -11,8 +11,11 @@ return new class extends Migration
         Schema::create('withdrawal_requests', function (Blueprint $table) {
             $table->id();
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
+            $table->string('session_id')->nullable();
+            $table->string('transaction_id')->nullable();
             $table->decimal('amount', 10, 2);
-            $table->enum('status', ['pending', 'approved', 'rejected', 'cancelled'])->default('pending'); // pending, email_verification, submitted, approved, rejected, paid
+            $table->enum('status', ['pending', 'approved', 'rejected', 'cancelled', 'failed'])->default('pending'); // pending, email_verification, submitted, approved, rejected, paid
+            $table->enum('payment_status', ['pending', 'failed', 'paid']);
             $table->string('payment_method');
             $table->json('payment_details');
             $table->text('admin_note')->nullable();

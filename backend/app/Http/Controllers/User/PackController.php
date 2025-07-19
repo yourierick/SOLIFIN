@@ -8,6 +8,7 @@ use App\Models\UserPack;
 use App\Models\Wallet;
 use App\Models\WalletSystem;
 use App\Models\Pack;
+use App\Models\User;
 use App\Models\Commission;
 use Illuminate\Support\Facades\Storage;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -16,9 +17,9 @@ use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 use App\Models\TransactionFee;
 use App\Models\ExchangeRates;
-use App\Services\CommissionService;
 use App\Models\UserBonusPoint;
 use App\Models\Setting;
+use Illuminate\Support\Facades\Auth;
 
 class PackController extends Controller
 {
@@ -54,12 +55,8 @@ class PackController extends Controller
                 return 1; // Par défaut, pas de 1 mois
         }
     }
-    //pour la distribution des commissions
-    private function processCommissions(UserPack $user_pack, $duration_months)
-    {
-        $commissionService = new CommissionService();
-        $commissionService->distributeCommissions($user_pack, $duration_months);
-    }
+
+    // La méthode processCommissions a été déplacée dans le PackService
 
     //Récupérer tous les packs actifs que l'utilisateur peut acheter
     public function index()
@@ -121,265 +118,67 @@ class PackController extends Controller
     }
 
     //renouvellement d'un pack
-    public function renewPack(Request $request, Pack $pack)
+    public function renewPack(Request $request)
     {
         try {
-            $validated = $request->validate([
-                'payment_method' => 'required|string',
-                'payment_details'=> ['requiredif:payment_method,credit-card|mobile-money', 'array'],
-                'payment_type' => 'required|string',
-                'duration_months' => 'required|integer|min:1',
-                'amount' => 'required|numeric|min:0',
-                'currency' => 'required|string',
-                'fees' => 'required|numeric|min:0',
-            ]);
-
-            $paymentMethod = $validated['payment_method']; // Méthode spécifique (visa, m-pesa, etc.)
-            $paymentType = $validated['payment_type']; // Type général (credit-card, mobile-money, etc.)
-            $paymentAmount = $validated['amount']; // Montant sans les frais
-            $paymentCurrency = $validated['currency'] ?? 'USD';
-            $taux_de_change = 0;
-
-            $transactionFee = TransactionFee::where('payment_method', $paymentMethod)
-                ->where('is_active', true)->first();
-            
-            if (!$transactionFee) {
+            $pack = Pack::findOrFail($request->pack_id);
+            $user = isset($request->user_id) ? User::findOrFail($request->user_id) : Auth::user();
+        
+            if (!$user) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Cette méthode de paiement n\'est pas encore disponible'
+                    'message' => 'Utilisateur non trouvé'
                 ], 404);
             }
-
-            // Calculer les frais de transaction globaux et spécifiques à la méthode de paiement
-            $specificFees = 0;
-            $globalFees = 0;
-            if ($paymentMethod !== 'solifin-wallet') {
-                // Recalculer les frais de transaction (pourcentage configuré dans le système)
-                $globalFeePercentage = (float) Setting::getValue('purchase_fee_percentage', 0);
-                
-                // Calcul des frais globaux basé sur le montant du paiement
-                $globalFees = ((float)$paymentAmount) * ($globalFeePercentage / 100);
-                
-                // Log des frais globaux calculés
-                \Log::info('Frais globaux calculés pour renouvellement de pack', [
-                    'montant' => $paymentAmount,
-                    'pourcentage' => $globalFeePercentage,
-                    'frais_globaux' => $globalFees
-                ]);
-
-                $specificFees = $transactionFee->calculateTransferFee((float) $paymentAmount, $paymentCurrency);
-                
-                // Log des frais spécifiques calculés
-                \Log::info('Frais spécifiques calculés pour renouvellement de pack', [
-                    'montant' => $paymentAmount,
-                    'methode_paiement' => $paymentMethod,
-                    'devise' => $paymentCurrency,
-                    'frais_specifiques' => $specificFees
-                ]);
-            }
             
-            // Montant total incluant les frais globaux            $totalAmount = $paymentAmount + $globalFees;
-            
-            // Log du montant total calculé
-            \Log::info('Montant total calculé pour renouvellement de pack', [
-                'montant_base' => $paymentAmount,
-                'frais_globaux' => $globalFees,
-                'montant_total' => $totalAmount
-            ]);
-            
-            // Si la devise n'est pas en USD, convertir le montant en USD (devise de base)
-            $amountInUSD = $totalAmount;
-            $globalFeesInUSD = $globalFees;
-            $specificFeesInUSD = $specificFees; //Frais API
-            
-            if ($paymentCurrency !== 'USD') {
-                try {
-                    // Conversion du montant total en USD
-                    $amountInUSD = $this->convertToUSD($totalAmount, $paymentCurrency);
-                    $amountInUSD = round($amountInUSD, 2);
-                    
-                    // Conversion des frais globaux en USD
-                    $globalFeesInUSD = $this->convertToUSD($globalFees, $paymentCurrency);
-                    $globalFeesInUSD = round($globalFeesInUSD, 2);
-                    
-                    // Conversion des frais spécifiques en USD
-                    $specificFeesInUSD = $this->convertToUSD($specificFees, $paymentCurrency);
-                    $specificFeesInUSD = round($specificFeesInUSD, 2);
-
-                    $taux_de_change = ExchangeRates::where('currency', $paymentCurrency)->where("target_currency", "USD")->first();
-                    $taux_de_change = $taux_de_change->rate;
-                    // Log des montants convertis
-                    \Log::info('Montants convertis en USD pour renouvellement de pack', [
-                        'montant_total_usd' => $amountInUSD,
-                        'frais_globaux_usd' => $globalFeesInUSD,
-                        'frais_specifiques_usd' => $specificFeesInUSD,
-                        'devise_originale' => $paymentCurrency
-                    ]);
-                } catch (\Exception $e) {
-                    \Log::error('Erreur lors de la conversion de devise pour renouvellement de pack', [
-                        'devise' => $paymentCurrency,
-                        'erreur' => $e->getMessage()
-                    ]);
-                    
-                    return response()->json([
-                        "success" => false, 
-                        "message" => "Impossible d'utiliser cette monnaie, veuillez payer en USD pour plus de simplicité"
-                    ]);
-                }
-            }
-            
-            // Calcul des montants nets (sans les différents types de frais)
-            $amountInUSDWithoutSpecificFees = round($amountInUSD - $specificFeesInUSD, 2); // Montant total sans frais spécifiques à l'api de paiement
-            $amountWithoutGlobalFeesInUSD = round($amountInUSD - $globalFeesInUSD, 2); // Montant total sans frais globaux
-            
-            // Log des montants nets calculés
-            \Log::info('Montants nets calculés pour renouvellement de pack', [
-                'montant_total_usd' => $amountInUSD,
-                'montant_sans_frais_specifiques' => $amountInUSDWithoutSpecificFees,
-                'montant_sans_frais' => $amountWithoutGlobalFeesInUSD
-            ]);
-            
-            // Vérifier que le montant net est suffisant pour couvrir le coût du pack
-            // Récupérer le pas d'abonnement (fréquence)
-            $step = $this->getSubscriptionStep($pack->abonnement);
-            
-            // Calculer le nombre de périodes d'abonnement
-            $periods = ceil($validated['duration_months'] / $step);
-            
-            // Le coût total est le prix du pack multiplié par le nombre de périodes
-            $packCost = $pack->price * $periods;
-            
-            \Log::info('Vérification du coût du pack pour renouvellement', [
-                'prix_pack' => $pack->price,
-                'duree_mois' => $validated['duration_months'],
-                'pas_abonnement' => $step,
-                'periodes' => $periods,
-                'cout_total' => $packCost,
-                'montant_sans_frais_globaux' => $amountWithoutGlobalFeesInUSD
-            ]);
-            
-            if ($amountWithoutGlobalFeesInUSD < $packCost) {
-                \Log::warning('Paiement insuffisant pour renouvellement de pack', [
-                    'montant_sans_frais_globaux' => $amountWithoutGlobalFeesInUSD,
-                    'cout_pack' => $packCost,
-                    'difference' => $packCost - $amountWithoutGlobalFeesInUSD
-                ]);
-                
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Le montant payé est insuffisant pour couvrir le coût du pack'
-                ], 400);
-            }
-
             // Vérifier si l'utilisateur a déjà ce pack
-            $userPack = UserPack::where('user_id', $request->user()->id)
+            $userPack = UserPack::where('user_id', $user->id)
                 ->where('pack_id', $pack->id)
                 ->first();
-                
+            
             if (!$userPack) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Pack non trouvé'
-                ], 404);
+                    'message' => 'Vous ne possédez pas ce pack'
+                ], 400);
             }
             
-            $user = $userPack->user;
-            DB::beginTransaction();
-
-            if ($validated['payment_method'] === 'solifin-wallet') {
-                $userWallet = $userPack->user->wallet;
+            // Vérifier le solde du wallet si paiement par wallet
+            if ($request->payment_method === 'solifin-wallet') {
+                $userWallet = $user->wallet;
                 
-                // Vérifier si le solde est suffisant
-                if ($userWallet->balance < $amountInUSD) {
+                if ($userWallet->balance < $request->amount) {
                     return response()->json([
                         'success' => false,
                         'message' => 'Solde insuffisant dans votre wallet'
                     ], 400);
                 }
-
-                // Déduire les fonds du wallet
-                $userWallet->withdrawFunds($amountInUSD, "purchase", "completed", [
-                    "ID du pack" => $pack->id, 
-                    "Nom du pack" => $pack->name, 
-                    "Durée de souscription" => $validated['duration_months'] . " mois", 
-                    "Type de paiement" => $validated['payment_type'],
-                    "Méthode de paiement" => $validated['payment_method'],
-                    "Détails de paiement" => $validated['payment_details'] ?? [],
-                    "Dévise" => $validated['currency'],
-                    "Montant net payé sans les frais" => $validated['amount'] . " $",
-                    "Frais de transaction" => $globalFeesInUSD . "$",
-                    "Frais API" => $specificFeesInUSD . "$",
-                    "Taux de change appliqué" => $taux_de_change,
-                    "Description" => "Vous avez renouvelé votre pack " . $pack->name . " via " . $validated['payment_method']
-                ]);
-            } else {
-                //implémenter le paiement API
-
-                $user->wallet->transactions()->create([
-                    "wallet_id" => $user->wallet->id,
-                    "type" => "purchase",
-                    "amount" => $amountInUSD,
-                    "status" => "completed",
-                    "metadata" => [
-                        "Opération" => "Renouvellement de pack",
-                        "Nom du pack" => $pack->name,
-                        "Durée de souscription" => $validated["duration_months"] . " mois",
-                        "Type de paiement" => $validated['payment_type'],
-                        "Méthode de paiement" => $validated['payment_method'],
-                        "Détails de paiement" => $validated['payment_details'],
-                        "Dévise" => $validated['currency'],
-                        "Montant net payé sans les frais" => $validated['amount'] . $paymentCurrency,
-                        "Frais de transaction" => $validated['fees'] . $paymentCurrency,
-                        "Taux de change appliqué" => $taux_de_change,
-                        "Description" => "Vous avez renouvelé votre pack " . $pack->name . " via " . $validated['payment_method']
-                    ]
-                ]);
             }
-
-            // enregistrer le transaction dans le wallet system transactions
-            $walletsystem = WalletSystem::first();
-            if (!$walletsystem) {
-                $walletsystem = WalletSystem::create(['balance' => 0]);
-            }
-
-            $walletsystem->transactions()->create([
-                'wallet_system_id' => $walletsystem->id,
-                'amount' => $amountInUSDWithoutSpecificFees,
-                'type' => 'sales',
-                'status' => 'completed',
-                'metadata' => [
-                    "Opération" => "Rénouvellement de pack",
-                    "user" => $user->name, 
-                    "Id du pack" => $pack->id, 
-                    "Nom du pack" => $pack->name, 
-                    "Durée de souscription" => $validated['duration_months'] . " mois", 
-                    "Type de paiement" => $validated['payment_type'],
-                    "Méthode de paiement" => $validated['payment_method'], 
-                    "Détails de paiement" => $validated['payment_details'] ?? [],
-                    "Dévise" => $validated['currency'],
-                    "Montant net payé sans les frais" => $validated['amount'] . $paymentCurrency,
-                    "Frais de transaction" => $globalFees . " " . $paymentCurrency,
-                    "Frais API" => $specificFees . " " . $paymentCurrency,
-                    "Taux de change appliqué" => $taux_de_change,
-                    "Description" => "Renouvellement du pack " . $pack->name . " via " . $validated['payment_method']
-                ]
-            ]);
-
-            // on met à jour la date d'expiration
-            $userPack->expiry_date = now()->addMonths($validated['duration_months']);
-            $userPack->status = 'active';
-            $userPack->save();
-
-            // Distribuer les commissions
-            $this->processCommissions($userPack, $validated['duration_months']);
-
+            
+            // Préparer les données de paiement
+            $paymentData = [
+                'payment_method' => $request->payment_method,
+                'payment_type' => $request->payment_type,
+                'amount' => $request->amount,
+                'amountInUSD' => $request->amountInUSD,
+                'currency' => $request->currency,
+                'fees' => $request->fees,
+                'frais_api' => $request->frais_api,
+                'taux_de_change' => $request->taux_de_change,
+                'montantusd_sans_frais' => $request->montantusd_sans_frais,
+                'montantusd_sans_frais_api' => $request->montantusd_sans_frais_api,
+                'payment_details' => $request->payment_details ?? [],
+                'duration_months' => $request->duration_months
+            ];
+            
+            DB::beginTransaction();
+            
+            // Utiliser le service pour renouveler le pack
+            $packService = new \App\Services\PackService();
+            $updatedUserPack = $packService->renewPack($user, $userPack, $pack, $paymentData, $request->duration_months);
+            
             DB::commit();
-
-            // Recharger le pack avec ses relations pour avoir les données complètes et à jour
-            $updatedUserPack = UserPack::with(['pack', 'sponsor'])
-                ->where('id', $userPack->id)
-                ->first();
-                
+            
             // Ajouter les informations du sponsor si disponible
             $userPackData = $updatedUserPack->toArray();
             if ($updatedUserPack->sponsor) {
@@ -412,387 +211,73 @@ class PackController extends Controller
     public function purchase_a_new_pack(Request $request)
     {
         try {
-            $validated = $request->validate([
-                'packId' => 'required|exists:packs,id',
-                'payment_method' => 'required|string',
-                'payment_type' => 'required|string',
-                'payment_details'=> ['requiredif:payment_type, credit-card|mobile-money', 'array'],
-                'phoneNumber' => 'requiredif:payment_type, mobile-money|string',
-                'referralCode' => 'nullable|exists:user_packs,referral_code', //code du sponsor
-                'duration_months' => 'required|integer|min:1',
-                'amount' => 'required|numeric|min:0',
-                'fees' => 'required|numeric|min:0',
-                'currency' => 'required|string',
-            ]);
-
-
-            // Vérifier que le code de parrainage est valide pour ce pack
-            if ($validated['referralCode']) {
-                $userPack = UserPack::where('pack_id', $validated['packId'])
-                    ->where('referral_code', $validated['referralCode'])
-                    ->first();
-
-                if (!$userPack) {
-                    return response()->json([
-                        'success' => false,
-                        'message' => 'Ce code de parrainage est invalide pour ce pack',
-                    ]);
-                }
-            }
-
-
-            $user = $request->user();
-            $pack = Pack::findOrFail($validated['packId']);
-
-            $paymentMethod = $validated['payment_method']; // Méthode spécifique (visa, m-pesa, etc.)
-            $paymentType = $validated['payment_type']; // Type général (credit-card, mobile-money, etc.)
-            $paymentAmount = $validated['amount']; // Montant sans les frais
-            $paymentCurrency = $validated['currency'] ?? 'USD';
-            $taux_de_change = 0;
-
-            // Calculer les frais de transaction globaux et spécifiques à la méthode de paiement
-            $specificFees = 0;
-            $globalFees = 0;
-            if ($paymentMethod !== 'solifin-wallet') {
-                $transactionFee = TransactionFee::where('payment_method', $paymentMethod)
-                                                           ->where('is_active', true)->first();
-                
-                // Recalculer les frais de transaction (pourcentage configuré dans le système)
-                $globalFeePercentage = (float) Setting::getValue('purchase_fee_percentage', 0);
-                
-                // Calcul des frais globaux basé sur le montant du paiement
-                $globalFees = ((float)$paymentAmount) * ($globalFeePercentage / 100);
-                
-                // Log des frais globaux calculés
-                \Log::info('Frais globaux calculés pour achat de pack', [
-                    'montant' => $paymentAmount,
-                    'pourcentage' => $globalFeePercentage,
-                    'frais_globaux' => $globalFees
-                ]);
-
-                $specificFees = $transactionFee->calculateTransferFee((float) $paymentAmount, $paymentCurrency);
-                    
-                // Log des frais spécifiques calculés
-                \Log::info('Frais spécifiques calculés pour achat de pack', [
-                    'montant' => $paymentAmount,
-                    'methode_paiement' => $paymentMethod,
-                    'devise' => $paymentCurrency,
-                    'frais_specifiques' => $specificFees
-                ]);
-            }
-            
-            // Montant total incluant les frais globaux (les frais spécifiques sont gérés par l'API de paiement)
-            $totalAmount = $paymentAmount + $globalFees;
-            
-            // Log du montant total calculé
-            \Log::info('Montant total calculé pour achat de pack', [
-                'montant_base' => $paymentAmount,
-                'frais_globaux' => $globalFees,
-                'montant_total' => $totalAmount
-            ]);
-            
-            // Si la devise n'est pas en USD, convertir le montant en USD (devise de base)
-            $amountInUSD = $totalAmount;
-            $globalFeesInUSD = $globalFees;
-            $specificFeesInUSD = $specificFees;
-            
-            if ($paymentCurrency !== 'USD') {
-                try {
-                    $taux_de_change = ExchangeRates::where('currency', $paymentCurrency)->where("target_currency", "USD")->first();
-                    $taux_de_change = $taux_de_change->rate;
-                    // Conversion du montant total en USD
-                    $amountInUSD = $this->convertToUSD($totalAmount, $paymentCurrency);
-                    $amountInUSD = round($amountInUSD, 2);
-                    
-                    // Conversion des frais globaux en USD
-                    $globalFeesInUSD = $this->convertToUSD($globalFees, $paymentCurrency);
-                    $globalFeesInUSD = round($globalFeesInUSD, 2);
-                    
-                    // Conversion des frais spécifiques en USD
-                    $specificFeesInUSD = $this->convertToUSD($specificFees, $paymentCurrency);
-                    $specificFeesInUSD = round($specificFeesInUSD, 2);
-                    
-                    // Log des montants convertis
-                    \Log::info('Montants convertis en USD pour achat de pack', [
-                        'montant_total_usd' => $amountInUSD,
-                        'frais_globaux_usd' => $globalFeesInUSD,
-                        'frais_specifiques_usd' => $specificFeesInUSD,
-                        'devise_originale' => $paymentCurrency
-                    ]);
-                } catch (\Exception $e) {
-                    \Log::error('Erreur lors de la conversion de devise pour achat de pack', [
-                        'devise' => $paymentCurrency,
-                        'erreur' => $e->getMessage()
-                    ]);
-                    
-                    return response()->json([
-                        "success" => false, 
-                        "message" => "Impossible d'utiliser cette monnaie, veuillez payer en USD pour plus de simplicité"
-                    ]);
-                }
-            }
-            
-            // Calcul des montants nets (sans les différents types de frais)
-            $amountInUSDWithoutSpecificFees = round($amountInUSD - $specificFeesInUSD, 2); // Montant total sans frais spécifiques
-            $amountWithoutGlobalFeesInUSD = round($amountInUSD - $globalFeesInUSD, 2); // Montant total sans frais globaux
-            
-
-            // Log des montants nets calculés
-            \Log::info('Montants nets calculés pour achat de pack', [
-                'montant_total_usd' => $amountInUSD,
-                'montant_sans_frais_specifiques' => $amountInUSDWithoutSpecificFees,
-                'montant_sans_frais_globaux' => $amountWithoutGlobalFeesInUSD
-            ]);
-            
-            // Vérifier que le montant net est suffisant pour couvrir le coût du pack
-            // Récupérer le pas d'abonnement (fréquence)
-            $step = $this->getSubscriptionStep($pack->abonnement);
-            
-            // Calculer le nombre de périodes d'abonnement
-            $periods = ceil($validated['duration_months'] / $step);
-            
-            // Le coût total est le prix du pack multiplié par le nombre de périodes
-            $packCost = $pack->price * $periods;
-            
-            \Log::info('Vérification du coût du pack pour achat', [
-                'prix_pack' => $pack->price,
-                'duree_mois' => $validated['duration_months'],
-                'pas_abonnement' => $step,
-                'periodes' => $periods,
-                'cout_total' => $packCost,
-                'montant_sans_frais_globaux' => $amountWithoutGlobalFeesInUSD
-            ]);
-            
-            if ($amountWithoutGlobalFeesInUSD < $packCost) {
-                \Log::warning('Paiement insuffisant pour achat de pack', [
-                    'montant_sans_frais_globaux' => $amountWithoutGlobalFeesInUSD,
-                    'cout_pack' => $packCost,
-                    'difference' => $packCost - $amountWithoutGlobalFeesInUSD
-                ]);
-                
+            $user = isset($request->user_id) ? User::findOrFail($request->user_id) : Auth::user();
+        
+            if (!$user) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Le montant payé est insuffisant pour couvrir le coût du pack'
-                ], 400);
+                    'message' => 'Utilisateur non trouvé'
+                ], 404);
             }
+            $pack = Pack::findOrFail($request->pack_id);
 
+            // Vérifier le solde du wallet si paiement par wallet
+            if ($request->payment_method === 'solifin-wallet') {
+                $userWallet = $user->wallet;
+                
+                if (!$userWallet || $userWallet->balance < $request->amount) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Solde insuffisant dans votre wallet'
+                    ], 400);
+                }
+            }
+            
+            // Préparer les données de paiement
+            $paymentData = [
+                'payment_method' => $request->payment_method,
+                'payment_type' => $request->payment_type,
+                'amount' => $request->amount,
+                'amountInUSD' => $request->amountInUSD,
+                'currency' => $request->currency,
+                'fees' => $request->fees,
+                'frais_api' => $request->frais_api,
+                'taux_de_change' => $request->taux_de_change,
+                'montantusd_sans_frais' => $request->montantusd_sans_frais,
+                'montantusd_sans_frais_api' => $request->montantusd_sans_frais_api,
+                'payment_details' => $request->payment_details ?? [],
+                'duration_months' => $request->duration_months
+            ];
+            
             DB::beginTransaction();
             
-            try {
-                if ($request->payment_method === 'solifin-wallet') {
-                    // Vérifier le solde du wallet
-                    $userWallet = Wallet::where('user_id', $user->id)->first();
-                    
-                    if (!$userWallet || $userWallet->balance < $amountInUSD) {
-                        return response()->json([
-                            'success' => false,
-                            'message' => 'Solde insuffisant dans votre wallet'
-                        ], 400);
-                    }
+            // Utiliser le service pour acheter un nouveau pack
+            $packService = new \App\Services\PackService();
+            $userPack = $packService->purchaseNewPack(
+                $user, 
+                $pack, 
+                $paymentData, 
+                $request->duration_months, 
+                $request->referral_code ?? null
+            );
+            
+            DB::commit();
 
-                    // Vérifier si l'utilisateur a déjà ce pack
-                    $existingUserPack = UserPack::where('user_id', $user->id)
-                        ->where('pack_id', $pack->id)
-                        ->first();
-
-                    if ($existingUserPack) {
-                        return response()->json([
-                            'success' => false,
-                            'message' => 'Vous avez déjà ce pack, vous pouvez le renouveler une fois la durée de souscription écoulée'
-                        ], 400);
-                    } else {
-
-                        //Si un code parrain est fourni, lier l'utilisateur au parrain
-                        $sponsorPack = UserPack::where('referral_code', $request->referralCode)->first();
-
-                        // Générer un code de parrainage unique
-                        $referralLetter = substr($pack->name, 0, 1);
-                        $referralNumber = str_pad(rand(1, 9999), 4, '0', STR_PAD_LEFT);
-                        $referralCode = 'SPR' . $referralLetter . $referralNumber;
-
-                        // Vérifier que le code est unique
-                        while (UserPack::where('referral_code', $referralCode)->exists()) {
-                            $referralNumber = str_pad(rand(1, 9999), 4, '0', STR_PAD_LEFT);
-                            $referralCode = 'SPR' . $referralLetter . $referralNumber;
-                        }
-
-                        // Récupérer l'URL du frontend depuis le fichier .env
-                        $frontendUrl = env('FRONTEND_URL', 'http://localhost:5173');
-
-                        // Créer le lien de parrainage en utilisant l'URL du frontend
-                        $referralLink = $frontendUrl . "/register?referral_code=" . $referralCode;
-
-                        // Déduire le montant du wallet de l'utilisateur
-                        $userWallet->withdrawFunds($amountInUSD, "purchase", "completed", [
-                            "Id du pack" => $pack->id, 
-                            "Nom du pack" => $pack->name, 
-                            "Durée de souscription" => $validated['duration_months'] . " mois", 
-                            "Type de paiement" => $validated['payment_type'],
-                            "Méthode de paiement" => $validated['payment_method'],
-                            "Détails de paiement" => $validated['payment_details'] ?? [],
-                            "Dévise" => $validated['currency'],
-                            "Montant net payé sans les frais" => $validated['amount'] . " " . $paymentCurrency,
-                            "Frais de transaction" => $globalFees . " " .$paymentCurrency,
-                            "Frais API" => $specificFees . " " .$paymentCurrency,
-                            "Taux de change appliqué" => $taux_de_change,
-                            "Description" => "Vous avez acheté le pack " . $pack->name . " via " . $validated['payment_method']
-                        ]);
-
-                        // Attacher le pack à l'utilisateur
-                        $user->packs()->attach($pack->id, [
-                            'status' => 'active',
-                            'purchase_date' => now(),
-                            'expiry_date' => now()->addMonths($validated['duration_months']),
-                            'is_admin_pack' => false,
-                            'payment_status' => 'completed',
-                            'referral_prefix' => 'SPR',
-                            'referral_pack_name' => $pack->name,
-                            'referral_letter' => $referralLetter,
-                            'referral_number' => $referralNumber,
-                            'referral_code' => $referralCode,
-                            'link_referral' => $referralLink,
-                            'sponsor_id' => $sponsorPack->user_id ?? null,
-                        ]);
-                        
-                        // Récupérer l'instance UserPack créée
-                        $userpack = UserPack::where('user_id', $user->id)
-                                          ->where('pack_id', $pack->id)
-                                          ->where('referral_code', $referralCode)
-                                          ->first();
-                    }
-
-                    
-                } else {
-                    // Vérifier si l'utilisateur a déjà ce pack
-                    $existingUserPack = UserPack::where('user_id', $user->id)
-                        ->where('pack_id', $pack->id)
-                        ->first();
-
-                    if ($existingUserPack) {
-                        return response()->json([
-                            'success' => false,
-                            'message' => 'Vous avez déjà ce pack, vous pouvez le renouveler une fois la durée de souscription écoulée'
-                        ], 400);
-                    } else {
-                        //Implémenter le paiement API
-
-
-                        //Si un code parrain est fourni, lier l'utilisateur au parrain
-                        $sponsorPack = UserPack::where('referral_code', $request->referralCode)->first();
-
-                        // Générer un code de parrainage unique
-                        $referralLetter = substr($pack->name, 0, 1);
-                        $referralNumber = str_pad(rand(1, 9999), 4, '0', STR_PAD_LEFT);
-                        $referralCode = 'SPR' . $referralLetter . $referralNumber;
-
-                        // Vérifier que le code est unique
-                        while (UserPack::where('referral_code', $referralCode)->exists()) {
-                            $referralNumber = str_pad(rand(1, 9999), 4, '0', STR_PAD_LEFT);
-                            $referralCode = 'SPR' . $referralLetter . $referralNumber;
-                        }
-
-                        // Récupérer l'URL du frontend depuis le fichier .env
-                        $frontendUrl = env('FRONTEND_URL', 'http://localhost:5173');
-
-                        // Créer le lien de parrainage en utilisant l'URL du frontend
-                        $referralLink = $frontendUrl . "/register?referral_code=" . $referralCode;
-
-                        // Attacher le pack à l'utilisateur
-                        $user->packs()->attach($pack->id, [
-                            'status' => 'active',
-                            'purchase_date' => now(),
-                            'expiry_date' => now()->addMonths($validated['duration_months']),
-                            'is_admin_pack' => false,
-                            'payment_status' => 'completed',
-                            'referral_prefix' => 'SPR',
-                            'referral_pack_name' => $pack->name,
-                            'referral_letter' => $referralLetter,
-                            'referral_number' => $referralNumber,
-                            'referral_code' => $referralCode,
-                            'link_referral' => $referralLink,
-                            'sponsor_id' => $sponsorPack->user_id ?? null,
-                        ]);
-
-                        $user->wallet->transactions()->create([
-                            "wallet_id" => $user->wallet->id,
-                            "type" => "purchase",
-                            "amount" => $amountInUSD,
-                            "status" => "completed",
-                            "metadata" => [
-                                "Opération" => "Achat d'un nouveau pack",
-                                "Nom du pack" => $pack->name,
-                                "Durée de souscription" => $validated["duration_months"] . " mois",
-                                "Type de paiement" => $validated['payment_type'],
-                                "Méthode de paiement" => $validated['payment_method'],
-                                "Détails de paiement" => $validated['payment_details'],
-                                "Dévise" => $validated['currency'],
-                                "Montant net payé sans les frais" => $validated['amount'] . $paymentCurrency,
-                                "Frais de transaction" => $globalFees . $paymentCurrency,
-                                "Frais API" => $specificFees . $paymentCurrency,
-                                "Taux de change appliqué" => $taux_de_change,
-                                "Description" => "Vous avez acheté le pack " . $pack->name . " via " . $validated['payment_method']
-                            ]
-                        ]);
-                        
-                        // Récupérer l'instance UserPack créée
-                        $userpack = UserPack::where('user_id', $user->id)
-                                          ->where('pack_id', $pack->id)
-                                          ->where('referral_code', $referralCode)
-                                          ->first();
-                    }
-                }
-
-                // créer la transaction dans le wallet system
-                $walletsystem = WalletSystem::first();
-                if (!$walletsystem) {
-                    $walletsystem = WalletSystem::create(['balance' => 0]);
-                }
-
-                $walletsystem->transactions()->create([
-                    'wallet_system_id' => $walletsystem->id,
-                    'amount' => $amountInUSDWithoutSpecificFees,
-                    'type' => 'sales',
-                    'status' => 'completed',
-                    'metadata' => [
-                        "Opération" => "Achat d'un nouveau pack",
-                        "user" => $user->name, 
-                        "Id du pack" => $pack->id, 
-                        "Nom du pack" => $pack->name, 
-                        "Durée de souscription" => $validated['duration_months'] . " mois", 
-                        "Type de paiement" => $validated['payment_type'],
-                        "Méthode de paiement" => $validated['payment_method'], 
-                        "Détails de paiement" => $validated['payment_details'] ?? [],
-                        "Dévise" => $validated['currency'],
-                        "Montant net payé sans les frais" => $validated['amount'] . $paymentCurrency,
-                        "Frais de transaction" => $globalFees . " $",
-                        "Frais API" => $specificFees . " " . $paymentCurrency,
-                        "Taux de change appliqué" => $taux_de_change,
-                        "Description" => "Achat du pack " . $pack->name . " via " . $validated['payment_method']
-                    ]
-                ]);
-
-                //Distribution des commissions
-                $this->processCommissions($userpack, $validated['duration_months']);
-
-                DB::commit();
-
-                return response()->json([
-                    'success' => true,
-                    'message' => 'Pack acheté avec succès',
-                ]);
-
-            } catch (\Exception $e) {
-                DB::rollBack();
-                throw $e;
-            }
-
+            return response()->json([
+                'success' => true,
+                'message' => 'Pack acheté avec succès',
+                'data' => [
+                    'user_pack' => $userPack->load(['pack', 'sponsor'])->toArray()
+                ]
+            ]);
         } catch (\Exception $e) {
-            \Log::info($e->getMessage());
-            \Log::info($e->getTraceAsString());
+            DB::rollBack(); // Ajout du rollback en cas d'erreur
+            \Log::error('Erreur lors de l\'achat du pack: ' . $e->getMessage());
+            \Log::error('Stack trace: ' . $e->getTraceAsString());
             return response()->json([
                 'success' => false,
-                'message' => 'une erreur est survenue lors du traitement'
-            ], 400);
+                'message' => 'Une erreur est survenue lors du traitement: ' . $e->getMessage()
+            ], 500); // Code 500 pour les erreurs serveur
         }
     }
 

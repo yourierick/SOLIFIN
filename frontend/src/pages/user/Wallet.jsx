@@ -1466,7 +1466,7 @@ export default function Wallets() {
                   >
                     <option value="all">Tous les types</option>
                     <option value="purchase">Achat</option>
-                    <option value="virtual">Achat des virtuels</option>
+                    <option value="virtual_purchase">Achat des virtuels</option>
                     <option value="sale">Vente</option>
                     <option value="withdrawal">Retrait</option>
                     <option value="commission de parrainage">
@@ -1583,7 +1583,7 @@ export default function Wallets() {
                           ? "Retrait"
                           : transaction.type === "purchase"
                           ? "Achat"
-                          : transaction.type === "virtual"
+                          : transaction.type === "virtual_purchase"
                           ? "Virtuels"
                           : transaction.type === "reception"
                           ? "Dépot des fonds"
@@ -1955,7 +1955,7 @@ export default function Wallets() {
                         ? "retrait"
                         : selectedTransaction.type === "purchase"
                         ? "achat"
-                        : selectedTransaction.type === "virtual"
+                        : selectedTransaction.type === "virtual_purchase"
                         ? "Virtuels"
                         : selectedTransaction.type === "transfer"
                         ? "Transfert des fonds"

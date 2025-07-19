@@ -727,251 +727,44 @@ class OffreEmploiController extends Controller
      * @param  int  $id
      * @return \Illuminate\Http\Response
      */
+    /**
+     * Booster une offre d'emploi (augmenter sa durée d'affichage)
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @param  int  $id
+     * @return \Illuminate\Http\Response
+     */
     public function boost(Request $request, $id)
     {
         try {
             $validator = $request->validate([
                 'days' => 'required|integer|min:1',
-                'paymentMethod' => 'required|string',
-                'paymentType' => 'required|string',
-                'currency' => 'required|string',
-                'fees' => 'required|numeric|min:0',
+                'paymentMethod' => 'required|string|in:solifin-wallet',
+                'paymentType' => 'required|string|in:wallet',
                 'amount' => 'required|numeric|min:0',
             ]);
 
             // Récupérer l'offre d'emploi
             $offreEmploi = OffreEmploi::findOrFail($id);
             
-            // Vérifier que l'offre d'emploi est approuvée et disponible
-            if ($offreEmploi->statut !== 'approuvé' || $offreEmploi->etat !== 'disponible') {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Cette opportunité d\'affaire ne peut pas être boostée car elle n\'est pas approuvée ou disponible.'
-                ], 400);
+            // Utiliser le service de boost
+            $boostService = app(\App\Services\BoostService::class);
+            $result = $boostService->boostPublication(
+                $offreEmploi, 
+                $request->days, 
+                $request->amount, 
+                'offre_emploi'
+            );
+            
+            // Renommer la clé 'publication' en 'offre_d_emploi' pour maintenir la compatibilité avec le frontend
+            if (isset($result['publication'])) {
+                $result['offre_d_emploi'] = $result['publication'];
+                unset($result['publication']);
             }
             
-            // Vérifier que l'utilisateur est propriétaire de la publication
-            $user = Auth::user();
-            $page = Page::findOrFail($offreEmploi->page_id);
+            return response()->json($result, $result['status_code']);
             
-            if ($page->user_id !== $user->id) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Vous n\'êtes pas autorisé à booster cette offre d\'emploi.'
-                ], 403);
-            }
-            
-            // Récupérer les données de paiement
-            $paymentMethod = $request->paymentMethod;
-            $paymentType = $request->paymentType;
-            $paymentAmount = $request->amount;
-            $days = $request->days;
-            $currency = $request->currency;
-            $taux_de_change = 0;
-
-            // Calculer le montant en fonction du nombre de jours
-            // Récupérer le paramètre de prix du boost
-            $boostPercentage = $user->pack_de_publication->boost_percentage;
-            $packPrice = $user->pack_de_publication->price;
-            $price = $packPrice * $boostPercentage / 100;
-
-            // Valeur par défaut si le paramètre n'est pas défini
-            $defaultPrice = 1;
-            
-            // Si le paramètre existe, utiliser sa valeur, sinon utiliser la valeur par défaut
-            $pricePerDay = $price ? $price : $defaultPrice;
-
-            $specificFees = 0;
-            $globalFees = 0;
-            if ($paymentMethod !== 'solifin-wallet') {
-                $transactionFeeModel = TransactionFee::where('payment_method', $paymentMethod)
-                                                           ->where('is_active', true);
-                $transactionFee = $transactionFeeModel->first();
-                
-                // Recalculer les frais de transaction (pourcentage configuré dans le système)
-                $globalFeePercentage = (float) Setting::getValue('purchase_fee_percentage', 0);
-                
-                // Calcul des frais globaux basé sur le montant du paiement
-                $globalFees = ((float)$paymentAmount) * ($globalFeePercentage / 100);
-                
-                // Log des frais globaux calculés
-                \Log::info('Frais globaux calculés pour achat de pack', [
-                    'montant' => $paymentAmount,
-                    'pourcentage' => $globalFeePercentage,
-                    'frais_globaux' => $globalFees
-                ]);
-
-                $specificFees = $transactionFee->calculateTransferFee((float) $paymentAmount, $currency);
-                    
-                // Log des frais spécifiques calculés
-                \Log::info('Frais spécifiques calculés pour boost d\'offre d\'emploi', [
-                    'montant' => $paymentAmount,
-                    'methode_paiement' => $paymentMethod,
-                    'devise' => $currency,
-                    'frais_specifiques' => $specificFees
-                ]);
-            }
-            
-            // Montant total incluant les frais
-            $totalAmount = $paymentAmount + $globalFees;
-            
-            // Si la devise n'est pas en USD, convertir le montant en USD (devise de base)
-            $amountInUSD = $totalAmount;
-            $globalFeesInUSD = $globalFees;
-            $specificFeesInUSD = $specificFees;
-            if ($currency !== 'USD') {
-                try {
-                    // Récupérer le taux de conversion depuis la BD ou un service
-                    $taux_de_change = ExchangeRates::where('currency', $currency)->where("target_currency", "USD")->first();
-                    $taux_de_change = $taux_de_change->rate;
-
-                    // Conversion du montant total en USD
-                    $amountInUSD = $this->convertToUSD($totalAmount, $currency);
-                    $amountInUSD = round($amountInUSD, 2);
-                    
-                    // Conversion des frais globaux en USD
-                    $globalFeesInUSD = $this->convertToUSD($globalFees, $currency);
-                    $globalFeesInUSD = round($globalFeesInUSD, 2);
-                    
-                    // Conversion des frais spécifiques en USD
-                    $specificFeesInUSD = $this->convertToUSD($specificFees, $currency);
-                    $specificFeesInUSD = round($specificFeesInUSD, 2);
-                    
-                    // Log des montants convertis
-                    \Log::info('Montants convertis en USD pour boost d\'offre d\'emploi', [
-                        'montant_total_usd' => $amountInUSD,
-                        'frais_globaux_usd' => $globalFeesInUSD,
-                        'frais_specifiques_usd' => $specificFeesInUSD,
-                        'devise_originale' => $paymentCurrency
-                    ]);
-                } catch (\Exception $e) {
-                    return response()->json([
-                        "succes" => false,
-                        "message" => "La conversion de dévise a échoué, veuillez utiliser le $"    
-                    ]);
-                }
-            }
-            
-            // Calcul des montants nets (sans les différents types de frais)
-            $amountInUSDWithoutSpecificFees = round($amountInUSD - $specificFeesInUSD, 2); // Montant total sans frais spécifiques
-            $amountWithoutGlobalFeesInUSD = round($amountInUSD - $globalFeesInUSD, 2); // Montant total sans frais globaux
-
-            // Log des montants nets calculés
-            \Log::info('Montants nets calculés pour boost d\'offre d\'emploi', [
-                'montant_total_usd' => $amountInUSD,
-                'montant_sans_frais_specifiques' => $amountInUSDWithoutSpecificFees,
-                'montant_sans_frais_globaux' => $amountWithoutGlobalFeesInUSD
-            ]);
-
-            // Vérifier que le montant net est suffisant pour couvrir le coût du pack
-            $boostPrice = $pricePerDay * $days;
-            if ($amountWithoutGlobalFeesInUSD < $boostPrice) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Le montant payé est insuffisant pour couvrir le coût du boost'
-                ], 400);
-            }
-            
-            DB::beginTransaction();
-            
-            // Si paiement par wallet
-            if ($paymentMethod === 'solifin-wallet') {
-                // Vérifier le solde du wallet
-                $wallet = $user->wallet;
-                
-                if (!$wallet || $wallet->balance < $amountInUSD) {
-                    return response()->json([
-                        'success' => false,
-                        'message' => 'Solde insuffisant dans votre wallet.'
-                    ], 400);
-                }
-                
-                // Débiter le wallet
-                $wallet->withdrawFunds($amountInUSD, 'purchase', 'completed', [
-                    'Opération' => "Boost de publication",
-                    'Id de la publication' => $offreEmploi->id,
-                    'Type de publication' => 'offre d\'emploi',
-                    'Type de paiement' => $paymentType,
-                    'Méthode de paiement' => $paymentMethod,
-                    'Durée' => $days . " jours",
-                    'Montant net payé sans les frais' => $paymentAmount . " " . $currency,
-                    'Dévise' => $currency,
-                    'Frais' => $globalFees . " " . $currency,
-                    'Taux de change appliqué' => $taux_de_change,
-                    'Description' => "Vous avez booster votre offre d\'emploi titrée " . $offreEmploi->titre . " pour " . $days . " jours"
-                ]);
-            } else {
-                //implémenter le paiement API
-
-                $wallet = $user->wallet;
-                $wallet->transactions()->create([
-                    "wallet_id" => $wallet->id,
-                    "type" => "purchase",
-                    "amount" => $amountInUSD,
-                    "status" => "completed",
-                    "metadata" => [
-                        "Opération" => "Boost de publication",
-                        "Id de la publication" => $offreEmploi->id,
-                        "Type de publication" => "offre d'emploi",
-                        "Durée" => $days . " jours",
-                        "Type de paiement" => $paymentType,
-                        "Méthode de paiement" => $paymentMethod,
-                        "Dévise" => $currency,
-                        "Montant net payé sans les frais" => $paymentAmount . " " . $currency,
-                        "Frais de transaction" => $globalFees . " " . $currency,
-                        "Taux de change appliqué" =>$taux_de_change,
-                        "Description" => "Vous avez booster votre offre d'emploi titrée " . $offreEmploi->titre . " pour " . $days . " jours"
-                    ]
-                ]);
-            }
-            
-            // Ajouter le montant au wallet system (sans les frais)
-            $walletsystem = WalletSystem::first();
-            if (!$walletsystem) {
-                $walletsystem = WalletSystem::create(['balance' => 0]);
-            }
-            
-            $walletsystem->transactions()->create([
-                'wallet_system_id' => $walletsystem->id,
-                'amount' => $amountInUSDWithoutSpecificFees,
-                'type' => 'sales',
-                'status' => 'completed',
-                'metadata' => [
-                    "user" => $user->name, 
-                    "Opération" => "Boost de publication",
-                    "Id de la publicité" => $offreEmploi->id,
-                    "Type de publicité" => "offre d'emploi",
-                    "Type de paiement" => $paymentType,
-                    "Méthode de paiement" => $paymentMethod,
-                    "Durée" => $days . " jours",
-                    "Dévise" => $currency,
-                    "Montant net payé sans les frais" => $paymentAmount . " " . $currency,
-                    "Frais de transaction" => $globalFees . " " . $currency,
-                    "Frais API" => $specificFees . " " . $currency,
-                    "Taux du jour" => $taux_de_change,
-                    "Description" => "Boost de publication pour " . $offreEmploi->titre . " pour " . $days . " jours"
-                ]
-            ]);
-            
-            // Mettre à jour la durée d'affichage
-            $offreEmploi->duree_affichage = ($offreEmploi->duree_affichage ?? 0) + $days;
-            $offreEmploi->save();
-            
-            DB::commit();
-            
-            return response()->json([
-                'success' => true,
-                'message' => 'Offre d\'emploi boostée avec succès pour ' . $days . ' jours supplémentaires.',
-                'offre_d_emploi' => $offreEmploi,
-                'payment_details' => [
-                    'amount' => $amount . $currency,
-                    'fees' => $globalFees,
-                    'total' => $totalAmount . $currency,
-                    'currency' => $currency
-                ]
-            ]);
         } catch (\Exception $e) {
-            DB::rollback();
             \Log::error('Erreur lors du boost de l\'offre d\'emploi: ' . $e->getMessage());
             \Log::error('Stack trace: ' . $e->getTraceAsString());
             return response()->json([
@@ -979,68 +772,5 @@ class OffreEmploiController extends Controller
                 'message' => 'Une erreur est survenue lors du boost de l\'offre d\'emploi: ' . $e->getMessage()
             ], 500);
         }
-    }
-    
-    /**
-     * Estimation du montant en USD
-     * 
-     * @param float $amount Montant à convertir
-     * @param string $currency Devise d'origine
-     * @return float Montant estimé en USD
-     */
-    private function estimateUSDAmount($amount, $currency)
-    {
-        // Taux de conversion approximatifs (à mettre à jour régulièrement)
-        $rates = [
-            'EUR' => 1.09,
-            'GBP' => 1.27,
-            'CAD' => 0.73,
-            'AUD' => 0.66,
-            'JPY' => 0.0067,
-            'CHF' => 1.12,
-            'CNY' => 0.14,
-            'INR' => 0.012,
-            'BRL' => 0.19,
-            'ZAR' => 0.054,
-            'NGN' => 0.00065,
-            'GHS' => 0.071,
-            'XOF' => 0.0017,
-            'XAF' => 0.0017,
-            'CDF' => 0.0017,
-        ];
-        
-        if (isset($rates[$currency])) {
-            return $amount * $rates[$currency];
-        }
-        
-        // Si la devise n'est pas dans la liste, utiliser un taux de conversion fixe ou une estimation
-        return $amount;
-    }
-    
-    /**
-     * Convertit un montant d'une devise en USD
-     * 
-     * @param float $amount Montant à convertir
-     * @param string $currency Devise d'origine
-     * @return float Montant en USD
-     */
-    private function convertToUSD($amount, $currency)
-    {
-        if ($currency === 'USD') {
-            return $amount;
-        }
-        
-        try {
-            // Récupérer le taux de conversion depuis la BD
-            $exchangeRate = ExchangeRates::where('currency', $currency)->where('target_currency', 'USD')->first();
-            if ($exchangeRate) {
-                return $amount * $exchangeRate->rate;
-            }
-        } catch (\Exception $e) {
-            \Log::error('Erreur lors de la conversion de devise: ' . $e->getMessage());
-        }
-        
-        // Si l'API échoue, utiliser l'estimation
-        return $this->estimateUSDAmount($amount, $currency);
     }
 }

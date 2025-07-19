@@ -1135,7 +1135,7 @@ export default function RenewPackForm({ open, onClose, pack, onSubmit }) {
         paymentDetails = {
           ...paymentDetails,
           phoneCode: phoneCode,
-          phoneNumber: cleanPhoneNumber, // Numéro nettoyé sans indicatif
+          phoneNumber: phoneWithCode, // Numéro nettoyé sans indicatif
           fullPhoneNumber: phoneWithCode, // Numéro complet sans le +
         };
       }
@@ -1144,17 +1144,6 @@ export default function RenewPackForm({ open, onClose, pack, onSubmit }) {
       const step = getSubscriptionStep(pack.pack.abonnement);
       const periods = Math.ceil(months / step);
       const correctAmount = getPackPrice() * periods;
-
-      console.log("Montant pour soumission:", {
-        prix_pack: getPackPrice(),
-        duree_mois: months,
-        pas_abonnement: step,
-        periodes: periods,
-        montant_calcule: correctAmount,
-        montant_total_affiche: totalAmount,
-        montant_converti: convertedAmount,
-        methode_paiement: paymentMethod,
-      });
 
       // Préparer les données à envoyer
       const paymentData = {
@@ -1166,18 +1155,32 @@ export default function RenewPackForm({ open, onClose, pack, onSubmit }) {
         currency:
           paymentMethod === PAYMENT_TYPES.WALLET ? "USD" : selectedCurrency,
         fees: transactionFees || 0,
+        packId: pack?.pack_id,
+        transaction_type: "renew_pack",
       };
 
       // Appel à l'API pour renouveler le pack
-      const response = await axios.post(
-        `/api/packs/${pack.pack_id}/renew`,
-        paymentData
-      );
+      const response = await axios.post(`/api/serdipay/payment`, paymentData);
 
       if (response.data.success) {
-        if (typeof onRenewSuccess === "function") onRenewSuccess();
-        Notification.success("Pack renouvelé avec succès!");
-        onClose();
+        // Message différent selon la méthode de paiement
+        if (paymentMethod === PAYMENT_TYPES.WALLET) {
+          // Pour le wallet Solifin, le paiement est traité immédiatement
+          Notification.success("Pack renouvelé avec succès!");
+          if (typeof onRenewSuccess === "function") onRenewSuccess();
+          onClose();
+        } else {
+          // Pour SerdiPay, le paiement est seulement initié à ce stade
+          Notification.success(
+            "Paiement initié avec succès! Vous recevrez une notification dès que le paiement sera confirmé."
+          );
+          
+          // Fermer le modal après 3 secondes pour permettre à l'utilisateur de continuer sa navigation
+          setTimeout(() => {
+            if (typeof onRenewSuccess === "function") onRenewSuccess();
+            onClose();
+          }, 3000);
+        }
       } else {
         setError(
           response.data.message ||

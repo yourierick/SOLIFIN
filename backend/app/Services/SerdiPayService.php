@@ -109,15 +109,16 @@ class SerdiPayService
      * @param string $phoneNumber Numéro de téléphone du client
      * @param float $amount Montant à payer
      * @param string $currency Devise (XAF, USD, etc.)
-     * @param string $telecom Opérateur télécom (MP, OM, AM, AF)
+     * @param string $paymentMethod Méthode de paiement (MP, OM, AM, AF, MC, VISA)
      * @param int|null $userId ID de l'utilisateur (optionnel)
      * @param int|null $walletId ID du portefeuille (optionnel)
      * @param string|null $email Email de l'utilisateur (optionnel)
      * @param string|null $purpose But du paiement (optionnel, ex: 'pack_purchase')
      * @param string|null $reference Référence optionnelle pour le paiement
+     * @param array|null $cardData Données de carte pour les paiements par carte (optionnel)
      * @return array Résultat de la requête avec statut et message
      */
-    public function initiatePayment($phoneNumber, $amount, $currency, $telecom, $userId = null, $walletId = null, $email = null, $purpose = null, $reference = null)
+    public function initiatePayment($phoneNumber = null, $amount, $currency, $paymentMethod, $userId = null, $walletId = null, $email = null, $purpose = null, $reference = null, $cardData = null)
     {
         $token = $this->getAuthToken();
         
@@ -129,8 +130,11 @@ class SerdiPayService
             ];
         }
         
+        // Déterminer le type de paiement (mobile_money ou card)
+        $paymentType = $this->determinePaymentType($paymentMethod);
+        
         // Valider les données d'entrée
-        if (!$this->validatePhoneNumber($phoneNumber)) {
+        if ($paymentType === 'mobile_money' && !$this->validatePhoneNumber($phoneNumber)) {
             return [
                 'success' => false,
                 'message' => 'Numéro de téléphone invalide',
@@ -138,11 +142,20 @@ class SerdiPayService
             ];
         }
         
-        if (!$this->validateTelecom($telecom)) {
+        if (!$this->validatePaymentMethod($paymentMethod)) {
             return [
                 'success' => false,
-                'message' => 'Opérateur télécom non supporté',
-                'code' => 'invalid_telecom'
+                'message' => 'Méthode de paiement non supportée',
+                'code' => 'invalid_payment_method'
+            ];
+        }
+        
+        // Valider les données de carte pour les paiements par carte
+        if ($paymentType === 'card' && !$this->validateCardData($cardData)) {
+            return [
+                'success' => false,
+                'message' => 'Données de carte invalides ou incomplètes',
+                'code' => 'invalid_card_data'
             ];
         }
         
@@ -152,11 +165,21 @@ class SerdiPayService
                 'api_password' => $this->apiPassword,
                 'merchantCode' => $this->merchantCode,
                 'merchant_pin' => $this->merchantPin,
-                'clientPhone' => $phoneNumber,
                 'amount' => (float) $amount,
                 'currency' => $currency,
-                'telecom' => $telecom,
             ];
+            
+            // Ajouter les données spécifiques au type de paiement
+            if ($paymentType === 'mobile_money') {
+                $payload['clientPhone'] = $phoneNumber;
+                $payload['telecom'] = $paymentMethod;
+            } else if ($paymentType === 'card') {
+                $payload['card_number'] = $cardData['cardNumber'] ?? null;
+                $payload['card_holder'] = $cardData['cardHolder'] ?? null;
+                $payload['card_expiry'] = $cardData['expiryDate'] ?? null;
+                $payload['card_cvv'] = $cardData['cvv'] ?? null;
+                $payload['payment_method'] = $paymentMethod; // MC ou VISA
+            }
             
             // Ajouter une référence si fournie
             if ($reference) {
@@ -179,17 +202,19 @@ class SerdiPayService
                 'response' => $responseData,
                 'phone' => $phoneNumber,
                 'amount' => $amount,
-                'telecom' => $telecom
+                'payment_method' => $paymentMethod,
+                'payment_type' => $paymentType
             ]);
             
             // Créer une transaction dans la base de données
             if ($statusCode === 200 && isset($responseData['sessionId'])) {
-                SerdiPayTransaction::create([
+                $transactionData = [
                     'user_id' => $userId,
                     'wallet_id' => $walletId,
                     'email' => $email,
                     'phone_number' => $phoneNumber,
-                    'telecom' => $telecom,
+                    'payment_method' => $paymentMethod,
+                    'payment_type' => $paymentType,
                     'amount' => $amount,
                     'currency' => $currency,
                     'session_id' => $responseData['sessionId'],
@@ -200,25 +225,17 @@ class SerdiPayService
                     'purpose' => $purpose,
                     'request_data' => $payload,
                     'response_data' => $responseData
-                ]);
+                ];
                 
-                // Si un wallet est spécifié, créer aussi une entrée dans WalletTransaction
-                if ($walletId) {
-                    WalletTransaction::create([
-                        'wallet_id' => $walletId,
-                        'amount' => $amount,
-                        'type' => 'purchase',
-                        'status' => 'pending',
-                        'metadata' => [
-                            'payment_method' => 'serdipay',
-                            'session_id' => $responseData['sessionId'],
-                            'phone_number' => $phoneNumber,
-                            'telecom' => $telecom,
-                            'currency' => $currency,
-                            'reference' => $reference
-                        ]
-                    ]);
+                // Ajouter les données de carte si c'est un paiement par carte
+                if ($paymentType === 'card' && $cardData) {
+                    $transactionData['card_number'] = $this->maskCardNumber($cardData['cardNumber'] ?? '');
+                    $transactionData['card_holder_name'] = $cardData['cardHolder'] ?? null;
+                    $transactionData['card_expiry'] = $cardData['expiryDate'] ?? null;
+                    $transactionData['card_type'] = $paymentMethod; // MC ou VISA
                 }
+                
+                SerdiPayTransaction::create($transactionData);
             }
             
             if ($statusCode === 200) {
@@ -239,7 +256,7 @@ class SerdiPayService
                 ];
             } else {
                 $errorMessage = $responseData['message'] ?? 'Erreur inconnue';
-                
+                Log::error('Erreur lors de l\'initiation du paiement: ' . $errorMessage);
                 return [
                     'success' => false,
                     'message' => $errorMessage,
@@ -256,7 +273,6 @@ class SerdiPayService
                 'request' => $e->getRequest(),
                 'response' => $e->hasResponse() ? $e->getResponse() : null
             ]);
-            
             return [
                 'success' => false,
                 'message' => 'Erreur de communication avec SerdiPay: ' . $e->getMessage(),
@@ -288,9 +304,9 @@ class SerdiPayService
     
     /**
      * Vérifie le statut d'une transaction SerdiPay
-     * 
-     * @param string $sessionId L'ID de session fourni par SerdiPay
-     * @return array Le statut de la transaction
+     *
+     * @param string $sessionId Identifiant de session SerdiPay
+     * @return array Résultat de la requête avec statut et message
      */
     public function checkTransactionStatus($sessionId)
     {
@@ -298,42 +314,71 @@ class SerdiPayService
         
         if (!$token) {
             return [
-                'success' => false,
+                'status' => 'error',
                 'message' => 'Échec d\'authentification avec SerdiPay',
                 'code' => 'auth_failed'
             ];
         }
         
         try {
-            $response = $this->client->request('GET', $this->baseUrl . '/merchant/transaction/' . $sessionId, [
+            $response = $this->client->request('GET', $this->baseUrl . '/merchant/transaction-status', [
                 'headers' => [
                     'Authorization' => 'Bearer ' . $token
+                ],
+                'query' => [
+                    'api_id' => $this->apiId,
+                    'api_password' => $this->apiPassword,
+                    'sessionId' => $sessionId
                 ]
             ]);
             
             $statusCode = $response->getStatusCode();
             $responseData = json_decode($response->getBody()->getContents(), true);
             
+            // Enregistrer la réponse pour le débogage
+            Log::info('SerdiPay status check', [
+                'session_id' => $sessionId,
+                'status_code' => $statusCode,
+                'response' => $responseData
+            ]);
+            
+            // Mettre à jour la transaction dans la base de données
+            $transaction = SerdiPayTransaction::where('session_id', $sessionId)->first();
+            
+            if ($transaction) {
+                $paymentStatus = $responseData['payment']['status'] ?? 'pending';
+                $transactionId = $responseData['payment']['transactionId'] ?? null;
+                
+                // Mettre à jour le statut de la transaction
+                $transaction->status = $paymentStatus;
+                if ($transactionId) {
+                    $transaction->transaction_id = $transactionId;
+                }
+                $transaction->response_data = array_merge($transaction->response_data ?? [], ['status_check' => $responseData]);
+                $transaction->save();
+            }
+            
             if ($statusCode === 200) {
-                $paymentStatus = $responseData['payment']['status'] ?? 'unknown';
+                $status = $responseData['payment']['status'] ?? 'pending';
                 
                 return [
-                    'success' => true,
-                    'status' => $paymentStatus,
-                    'message' => $paymentStatus === 'success' ? 'Paiement réussi' : 'Paiement en attente ou échoué',
-                    'data' => $responseData
+                    'status' => $status,
+                    'message' => $responseData['message'] ?? 'Statut récupéré avec succès',
+                    'data' => $responseData,
+                    'transaction_id' => $responseData['payment']['transactionId'] ?? null,
+                    'session_id' => $sessionId
                 ];
             } else {
                 return [
-                    'success' => false,
+                    'status' => 'error',
                     'message' => $responseData['message'] ?? 'Erreur lors de la vérification du statut',
                     'code' => 'status_check_failed',
+                    'status_code' => $statusCode,
                     'data' => $responseData
                 ];
             }
             
         } catch (RequestException $e) {
-            // Gestion spécifique des erreurs de requête Guzzle pour la vérification de statut
             Log::error('SerdiPay status check request exception', [
                 'message' => $e->getMessage(),
                 'session_id' => $sessionId,
@@ -342,21 +387,9 @@ class SerdiPayService
             ]);
             
             return [
-                'success' => false,
+                'status' => 'error',
                 'message' => 'Erreur de communication avec SerdiPay: ' . $e->getMessage(),
                 'code' => 'network_error'
-            ];
-        } catch (GuzzleException $e) {
-            // Gestion des autres exceptions Guzzle pour la vérification de statut
-            Log::error('SerdiPay status check Guzzle exception', [
-                'message' => $e->getMessage(),
-                'session_id' => $sessionId
-            ]);
-            
-            return [
-                'success' => false,
-                'message' => 'Erreur lors de la vérification du statut: ' . $e->getMessage(),
-                'code' => 'guzzle_error'
             ];
         } catch (\Exception $e) {
             Log::error('SerdiPay status check exception', [
@@ -365,128 +398,75 @@ class SerdiPayService
             ]);
             
             return [
-                'success' => false,
+                'status' => 'error',
                 'message' => 'Erreur lors de la vérification du statut: ' . $e->getMessage(),
-                'code' => 'system_error'
+                'code' => 'general_error'
             ];
         }
     }
     
     /**
-     * Traite les données de callback reçues de SerdiPay
-     * 
-     * @param array $callbackData Données reçues dans le callback
-     * @return array Résultat du traitement avec statut et message
+     * Traite les callbacks de SerdiPay
+     *
+     * @param array $callbackData Données du callback
+     * @return array Résultat du traitement
      */
     public function handleCallback($callbackData)
     {
         try {
-            // Valider les données reçues
-            if (!isset($callbackData['sessionId']) || !isset($callbackData['status'])) {
-                Log::warning('SerdiPay callback missing required fields', [
-                    'data' => $callbackData
-                ]);
-                
+            Log::info('SerdiPay callback processing', $callbackData);
+            
+            $status = $callbackData['status'] ?? null;
+            $message = $callbackData['message'] ?? null;
+            $sessionId = $callbackData['payment']['sessionId'] ?? null;
+            $paymentStatus = $callbackData['payment']['status'] ?? null;
+            $transactionId = $callbackData['payment']['transactionId'] ?? null;
+            
+            if (!$sessionId) {
                 return [
-                    'success' => false,
-                    'message' => 'Données de callback incomplètes',
-                    'code' => 'invalid_callback_data'
+                    'status' => 'error',
+                    'message' => 'Identifiant de session manquant dans le callback'
                 ];
             }
             
-            $sessionId = $callbackData['sessionId'];
-            $status = $callbackData['status'];
-            $transactionId = $callbackData['transactionId'] ?? null;
+            // Rechercher la transaction dans la base de données
+            $transaction = SerdiPayTransaction::where('session_id', $sessionId)->first();
             
-            // Enregistrer le callback pour le débogage
-            Log::info('SerdiPay callback received', [
-                'session_id' => $sessionId,
-                'status' => $status,
+            if (!$transaction) {
+                return [
+                    'status' => 'error',
+                    'message' => 'Transaction non trouvée pour la session ' . $sessionId
+                ];
+            }
+            
+            // Mettre à jour la transaction avec les informations du callback
+            $transaction->status = $paymentStatus;
+            if ($transactionId) {
+                $transaction->transaction_id = $transactionId;
+            }
+            $transaction->callback_data = $callbackData;
+            $transaction->callback_received_at = now();
+            $transaction->save();
+            
+            return [
+                'status' => 'success',
+                'message' => 'Callback traité avec succès',
+                'payment_status' => $paymentStatus,
                 'transaction_id' => $transactionId,
-                'data' => $callbackData
-            ]);
-            
-            // Mettre à jour la transaction SerdiPay dans la base de données
-            $serdiTransaction = SerdiPayTransaction::where('session_id', $sessionId)->first();
-            
-            if ($serdiTransaction) {
-                // Mettre à jour le statut de la transaction
-                $newStatus = ($status === 'success') ? 'completed' : 'failed';
-                
-                $serdiTransaction->status = $newStatus;
-                $serdiTransaction->transaction_id = $transactionId;
-                $serdiTransaction->callback_data = $callbackData;
-                $serdiTransaction->callback_received_at = now();
-                $serdiTransaction->save();
-                
-                // Mettre à jour également la transaction wallet si elle existe
-                $walletTransaction = WalletTransaction::where('metadata->session_id', $sessionId)->first();
-                if ($walletTransaction) {
-                    $metadata = $walletTransaction->metadata;
-                    $metadata['transaction_id'] = $transactionId;
-                    $metadata['callback_data'] = $callbackData;
-                    $metadata['callback_time'] = now()->toDateTimeString();
-                    
-                    $walletTransaction->status = $newStatus;
-                    $walletTransaction->metadata = $metadata;
-                    $walletTransaction->save();
-                    
-                    // Si la transaction est réussie et qu'il s'agit d'un paiement, mettre à jour le solde du portefeuille
-                    if ($status === 'success' && $serdiTransaction->wallet_id) {
-                        $wallet = Wallet::find($serdiTransaction->wallet_id);
-                        if ($wallet) {
-                            // Selon le type de transaction, ajuster le solde
-                            if ($serdiTransaction->type === 'withdrawal') {
-                                // Pour un retrait, déduire du solde
-                                $wallet->balance -= $serdiTransaction->amount;
-                                $wallet->total_withdrawn += $serdiTransaction->amount;
-                                $wallet->save();
-                            }
-                            // Pour un paiement (client to merchant), on ne modifie pas le solde car c'est un débit externe
-                        }
-                    }
-                }
-            } else {
-                Log::warning('SerdiPay callback received for unknown transaction', [
-                    'session_id' => $sessionId
-                ]);
-            }
-            
-            // Traiter selon le statut
-            if ($status === 'success') {
-                // Traitement pour une transaction réussie
-                return [
-                    'success' => true,
-                    'message' => 'Paiement réussi',
-                    'code' => 'payment_success',
-                    'session_id' => $sessionId,
-                    'transaction_id' => $transactionId,
-                    'transaction_record' => $transaction,
-                    'raw_data' => $callbackData
-                ];
-            } else {
-                // Traitement pour une transaction échouée
-                return [
-                    'success' => false,
-                    'message' => 'Paiement échoué',
-                    'code' => 'payment_failed',
-                    'session_id' => $sessionId,
-                    'transaction_id' => $transactionId,
-                    'transaction_record' => $transaction,
-                    'raw_data' => $callbackData
-                ];
-            }
+                'session_id' => $sessionId,
+                'type' => $transaction->type
+            ];
             
         } catch (\Exception $e) {
             Log::error('SerdiPay callback processing exception', [
                 'message' => $e->getMessage(),
-                'data' => $callbackData ?? null
+                'callback_data' => $callbackData ?? null
             ]);
             
             return [
-                'success' => false,
+                'status' => 'error',
                 'message' => 'Erreur lors du traitement du callback: ' . $e->getMessage(),
-                'code' => 'system_error'
+                'code' => 'callback_processing_error'
             ];
         }
     }
@@ -499,21 +479,111 @@ class SerdiPayService
      */
     protected function validatePhoneNumber($phoneNumber)
     {
-        // Format attendu pour les numéros de téléphone africains
-        // Cette validation peut être adaptée selon les besoins spécifiques
-        return preg_match('/^\d{9,15}$/', $phoneNumber);
+        // Format attendu : 243 suivi de 9 chiffres (ex: 243990624685)
+        return preg_match('/^243\d{9}$/', $phoneNumber);
     }
     
     /**
-     * Valide le code opérateur télécom
+     * Valide la méthode de paiement
      * 
-     * @param string $telecom Code opérateur télécom
+     * @param string $paymentMethod Code de méthode de paiement
      * @return bool Vrai si le code est valide
      */
-    private function validateTelecom($telecom)
+    private function validatePaymentMethod($paymentMethod)
     {
-        $validTelecoms = ['MP', 'OM', 'AM', 'AF']; // Mpesa, Orange Money, Airtel Money, Afrimoney
-        return in_array(strtoupper($telecom), $validTelecoms);
+        $validMethods = ['MP', 'OM', 'AM', 'AF', 'MC', 'VISA', 'AE']; // Mobile money + cartes bancaires
+        return in_array(strtoupper($paymentMethod), $validMethods);
+    }
+    
+    /**
+     * Détermine le type de paiement en fonction de la méthode
+     * 
+     * @param string $paymentMethod Code de méthode de paiement
+     * @return string 'mobile_money' ou 'card'
+     */
+    private function determinePaymentType($paymentMethod)
+    {
+        $mobileMoneyMethods = ['MP', 'OM', 'AM', 'AF'];
+        $cardMethods = ['MC', 'VISA', 'AE'];
+        
+        $paymentMethod = strtoupper($paymentMethod);
+        
+        if (in_array($paymentMethod, $mobileMoneyMethods)) {
+            return 'mobile_money';
+        } elseif (in_array($paymentMethod, $cardMethods)) {
+            return 'card';
+        }
+        
+        // Par défaut, considérer comme mobile money
+        return 'mobile_money';
+    }
+    
+    /**
+     * Valide les données de carte bancaire
+     * 
+     * @param array|null $cardData Données de la carte
+     * @return bool Vrai si les données sont valides
+     */
+    private function validateCardData($cardData)
+    {
+        if (!is_array($cardData)) {
+            return false;
+        }
+        
+        // Vérifier la présence des champs obligatoires
+        $requiredFields = ['cardNumber', 'cardHolder', 'expiryDate', 'cvv'];
+        foreach ($requiredFields as $field) {
+            if (!isset($cardData[$field]) || empty($cardData[$field])) {
+                return false;
+            }
+        }
+        
+        // Validation basique du numéro de carte (doit contenir uniquement des chiffres et tirets/espaces)
+        if (!preg_match('/^[0-9\s-]+$/', $cardData['cardNumber'])) {
+            return false;
+        }
+        
+        // Validation basique de la date d'expiration (format MM/YY ou MM-YY)
+        if (!preg_match('/^(0[1-9]|1[0-2])[\/\-]([0-9]{2})$/', $cardData['expiryDate'])) {
+            return false;
+        }
+        
+        // Validation basique du CVV (3 ou 4 chiffres)
+        if (!preg_match('/^[0-9]{3,4}$/', $cardData['cvv'])) {
+            return false;
+        }
+        
+        return true;
+    }
+    
+    /**
+     * Masque le numéro de carte pour le stockage sécurisé
+     * 
+     * @param string $cardNumber Numéro de carte complet
+     * @return string Numéro de carte masqué (ex: XXXX-XXXX-XXXX-1234)
+     */
+    private function maskCardNumber($cardNumber)
+    {
+        // Supprimer les espaces et tirets
+        $cardNumber = preg_replace('/[\s-]/', '', $cardNumber);
+        
+        // Garder uniquement les 4 derniers chiffres
+        $length = strlen($cardNumber);
+        if ($length <= 4) {
+            return $cardNumber;
+        }
+        
+        $maskedPart = str_repeat('X', $length - 4);
+        $lastFour = substr($cardNumber, -4);
+        
+        // Reformater avec des tirets pour la lisibilité
+        $maskedNumber = $maskedPart . $lastFour;
+        if ($length === 16) { // Format standard pour la plupart des cartes
+            return substr($maskedNumber, 0, 4) . '-' . substr($maskedNumber, 4, 4) . '-' . 
+                   substr($maskedNumber, 8, 4) . '-' . substr($maskedNumber, 12, 4);
+        }
+        
+        return $maskedNumber;
     }
     
     /**
@@ -522,7 +592,7 @@ class SerdiPayService
      * @param string $phoneNumber Numéro de téléphone du client
      * @param float $amount Montant à payer
      * @param string $currency Devise (XAF, USD, etc.)
-     * @param string $telecom Opérateur télécom (MP, OM, AM, AF)
+     * @param string $paymentMethod Méthode de paiement (MP, OM, AM, AF)
      * @param int|null $userId ID de l'utilisateur (optionnel)
      * @param int|null $walletId ID du portefeuille (optionnel)
      * @param string|null $email Email de l'utilisateur (optionnel)
@@ -530,7 +600,7 @@ class SerdiPayService
      * @param string|null $reference Référence optionnelle pour le paiement
      * @return array Résultat de la requête avec statut et message
      */
-    public function initiateWithdrawal($phoneNumber, $amount, $currency, $telecom, $userId = null, $walletId = null, $email = null, $purpose = null, $reference = null)
+    public function initiateWithdrawal($phoneNumber, $amount, $currency, $paymentMethod, $userId = null, $walletId = null, $email = null, $purpose = null, $reference = null, $cardDetails = null)
     {
         $token = $this->getAuthToken();
         
@@ -551,12 +621,21 @@ class SerdiPayService
             ];
         }
         
-        // Valider l'opérateur télécom
-        if (!$this->validateTelecom($telecom)) {
+        // Valider la méthode de paiement
+        if (!$this->validatePaymentMethod($paymentMethod)) {
             return [
                 'success' => false,
-                'message' => 'Opérateur télécom non pris en charge',
-                'code' => 'invalid_telecom'
+                'message' => 'Méthode de paiement non prise en charge',
+                'code' => 'invalid_payment_method'
+            ];
+        }
+        
+        // Pour les retraits, seul le mobile money est supporté pour l'instant
+        if ($this->determinePaymentType($paymentMethod) !== 'mobile_money') {
+            return [
+                'success' => false,
+                'message' => 'Les retraits ne sont supportés que pour le mobile money',
+                'code' => 'unsupported_payment_type'
             ];
         }
         
@@ -570,7 +649,7 @@ class SerdiPayService
                 'clientPhone' => $phoneNumber,
                 'amount' => (float) $amount,
                 'currency' => $currency,
-                'telecom' => strtoupper($telecom)
+                'telecom' => strtoupper($paymentMethod) // L'API SerdiPay utilise toujours 'telecom' pour le mobile money
             ];
             
             // Ajouter la référence si fournie
@@ -595,7 +674,8 @@ class SerdiPayService
                 'response' => $responseData,
                 'phone' => $phoneNumber,
                 'amount' => $amount,
-                'telecom' => $telecom
+                'payment_method' => $paymentMethod,
+                'payment_type' => 'mobile_money'
             ]);
             
             // Créer une transaction dans la base de données
@@ -605,7 +685,8 @@ class SerdiPayService
                     'wallet_id' => $walletId,
                     'email' => $email,
                     'phone_number' => $phoneNumber,
-                    'telecom' => $telecom,
+                    'payment_method' => $paymentMethod,
+                    'payment_type' => 'mobile_money',
                     'amount' => $amount,
                     'currency' => $currency,
                     'session_id' => $responseData['sessionId'],
@@ -617,24 +698,6 @@ class SerdiPayService
                     'request_data' => $payload,
                     'response_data' => $responseData
                 ]);
-                
-                // Si un wallet est spécifié, créer aussi une entrée dans WalletTransaction
-                if ($walletId) {
-                    WalletTransaction::create([
-                        'wallet_id' => $walletId,
-                        'amount' => $amount,
-                        'type' => 'withdrawal',
-                        'status' => 'pending',
-                        'metadata' => [
-                            'payment_method' => 'serdipay',
-                            'session_id' => $responseData['sessionId'],
-                            'phone_number' => $phoneNumber,
-                            'telecom' => $telecom,
-                            'currency' => $currency,
-                            'reference' => $reference
-                        ]
-                    ]);
-                }
             }
             
             if ($statusCode === 200) {

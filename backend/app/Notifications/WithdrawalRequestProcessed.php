@@ -21,7 +21,7 @@ class WithdrawalRequestProcessed extends Notification implements ShouldQueue
 
     public function via($notifiable)
     {
-        return ['database'];
+        return ['database', 'mail'];
     }
 
     public function toMail($notifiable)
@@ -41,12 +41,9 @@ class WithdrawalRequestProcessed extends Notification implements ShouldQueue
         return (new MailMessage)
             ->subject("Votre demande de retrait a été {$status}")
             ->greeting("Bonjour {$notifiable->name},")
-            ->line("Votre demande de retrait d'un montant de {$this->withdrawalRequest->amount}€ a été {$status}.")
+            ->line("Votre demande de retrait d'un montant de {$this->withdrawalRequest->amount}$ a été {$status}.")
             ->when($this->withdrawalRequest->status === 'approved', function ($message) {
-                return $message->line("Le paiement est traité automatiquement.");
-            })
-            ->when($this->withdrawalRequest->status === 'rejected', function ($message) {
-                return $message->line("Raison : {$this->withdrawalRequest->admin_note}");
+                return $message->line("Le paiement est traité automatiquement, vous recevrez une notification une fois le paiement effectué.");
             })
             ->line("Merci de votre confiance !");
     }
@@ -56,10 +53,11 @@ class WithdrawalRequestProcessed extends Notification implements ShouldQueue
         return [
             'type' => $type,
             'icon' => $icon,
-            'titre' => 'Confirmation de retrait',
+            'titre' => 'Approbation de retrait',
             'message' => $this->withdrawalRequest->status === 'approved' 
             ? 'Votre demande de retrait d\'un montant de ' . $this->withdrawalRequest->amount . '$ a été approuvée.' 
             : 'Votre demande de retrait d\'un montant de ' . $this->withdrawalRequest->amount . '$ a été rejetée.',
+            'link' => '/dashboard/finances'
         ];
     }
 }

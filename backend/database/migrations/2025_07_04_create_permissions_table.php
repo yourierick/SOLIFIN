@@ -93,13 +93,6 @@ return new class extends Migration
                 'updated_at' => now(),
             ],
             [
-                'nom' => 'Gérer les tickets',
-                'slug' => 'verify-tickets',
-                'description' => 'Vérifier et valider les tickets gagnants',
-                'created_at' => now(),
-                'updated_at' => now(),
-            ],
-            [
                 'nom' => 'Gérer les témoignages',
                 'slug' => 'manage-testimonials',
                 'description' => 'Gérer les témoignages des utilisateurs',
@@ -121,9 +114,9 @@ return new class extends Migration
                 'updated_at' => now(),
             ],
             [
-                'nom' => 'Gérer les validations',
-                'slug' => 'manage-validations',
-                'description' => 'Gérer les validations de contenu',
+                'nom' => 'Gérer le contenu',
+                'slug' => 'manage-content',
+                'description' => 'Gérer le contenu dans l\'application',
                 'created_at' => now(),
                 'updated_at' => now(),
             ],

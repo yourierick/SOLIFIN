@@ -156,7 +156,7 @@ const navigationItems = [
     name: "Gestion des contenus",
     href: "/admin/content-management",
     icon: CheckBadgeIcon,
-    permission: "manage-validations",
+    permission: "manage-content",
     badge: (
       pendingPublicationsCount,
       pendingFormationsCount,

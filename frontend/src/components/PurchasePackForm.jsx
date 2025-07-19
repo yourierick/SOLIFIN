@@ -1108,7 +1108,7 @@ export default function PurchasePackForm({
         paymentDetails = {
           ...paymentDetails,
           phoneCode: phoneCode,
-          phoneNumber: formFields.phoneNumber, // Garder le numéro sans indicatif
+          phoneNumber: phoneWithCode, // Garder le numéro sans indicatif
           fullPhoneNumber: phoneWithCode, // Numéro complet sans le +
         };
       }
@@ -1117,17 +1117,6 @@ export default function PurchasePackForm({
       const step = getSubscriptionStep(pack.abonnement);
       const periods = Math.ceil(months / step);
       const correctAmount = pack.price * periods;
-
-      console.log("Montant pour soumission:", {
-        prix_pack: pack.price,
-        duree_mois: months,
-        pas_abonnement: step,
-        periodes: periods,
-        montant_calcule: correctAmount,
-        montant_total_affiche: totalAmount,
-        montant_converti: convertedAmount,
-        methode_paiement: paymentMethod,
-      });
 
       // Préparer les données à envoyer
       const paymentData = {
@@ -1142,23 +1131,33 @@ export default function PurchasePackForm({
           paymentMethod === PAYMENT_TYPES.WALLET ? "USD" : selectedCurrency,
         fees: transactionFees || 0,
         packId: pack?.id,
+        transaction_type: "purchase_pack",
       };
 
       // Appel à l'API pour acheter le pack
-      const response = await axios.post(
-        "/api/packs/purchase_a_new_pack",
-        paymentData
-      );
+      const response = await axios.post("/api/serdipay/payment", paymentData);
 
       if (response.data.success) {
-        if (typeof onPurchaseSuccess === "function") onPurchaseSuccess();
-        Notification.success("Pack acheté avec succès!");
-        onClose();
+        // Message différent selon la méthode de paiement
+        if (paymentMethod === PAYMENT_TYPES.WALLET) {
+          // Pour le wallet Solifin, le paiement est traité immédiatement
+          Notification.success("Pack acheté avec succès!");
+          if (typeof onPurchaseSuccess === "function") onPurchaseSuccess();
+          onClose();
+        } else {
+          // Pour SerdiPay, le paiement est seulement initié à ce stade
+          Notification.success(
+            "Paiement initié avec succès! Vous recevrez une notification dès que le paiement sera confirmé."
+          );
+          
+          // Fermer le modal après 3 secondes pour permettre à l'utilisateur de continuer sa navigation
+          setTimeout(() => {
+            if (typeof onPurchaseSuccess === "function") onPurchaseSuccess();
+            onClose();
+          }, 3000);
+        }
       } else {
-        setError(
-          response.data.message ||
-            "Une erreur est survenue lors de l'achat du pack"
-        );
+        setError(response.data.message || "Une erreur est survenue lors de l'achat du pack");
       }
     } catch (error) {
       console.error("Erreur lors de l'achat du pack:", error);

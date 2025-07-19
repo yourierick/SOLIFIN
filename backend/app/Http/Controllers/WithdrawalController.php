@@ -3,11 +3,15 @@
 namespace App\Http\Controllers;
 
 use App\Http\Controllers\Controller;
-use App\Models\WithdrawalRequest;
-use App\Models\WalletSystem;
 use App\Models\Wallet;
 use App\Models\User;
+use App\Models\WithdrawalRequest;
+use App\Models\TransactionFee;
+use App\Models\UserPack;
 use App\Models\Pack;
+use App\Models\WalletSystem;
+use App\Models\WalletTransaction;
+use App\Models\ExchangeRates;
 use App\Models\Setting;
 use App\Notifications\WithdrawalRequestCreated;
 use App\Notifications\WithdrawalRequestProcessed;
@@ -22,13 +26,92 @@ use App\Http\Controllers\Api\CurrencyController;
 
 class WithdrawalController extends Controller
 {
+    const STATUS_PENDING = 'pending';
+    const STATUS_APPROVED = 'approved';
+    const STATUS_REJECTED = 'rejected';
+    const STATUS_CANCELLED = 'cancelled';
+    const STATUS_FAILED = 'failed';
+    
     public function __construct()
     {
         // Constructeur simplifié - Service Vonage supprimé
     }
     
     /**
-     * Récupère toutes les demandes de retrait (traitées ou non)
+     * Récupère les demandes de retrait de l'utilisateur connecté
+     * 
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function getUserWithdrawalRequests(Request $request)
+    {
+        try {
+            $user = Auth::user();
+            
+            // Récupérer les paramètres de filtrage
+            $status = $request->query('status');
+            $paymentMethod = $request->query('payment_method');
+            $startDate = $request->query('start_date');
+            $endDate = $request->query('end_date');
+            $search = $request->query('search');
+            $perPage = $request->query('per_page', 10);
+            
+            // Construire la requête
+            $query = WithdrawalRequest::where('user_id', $user->id)
+                ->with(['user'])
+                ->orderBy('created_at', 'desc');
+            
+            // Appliquer les filtres
+            if ($status) {
+                $query->where('status', $status);
+            }
+            
+            if ($paymentMethod) {
+                $query->where('payment_method', $paymentMethod);
+            }
+            
+            if ($startDate) {
+                $query->whereDate('created_at', '>=', $startDate);
+            }
+            
+            if ($endDate) {
+                $query->whereDate('created_at', '<=', $endDate);
+            }
+            
+            if ($search) {
+                $query->where(function ($q) use ($search) {
+                    $q->where('id', 'like', "%{$search}%")
+                      ->orWhere('amount', 'like', "%{$search}%")
+                      ->orWhereHas('user', function ($userQuery) use ($search) {
+                          $userQuery->where('name', 'like', "%{$search}%")
+                                   ->orWhere('email', 'like', "%{$search}%");
+                      });
+                });
+            }
+            
+            // Paginer les résultats
+            $withdrawalRequests = $query->paginate($perPage);
+            
+            return response()->json([
+                'success' => true,
+                'data' => $withdrawalRequests,
+                'message' => 'Demandes de retrait récupérées avec succès'
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Erreur lors de la récupération des demandes de retrait', [
+                'error' => $e->getMessage(),
+                'user_id' => Auth::id()
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Erreur lors de la récupération des demandes de retrait: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+    
+    /**
+     * Récupère toutes les demandes de retrait (traitées ou non) Admin
      * 
      * @return \Illuminate\Http\JsonResponse
      */
@@ -170,7 +253,7 @@ class WithdrawalController extends Controller
             $validator = Validator::make($request->all(), [
                 'phone_number' => 'required_if:payment_type,mobile-money',
                 'payment_method' => 'required|string',
-                'payment_type' => 'required|string|in:mobile-money,bank-transfer,money-transfer,credit-card',
+                'payment_type' => 'required|string|in:mobile-money,credit-card',
                 'amount' => 'required|numeric|min:0',
                 'currency' => 'required|string',
                 'password' => 'required',
@@ -179,13 +262,7 @@ class WithdrawalController extends Controller
                 'total_amount' => 'required|numeric',
                 'fee_percentage' => 'required|numeric',
                 'account_name' => 'required_if:payment_type,credit-card',
-                'account_number' => 'required_if:payment_type,bank-transfer',
-                'bank_name' => 'required_if:payment_type,bank-transfer',
-                'id_type' => 'required_if:payment_type,money-transfer',
-                'id_number' => 'required_if:payment_type,money-transfer',
-                'full_name' => 'required_if:payment_type,money-transfer',
-                'recipient_country' => 'required_if:payment_type,money-transfer',
-                'recipient_city' => 'required_if:payment_type,money-transfer',
+                'account_number' => 'required_if:payment_type,credit-card',
             ]);
 
             \Log::info('Validation terminée', [
@@ -232,36 +309,98 @@ class WithdrawalController extends Controller
                 ], 404);
             }
             
+            // Recalculer tous les frais côté serveur pour éviter les abus
+            $amount = (float)$request->amount; // Montant à retirer
+            
+            // Récupérer les frais de transaction pour la méthode de paiement
+            $transactionFee = TransactionFee::where('payment_method', $request->payment_method)
+                ->where('is_active', true)
+                ->first();
+            
+            // Récupérer le pourcentage de frais spécifiques (API)
+            $pourcentage_frais_api = $transactionFee ? $transactionFee->withdrawal_fee_percentage : 0;
+            
+            // Récupérer le pourcentage de frais système depuis les paramètres globaux
+            $pourcentage_frais_system = Setting::where('key', 'withdrawal_fee_percentage')->first();
+            $pourcentage_frais_system = $pourcentage_frais_system ? (float)$pourcentage_frais_system->withdrawal_fee_percentage : 0; // 0% par défaut si non défini
+            
+            // Récupérer le pourcentage de commission depuis les paramètres globaux
+            $pourcentage_frais_commission = Setting::where('key', 'withdrawal_commission')->first();
+            $pourcentage_frais_commission = $pourcentage_frais_commission ? (float)$pourcentage_frais_commission->withdrawal_commission : 0; // 0% par défaut si non défini
+            
+            // Calculer les frais spécifiques (API)
+            $frais_api = $amount * $pourcentage_frais_api / 100;
+            
+            // Calculer les frais système
+            $frais_de_transaction = $amount * $pourcentage_frais_system / 100;
+            
+            // Calculer les frais de commission pour le parrain si applicable
+            $frais_de_commission = 0;
+            $firstUserPack = UserPack::where('user_id', $user->id)->first();
+            
+            if ($firstUserPack) {
+                $pack = Pack::find($firstUserPack->pack_id);
+                $sponsor = $firstUserPack->sponsor;
+                
+                if ($sponsor && $pack) {
+                    // Vérifier si le pack du parrain est actif
+                    $isActivePackSponsor = $sponsor->packs()
+                        ->where('pack_id', $pack->id)
+                        ->where('status', 'active')
+                        ->exists();
+                    
+                    if ($isActivePackSponsor) {
+                        // Calculer la commission en utilisant le pourcentage récupéré des paramètres globaux
+                        $frais_de_commission = $amount * $pourcentage_frais_commission / 100;
+                    }
+                }
+            }
+            
+            // Calculer le montant total des frais
+            $total_frais = $frais_de_transaction + $frais_de_commission;
+            
+            // Calculer le montant total à débiter du portefeuille
+            $totalAmount = $amount + $total_frais;
+            
             // Vérifier le solde
-            if ($wallet->balance < $request->total_amount) {
+            if ($wallet->balance < $totalAmount) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Vous n\'avez pas suffisamment d\'argent dans votre portefeuille (' . $wallet->balance . ' ' . $wallet->currency . ' vs ' . $request->amount . ' ' . $wallet->currency . ')'
+                    'message' => 'Vous n\'avez pas suffisamment d\'argent dans votre portefeuille (' . $wallet->balance . ' ' . $wallet->currency . ' vs ' . $totalAmount . ' ' . $wallet->currency . ')'
                 ], 400);
             }
 
             DB::beginTransaction();
 
+            // Créer la demande de retrait avec les valeurs calculées côté serveur
             $withdrawalRequest = WithdrawalRequest::create([
                 'user_id' => auth()->id(),
-                'amount' => $request->total_amount,
-                'status' => 'pending',
+                'amount' => $totalAmount, // Montant total calculé côté serveur
+                'status' => self::STATUS_PENDING,
                 'payment_method' => $request->payment_method,
                 'payment_details' => [
-                    "montant_a_retirer" => $request->amount,
+                    "payment_type" => $request->payment_type,
+                    "payment_method" => $request->payment_method,
+                    "montant_a_retirer" => $amount,
+                    "montant_a_retirer_en_USD" => $amount,
                     "devise" => $request->currency,
-                    "fee_percentage" => $request->fee_percentage,
-                    "frais_de_retrait" => $request->withdrawal_fee,
-                    "frais_de_commission" => $request->referral_commission,
-                    "montant_total_a_payer" => $request->total_amount,
-                    "payment_details" => $request->payment_details, 
+                    "pourcentage_frais_system" => $pourcentage_frais_system,
+                    "pourcentage_frais_api" => $pourcentage_frais_api,
+                    "pourcentage_frais_commission" => $pourcentage_frais_commission,
+                    "frais_de_retrait" => $frais_de_transaction,
+                    "frais_api" => $frais_api,
+                    "frais_de_commission" => $frais_de_commission,
+                    "montant_total_a_payer" => $totalAmount,
+                    "payment_details" => $request->payment_details,
+                    "phoneNumber" => $request->payment_details['phone_number'] ?? null,
+                    "taux_de_change" => 0
                 ]
             ]);
 
             $user = $request->user();
 
             //Géler le montant à retirer du wallet de l'utilisateur
-            $wallet->withdrawFunds($request->total_amount, "withdrawal", "pending", [
+            $wallet->withdrawFunds($totalAmount, "withdrawal", self::STATUS_PENDING, [
                 'withdrawal_request_id' => $withdrawalRequest->id,
                 'Dévise souhaitée pour le retrait' => $request->currency,
                 'Méthode de paiement' => $request->payment_method,
@@ -271,7 +410,7 @@ class WithdrawalController extends Controller
                 'Frais de commission' => $request->referral_commission,
                 'Montant total à payer' => $request->total_amount,
                 'Détails de paiement' => $request->payment_details,
-                'Statut' => 'En attente',
+                'Statut de paiement' => '',
             ]);
 
             DB::commit();
@@ -370,15 +509,15 @@ class WithdrawalController extends Controller
 
     /**
      * Annuler une demande de retrait par l'utilisateur
-     * 
+     *
+     * @param Request $request Les données de la requête
      * @param int $id L'identifiant de la demande de retrait à annuler
      * @return \Illuminate\Http\JsonResponse
      */
-    public function cancel($id)
+    public function cancel(Request $request, $id)
     {
         try {
             $withdrawal = WithdrawalRequest::find($id);
-            $user = Auth::user();
 
             if (!$withdrawal) {
                 return response()->json([
@@ -387,58 +526,24 @@ class WithdrawalController extends Controller
                 ], 404);
             }
 
-            if ($withdrawal->status !== 'pending') {
+            $user = auth()->user();
+            if ($withdrawal->user_id !== $user->id) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Cette demande ne peut pas être annulée car elle n\'est pas en attente'
-                ], 400);
-            }
-
-            if ($user->id !== $withdrawal->user_id) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Vous n\'avez pas la permission d\'annuler cette demande'
+                    'message' => 'Vous n\'avez pas la permission d\'annuler cette demande de retrait'
                 ], 403);
             }
 
-            DB::beginTransaction();
-
-            // Mettre à jour la transaction
-            \Log::info($withdrawal->user->wallet);
-
-            $wallet = $user->wallet;
-            $wallet->addFunds($withdrawal->amount, "remboursement", "completed", [
-                "user" => $withdrawal->user->name,
-                "Montant" => $withdrawal->amount,
-                "Description" => "remboursement du montant gélé " . $withdrawal->amount . "$ de votre compte suite à l'annulation de votre demande de retrait de " . $withdrawal->payment_details['montant_a_retirer'] . "$",
-            ]);
-
-            $transaction = $withdrawal->user->wallet->transactions()
-                ->where('type', 'withdrawal')
-                ->where('metadata->withdrawal_request_id', $id)
-                ->first();
-
-            if ($transaction) {
-                $transaction->status = 'cancelled';
-                $transaction->save();
-            }
-
-            // Annuler la demande
-            if ($withdrawal) {
-                $withdrawal->status = 'cancelled';
-                $withdrawal->refund_at = now();
-                $withdrawal->save();
-            }
-
-            DB::commit();
-
+            // Utiliser le service pour annuler la demande
+            $withdrawalService = app(\App\Services\WithdrawalService::class);
+            $result = $withdrawalService->cancelWithdrawal($withdrawal);
+            
             return response()->json([
-                'success' => true,
-                'message' => 'Demande annulée avec succès'
-            ]);
+                'success' => $result['success'],
+                'message' => $result['message']
+            ], $result['status_code']);
         } catch (ModelNotFoundException $e) {
             // Gestion spécifique des erreurs de modèle non trouvé
-            DB::rollBack();
             Log::error('Erreur: modèle non trouvé lors de l\'annulation de la demande', [
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
@@ -449,7 +554,6 @@ class WithdrawalController extends Controller
                 'error' => $e->getMessage()
             ], 404);
         } catch (\Exception $e) {
-            DB::rollBack();
             Log::error('Erreur lors de l\'annulation de la demande', [
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
@@ -471,15 +575,6 @@ class WithdrawalController extends Controller
     public function delete($id)
     {
         try {
-            // Vérification que l'utilisateur est un administrateur
-            $user = auth()->user();
-            if (!$user->is_admin) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Vous n\'avez pas les permissions nécessaires pour effectuer cette action'
-                ], 403);
-            }
-            
             $withdrawal = WithdrawalRequest::find($id);
 
             if (!$withdrawal) {
@@ -489,37 +584,23 @@ class WithdrawalController extends Controller
                 ], 404);
             }
 
-            if ($withdrawal->status !== 'approved') {
+            if (!auth()->user()->is_admin) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Cette demande ne peut pas être supprimée car elle n\'est pas approuvée'
-                ], 400);
+                    'message' => 'Vous n\'avez pas les permissions nécessaires pour effectuer cette action'
+                ], 403);
             }
 
-            DB::beginTransaction();
-
-            // Supprimer la transaction associée si elle existe
-            $transaction = $withdrawal->user->wallet->transactions()
-                ->where('type', 'withdrawal')
-                ->where('metadata->withdrawal_request_id', $id)
-                ->first();
-
-            if ($transaction) {
-                $transaction->delete();
-            }
-
-            // Supprimer la demande
-            $withdrawal->delete();
-
-            DB::commit();
+            // Utiliser le service pour supprimer la demande
+            $withdrawalService = app(\App\Services\WithdrawalService::class);
+            $result = $withdrawalService->deleteWithdrawal($withdrawal);
 
             return response()->json([
-                'success' => true,
-                'message' => 'Demande supprimée avec succès'
-            ]);
+                'success' => $result['success'],
+                'message' => $result['message']
+            ], $result['status_code']);
         } catch (ModelNotFoundException $e) {
             // Gestion spécifique des erreurs de modèle non trouvé
-            DB::rollBack();
             Log::error('Erreur: modèle non trouvé lors de la suppression de la demande', [
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
@@ -530,7 +611,6 @@ class WithdrawalController extends Controller
                 'error' => $e->getMessage()
             ], 404);
         } catch (\Exception $e) {
-            DB::rollBack();
             Log::error('Erreur lors de la suppression de la demande', [
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
@@ -549,6 +629,13 @@ class WithdrawalController extends Controller
      * @param Request $request Les données de la requête
      * @param int $id L'identifiant de la demande de retrait
      * @return JsonResponse
+     */
+    /**
+     * Approuve une demande de retrait
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @param  int  $id
+     * @return \Illuminate\Http\JsonResponse
      */
     public function approve(Request $request, $id)
     {
@@ -574,6 +661,7 @@ class WithdrawalController extends Controller
                 ], 403);
             }
             
+            // Récupérer la demande de retrait
             $withdrawal = WithdrawalRequest::find($id);
 
             if (!$withdrawal) {
@@ -583,132 +671,27 @@ class WithdrawalController extends Controller
                 ], 404);
             }
 
-            if ($withdrawal->status !== 'pending') {
+            // Utiliser le service pour approuver la demande
+            $withdrawalService = app(\App\Services\WithdrawalService::class);
+            $result = $withdrawalService->approveWithdrawal(
+                $withdrawal,
+                $request->admin_note,
+                auth()->id()
+            );
+
+            if ($result['success'] === true) {
                 return response()->json([
-                    'success' => false,
-                    'message' => 'Cette demande ne peut pas être approuvée car elle n\'est pas en attente'
-                ], 400);
+                    'success' => $result['success'],
+                    'message' => $result['message']
+                ], $result['status_code']);
+            }else {
+                return response()->json([
+                    'success' => $result['success'],
+                    'message' => $result['message']
+                ], $result['status_code']);
             }
-
-            // Harmonisation des noms de variables (utilisation du camelCase)
-            $feePercentage = $withdrawal->payment_details['fee_percentage'];
-            $commissionFees = $withdrawal->payment_details['frais_de_commission'];
-            
-            $transactionFeeModel = TransactionFee::where('payment_method', $withdrawal->payment_method)
-                ->where('is_active', true);
-            
-            $transactionFee = $transactionFeeModel->first();
-            
-            // Extraction du calcul des frais dans une méthode séparée pour améliorer la lisibilité
-            $fees = $this->calculateFees($withdrawal, $transactionFee);
-            $globalFeePercentage = $fees['globalFeePercentage'];
-            $globalFees = $fees['globalFees'];
-            $specificFees = $fees['specificFees'];
-            $systemFees = $fees['systemFees'];
-
-            $taux_de_change = 0;
-
-            if ($withdrawal->payment_details['devise'] === 'CDF') {
-                $amount_in_cdf = CurrencyController::convert($withdrawal->payment_details['montant_a_retirer'], 'USD', 'CDF');
-                $taux_de_change = ExchangeRates::where('currency', 'USD')->where("target_currency", "CDF")->first();
-                $taux_de_change = $taux_de_change->rate;
-            }
-            
-            //Paiement API à implémenter
-            
-            // Début de la transaction DB
-            DB::beginTransaction();
-
-            // Gestion du portefeuille système
-            $walletSystem = WalletSystem::first();
-            if (!$walletSystem) {
-                $walletSystem = WalletSystem::create(
-                    [
-                        'balance' => 0,
-                        'total_in' => 0,
-                        'total_out' => 0,
-                    ]
-                );
-            }
-
-            // Gestion du parrain avec vérification de l'existence du pack et du parrain
-            $firstUserPack = UserPack::where('user_id', $withdrawal->user->id)->first();
-            $pack = Pack::where('id', $firstUserPack->pack_id)->first();
-            $sponsor = $firstUserPack ? $firstUserPack->sponsor : null;
-            // vérification du pack du parrain s'il existe et s'il est actif ou non
-            $isActivePackSponsor = $sponsor->packs->where('pack_id', $pack->id)->where('status', 'active')->first();
-            
-            if ($sponsor && $isActivePackSponsor) {
-                $sponsor->wallet->addFunds($commissionFees, "commission de retrait", "completed", [
-                    "Source" => $withdrawal->user->name, 
-                    "Type" => "commission de retrait",
-                    "Montant" => $commissionFees,
-                    "Description" => "vous avez gagné une commission de ". $commissionFees . " $ pour le retrait d'un montant de ". $withdrawal->payment_details['montant_a_retirer'] ." $ par votre filleul " . $withdrawal->user->name, // Correction orthographique
-                ]);
-
-                $walletSystem->transactions()->create([
-                    "wallet_system_id" => $walletSystem->id,
-                    'amount' => $commissionFees,
-                    'type' => "commission de retrait",
-                    'status' => "completed",
-                    'metadata' => [
-                        "Type de transaction" => "Commission de retrait",
-                        "Source" => $withdrawal->user->name,
-                        "Bénéficiaire" => $sponsor->name,
-                        "Montant" => $commissionFees,
-                        "Description" => "Paiement d'une commission de ". $commissionFees . " $ pour le retrait d'un montant de ". $withdrawal->payment_details['montant_a_retirer'] ." $ au compte " . $sponsor->account_id, // Correction orthographique
-                    ]
-                ]);
-            }
-
-            $walletSystem->transactions()->create([
-                'wallet_system_id' => $walletSystem->id,
-                'type' => 'withdrawal',
-                'amount' => $withdrawal->payment_details['montant_a_retirer'],
-                'status' => 'completed',
-                'metadata' => [
-                    'user' => $withdrawal->user->name,
-                    'Montant rétiré' => $withdrawal->payment_details['montant_a_retirer'],
-                    'Devise de retrait' => $withdrawal->payment_details['devise'],
-                    'Frais total' => $globalFees,
-                    'Frais système' => $systemFees,
-                    'Frais API' => $specificFees,
-                    'Commission de retrait' => $sponsor && $isActivePackSponsor ? $commissionFees . " $" . " payés à " . $sponsor->name : "Aucun sponsor trouvé ou le pack du sponsor n'est pas actif",
-                    'Description' => "Retrait de " . $withdrawal->payment_details['montant_a_retirer'] . " par le compte " . $withdrawal->user->account_id,
-                    'Taux de change appliqué' => $taux_de_change,
-                ]
-            ]);
-
-            // Approuver la demande
-            $withdrawal->status = 'approved';
-            $withdrawal->admin_note = $request->admin_note;
-            $withdrawal->processed_by = auth()->id();
-            $withdrawal->processed_at = now();
-            $withdrawal->paid_at = now();
-            $withdrawal->save();
-
-            $transaction = $withdrawal->user->wallet->transactions()
-                ->where('type', 'withdrawal')
-                ->where('metadata->withdrawal_request_id', $id)
-                ->first();
-
-            if ($transaction) {
-                $transaction->status = 'completed';
-                $transaction->save();
-            }
-
-            DB::commit();
-
-            // Notification à l'utilisateur que sa demande a été approuvée
-            $withdrawal->user->notify(new WithdrawalRequestProcessed($withdrawal));
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Demande approuvée avec succès'
-            ]);
         } catch (ModelNotFoundException $e) {
             // Gestion spécifique des erreurs de modèle non trouvé
-            DB::rollBack();
             Log::error('Erreur: modèle non trouvé lors de l\'approbation de la demande', [
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
@@ -720,7 +703,6 @@ class WithdrawalController extends Controller
             ], 404);
         } catch (\Exception $e) {
             // Gestion générale des erreurs
-            DB::rollBack();
             Log::error('Erreur lors de l\'approbation de la demande', [
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
@@ -761,6 +743,13 @@ class WithdrawalController extends Controller
         ];
     }
 
+    /**
+     * Rejette une demande de retrait
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @param  int  $id
+     * @return \Illuminate\Http\JsonResponse
+     */
     public function reject(Request $request, $id)
     {
         try {
@@ -777,6 +766,14 @@ class WithdrawalController extends Controller
             }
 
             $user = auth()->user();
+            
+            if (!$user->is_admin) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Vous n\'avez pas la permission de rejeter une demande de retrait'
+                ], 403);
+            }
+            
             $withdrawal = WithdrawalRequest::find($id);
 
             if (!$withdrawal) {
@@ -786,59 +783,20 @@ class WithdrawalController extends Controller
                 ], 404);
             }
 
-            if ($withdrawal->status !== 'pending') {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Cette demande ne peut pas être rejetée car elle n\'est pas en attente'
-                ], 400);
-            }
+            // Utiliser le service pour rejeter la demande
+            $withdrawalService = app(\App\Services\WithdrawalService::class);
+            $result = $withdrawalService->rejectWithdrawal(
+                $withdrawal,
+                $request->admin_note,
+                auth()->id()
+            );
 
-            if (!$user->is_admin) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Vous n\'avez pas la permission de rejeter une demande de retrait'
-                ], 403);
-            }
-
-            DB::beginTransaction();
-
-            // Rembourser le montant au wallet de l'utilisateur
-            $wallet = $withdrawal->user->wallet;
-            $wallet->addFunds($withdrawal->amount, "remboursement", "completed", [
-                "user" => $withdrawal->user->name,
-                "Montant" => $withdrawal->amount,
-                "Description" => "remboursement du montant gélé " . $withdrawal->amount . "$ pour le retrait ID: " . $withdrawal->id . " d'un montant de " . $withdrawal->payment_details['montant_a_retirer'] . "$ pour cause de rejet",
-            ]);
-
-            // Mettre à jour la transaction originale
-            $transaction = $wallet->transactions()
-                ->where('type', 'withdrawal')
-                ->where('metadata->withdrawal_request_id', $id)
-                ->first();
-
-            if ($transaction) {
-                $transaction->status = 'rejected';
-                $transaction->save();
-            }
-
-            // Rejeter la demande
-            $withdrawal->status = 'rejected';
-            $withdrawal->admin_note = $request->admin_note;
-            $withdrawal->processed_by = auth()->id();
-            $withdrawal->processed_at = now();
-            $withdrawal->refund_at = now();
-            $withdrawal->save();
-
-            DB::commit();
-
-            $withdrawal->user->notify(new WithdrawalRequestProcessed($withdrawal));
             return response()->json([
-                'success' => true,
-                'message' => 'Demande rejetée avec succès'
-            ]);
+                'success' => $result['success'],
+                'message' => $result['message']
+            ], $result['status_code']);
         } catch (ModelNotFoundException $e) {
             // Gestion spécifique des erreurs de modèle non trouvé
-            DB::rollBack();
             Log::error('Erreur: modèle non trouvé lors du rejet de la demande', [
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
@@ -849,7 +807,6 @@ class WithdrawalController extends Controller
                 'error' => $e->getMessage()
             ], 404);
         } catch (\Exception $e) {
-            DB::rollBack();
             Log::error('Erreur lors du rejet de la demande', [
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()

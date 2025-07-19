@@ -29,7 +29,7 @@ class WithdrawalRequestPaid extends Notification implements ShouldQueue
         return (new MailMessage)
             ->subject('Votre retrait a été effectué')
             ->greeting("Bonjour {$notifiable->name},")
-            ->line("Votre retrait d'un montant de {$this->withdrawalRequest['montant_a_retirer']}$ a été effectué avec succès.")
+            ->line("Votre retrait d'un montant de {$this->withdrawalRequest['montant_a_retirer_en_USD']}$ a été effectué avec succès.")
             ->line("Le paiement a été envoyé via {$this->withdrawalRequest->payment_method}.")
             ->line("Merci de votre confiance !");
     }
@@ -40,7 +40,7 @@ class WithdrawalRequestPaid extends Notification implements ShouldQueue
             'type' => 'success',
             'icon' => 'check-circle',
             'titre' => 'Retrait effectué',
-            'message' => 'Votre retrait d\'un montant de ' . $this->withdrawalRequest['montant_a_retirer'] . '$ a été effectué avec succès.',
+            'message' => 'Votre retrait d\'un montant de ' . $this->withdrawalRequest['montant_a_retirer_en_USD'] . '$ a été effectué avec succès.',
         ];
     }
 }

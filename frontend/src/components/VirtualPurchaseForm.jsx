@@ -2,7 +2,11 @@ import React, { useState, useEffect } from "react";
 import { useTheme } from "../contexts/ThemeContext";
 import axios from "../utils/axios";
 import { toast } from "react-toastify";
-import { XMarkIcon, XCircleIcon, ArrowPathIcon } from "@heroicons/react/24/outline";
+import {
+  XMarkIcon,
+  XCircleIcon,
+  ArrowPathIcon,
+} from "@heroicons/react/24/outline";
 import { CheckCircleIcon } from "@heroicons/react/24/solid";
 import { FaMoneyBillWave, FaCreditCard } from "react-icons/fa";
 import { FaCoins } from "react-icons/fa";
@@ -15,44 +19,46 @@ import orangeIcon from "../assets/icons-mobil-money/orange.png";
 import africellIcon from "../assets/icons-mobil-money/afrimoney.png";
 
 // Utiliser les devises depuis config.js
-const currencies = Object.values(CURRENCIES).map(currency => ({
+const currencies = Object.values(CURRENCIES).map((currency) => ({
   code: currency.code,
   name: currency.name,
-  symbol: currency.symbol
+  symbol: currency.symbol,
 }));
 
 // Utiliser les types de paiement depuis config.js
 const paymentTypes = PAYMENT_TYPES;
 
 // Mapper les icônes aux options de paiement Mobile Money depuis config.js
-const mobileMoneyOptions = PAYMENT_METHODS[PAYMENT_TYPES.MOBILE_MONEY].map(option => {
-  let icon;
-  let telecomCode;
-  
-  switch(option.id) {
-    case "m-pesa":
-      icon = mpesaIcon;
-      telecomCode = "mpesa";
-      break;
-    case "orange-money":
-      icon = orangeIcon;
-      telecomCode = "orange";
-      break;
-    case "airtel-money":
-      icon = airtelIcon;
-      telecomCode = "airtel";
-      break;
-    case "afrimoney":
-      icon = africellIcon;
-      telecomCode = "africell";
-      break;
-    default:
-      icon = null;
-      telecomCode = option.id;
+const mobileMoneyOptions = PAYMENT_METHODS[PAYMENT_TYPES.MOBILE_MONEY].map(
+  (option) => {
+    let icon;
+    let telecomCode;
+
+    switch (option.id) {
+      case "m-pesa":
+        icon = mpesaIcon;
+        telecomCode = "mpesa";
+        break;
+      case "orange-money":
+        icon = orangeIcon;
+        telecomCode = "orange";
+        break;
+      case "airtel-money":
+        icon = airtelIcon;
+        telecomCode = "airtel";
+        break;
+      case "afrimoney":
+        icon = africellIcon;
+        telecomCode = "africell";
+        break;
+      default:
+        icon = null;
+        telecomCode = option.id;
+    }
+
+    return { ...option, icon, telecomCode };
   }
-  
-  return { ...option, icon, telecomCode };
-});
+);
 
 // Utiliser les options de carte bancaire depuis config.js
 const creditCardOptions = PAYMENT_METHODS[PAYMENT_TYPES.CREDIT_CARD];
@@ -350,37 +356,17 @@ export default function VirtualPurchaseForm({ onClose, updateWalletBalance }) {
       const fee = amount * (feePercentage / 100);
       const total = amount + fee;
 
-      // Convertir en USD si la devise est CDF
-      let amountUSD = amount;
-      let feeUSD = fee;
-      let totalUSD = total;
-
       // Préparer les données pour l'API selon le format attendu par le backend
       const requestData = {
         payment_method: selectedPaymentOption.id,
         currency: selectedCurrency.code,
       };
 
-      if (selectedCurrency.code === "CDF") {
-        // Conserver les montants originaux en CDF (sans décimales pour CDF)
-        requestData.original_amount = Math.round(amount).toString();
-        requestData.original_fees = Math.round(fee).toString();
-        requestData.original_total = Math.round(total).toString();
-
-        // Convertir en USD pour le traitement (avec 2 décimales pour USD)
-        amountUSD = amount / exchangeRate;
-        feeUSD = fee / exchangeRate;
-        totalUSD = total / exchangeRate;
-
-        requestData.amount = amountUSD.toFixed(2);
-        requestData.fees = feeUSD.toFixed(2);
-        requestData.total = totalUSD.toFixed(2);
-      } else {
-        // Si c'est déjà en USD, pas besoin de conversion
-        requestData.amount = amount.toFixed(2);
-        requestData.fees = fee.toFixed(2);
-        requestData.total = total.toFixed(2);
-      }
+      requestData.amount = amount.toFixed(2);
+      requestData.fees = fee.toFixed(2);
+      requestData.total = total.toFixed(2);
+      requestData.payment_type = selectedPaymentType;
+      requestData.transaction_type = "purchase_virtual";
 
       // Ajouter les détails spécifiques selon le type de paiement
       if (selectedPaymentType === paymentTypes.MOBILE_MONEY) {
@@ -391,10 +377,7 @@ export default function VirtualPurchaseForm({ onClose, updateWalletBalance }) {
         requestData.telecom =
           selectedPaymentOption.telecomCode || selectedPaymentOption.id;
       } else if (selectedPaymentType === paymentTypes.CREDIT_CARD) {
-        // Pour les cartes, on utilise quand même le numéro de téléphone pour le backend actuel
-        // mais on pourrait adapter le backend pour accepter les détails de carte
-        requestData.phoneNumber = formData.phoneNumber || "0000000000";
-        requestData.cardDetails = {
+        requestData.payment_details = {
           cardNumber: formData.cardNumber.replace(/\s/g, ""),
           cardHolder: formData.cardHolder,
           expiryDate: formData.expiryDate,
@@ -406,32 +389,31 @@ export default function VirtualPurchaseForm({ onClose, updateWalletBalance }) {
       console.log("Données envoyées au backend:", requestData);
 
       // Appel à l'API
-      const response = await axios.post(
-        "/api/userwallet/purchase-virtual",
-        requestData
-      );
+      const response = await axios.post("/api/serdipay/payment", requestData);
 
       // Traiter la réponse
       if (response.data.success) {
+        // Pour SerdiPay, le paiement est seulement initié à ce stade
         setTransactionResult({
           success: true,
-          message:
-            response.data.message ||
-            "Votre achat de virtuel a été effectué avec succès.",
-          amount: response.data.amount,
-          transactionId: response.data.transaction_id,
-          newBalance: response.data.new_balance?.replace(" $", "") || "0.00",
+          message: "Votre demande d'achat de virtuels a été initiée avec succès. Vous recevrez une notification dès que le paiement sera confirmé.",
+          pending: true
         });
 
-        // Mettre à jour le solde du wallet dans le contexte
-        if (updateWalletBalance) {
-          const newBalanceValue =
-            response.data.new_balance?.replace(" $", "") || "0.00";
-          updateWalletBalance(newBalanceValue);
-        }
-
         // Afficher un toast de succès
-        toast.success("Achat de virtuel effectué avec succès!");
+        toast.success(
+          "Paiement initié avec succès! Vous recevrez une notification dès que le paiement sera confirmé.",
+          {
+            autoClose: 5000,
+            closeButton: true,
+            position: "top-center"
+          }
+        );
+        
+        // Fermer le modal après 3 secondes pour permettre à l'utilisateur de continuer sa navigation
+        setTimeout(() => {
+          if (typeof onClose === "function") onClose();
+        }, 3000);
       } else {
         setTransactionResult({
           success: false,

@@ -13,6 +13,7 @@ class WithdrawalRequest extends Model
         'user_id',
         'amount',
         'status',
+        'payment_status',
         'payment_method',
         'payment_details',
         'admin_note',
