@@ -7,6 +7,8 @@ use App\Models\OffreEmploi;
 use App\Models\OpportuniteAffaire;
 use Carbon\Carbon;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class UpdatePublicationStatus extends Command
 {
@@ -23,6 +25,13 @@ class UpdatePublicationStatus extends Command
      * @var string
      */
     protected $description = 'Mettre à jour le statut des publications expirées';
+    
+    /**
+     * Taille du lot pour le traitement des publications
+     *
+     * @var int
+     */
+    protected $chunkSize = 100;
 
     /**
      * Execute the console command.
@@ -31,54 +40,38 @@ class UpdatePublicationStatus extends Command
      */
     public function handle()
     {
-        $this->updatePubliciteStatus();
-        $this->updateOffreEmploiStatus();
-        $this->updateOpportuniteAffaireStatus();
+        $this->info('Démarrage de la mise à jour des statuts des publications...');
+        
+        try {
+            $this->updatePubliciteStatus();
+            $this->updateOffreEmploiStatus();
+            $this->updateOpportuniteAffaireStatus();
 
-        $this->info('Statut des publications mis à jour avec succès.');
+            $this->info('Statut des publications mis à jour avec succès.');
 
-        return Command::SUCCESS;
-    }
+            return Command::SUCCESS;
+        } catch (\Exception $e) {
+            $this->error('Une erreur est survenue lors de la mise à jour des statuts: ' . $e->getMessage());
+            Log::error('Erreur lors de la mise à jour des statuts des publications: ' . $e->getMessage());
+            Log::error($e->getTraceAsString());
+            return Command::FAILURE;
+        }
 
     /**
      * Mettre à jour le statut des publicités expirées
      */
     private function updatePubliciteStatus()
     {
-        // Récupérer les publicités qui ont dépassé leur durée d'affichage
-        $publicites = Publicite::where('statut', 'approuvé')
-            ->where('etat', 'disponible')
-            ->whereNotNull('duree_affichage')
-            ->get();
-
-        $now = Carbon::now();
-        $count = 0;
-        $updatedCount = 0;
-
-        foreach ($publicites as $publicite) {
-            $dateCreation = Carbon::parse($publicite->created_at);
-            $dateExpiration = $dateCreation->addDays($publicite->duree_affichage);
-
-            if ($now->gt($dateExpiration)) {
-                $publicite->statut = 'expiré';
-                $publicite->duree_affichage = 0;
-                $publicite->save();
-                $count++;
-            } else {
-                // Calculer les jours restants
-                $joursRestants = $now->diffInDays($dateExpiration, false);
-                
-                // Si la durée d'affichage est différente des jours restants, mettre à jour
-                if ($publicite->duree_affichage != $joursRestants && $joursRestants >= 0) {
-                    $publicite->duree_affichage = $joursRestants;
-                    $publicite->save();
-                    $updatedCount++;
-                }
-            }
-        }
-
-        $this->info("$count publicités ont expirées.");
-        $this->info("$updatedCount publicités ont eu leur durée d'affichage mise à jour.");
+        $this->info('Traitement des publicités...');
+        
+        $stats = $this->processPublications(
+            Publicite::class,
+            'publicités',
+            ['statut' => 'approuvé', 'etat' => 'disponible']
+        );
+        
+        $this->info("{$stats['expired']} publicités ont expirées.");
+        $this->info("{$stats['updated']} publicités ont eu leur durée d'affichage mise à jour.");
     }
 
     /**
@@ -86,57 +79,17 @@ class UpdatePublicationStatus extends Command
      */
     private function updateOffreEmploiStatus()
     {
-        // Récupérer les offres d'emploi
-        $offres = OffreEmploi::where('statut', 'approuvé')
-            ->where('etat', 'disponible')
-            ->get();
-
-        $now = Carbon::now();
-        $countDateLimite = 0;
-        $countDureeAffichage = 0;
-        $updatedCount = 0;
-
-        foreach ($offres as $offre) {
-            $isExpired = false;
-            
-            // Vérifier si la date limite est dépassée
-            if ($offre->date_limite && Carbon::parse($offre->date_limite)->lt($now)) {
-                $isExpired = true;
-                $countDateLimite++;
-            }
-            
-            // Vérifier si la durée d'affichage est dépassée
-            if (!$isExpired && $offre->duree_affichage) {
-                $dateCreation = Carbon::parse($offre->created_at);
-                $dateExpiration = $dateCreation->addDays($offre->duree_affichage);
-                
-                if ($now->gt($dateExpiration)) {
-                    $isExpired = true;
-                    $countDureeAffichage++;
-                } else {
-                    // Calculer les jours restants
-                    $joursRestants = $now->diffInDays($dateExpiration, false);
-                    
-                    // Si la durée d'affichage est différente des jours restants, mettre à jour
-                    if ($offre->duree_affichage != $joursRestants && $joursRestants >= 0) {
-                        $offre->duree_affichage = $joursRestants;
-                        $offre->save();
-                        $updatedCount++;
-                    }
-                }
-            }
-            
-            // Marquer comme expiré si nécessaire
-            if ($isExpired) {
-                $offre->statut = 'expiré';
-                $offre->duree_affichage = 0;
-                $offre->save();
-            }
-        }
-
-        $this->info("$countDateLimite offres d'emploi ont expiré (date limite).");
-        $this->info("$countDureeAffichage offres d'emploi ont expiré (durée d'affichage).");
-        $this->info("$updatedCount offres d'emploi ont eu leur durée d'affichage mise à jour.");
+        $this->info('Traitement des offres d\'emploi...');
+        
+        $stats = $this->processPublications(
+            OffreEmploi::class,
+            'offres d\'emploi',
+            ['statut' => 'approuvé', 'etat' => 'disponible']
+        );
+        
+        $this->info("{$stats['expired_date_limite']} offres d'emploi ont expiré (date limite).");
+        $this->info("{$stats['expired_duree']} offres d'emploi ont expiré (durée d'affichage).");
+        $this->info("{$stats['updated']} offres d'emploi ont eu leur durée d'affichage mise à jour.");
     }
 
     /**
@@ -144,56 +97,109 @@ class UpdatePublicationStatus extends Command
      */
     private function updateOpportuniteAffaireStatus()
     {
-        // Récupérer les opportunités d'affaires
-        $opportunites = OpportuniteAffaire::where('statut', 'approuvé')
-            ->where('etat', 'disponible')
-            ->get();
-
-        $now = Carbon::now();
-        $countDateLimite = 0;
-        $countDureeAffichage = 0;
-        $updatedCount = 0;
-
-        foreach ($opportunites as $opportunite) {
-            $isExpired = false;
+        $this->info('Traitement des opportunités d\'affaires...');
+        
+        $stats = $this->processPublications(
+            OpportuniteAffaire::class,
+            'opportunités d\'affaires',
+            ['statut' => 'approuvé', 'etat' => 'disponible']
+        );
+        
+        $this->info("{$stats['expired_date_limite']} opportunités d'affaires ont expiré (date limite).");
+        $this->info("{$stats['expired_duree']} opportunités d'affaires ont expiré (durée d'affichage).");
+        $this->info("{$stats['updated']} opportunités d'affaires ont eu leur durée d'affichage mise à jour.");
+    }
+    
+    /**
+     * Méthode générique pour traiter les publications par lots
+     * 
+     * @param string $modelClass Classe du modèle à traiter
+     * @param string $typeName Nom du type de publication pour les logs
+     * @param array $conditions Conditions de filtrage
+     * @return array Statistiques du traitement
+     */
+    private function processPublications(string $modelClass, string $typeName, array $conditions = [])
+    {
+        $stats = [
+            'expired' => 0,
+            'expired_date_limite' => 0,
+            'expired_duree' => 0,
+            'updated' => 0,
+            'processed' => 0,
+            'errors' => 0
+        ];
+        
+        $query = $modelClass::query();
+        
+        // Appliquer les conditions de filtrage
+        foreach ($conditions as $field => $value) {
+            $query->where($field, $value);
+        }
+        
+        // Ajouter la condition pour la durée d'affichage
+        $query->whereNotNull('duree_affichage');
+        
+        // Traitement par lots
+        $query->chunk($this->chunkSize, function ($publications) use (&$stats, $modelClass) {
+            DB::beginTransaction();
             
-            // Vérifier si la date limite est dépassée
-            if ($opportunite->date_limite && Carbon::parse($opportunite->date_limite)->lt($now)) {
-                $isExpired = true;
-                $countDateLimite++;
-            }
-            
-            // Vérifier si la durée d'affichage est dépassée
-            if (!$isExpired && $opportunite->duree_affichage) {
-                $dateCreation = Carbon::parse($opportunite->created_at);
-                $dateExpiration = $dateCreation->addDays($opportunite->duree_affichage);
+            try {
+                $now = Carbon::now();
                 
-                if ($now->gt($dateExpiration)) {
-                    $isExpired = true;
-                    $countDureeAffichage++;
-                } else {
-                    // Calculer les jours restants
-                    $joursRestants = $now->diffInDays($dateExpiration, false);
+                foreach ($publications as $publication) {
+                    $isExpired = false;
+                    $stats['processed']++;
                     
-                    // Si la durée d'affichage est différente des jours restants, mettre à jour
-                    if ($opportunite->duree_affichage != $joursRestants && $joursRestants >= 0) {
-                        $opportunite->duree_affichage = $joursRestants;
-                        $opportunite->save();
-                        $updatedCount++;
+                    // Vérifier si la date limite est dépassée (pour les offres d'emploi et opportunités d'affaires)
+                    if (property_exists($publication, 'date_limite') && $publication->date_limite && Carbon::parse($publication->date_limite)->lt($now)) {
+                        $isExpired = true;
+                        $stats['expired']++;
+                        $stats['expired_date_limite']++;
+                    }
+                    
+                    // Vérifier si la durée d'affichage est dépassée
+                    if (!$isExpired && $publication->duree_affichage) {
+                        $dateCreation = Carbon::parse($publication->created_at);
+                        $dateExpiration = $dateCreation->addDays($publication->duree_affichage);
+                        
+                        if ($now->gt($dateExpiration)) {
+                            $isExpired = true;
+                            $stats['expired']++;
+                            $stats['expired_duree']++;
+                        } else {
+                            // Calculer les jours restants
+                            $joursRestants = $now->diffInDays($dateExpiration, false);
+                            
+                            // Si la durée d'affichage est différente des jours restants, mettre à jour
+                            if ($publication->duree_affichage != $joursRestants && $joursRestants >= 0) {
+                                $publication->duree_affichage = $joursRestants;
+                                $publication->save();
+                                $stats['updated']++;
+                            }
+                        }
+                    }
+                    
+                    // Marquer comme expiré si nécessaire
+                    if ($isExpired) {
+                        $publication->statut = 'expiré';
+                        $publication->duree_affichage = 0;
+                        $publication->save();
                     }
                 }
+                
+                DB::commit();
+                $this->info("Lot traité: {$publications->count()} publications");
+            } catch (\Exception $e) {
+                DB::rollBack();
+                $stats['errors']++;
+                $this->error("Erreur lors du traitement d'un lot: {$e->getMessage()}");
+                Log::error("Erreur lors du traitement d'un lot de publications: {$e->getMessage()}", [
+                    'model' => $modelClass,
+                    'trace' => $e->getTraceAsString()
+                ]);
             }
-            
-            // Marquer comme expiré si nécessaire
-            if ($isExpired) {
-                $opportunite->statut = 'expiré';
-                $opportunite->duree_affichage = 0;
-                $opportunite->save();
-            }
-        }
-
-        $this->info("$countDateLimite opportunités d'affaires ont expiré (date limite).");
-        $this->info("$countDureeAffichage opportunités d'affaires ont expiré (durée d'affichage).");
-        $this->info("$updatedCount opportunités d'affaires ont eu leur durée d'affichage mise à jour.");
+        });
+        
+        return $stats;
     }
 }

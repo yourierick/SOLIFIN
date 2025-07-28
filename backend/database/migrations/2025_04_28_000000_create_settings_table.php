@@ -74,7 +74,7 @@ return new class extends Migration
             [
                 'key' => 'purchase_commission_system',
                 'value' => '0',
-                'description' => 'Pourcentage des frais de commission système pour la vente des formations',
+                'description' => 'Pourcentage des frais de commission système pour la vente des formations et des produits digitaux',
                 'created_at' => now(),
                 'updated_at' => now(),
             ],

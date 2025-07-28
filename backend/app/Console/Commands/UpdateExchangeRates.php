@@ -29,9 +29,6 @@ class UpdateExchangeRates extends Command
      */
     protected $currencies = [
         'USD', // Dollar américain (devise de base)
-        // 'EUR', // Euro
-        // 'XOF', // Franc CFA BCEAO
-        // 'XAF', // Franc CFA BEAC
         'CDF', // Franc Congolais
     ];
 

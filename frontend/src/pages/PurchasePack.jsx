@@ -12,11 +12,13 @@ import {
 import Notification from "../components/Notification";
 import axios from "../utils/axios";
 import RegistrationPaymentForm from "../components/RegistrationPaymentForm";
+import { useTheme } from "../contexts/ThemeContext";
 
 const PurchasePack = () => {
   const { sponsor_code } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
+  const { isDarkMode } = useTheme();
   const [loading, setLoading] = useState(true);
   const [purchasing, setPurchasing] = useState(false);
   const [pack, setPack] = useState(null);
@@ -286,22 +288,76 @@ const PurchasePack = () => {
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
         </div>
       ) : (
-        <Paper>
+        <Paper
+          sx={{
+            backgroundColor: isDarkMode ? "#1f2937" : "#ffffff",
+            bgcolor: isDarkMode ? "#1f2937" : "#ffffff",
+            color: isDarkMode ? "#ffffff" : "#000000",
+            boxShadow: isDarkMode
+              ? "0 4px 6px -1px rgba(0, 0, 0, 0.2), 0 2px 4px -1px rgba(0, 0, 0, 0.1)"
+              : "0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)",
+            borderRadius: "0.5rem",
+            overflow: "hidden",
+          }}
+        >
           {paymentProcessing ? (
-            <Box sx={{ textAlign: "center", py: 4 }}>
-              <CircularProgress sx={{ mb: 2 }} />
-              <Typography variant="h6">
-                {paymentMethod === "mobile"
+            <Box
+              sx={{
+                textAlign: "center",
+                py: 4,
+                backgroundColor: isDarkMode ? "#1f2937" : "#ffffff",
+                bgcolor: isDarkMode ? "#1f2937" : "#ffffff",
+              }}
+            >
+              <div className="flex justify-center items-center h-64">
+                <div
+                  className={`animate-spin rounded-full h-8 w-8 border-b-2 ${
+                    isDarkMode ? "border-primary-400" : "border-primary-600"
+                  }`}
+                ></div>
+              </div>
+              <Typography
+                variant="h6"
+                sx={{ color: isDarkMode ? "#ffffff" : "#000000" }}
+              >
+                {paymentMethod === "mobile-money"
                   ? "Veuillez confirmer le paiement sur votre téléphone mobile"
                   : "Traitement du paiement en cours..."}
               </Typography>
-              <Typography variant="body2" sx={{ mt: 1 }}>
+              <Typography
+                variant="body2"
+                sx={{
+                  mt: 1,
+                  color: isDarkMode
+                    ? "rgba(255, 255, 255, 0.7)"
+                    : "rgba(0, 0, 0, 0.7)",
+                }}
+              >
                 Veuillez ne pas fermer cette page
               </Typography>
             </Box>
           ) : registrationFailed ? (
-            <Box sx={{ textAlign: "center", py: 2 }}>
-              <Alert severity="warning" sx={{ mb: 3 }}>
+            <Box
+              sx={{
+                textAlign: "center",
+                py: 2,
+                backgroundColor: isDarkMode ? "#1f2937" : "#ffffff",
+                bgcolor: isDarkMode ? "#1f2937" : "#ffffff",
+              }}
+            >
+              <Alert
+                severity="warning"
+                sx={{
+                  mb: 3,
+                  backgroundColor: isDarkMode
+                    ? "rgba(255, 193, 7, 0.1)"
+                    : "rgba(255, 193, 7, 0.1)",
+                  color: isDarkMode ? "#fff" : "inherit",
+                  "& .MuiAlert-icon": {
+                    color: isDarkMode ? "rgba(255, 193, 7, 0.9)" : "inherit",
+                  },
+                }}
+              >
                 <Typography variant="subtitle1" sx={{ fontWeight: "bold" }}>
                   Votre paiement a été accepté mais l'inscription a échoué
                 </Typography>
@@ -318,7 +374,15 @@ const PurchasePack = () => {
                 color="primary"
                 onClick={handleRetryRegistration}
                 disabled={isRetrying}
-                sx={{ mt: 2 }}
+                sx={{
+                  mt: 2,
+                  backgroundColor: isRetrying
+                    ? "rgba(46, 125, 50, 0.7)"
+                    : "#2E7D32",
+                  "&:hover": {
+                    backgroundColor: "#1B5E20",
+                  },
+                }}
               >
                 {isRetrying ? (
                   <>
@@ -346,11 +410,24 @@ const PurchasePack = () => {
               }}
               onSubmit={handlePaymentSubmit}
               disabled={purchasing}
+              isDarkMode={isDarkMode}
             />
           ) : null}
 
           {paymentError && !registrationFailed && (
-            <Alert severity="error" sx={{ mt: 2 }}>
+            <Alert
+              severity="error"
+              sx={{
+                mt: 2,
+                backgroundColor: isDarkMode
+                  ? "rgba(244, 67, 54, 0.1)"
+                  : "rgba(244, 67, 54, 0.1)",
+                color: isDarkMode ? "#fff" : "inherit",
+                "& .MuiAlert-icon": {
+                  color: isDarkMode ? "rgba(244, 67, 54, 0.9)" : "inherit",
+                },
+              }}
+            >
               {paymentError}
             </Alert>
           )}

@@ -211,23 +211,24 @@ const RoleManagement = () => {
   return (
     <div className="p-4">
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
-          Gestion des Rôles et Permissions
-        </h2>
         <div className="flex space-x-2">
           <button
             onClick={openCreateRoleModal}
             className="flex items-center px-4 py-2 bg-primary-600 text-white rounded hover:bg-primary-700 transition-colors"
           >
-            <PlusCircleIcon className="h-5 w-5 mr-2" />
-            Nouveau Rôle
+            <PlusCircleIcon
+              className="h-5 w-5 mr-2 rounded-full"
+              title="Nouveau rôle"
+            />
           </button>
           <button
             onClick={openAssignRoleModal}
             className="flex items-center px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition-colors"
           >
-            <UserPlusIcon className="h-5 w-5 mr-2" />
-            Attribuer Rôle
+            <UserPlusIcon
+              className="h-5 w-5 mr-2 rounded-full"
+              title="Attribuer Rôle"
+            />
           </button>
         </div>
       </div>

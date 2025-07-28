@@ -19,7 +19,9 @@ class SettingsController extends Controller
         'withdrawal_fee_percentage',
         'sending_fee_percentage',
         'transfer_fee_percentage',
+        'transfer_commission',
         'purchase_fee_percentage',
+        'purchase_commission_system',
         
         // Réseaux sociaux
         'facebook_url',
@@ -100,8 +102,10 @@ class SettingsController extends Controller
             'withdrawal_commission', 
             'withdrawal_fee_percentage', 
             'sending_fee_percentage', 
+            'transfer_commission',
             'transfer_fee_percentage',
             'purchase_fee_percentage',
+            'purchase_commission_system',
         ])) {
             $value = floatval($request->value);
             if ($value < 0 || $value > 100) {

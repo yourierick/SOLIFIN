@@ -315,8 +315,11 @@ export default function RegistrationPaymentForm({
   pack,
   onSubmit,
   loading = false,
+  isDarkMode = false, // Accepter isDarkMode comme prop ou utiliser le contexte
 }) {
-  const { isDarkMode } = useTheme();
+  // Utiliser la prop isDarkMode si fournie, sinon utiliser le contexte
+  const { isDarkMode: contextDarkMode } = useTheme();
+  const isThemeDark = isDarkMode || contextDarkMode;
   const [error, setError] = useState("");
   const [paymentMethod, setPaymentMethod] = useState(PAYMENT_TYPES.CREDIT_CARD);
   const [selectedCardOption, setSelectedCardOption] = useState("");
@@ -925,24 +928,33 @@ export default function RegistrationPaymentForm({
 
   return (
     <div
-      className={`fixed inset-0 z-10 flex items-center justify-center bg-black/60 ${
-        isDarkMode ? "dark" : ""
-      }`}
-      style={{ zIndex: 40 }}
+      className={`fixed inset-0 z-10 flex items-center justify-center ${isThemeDark ? "dark bg-black/70" : "bg-black/60"}`}
+      style={{ 
+        zIndex: 40,
+        backdropFilter: "blur(5px)"
+      }}
     >
       <style>{customStyles}</style>
       <div
         className={`relative w-full max-w-2xl rounded-lg p-0 shadow-xl overflow-hidden ${
-          isDarkMode ? "bg-gray-800 text-white" : "bg-white"
+          isThemeDark ? "bg-gray-800 text-white" : "bg-white"
         }`}
+        style={{
+          boxShadow: isThemeDark 
+            ? "0 10px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.4)" 
+            : "0 10px 25px -5px rgba(0, 0, 0, 0.2), 0 8px 10px -6px rgba(0, 0, 0, 0.1)"
+        }}
       >
         {/* En-tête avec dégradé */}
         <div
           className={`p-6 ${
-            isDarkMode
+            isThemeDark
               ? "bg-gradient-to-r from-green-900 to-green-800 text-white"
               : "bg-gradient-to-r from-green-800 to-green-900 text-white"
           }`}
+          style={{
+            borderBottom: isThemeDark ? "1px solid rgba(255, 255, 255, 0.1)" : "none"
+          }}
         >
           <div className="flex items-center justify-between">
             <Typography variant="h5" component="h2" className="font-bold">
@@ -962,13 +974,28 @@ export default function RegistrationPaymentForm({
         </div>
 
         {error && (
-          <Alert severity="error" className="mx-6 mt-4 mb-0">
+          <Alert 
+            severity="error" 
+            className="mx-6 mt-4 mb-0"
+            sx={{
+              backgroundColor: isThemeDark ? 'rgba(244, 67, 54, 0.1)' : 'rgba(244, 67, 54, 0.1)',
+              color: isThemeDark ? '#fff' : 'inherit',
+              '& .MuiAlert-icon': {
+                color: isThemeDark ? 'rgba(244, 67, 54, 0.9)' : 'inherit'
+              }
+            }}
+          >
             {error}
           </Alert>
         )}
 
         <form onSubmit={handleSubmit}>
-          <div className="max-h-[60vh] overflow-y-auto p-6 pt-4 custom-scrollbar">
+          <div 
+            className="max-h-[60vh] overflow-y-auto p-6 pt-4 custom-scrollbar"
+            style={{
+              backgroundColor: isThemeDark ? '#1f2937' : '#ffffff',
+            }}
+          >
             <h1 className="text-lg font-bold mb-3 text-secondary-600 dark:text-secondary-400">
               Vous souscrivez pour le pack {pack.name}
             </h1>
@@ -1148,10 +1175,10 @@ export default function RegistrationPaymentForm({
                         MenuProps: {
                           PaperProps: {
                             sx: {
-                              bgcolor: isDarkMode ? "#1e283b" : "white",
-                              color: isDarkMode ? "white" : "inherit",
+                              bgcolor: isThemeDark ? "#1e283b" : "white",
+                              color: isThemeDark ? "white" : "inherit",
                               "& .MuiMenuItem-root:hover": {
-                                bgcolor: isDarkMode
+                                bgcolor: isThemeDark
                                   ? "rgba(255, 255, 255, 0.08)"
                                   : "rgba(0, 0, 0, 0.04)",
                               },
@@ -1173,8 +1200,13 @@ export default function RegistrationPaymentForm({
 
               <div
                 className={`mt-4 p-3 rounded-lg ${
-                  isDarkMode ? "bg-gray-700" : "bg-gray-50"
+                  isThemeDark ? "bg-gray-700" : "bg-gray-50"
                 }`}
+                style={{
+                  boxShadow: isThemeDark 
+                    ? "0 2px 5px rgba(0, 0, 0, 0.2)" 
+                    : "0 2px 5px rgba(0, 0, 0, 0.05)"
+                }}
               >
                 <div className="flex justify-between items-center">
                   <Typography
@@ -1242,7 +1274,12 @@ export default function RegistrationPaymentForm({
               </div>
 
               {pack?.sponsorName && (
-                <div className="mt-3 p-2 bg-yellow-100 dark:bg-yellow-900 rounded-lg text-yellow-800 dark:text-yellow-200">
+                <div 
+                  className={`mt-3 p-2 rounded-lg ${isThemeDark ? "bg-yellow-900 text-yellow-200" : "bg-yellow-100 text-yellow-800"}`}
+                  style={{
+                    borderLeft: `4px solid ${isThemeDark ? "#fbbf24" : "#f59e0b"}`,
+                  }}
+                >
                   <Typography variant="body2">
                     Pour ce pack vous serez sous le parrainage de :{" "}
                     <span className="font-semibold">{pack.sponsorName}</span>
@@ -1253,7 +1290,12 @@ export default function RegistrationPaymentForm({
           </div>
 
           {/* Bouton de paiement - en dehors de la zone scrollable */}
-          <div className="p-6 pt-4 flex items-center justify-between border-t border-gray-200 dark:border-gray-700">
+          <div 
+            className={`p-6 pt-4 flex items-center justify-between border-t ${isThemeDark ? "border-gray-700" : "border-gray-200"}`}
+            style={{
+              backgroundColor: isThemeDark ? '#1f2937' : '#ffffff',
+            }}
+          >
             <Typography variant="body2" color="textSecondary">
               Procédez au paiement sécurisé
             </Typography>
@@ -1278,7 +1320,13 @@ export default function RegistrationPaymentForm({
                 borderRadius: "8px",
                 textTransform: "none",
                 fontWeight: "bold",
-                boxShadow: "0 4px 10px rgba(0, 0, 0, 0.1)",
+                backgroundColor: isThemeDark ? '#2E7D32' : '#2E7D32',
+                '&:hover': {
+                  backgroundColor: isThemeDark ? '#1B5E20' : '#1B5E20',
+                },
+                boxShadow: isThemeDark 
+                  ? "0 4px 10px rgba(0, 0, 0, 0.3)" 
+                  : "0 4px 10px rgba(0, 0, 0, 0.1)",
               }}
             >
               {loading || localLoading ? (

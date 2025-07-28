@@ -4,7 +4,6 @@ namespace Database\Seeders;
 
 use App\Models\User;
 use App\Models\Wallet;
-use App\Models\WalletSystem;
 use App\Models\Pack;
 use App\Models\UserPack;
 use Illuminate\Database\Seeder;
@@ -15,6 +14,9 @@ class AdminSeeder extends Seeder
 {
     public function run(): void
     {
+        // Récupérer l'URL du frontend depuis le fichier .env
+        $frontendUrl = env('FRONTEND_URL', 'http://localhost:5173');
+        
         // Créer l'administrateur
         $admin = User::create([
             'name' => 'Mukuta Bitangalo Erick',
@@ -32,8 +34,9 @@ class AdminSeeder extends Seeder
             'phone' => '+243813728334',
         ]);
 
+        // Générer un identifiant de compte unique
         do {
-            $account_id = 'ADM-' . rand(1, 100) . "-" . strtoupper(Str::random(4));
+            $account_id = 'ADM-' . rand(1, 100) . '-' . strtoupper(Str::random(4));
         } while (User::where('account_id', $account_id)->exists());
 
         $admin->account_id = $account_id;
@@ -47,24 +50,28 @@ class AdminSeeder extends Seeder
             'total_withdrawn' => 0,
         ]);
 
-        // Récupérer l'URL du frontend depuis le fichier .env
-        $frontendUrl = env('FRONTEND_URL', 'http://localhost:5173');
+
         
         // Attribuer tous les packs à l'administrateur
-        Pack::chunk(100, function ($packs) use ($admin) {
+        // Récupérer tous les codes de référence existants pour éviter les vérifications multiples dans la boucle
+        $existingReferralCodes = UserPack::pluck('referral_code')->toArray();
+        
+        Pack::chunk(100, function ($packs) use ($admin, $frontendUrl, &$existingReferralCodes) {
             foreach ($packs as $pack) {
                 $referralLetter = substr($pack->name, 0, 1);
-                $referralNumber = str_pad(rand(1, 9999), 4, '0', STR_PAD_LEFT);
-                $referralCode = 'SPR' . $referralLetter . $referralNumber;
-
-                // Vérifier que le code est unique
-                while (UserPack::where('referral_code', $referralCode)->exists()) {
+                
+                // Générer un code de référence unique
+                do {
                     $referralNumber = str_pad(rand(1, 9999), 4, '0', STR_PAD_LEFT);
                     $referralCode = 'SPR' . $referralLetter . $referralNumber;
-                }
+                } while (in_array($referralCode, $existingReferralCodes));
+                
+                // Ajouter le nouveau code à la liste des codes existants
+                $existingReferralCodes[] = $referralCode;
 
                 // Créer le lien de parrainage en utilisant l'URL du frontend
-                $referralLink = $frontendUrl . "/register?referral_code=" . $referralCode;
+                $referralLink = $frontendUrl . '/register?referral_code=' . $referralCode;
+                
                 UserPack::create([
                     'user_id' => $admin->id,
                     'pack_id' => $pack->id,

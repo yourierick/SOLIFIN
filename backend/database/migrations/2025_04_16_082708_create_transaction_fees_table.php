@@ -56,13 +56,6 @@ return new class extends Migration
                 'created_at' => now(),
             ],
             [
-                'payment_method' => 'mtn-mobile-money',
-                'payment_type' => 'mobile-money',
-                'transfer_fee_percentage' => 1.5,
-                'withdrawal_fee_percentage' => 1.5,
-                'created_at' => now(),
-            ],
-            [
                 'payment_method' => 'visa',
                 'payment_type' => 'credit-card',
                 'transfer_fee_percentage' => 1.5,

@@ -124,8 +124,6 @@ export default function Wallets() {
   const [currentPage, setCurrentPage] = useState(1);
   const [transactionsPerPage] = useState(5);
   const [showFilters, setShowFilters] = useState(false);
-  const [showCancelModal, setShowCancelModal] = useState(false);
-  const [withdrawalToCancel, setWithdrawalToCancel] = useState(null);
   const [selectedTransaction, setSelectedTransaction] = useState(null);
   const [showTransactionDetails, setShowTransactionDetails] = useState(false);
   const [selectedPackForConversion, setSelectedPackForConversion] =
@@ -360,46 +358,6 @@ export default function Wallets() {
     setShowWithdrawalForm(true);
   };
 
-  const handleCancelClick = (withdrawalId) => {
-    if (!withdrawalId) {
-      toast.error("Impossible d'annuler cette demande : identifiant manquant");
-      return;
-    }
-    setWithdrawalToCancel(withdrawalId);
-    setShowCancelModal(true);
-  };
-
-  const handleCancelWithdrawal = async () => {
-    // Vérifier si l'ID de retrait est défini
-    if (!withdrawalToCancel) {
-      toast.error("Impossible d'annuler cette demande : identifiant manquant");
-      setShowCancelModal(false);
-      return;
-    }
-
-    axios
-      .post(`/api/withdrawal/request/${withdrawalToCancel}/cancel`)
-      .then((response) => {
-        if (response.data.success) {
-          toast.success(response.data.message);
-          Notification.success(response.data.message);
-          fetchWalletData(); // Rafraîchir les données
-        } else {
-          toast.error(response.data.message);
-        }
-      })
-      .catch((error) => {
-        toast.error(
-          error.response?.data?.message ||
-            "Une erreur s'est produite lors de l'annulation"
-        );
-      })
-      .finally(() => {
-        setShowCancelModal(false);
-        setWithdrawalToCancel(null);
-      });
-  };
-
   const handleTransactionClick = (transaction) => {
     setSelectedTransaction(transaction);
     setShowTransactionDetails(true);
@@ -452,11 +410,7 @@ export default function Wallets() {
 
     // Récupérer les frais de transfert et commissions
     try {
-      const response = await axios.get(`/api/getTransferFees`, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-      });
+      const response = await axios.get(`/api/getTransferFees`);
 
       if (response.data.success) {
         setTransferFeePercentage(response.data.fee_percentage);
@@ -479,11 +433,7 @@ export default function Wallets() {
   // Fonction pour récupérer les frais de transfert
   const fetchTransferFees = async () => {
     try {
-      const response = await axios.get(`/api/getTransferFees`, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-      });
+      const response = await axios.get(`/api/getTransferFees`);
 
       if (response.data.success) {
         setTransferFeePercentage(response.data.fee_percentage);
@@ -1643,23 +1593,7 @@ export default function Wallets() {
                         {formatDate(transaction.created_at)}
                       </td>
                       {hasActionableTransactions && (
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          {transaction.type === "withdrawal" &&
-                            transaction.status === "pending" &&
-                            transaction.metadata?.withdrawal_request_id && (
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleCancelClick(
-                                    transaction.metadata.withdrawal_request_id
-                                  );
-                                }}
-                                className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"
-                              >
-                                Annuler
-                              </button>
-                            )}
-                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap"></td>
                       )}
                     </tr>
                   ))}
@@ -1834,68 +1768,6 @@ export default function Wallets() {
         </div>
       </div>
 
-      {/* Modal de confirmation d'annulation */}
-      {showCancelModal &&
-        createPortal(
-          <AnimatePresence>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black bg-opacity-60 backdrop-blur-sm flex items-center justify-center z-50"
-              onClick={() => setShowCancelModal(false)}
-            >
-              <motion.div
-                initial={{ scale: 0.9, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                exit={{ scale: 0.9, opacity: 0 }}
-                className={`relative p-6 rounded-lg shadow-xl max-w-md w-full mx-4 ${
-                  isDarkMode ? "bg-gray-800" : "bg-white"
-                }`}
-                onClick={(e) => e.stopPropagation()}
-              >
-                <h3
-                  className={`text-lg font-medium mb-4 ${
-                    isDarkMode ? "text-white" : "text-gray-900"
-                  }`}
-                >
-                  Confirmer l'annulation
-                </h3>
-                <p
-                  className={`mb-6 ${
-                    isDarkMode ? "text-gray-300" : "text-gray-600"
-                  }`}
-                >
-                  Êtes-vous sûr de vouloir annuler cette demande de retrait ?
-                  Cette action est irréversible.
-                </p>
-                <div className="flex justify-end gap-3">
-                  <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={() => setShowCancelModal(false)}
-                    className={`px-4 py-2 rounded-md ${
-                      isDarkMode
-                        ? "bg-gray-700 hover:bg-gray-600 text-gray-300"
-                        : "bg-gray-200 hover:bg-gray-300 text-gray-700"
-                    }`}
-                  >
-                    Annuler
-                  </motion.button>
-                  <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={handleCancelWithdrawal}
-                    className="px-4 py-2 rounded-md bg-red-600 hover:bg-red-700 text-white"
-                  >
-                    Confirmer
-                  </motion.button>
-                </div>
-              </motion.div>
-            </motion.div>
-          </AnimatePresence>,
-          document.body
-        )}
       {/* Modal de détails de transaction */}
       {showTransactionDetails &&
         selectedTransaction &&

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Tab } from "@headlessui/react";
 import TransactionFeeSettings from "./components/TransactionFeeSettings";
 import CountryAccessSettings from "./components/CountryAccessSettings";
@@ -13,17 +13,66 @@ import {
   ShieldCheckIcon,
   GlobeAltIcon,
   UserGroupIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
 } from "@heroicons/react/24/outline";
 
 function classNames(...classes) {
   return classes.filter(Boolean).join(" ");
 }
 
+// Style pour masquer la barre de défilement
+const style = document.createElement('style');
+style.textContent = `
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+`;
+document.head.appendChild(style);
+
 const Settings = () => {
   const { isDarkMode } = useTheme();
   const [isEmailNotificationEnabled, setIsEmailNotificationEnabled] =
     useState(true);
   const [password, setPassword] = useState("");
+  const tabListRef = useRef(null);
+  const [showLeftArrow, setShowLeftArrow] = useState(false);
+  const [showRightArrow, setShowRightArrow] = useState(false);
+  
+  // Fonction pour vérifier si les flèches doivent être affichées
+  const checkForArrows = () => {
+    if (tabListRef.current) {
+      const { scrollWidth, clientWidth, scrollLeft } = tabListRef.current;
+      setShowLeftArrow(scrollLeft > 0);
+      setShowRightArrow(scrollLeft + clientWidth < scrollWidth);
+    }
+  };
+
+  // Vérifier au chargement et au redimensionnement
+  useEffect(() => {
+    checkForArrows();
+    window.addEventListener('resize', checkForArrows);
+    return () => window.removeEventListener('resize', checkForArrows);
+  }, []);
+
+  // Fonctions pour faire défiler
+  const scrollLeft = () => {
+    if (tabListRef.current) {
+      tabListRef.current.scrollBy({ left: -200, behavior: 'smooth' });
+      setTimeout(checkForArrows, 300);
+    }
+  };
+
+  const scrollRight = () => {
+    if (tabListRef.current) {
+      tabListRef.current.scrollBy({ left: 200, behavior: 'smooth' });
+      setTimeout(checkForArrows, 300);
+    }
+  };
 
   // Configuration des onglets avec leurs icônes et titres
   const tabs = [
@@ -43,25 +92,56 @@ const Settings = () => {
         </h1>
 
         <Tab.Group>
-          <Tab.List className="flex space-x-1 rounded-xl bg-gray-100 p-1 dark:bg-gray-800">
-            {tabs.map((tab, index) => (
-              <Tab
-                key={index}
-                className={({ selected }) =>
-                  classNames(
-                    "w-full py-3 text-sm font-medium rounded-lg transition-all duration-200 ease-in-out flex items-center justify-center",
-                    "focus:outline-none",
-                    selected
-                      ? "bg-white dark:bg-[#141c2f] shadow-md text-primary-600 dark:text-primary-400"
-                      : "text-gray-600 dark:text-gray-300 hover:bg-white/[0.12] dark:hover:bg-white/[0.08] hover:text-primary-600 dark:hover:text-primary-400"
-                  )
-                }
+          <div className="relative flex items-center">
+            {showLeftArrow && (
+              <button 
+                onClick={scrollLeft}
+                className="absolute left-0 z-10 flex items-center justify-center h-8 w-8 rounded-full bg-white dark:bg-gray-700 shadow-md text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 transition-all duration-200 ease-in-out"
+                style={{ transform: 'translateX(-50%)' }}
+                aria-label="Défiler vers la gauche"
               >
-                <tab.icon className="h-5 w-5 mr-1" />
-                {tab.name}
-              </Tab>
-            ))}
-          </Tab.List>
+                <ChevronLeftIcon className="h-5 w-5" />
+              </button>
+            )}
+            
+            <div className="relative flex-1 overflow-hidden">
+              <Tab.List 
+                ref={tabListRef} 
+                className="flex space-x-1 rounded-xl bg-gray-100 p-1 dark:bg-gray-800 overflow-x-auto scrollbar-hide"
+                style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+                onScroll={checkForArrows}
+              >
+                {tabs.map((tab, index) => (
+                  <Tab
+                    key={index}
+                    className={({ selected }) =>
+                      classNames(
+                        "flex-shrink-0 py-3 px-4 text-sm font-medium rounded-lg transition-all duration-200 ease-in-out flex items-center justify-center",
+                        "focus:outline-none",
+                        selected
+                          ? "bg-white dark:bg-[#141c2f] shadow-md text-primary-600 dark:text-primary-400"
+                          : "text-gray-600 dark:text-gray-300 hover:bg-white/[0.12] dark:hover:bg-white/[0.08] hover:text-primary-600 dark:hover:text-primary-400"
+                      )
+                    }
+                  >
+                    <tab.icon className="h-5 w-5 mr-1" />
+                    {tab.name}
+                  </Tab>
+                ))}
+              </Tab.List>
+            </div>
+            
+            {showRightArrow && (
+              <button 
+                onClick={scrollRight}
+                className="absolute right-0 z-10 flex items-center justify-center h-8 w-8 rounded-full bg-white dark:bg-gray-700 shadow-md text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 transition-all duration-200 ease-in-out"
+                style={{ transform: 'translateX(50%)' }}
+                aria-label="Défiler vers la droite"
+              >
+                <ChevronRightIcon className="h-5 w-5" />
+              </button>
+            )}
+          </div>
           <hr className="my-4" />
 
           <Tab.Panels className="mt-4">

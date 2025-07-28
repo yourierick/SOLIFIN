@@ -16,6 +16,10 @@ import {
   CircularProgress,
   Switch,
   FormControlLabel,
+  Pagination,
+  TablePagination,
+  Paper,
+  Box,
 } from "@mui/material";
 import {
   PencilIcon,
@@ -554,50 +558,80 @@ const TransactionFeeSettings = () => {
             )}
           </tbody>
         </table>
-        <div className="flex justify-between items-center py-4">
-          <div className="flex items-center">
-            <span className="text-sm text-gray-500 dark:text-gray-400">
-              Afficher
-            </span>
-            <select
-              value={rowsPerPage}
-              onChange={(e) => setRowsPerPage(parseInt(e.target.value))}
-              className="ml-2 text-sm text-gray-500 dark:text-gray-400"
-            >
-              <option value={5}>5</option>
-              <option value={10}>10</option>
-              <option value={20}>20</option>
-            </select>
-            <span className="text-sm text-gray-500 dark:text-gray-400">
-              lignes
-            </span>
-          </div>
-          <div className="flex items-center">
-            <button
-              onClick={() => setPage(page - 1)}
-              disabled={page === 0}
-              className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
-            >
-              Précédent
-            </button>
-            <span className="mx-2 text-sm text-gray-500 dark:text-gray-400">
-              {page + 1} / {Math.ceil(totalCount / rowsPerPage)}
-            </span>
-            <button
-              onClick={() => setPage(page + 1)}
-              disabled={(page + 1) * rowsPerPage >= totalCount}
-              className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
-            >
-              Suivant
-            </button>
-          </div>
-        </div>
+        <Box
+          sx={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            py: 2,
+            px: 2,
+          }}
+        >
+          <TablePagination
+            component="div"
+            count={totalCount}
+            page={page}
+            onPageChange={(event, newPage) => setPage(newPage)}
+            rowsPerPage={rowsPerPage}
+            onRowsPerPageChange={(event) =>
+              setRowsPerPage(parseInt(event.target.value, 10))
+            }
+            rowsPerPageOptions={[5, 10, 20]}
+            labelRowsPerPage="Lignes par page:"
+            labelDisplayedRows={({ from, to, count }) =>
+              `${from}-${to} sur ${count !== -1 ? count : `plus de ${to}`}`
+            }
+            sx={{
+              ".MuiTablePagination-select": {
+                paddingTop: "0.5rem",
+                paddingBottom: "0.5rem",
+                borderRadius: "0.375rem",
+                backgroundColor: isDarkMode
+                  ? "rgba(255, 255, 255, 0.05)"
+                  : "rgba(0, 0, 0, 0.02)",
+                border: isDarkMode
+                  ? "1px solid rgba(255, 255, 255, 0.1)"
+                  : "1px solid rgba(0, 0, 0, 0.1)",
+              },
+              ".MuiTablePagination-selectIcon": {
+                color: isDarkMode ? "rgba(255, 255, 255, 0.7)" : "inherit",
+              },
+              ".MuiTablePagination-displayedRows": {
+                color: isDarkMode ? "rgba(255, 255, 255, 0.7)" : "inherit",
+              },
+              ".MuiTablePagination-actions": {
+                "& .MuiIconButton-root": {
+                  color: isDarkMode ? "rgba(255, 255, 255, 0.7)" : "inherit",
+                  "&.Mui-disabled": {
+                    color: isDarkMode
+                      ? "rgba(255, 255, 255, 0.3)"
+                      : "rgba(0, 0, 0, 0.26)",
+                  },
+                  "&:hover": {
+                    backgroundColor: isDarkMode
+                      ? "rgba(255, 255, 255, 0.08)"
+                      : "rgba(0, 0, 0, 0.04)",
+                  },
+                },
+              },
+            }}
+          />
+        </Box>
       </div>
     );
   };
 
   const renderTransactionFeeTableWithPagination = () => (
-    <div>{renderTransactionFeeTable()}</div>
+    <Paper
+      elevation={0}
+      sx={{
+        backgroundColor: "transparent",
+        overflow: "hidden",
+        borderRadius: "0.5rem",
+      }}
+    >
+      {renderTransactionFeeTable()}
+    </Paper>
   );
 
   return (
@@ -610,9 +644,9 @@ const TransactionFeeSettings = () => {
           <button
             onClick={() => handleOpenDialog("add")}
             className="flex items-center px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-md font-medium"
+            title="Ajouter un moyen de paiement"
           >
             <PlusIcon className="h-5 w-5 mr-1" />
-            Ajouter
           </button>
           <button
             onClick={handleUpdateFromApi}
@@ -620,15 +654,25 @@ const TransactionFeeSettings = () => {
             className="flex items-center px-4 py-2 border border-green-500 text-green-500 hover:bg-green-50 dark:border-green-400 dark:text-green-400 dark:hover:bg-green-900/30 rounded-md font-medium disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <ArrowPathIcon className="h-5 w-5 mr-1" />
-            {updatingFromApi ? "Mise à jour..." : "Mettre à jour depuis l'API"}
+            {updatingFromApi ? "Mise à jour..." : ""}
             {updatingFromApi && <CircularProgress size={16} className="ml-2" />}
           </button>
         </div>
       </div>
 
-      <div className="bg-white dark:bg-[#1f2937] rounded-lg shadow overflow-hidden border border-gray-200 dark:border-gray-700">
+      <Paper
+        elevation={2}
+        sx={{
+          backgroundColor: isDarkMode ? "#1f2937" : "#ffffff",
+          borderRadius: "0.5rem",
+          overflow: "hidden",
+          border: isDarkMode
+            ? "1px solid rgba(75, 85, 99, 0.7)"
+            : "1px solid rgba(229, 231, 235, 1)",
+        }}
+      >
         {renderTransactionFeeTableWithPagination()}
-      </div>
+      </Paper>
 
       {/* Dialog pour ajouter/modifier des frais */}
       <Dialog

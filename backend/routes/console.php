@@ -11,24 +11,31 @@ Artisan::command('inspire', function () {
 // Définition des tâches planifiées pour Laravel 11
 Schedule::command('packs:check-expiration')
     ->daily()
+    ->at('00:00')
+    ->appendOutputTo(storage_path('logs/expired-packs.log'))
     ->description('Vérifie les packs expirés tous les jours à minuit');
 
 Schedule::command('publications:update-status')
     ->daily()
-    ->description('Met à jour le statut des publications expirées tous les jours à minuit');
+    ->at('00:30')
+    ->appendOutputTo(storage_path('logs/publications-status.log'))
+    ->description('Met à jour le statut des publications expirées tous les jours à 00h30');
 
 Schedule::command('transaction-fees:update')
     ->daily()
     ->at('01:00')
+    ->appendOutputTo(storage_path('logs/transaction-fees.log'))
     ->description('Met à jour les frais de transaction depuis l\'API externe tous les jours à 1h du matin');
 
 Schedule::command('app:delete-expired-social-events')
     ->hourly()
+    ->appendOutputTo(storage_path('logs/expired-social-events.log'))
     ->description('Supprime les statuts sociaux de plus de 24 heures');
 
 Schedule::command('exchange:update')
     ->daily()
     ->at('01:30')
+    ->appendOutputTo(storage_path('logs/exchange-rates.log'))
     ->description('Met à jour les taux de change des devises depuis une API externe tous les jours à 1h30 du matin');
 
 // Planification de l'attribution des points bonus pour chaque type
@@ -60,6 +67,13 @@ Schedule::command('solifin:check-expired-jetons-esengo')
     ->at('01:15')
     ->appendOutputTo(storage_path('logs/expired-jetons-esengo.log'))
     ->description('Vérifie et marque les jetons Esengo expirés');
+    
+// Vérification des tickets gagnants expirés (tous les jours à 01:45)
+Schedule::command('solifin:check-expired-tickets-gagnants --notify')
+    ->daily()
+    ->at('01:45')
+    ->appendOutputTo(storage_path('logs/expired-tickets-gagnants.log'))
+    ->description('Vérifie et marque les tickets gagnants expirés');
 
 // Planification du traitement des invitations à témoigner
 // Vérification quotidienne des utilisateurs éligibles (tous les jours à 02:00)
