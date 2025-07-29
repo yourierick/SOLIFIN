@@ -56,6 +56,7 @@ class UpdatePublicationStatus extends Command
             Log::error($e->getTraceAsString());
             return Command::FAILURE;
         }
+    }
 
     /**
      * Mettre à jour le statut des publicités expirées
