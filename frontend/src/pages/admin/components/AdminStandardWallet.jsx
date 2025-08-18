@@ -13,6 +13,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
 import "../../../styles/tooltip.css";
+import "../../../styles/custom-scrollbar.css";
 
 // Import des icônes Heroicons
 import {
@@ -65,15 +66,29 @@ export default function AdminStandardWallet() {
   const [showFilters, setShowFilters] = useState(false);
   const [showExportMenu, setShowExportMenu] = useState(false);
   const exportMenuRef = useRef(null);
-  // Fonction pour formater les dates
+  // Fonction pour formater les dates (sans l'heure)
   const formatDate = (dateString) => {
     try {
-      // Si la date est déjà au format JJ/MM/AAAA, la retourner telle quelle
-      if (dateString && /^\d{2}\/\d{2}\/\d{4}$/.test(dateString)) {
-        return dateString;
+      // Si la chaîne est vide ou null, retourner une valeur par défaut
+      if (!dateString) {
+        return "Non définie";
       }
 
-      // Sinon, formater la date
+      // Si la date est déjà au format français (JJ/MM/AAAA ou JJ-MM-AAAA), la retourner telle quelle
+      if (/^\d{2}[\/\-]\d{2}[\/\-]\d{4}$/.test(dateString)) {
+        // Normaliser le format pour utiliser des slashes
+        return dateString.replace(/-/g, "/");
+      }
+
+      // Si c'est une date au format français avec heure (JJ/MM/AAAA HH:MM), extraire seulement la date
+      if (
+        /^\d{2}[\/\-]\d{2}[\/\-]\d{4} \d{2}:\d{2}(:\d{2})?$/.test(dateString)
+      ) {
+        // Extraire seulement la partie date (avant l'espace)
+        return dateString.split(" ")[0].replace(/-/g, "/");
+      }
+
+      // Sinon, formater la date (format ISO ou timestamp)
       const date = new Date(dateString);
       if (isNaN(date.getTime())) {
         return "Date invalide";
@@ -93,6 +108,20 @@ export default function AdminStandardWallet() {
   // Fonction pour formater l'heure
   const formatTime = (dateString) => {
     try {
+      // Si la chaîne est vide ou null
+      if (!dateString) {
+        return "";
+      }
+
+      // Si c'est une date au format français avec heure (JJ/MM/AAAA HH:MM)
+      if (
+        /^\d{2}[\/\-]\d{2}[\/\-]\d{4} \d{2}:\d{2}(:\d{2})?$/.test(dateString)
+      ) {
+        // Extraire seulement la partie heure (après l'espace)
+        return dateString.split(" ")[1].split(":").slice(0, 2).join(":");
+      }
+
+      // Sinon, formater l'heure à partir d'une date ISO ou timestamp
       const date = new Date(dateString);
       if (isNaN(date.getTime())) {
         return "";
@@ -101,7 +130,7 @@ export default function AdminStandardWallet() {
       const hours = String(date.getHours()).padStart(2, "0");
       const minutes = String(date.getMinutes()).padStart(2, "0");
 
-      return `${hours}:${minutes}`;
+      return `à ${hours}h${minutes}`;
     } catch (error) {
       console.error("Erreur lors du formatage de l'heure:", error);
       return "";
@@ -322,7 +351,7 @@ export default function AdminStandardWallet() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto px-3 sm:px-4 py-6 sm:py-8">
       {/* Portefeuille utilisateur */}
       <div className="mb-8">
         <h1
@@ -339,7 +368,7 @@ export default function AdminStandardWallet() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
-            className="w-full"
+            className="w-full max-w-full overflow-hidden"
           >
             {/* On affiche uniquement le premier portefeuille */}
             {(() => {
@@ -490,7 +519,7 @@ export default function AdminStandardWallet() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 0.2 }}
-        className={`mt-10 rounded-xl shadow-lg overflow-hidden ${
+        className={`mt-8 sm:mt-10 rounded-xl shadow-lg overflow-hidden ${
           isDarkMode ? "bg-gray-800" : "bg-white"
         }`}
       >
@@ -805,22 +834,28 @@ export default function AdminStandardWallet() {
             </motion.div>
           )}
         </div>
-        <div className="overflow-x-auto mt-4 pb-4">
+        <div className="mt-4 pb-4 px-2 sm:px-4 md:px-6">
           {currentTransactions.length > 0 ? (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ duration: 0.4 }}
-              className="rounded-lg overflow-hidden"
+              className="rounded-lg shadow-md border border-gray-200 dark:border-gray-700 overflow-hidden table-container"
+              style={{ 
+                boxShadow: isDarkMode ? '0 4px 6px -1px rgba(0, 0, 0, 0.3)' : '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+                transition: 'all 0.2s ease-in-out'
+              }}
             >
-              <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+              <div className="overflow-x-auto" style={{ width: '100%', overflowX: 'auto', display: 'block' }}>
+                <div className="force-overflow">
+                  <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700 table-auto responsive-table" style={{ minWidth: '800px' }}>
                 <thead
                   className={`${isDarkMode ? "bg-gray-700/80" : "bg-gray-50"}`}
                 >
                   <tr>
                     <th
                       scope="col"
-                      className={`px-6 py-4 text-left text-xs font-semibold ${
+                      className={`px-3 sm:px-4 md:px-6 py-2 sm:py-3 md:py-4 text-left text-xs font-semibold ${
                         isDarkMode
                           ? "text-gray-200 uppercase tracking-wider"
                           : "text-gray-600 uppercase tracking-wider"
@@ -833,7 +868,7 @@ export default function AdminStandardWallet() {
                     </th>
                     <th
                       scope="col"
-                      className={`px-6 py-4 text-left text-xs font-semibold ${
+                      className={`px-3 sm:px-4 md:px-6 py-2 sm:py-3 md:py-4 text-left text-xs font-semibold ${
                         isDarkMode
                           ? "text-gray-200 uppercase tracking-wider"
                           : "text-gray-600 uppercase tracking-wider"
@@ -846,7 +881,7 @@ export default function AdminStandardWallet() {
                     </th>
                     <th
                       scope="col"
-                      className={`px-6 py-4 text-left text-xs font-semibold ${
+                      className={`px-3 sm:px-4 md:px-6 py-2 sm:py-3 md:py-4 text-left text-xs font-semibold ${
                         isDarkMode
                           ? "text-gray-200 uppercase tracking-wider"
                           : "text-gray-600 uppercase tracking-wider"
@@ -859,7 +894,7 @@ export default function AdminStandardWallet() {
                     </th>
                     <th
                       scope="col"
-                      className={`px-6 py-4 text-left text-xs font-semibold ${
+                      className={`px-3 sm:px-4 md:px-6 py-2 sm:py-3 md:py-4 text-left text-xs font-semibold ${
                         isDarkMode
                           ? "text-gray-200 uppercase tracking-wider"
                           : "text-gray-600 uppercase tracking-wider"
@@ -872,7 +907,7 @@ export default function AdminStandardWallet() {
                     </th>
                     <th
                       scope="col"
-                      className={`px-6 py-4 text-left text-xs font-semibold ${
+                      className={`px-3 sm:px-4 md:px-6 py-2 sm:py-3 md:py-4 text-left text-xs font-semibold ${
                         isDarkMode
                           ? "text-gray-200 uppercase tracking-wider"
                           : "text-gray-600 uppercase tracking-wider"
@@ -903,7 +938,7 @@ export default function AdminStandardWallet() {
                       } transition-colors duration-150`}
                     >
                       <td
-                        className={`px-6 py-4 whitespace-nowrap ${
+                        className={`px-3 sm:px-4 md:px-6 py-2 sm:py-3 md:py-4 whitespace-nowrap ${
                           isDarkMode ? "text-gray-300" : "text-gray-900"
                         }`}
                       >
@@ -921,14 +956,14 @@ export default function AdminStandardWallet() {
                         </div>
                       </td>
                       <td
-                        className={`px-6 py-4 whitespace-nowrap ${
+                        className={`px-3 sm:px-4 md:px-6 py-2 sm:py-3 md:py-4 whitespace-nowrap ${
                           isDarkMode ? "text-gray-300" : "text-gray-900"
                         }`}
                       >
                         <span className="capitalize">{transaction.type}</span>
                       </td>
                       <td
-                        className={`px-6 py-4 whitespace-nowrap font-medium ${
+                        className={`px-3 sm:px-4 md:px-6 py-2 sm:py-3 md:py-4 whitespace-nowrap font-medium ${
                           transaction.type === "withdrawal" ||
                           transaction.type === "purchase" ||
                           transaction.type === "virtual_purchase" ||
@@ -948,7 +983,7 @@ export default function AdminStandardWallet() {
                           ? `- ${transaction.amount} $`
                           : `+ ${transaction.amount} $`}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      <td className="px-3 sm:px-4 md:px-6 py-2 sm:py-3 md:py-4 whitespace-nowrap">
                         <span
                           className={`px-2.5 py-1 text-xs font-medium rounded-full ${getTransactionStatusColor(
                             transaction.status
@@ -957,12 +992,12 @@ export default function AdminStandardWallet() {
                           {transaction.status}
                         </span>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      <td className="px-3 sm:px-4 md:px-6 py-2 sm:py-3 md:py-4 whitespace-nowrap">
                         <motion.button
-                          whileHover={{ scale: 1.1 }}
-                          whileTap={{ scale: 0.9 }}
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
                           onClick={() => handleTransactionClick(transaction)}
-                          className={`inline-flex items-center px-3 py-1.5 border rounded-md text-sm font-medium ${
+                          className={`inline-flex items-center px-1.5 sm:px-2 md:px-3 py-1 sm:py-1.5 border rounded-md text-xs sm:text-sm font-medium ${
                             isDarkMode
                               ? "border-gray-600 bg-gray-700 hover:bg-gray-600 text-gray-200"
                               : "border-gray-300 bg-white hover:bg-gray-50 text-gray-700"
@@ -975,7 +1010,9 @@ export default function AdminStandardWallet() {
                     </motion.tr>
                   ))}
                 </tbody>
-              </table>
+                  </table>
+                </div>
+              </div>
             </motion.div>
           ) : (
             <motion.div
@@ -1037,7 +1074,7 @@ export default function AdminStandardWallet() {
               isDarkMode ? "border-gray-700" : "border-gray-200"
             }`}
           >
-            <div className="flex flex-col sm:flex-row justify-between items-center">
+            <div className="flex flex-col sm:flex-row justify-between items-center w-full">
               <div
                 className={`text-sm ${
                   isDarkMode ? "text-gray-400" : "text-gray-600"

@@ -28,6 +28,10 @@ class BonusPointsService
      * Constantes pour les types de fréquences
      */
     const FREQUENCY_MONTHLY = 'monthly';
+    const CONSOMME = "consommé";
+    const PROGRAMME = "programmé";
+    const EXPIRE = "expiré";
+    const NON_CONSOMME = "non consommé";
     
     /**
      * Taille des lots pour le traitement des utilisateurs
@@ -571,7 +575,7 @@ class BonusPointsService
             'cadeau_id' => $cadeau->id,
             'code_jeton' => $jetonCode,
             'date_expiration' => $expirationDate,
-            'consomme' => false,
+            'consomme' => self::NON_CONSOMME,
             'code_verification' => $verificationCode
         ]);
         

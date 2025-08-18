@@ -17,7 +17,6 @@ use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 use App\Models\TransactionFee;
 use App\Models\ExchangeRates;
-use App\Models\UserBonusPoint;
 use App\Models\Setting;
 use Illuminate\Support\Facades\Auth;
 
@@ -281,10 +280,19 @@ class PackController extends Controller
         }
     }
 
-    //récupérer les filleuls d'un pack
+    //récupérer les filleuls d'un pack avec pagination
     public function getPackReferrals(Request $request, Pack $pack)
     {
         try {
+            // Récupérer les paramètres de pagination
+            $page = $request->input('page', 1);
+            $perPage = $request->input('per_page', 10);
+            $searchTerm = $request->input('search', '');
+            $statusFilter = $request->input('status', 'all');
+            $startDate = $request->input('start_date');
+            $endDate = $request->input('end_date');
+            $generationTab = $request->input('generation_tab', 0); // Onglet de génération actif (0-3)
+            
             $userPack = UserPack::where('user_id', $request->user()->id)
                 ->where('pack_id', $pack->id)
                 ->first();
@@ -297,6 +305,7 @@ class PackController extends Controller
             }
 
             $allGenerations = [];
+            $paginationData = [];
             
             // Première génération (niveau 1)
             $level1Referrals = UserPack::with(['user', 'sponsor', 'pack'])
@@ -313,7 +322,7 @@ class PackController extends Controller
                         'total_commission' => $commissions ?? 0,
                         'sponsor_id' => $referral->sponsor_id,
                         'referral_code' => $referral->referral_code ?? 'N/A',
-                        'pack_name' => $referral->referral_pack_name ?? 'N/A',
+                        'pack_name' => $referral->pack->price ? $referral->pack->name : 'N/A',
                         'pack_price' => $referral->pack->price ?? 0,
                         'expiry_date' => optional($referral->expiry_date)->format('d/m/Y')
                     ];
@@ -338,7 +347,7 @@ class PackController extends Controller
                                 'name' => $referral->user->name ?? 'N/A',
                                 'purchase_date' => optional($referral->purchase_date)->format('d/m/Y'),
                                 'pack_status' => $referral->status ?? 'inactive',
-                                'total_commission' => $commissions ?? "0 $",
+                                'total_commission' => $commissions ?? 0,
                                 'sponsor_id' => $referral->sponsor_id,
                                 'sponsor_name' => $parent['name'] ?? 'N/A',
                                 'referral_code' => $referral->referral_code ?? 'N/A',
@@ -351,13 +360,84 @@ class PackController extends Controller
                 }
                 $allGenerations[] = $currentGeneration;
             }
+            
+            // Appliquer les filtres à chaque génération
+            for ($i = 0; $i < count($allGenerations); $i++) {
+                $filteredGeneration = $allGenerations[$i];
+                
+                // Filtre par terme de recherche
+                if (!empty($searchTerm)) {
+                    $filteredGeneration = $filteredGeneration->filter(function ($referral) use ($searchTerm) {
+                        return stripos($referral['name'], $searchTerm) !== false || 
+                               stripos($referral['pack_name'], $searchTerm) !== false ||
+                               stripos($referral['referral_code'], $searchTerm) !== false;
+                    });
+                }
+                
+                // Filtre par statut
+                if ($statusFilter !== 'all') {
+                    $filteredGeneration = $filteredGeneration->filter(function ($referral) use ($statusFilter) {
+                        if ($statusFilter === 'active') {
+                            return $referral['pack_status'] === 'active';
+                        } elseif ($statusFilter === 'inactive') {
+                            return $referral['pack_status'] === 'inactive';
+                        } elseif ($statusFilter === 'expired') {
+                            return $referral['pack_status'] === 'expired';
+                        }
+                        return true;
+                    });
+                }
+                
+                // Filtre par date
+                if (!empty($startDate)) {
+                    $startDateObj = \Carbon\Carbon::createFromFormat('Y-m-d', $startDate)->startOfDay();
+                    $filteredGeneration = $filteredGeneration->filter(function ($referral) use ($startDateObj) {
+                        if ($referral['purchase_date'] === 'N/A') return false;
+                        $purchaseDate = \Carbon\Carbon::createFromFormat('d/m/Y', $referral['purchase_date'])->startOfDay();
+                        return $purchaseDate->greaterThanOrEqualTo($startDateObj);
+                    });
+                }
+                
+                if (!empty($endDate)) {
+                    $endDateObj = \Carbon\Carbon::createFromFormat('Y-m-d', $endDate)->endOfDay();
+                    $filteredGeneration = $filteredGeneration->filter(function ($referral) use ($endDateObj) {
+                        if ($referral['purchase_date'] === 'N/A') return false;
+                        $purchaseDate = \Carbon\Carbon::createFromFormat('d/m/Y', $referral['purchase_date'])->startOfDay();
+                        return $purchaseDate->lessThanOrEqualTo($endDateObj);
+                    });
+                }
+                
+                // Calculer les métadonnées de pagination pour chaque génération
+                $totalItems = $filteredGeneration->count();
+                $lastPage = ceil($totalItems / $perPage);
+                $currentPage = min($page, max(1, $lastPage));
+                $offset = ($currentPage - 1) * $perPage;
+                
+                // Paginer les résultats
+                $paginatedGeneration = $filteredGeneration->slice($offset, $perPage)->values();
+                
+                // Stocker les données paginées
+                $allGenerations[$i] = $paginatedGeneration;
+                
+                // Stocker les métadonnées de pagination
+                $paginationData[$i] = [
+                    'total' => $totalItems,
+                    'per_page' => $perPage,
+                    'current_page' => $currentPage,
+                    'last_page' => $lastPage,
+                    'from' => $totalItems > 0 ? $offset + 1 : 0,
+                    'to' => min($offset + $perPage, $totalItems)
+                ];
+            }
 
             return response()->json([
                 'success' => true,
-                'data' => $allGenerations
+                'data' => $allGenerations,
+                'pagination' => $paginationData
             ]);
         } catch (\Exception $e) {
             \Log::error('Erreur lors de la récupération des filleuls: ' . $e->getMessage());
+            \Log::error('Stack trace: ' . $e->getTraceAsString());
             return response()->json([
                 'success' => false,
                 'message' => 'Erreur lors de la récupération des filleuls'
@@ -581,36 +661,6 @@ class PackController extends Controller
                 ->values()
                 ->toArray();
 
-            // Modifier la structure pour tous les filleuls
-            $allReferrals = collect($allReferrals)
-                ->map(function ($referral) {
-                    $validityMonths = $referral['purchase_date'] && $referral['expiry_date'] 
-                        ? $referral['purchase_date']->diffInMonths($referral['expiry_date'])
-                        : 0;
-                    
-                    return [
-                        'id' => $referral['id'],
-                        'name' => $referral['name'],
-                        'generation' => $referral['generation'],
-                        'pack_name' => $referral['pack_name'],
-                        'purchase_date' => $referral['purchase_date'] ? $referral['purchase_date']->format('d/m/Y') : 'N/A',
-                        'expiry_date' => $referral['expiry_date'] ? $referral['expiry_date']->format('d/m/Y') : 'N/A',
-                        'validity_months' => $validityMonths,
-                        'status' => $referral['status']
-                    ];
-                })
-                ->values()
-                ->toArray();
-
-            $bonus = UserBonusPoint::where('user_id', $request->user()->id)
-                ->where('pack_id', $pack->id)
-                ->first();
-
-            $points_bonus = 0;
-            if ($bonus) {
-                $points_bonus = $bonus->points_disponibles + $bonus->points_utilises;
-            }
-
             return response()->json([
                 'success' => true,
                 'data' => [
@@ -634,7 +684,6 @@ class PackController extends Controller
                         'latest_payments' => $latestPayments
                     ],
                     'all_referrals' => $allReferrals,
-                    'points_bonus' => $points_bonus,
                 ]
             ]);
         } catch (\Exception $e) {

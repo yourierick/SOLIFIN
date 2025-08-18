@@ -613,12 +613,6 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function ()
     Route::get('/dashboard/data', [App\Http\Controllers\Admin\AdminDashboardController::class, 'getDashboardData']);
 
     Route::middleware('permission:manage-gifts')->group(function () {
-        Route::middleware('permission:manage-tickets')->group(function () {
-            Route::get('/tickets/my-history', [\App\Http\Controllers\JetonEsengoController::class, 'getMyHistoriqueTickets']);
-            Route::get('/tickets/{code}', [\App\Http\Controllers\JetonEsengoController::class, 'verifierTicket']);
-            Route::post('/tickets/consommer/{id}', [\App\Http\Controllers\JetonEsengoController::class, 'consommerTicket']);
-        });
-        
         // Routes pour la gestion des cadeaux (jetons Esengo)
         Route::middleware('permission:manage-gifts-history')->group(function () {
             Route::get('/tickets/historique', [\App\Http\Controllers\JetonEsengoController::class, 'getHistoriqueTicketsGagnants']);
@@ -628,6 +622,13 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function ()
                 Route::put('/{id}', [\App\Http\Controllers\JetonEsengoController::class, 'saveCadeau']);
                 Route::delete('/{id}', [\App\Http\Controllers\JetonEsengoController::class, 'deleteCadeau']);
             });
+        });
+
+        Route::middleware('permission:manage-tickets')->group(function () {
+            Route::get('/tickets/my-history', [\App\Http\Controllers\JetonEsengoController::class, 'getMyHistoriqueTickets']);
+            Route::get('/tickets/{code}', [\App\Http\Controllers\JetonEsengoController::class, 'verifierTicket']);
+            Route::post('/tickets/{id}/consommer', [\App\Http\Controllers\JetonEsengoController::class, 'consommerTicket']);
+            Route::post('/tickets/{id}/programmer', [\App\Http\Controllers\JetonEsengoController::class, 'programmerTicket']);
         });
     });
     

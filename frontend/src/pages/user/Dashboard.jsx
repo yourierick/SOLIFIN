@@ -90,7 +90,7 @@ export default function UserDashboard() {
       </motion.div>
 
       {/* Statistiques */}
-      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-6 sm:grid-cols-1 lg:grid-cols-3">
         <motion.div
           key="Solde actuel"
           initial={{ opacity: 0, y: 20 }}
@@ -211,48 +211,6 @@ export default function UserDashboard() {
                     }`}
                   >
                     {stats?.general_stats.total_referrals}
-                  </div>
-                </dd>
-              </dl>
-            </div>
-          </div>
-        </motion.div>
-        <motion.div
-          key="Failed commission"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3, delay: 0.8 }}
-          className={`overflow-hidden rounded-lg px-4 py-5 shadow sm:p-6 ${
-            isDarkMode
-              ? "bg-gray-800 shadow-gray-900"
-              : "bg-white shadow-gray-200"
-          }`}
-        >
-          <div className="flex items-center">
-            <div className="flex-shrink-0">
-              <GiftIcon
-                className={`h-6 w-6 ${
-                  isDarkMode ? "text-primary-400" : "text-primary-600"
-                }`}
-              />
-            </div>
-            <div className="ml-5 w-0 flex-1">
-              <dl>
-                <dt
-                  style={{ fontSize: "10px" }}
-                  className={`text-sm font-medium truncate ${
-                    isDarkMode ? "text-gray-400" : "text-gray-500"
-                  }`}
-                >
-                  Points bonus
-                </dt>
-                <dd className="flex items-baseline">
-                  <div
-                    className={`text-2xl font-semibold ${
-                      isDarkMode ? "text-white" : "text-gray-900"
-                    }`}
-                  >
-                    {stats?.general_stats.bonus}
                   </div>
                 </dd>
               </dl>

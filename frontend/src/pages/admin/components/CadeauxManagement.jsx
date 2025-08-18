@@ -10,6 +10,8 @@ import {
   CheckCircleIcon,
   ExclamationCircleIcon,
   InformationCircleIcon,
+  DocumentArrowDownIcon,
+  DocumentDuplicateIcon,
   GiftIcon,
   TicketIcon,
   QrCodeIcon,
@@ -463,18 +465,19 @@ const CadeauxManagement = () => {
 
       // Formater les données pour l'export
       const formattedData = dataToExport.map((ticket) => ({
-        Code: ticket.code_verification || "N/A",
-        Cadeau: ticket.cadeau?.nom || "N/A",
+        Code: ticket.code_verification || "Non défini",
+        Cadeau: ticket.cadeau?.nom || "Non défini",
         Valeur: ticket.cadeau?.valeur || 0,
-        Utilisateur: ticket.user?.name || "N/A",
-        Email: ticket.user?.email || "N/A",
+        Utilisateur: ticket.user?.name || "Non défini",
+        Administrateur: ticket.admin?.name || "Non défini",
+        Email: ticket.user?.email || "Non défini",
         "Date de consommation": ticket.date_consommation
           ? format(new Date(ticket.date_consommation), "dd/MM/yyyy HH:mm")
-          : "N/A",
+          : "Non défini",
         "Date d'expiration": ticket.date_expiration
           ? format(new Date(ticket.date_expiration), "dd/MM/yyyy HH:mm")
           : "N/A",
-        Consommé: ticket.consomme ? "Oui" : "Non",
+        Consommé: ticket.consomme,
       }));
 
       // Créer un workbook Excel
@@ -1071,6 +1074,12 @@ const CadeauxManagement = () => {
                               scope="col"
                               className="px-6 py-3 text-left text-xs font-medium text-gray-600 dark:text-gray-300 uppercase tracking-wider"
                             >
+                              Distributeur
+                            </th>
+                            <th
+                              scope="col"
+                              className="px-6 py-3 text-left text-xs font-medium text-gray-600 dark:text-gray-300 uppercase tracking-wider"
+                            >
                               Date de consommation
                             </th>
                             <th
@@ -1097,11 +1106,12 @@ const CadeauxManagement = () => {
                           {historiqueTickets.map((ticket) => (
                             <tr
                               key={ticket.id}
-                              className={`hover:bg-gray-50 dark:hover:bg-gray-800 ${
-                                ticket.consomme
-                                  ? ""
-                                  : "bg-yellow-50 dark:bg-yellow-900/20"
-                              }`}
+                              className={
+                                "hover:bg-gray-50 dark:hover:bg-gray-800"
+                              }
+                              sx={{
+                                bgcolor: isDarkMode ? "#1f2937" : "#fff",
+                              }}
                             >
                               <td className="px-6 py-4 whitespace-nowrap">
                                 <div className="flex items-center">
@@ -1114,7 +1124,7 @@ const CadeauxManagement = () => {
                                   )}
                                   <div>
                                     <div className="text-sm font-medium">
-                                      {ticket.cadeau?.nom || "N/A"}
+                                      {ticket.cadeau?.nom || "Non défini"}
                                     </div>
                                     {ticket.code_verification && (
                                       <div className="text-xs text-gray-500 dark:text-gray-400">
@@ -1126,10 +1136,18 @@ const CadeauxManagement = () => {
                               </td>
                               <td className="px-6 py-4 whitespace-nowrap">
                                 <div className="text-sm">
-                                  {ticket.user?.name || "N/A"}
+                                  {ticket.user?.name || "Non défini"}
                                 </div>
                                 <div className="text-xs text-gray-500 dark:text-gray-400">
-                                  {ticket.user?.email || ""}
+                                  {ticket.user?.email || "Non défini"}
+                                </div>
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap">
+                                <div className="text-sm">
+                                  {ticket.admin?.name || "Aucun"}
+                                </div>
+                                <div className="text-xs text-gray-500 dark:text-gray-400">
+                                  {ticket.admin?.email || "Aucun"}
                                 </div>
                               </td>
                               <td className="px-6 py-4 whitespace-nowrap text-sm">
@@ -1141,15 +1159,25 @@ const CadeauxManagement = () => {
                                   : "N/A"}
                               </td>
                               <td className="px-6 py-4 whitespace-nowrap text-sm">
-                                {ticket.consomme ? (
+                                {ticket.consomme === "consommé" ? (
                                   <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
                                     <CheckCircleIcon className="h-4 w-4 mr-1" />
-                                    Oui
+                                    Consommé
+                                  </span>
+                                ) : ticket.consomme === "programmé" ? (
+                                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">
+                                    <ClockIcon className="h-4 w-4 mr-1" />
+                                    Programmé
+                                  </span>
+                                ) : ticket.consomme === "expiré" ? (
+                                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200">
+                                    <ClockIcon className="h-4 w-4 mr-1" />
+                                    Expiré
                                   </span>
                                 ) : (
                                   <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">
                                     <ClockIcon className="h-4 w-4 mr-1" />
-                                    Non
+                                    Non consommé
                                   </span>
                                 )}
                               </td>

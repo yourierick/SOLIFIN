@@ -564,7 +564,9 @@ export default function BoostPublicationModal({
                       borderColor: "transparent",
                       ringColor: "#2196F3",
                       transform: "translateY(-3px) scale(1.02)",
-                      backgroundColor: isDarkMode ? "rgba(33, 150, 243, 0.1)" : "white",
+                      backgroundColor: isDarkMode
+                        ? "rgba(33, 150, 243, 0.1)"
+                        : "white",
                     }}
                   >
                     <div className="p-4 flex items-center">
@@ -585,10 +587,7 @@ export default function BoostPublicationModal({
                       </div>
 
                       <div className="flex-grow">
-                        <Typography
-                          variant="subtitle2"
-                          className="font-medium"
-                        >
+                        <Typography variant="subtitle2" className="font-medium">
                           Mon Wallet
                         </Typography>
                         <Typography
@@ -667,37 +666,7 @@ export default function BoostPublicationModal({
                     </Typography>
                   </div>
 
-                  {selectedCurrency !== "USD" &&
-                    paymentMethod !== PAYMENT_TYPES.WALLET && (
-                      <div
-                        key="exchange-rate"
-                        className="flex justify-between items-center text-xs text-gray-500 dark:text-gray-400 px-2"
-                      >
-                        <span className="flex items-center">
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            className="h-3 w-3 mr-1"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"
-                            />
-                          </svg>
-                          Taux de change
-                        </span>
-                        <span className="font-medium">
-                          1 USD = {convertedAmount.rate} {selectedCurrency}
-                        </span>
-                      </div>
-                    )}
-
                   {/* Les frais de transaction sont à zéro pour le wallet SOLIFIN */}
-
                   <div
                     key="total-amount"
                     className="flex justify-between items-center mt-3 pt-3 border-t-2 border-gray-200 dark:border-gray-600"

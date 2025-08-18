@@ -12,7 +12,6 @@ use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 use App\Models\UserPack;
 use App\Models\Commission;
-use App\Models\UserBonusPoint;
 use Illuminate\Routing\Controller as BaseController;
 
 class DashboardController extends BaseController
@@ -34,7 +33,6 @@ class DashboardController extends BaseController
         // Récupérer les statistiques
         $stats = [
             'direct_referrals' => $user->referrals()->count(),
-            //'total_network' => $user->getAllDownlines()->count(),
             'wallet_balance' => $user->wallet->balance,
             'total_earned' => $user->wallet->total_earned,
             'total_withdrawn' => $user->wallet->total_withdrawn,
@@ -66,7 +64,6 @@ class DashboardController extends BaseController
             'availablePacks' => $availablePacks,
             'recentTransactions' => $recentTransactions,
             'referralsByGeneration' => $referralsByGeneration,
-            'bonus' => $points_bonus
         ]);
     }
 
@@ -329,8 +326,6 @@ class DashboardController extends BaseController
                 ];
             });
 
-            $points_bonus = UserBonusPoint::where('user_id', $user->id)->sum('points_disponibles');
-
             return response()->json([
                 'success' => true,
                 'data' => [
@@ -343,7 +338,6 @@ class DashboardController extends BaseController
                         'total_commission' => $totalCommission,
                         'failed_commission' => $failedCommission,
                         'best_generation' => $bestGeneration,
-                        'bonus' => $points_bonus
                     ],
                     'progression' => [
                         'monthly_signups' => $monthlySignups,

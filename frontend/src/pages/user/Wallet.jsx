@@ -590,7 +590,7 @@ export default function Wallets() {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-3">
       {/* En-tête */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
@@ -598,9 +598,9 @@ export default function Wallets() {
         transition={{ duration: 0.5 }}
         className="sm:flex sm:items-center sm:justify-between"
       >
-        <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">
+        <h5 className="text-2xl font-semibold text-gray-900 dark:text-white">
           Mon portefeuille
-        </h1>
+        </h5>
         <motion.button
           whileHover={{ scale: 1.1 }}
           whileTap={{ scale: 0.9 }}
@@ -616,7 +616,7 @@ export default function Wallets() {
       </motion.div>
 
       {/* Portefeuilles */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-1 gap-6">
         {/* Portefeuille utilisateur */}
         {userWallet && (
           <motion.div

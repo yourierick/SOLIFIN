@@ -19,6 +19,11 @@ class JetonEsengoController extends Controller
 {
     protected $bonusPointsService;
 
+    const CONSOMME = "consommé";
+    const PROGRAMME = "programmé";
+    const EXPIRE = "expiré";
+    const NON_CONSOMME = "non consommé";
+
     /**
      * Constructeur
      *
@@ -110,7 +115,6 @@ class JetonEsengoController extends Controller
             return response()->json($result, 400);
         }
 
-        \Log::info($result['ticket']);
         $ticket = $result['ticket'];
         $ticket['cadeau'] = $result['cadeau'];
         return response()->json(
@@ -195,7 +199,6 @@ class JetonEsengoController extends Controller
     public function saveCadeau(Request $request, $id = null)
     {
         try {
-            \Log::info($request->all());
             
             if (!Auth::user()->is_admin) {
                 return response()->json([
@@ -224,8 +227,6 @@ class JetonEsengoController extends Controller
                     'stock' => 'required|integer|min:0',
                 ]);
             }
-
-            \Log::info($validator->errors());
             
             if ($validator->fails()) {
                 return response()->json([
@@ -605,14 +606,67 @@ class JetonEsengoController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Une erreur est survenue lors de la vérification du ticket',
-                'error' => $e->getMessage()
+                'error' => 'Une erreur est survenue lors de la vérification du ticket',
+            ], 500);
+        }
+    }
+
+    /**
+     * Programme un ticket gagnant pour qu'il soit consommé à une date future
+     *
+     * @param int $id ID du ticket à programmer
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function programmerTicket($id)
+    {
+        try {
+            // Recherche du ticket par son ID
+            $ticket = TicketGagnant::where('id', $id)
+                ->first();
+            
+            if (!$ticket) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Ticket non trouvé'
+                ], 404);
+            }
+
+            $admin_id = Auth::user()->id;
+
+            if (!$admin_id) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Administrateur non trouvé'
+                ], 404);
+            }
+
+            $dateProgrammee = $request->get('date_programmee');
+
+            $dateProgrammee = Carbon::parse($dateProgrammee);
+            
+            DB::beginTransaction();
+            // Programme le ticket pour qu'il soit consommé à une date future
+            $ticket->programmerLaRemise($dateProgrammee, $admin_id);
+            
+            DB::commit();
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Ticket programmé avec succès'
+            ]);
+            
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => 'Une erreur est survenue lors de la programmation du ticket',
+                'error' => 'Une erreur est survenue lors de la programmation du ticket',
             ], 500);
         }
     }
 
     /**
      * Consomme un ticket gagnant sans demander à nouveau le code de vérification
-     * Cette méthode est réservée aux administrateurs
      *
      * @param int $id ID du ticket à consommer
      * @return \Illuminate\Http\JsonResponse
@@ -632,9 +686,17 @@ class JetonEsengoController extends Controller
                     'message' => 'Ticket non trouvé'
                 ], 404);
             }
+
+            $admin_id = Auth::user()->id;
+            if (!$admin_id) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Administrateur non trouvé'
+                ], 404);
+            }
             
             // Si le ticket est déjà consommé, retourner une erreur
-            if ($ticket->consomme) {
+            if ($ticket->consomme === self::CONSOMME) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Ce ticket a déjà été utilisé'
@@ -655,7 +717,7 @@ class JetonEsengoController extends Controller
             
             try {
                 // Marquer le ticket comme consommé
-                $ticket->marquerCommeConsomme();
+                $ticket->marquerCommeConsomme($admin_id);
                 
                 DB::commit();
                 
@@ -674,7 +736,7 @@ class JetonEsengoController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Une erreur est survenue lors de la consommation du ticket',
-                'error' => $e->getMessage()
+                'error' => 'Une erreur est survenue lors de la consommation du ticket',
             ], 500);
         }
     }
@@ -693,11 +755,11 @@ class JetonEsengoController extends Controller
             $perPage = $request->input('per_page', 10);
             
             // Construire la requête avec les filtres
-            $query = TicketGagnant::with('user', 'cadeau');
+            $query = TicketGagnant::with('user', 'cadeau', 'admin');
             
             // Filtre par statut de consommation
             if ($request->has('consomme') && $request->input('consomme') !== '') {
-                $consomme = filter_var($request->input('consomme'), FILTER_VALIDATE_BOOLEAN);
+                $consomme = $request->input('consomme');
                 $query->where('consomme', $consomme);
             }
             
@@ -751,6 +813,11 @@ class JetonEsengoController extends Controller
                         'name' => $ticket->user->name,
                         'email' => $ticket->user->email
                     ],
+                    'admin' => [
+                        'id' => $ticket->admin?->id,
+                        'name' => $ticket->admin?->name,
+                        'email' => $ticket->admin?->email
+                    ],
                     'date_consommation' => $ticket->date_consommation?->format('Y-m-d H:i:s'),
                     'date_expiration' => $ticket->date_expiration?->format('Y-m-d H:i:s'),
                     'consomme' => $ticket->consomme
@@ -763,10 +830,12 @@ class JetonEsengoController extends Controller
             ]);
 
         } catch (\Exception $e) {
+            \Log::error($e->getMessage());
+            \Log::error($e->getTraceAsString());
             return response()->json([
                 'success' => false,
                 'message' => 'Une erreur est survenue lors de la récupération de l\'historique des tickets',
-                'error' => $e->getMessage()
+                'error' => 'Une erreur est survenue lors de la récupération de l\'historique des tickets'
             ], 500);
         }
     }
@@ -784,12 +853,12 @@ class JetonEsengoController extends Controller
             $perPage = $request->input('per_page', 10);
             
             // Construire la requête avec les filtres
-            $query = TicketGagnant::with('user', 'cadeau')
+            $query = TicketGagnant::with('user', 'cadeau', 'admin')
                 ->where('admin_id', auth()->id());
             
             // Filtre par statut de consommation
             if ($request->has('consomme') && $request->input('consomme') !== '') {
-                $consomme = filter_var($request->input('consomme'), FILTER_VALIDATE_BOOLEAN);
+                $consomme = $request->input('consomme');
                 $query->where('consomme', $consomme);
             }
             
@@ -843,6 +912,11 @@ class JetonEsengoController extends Controller
                         'name' => $ticket->user->name,
                         'email' => $ticket->user->email
                     ],
+                    'admin' => [
+                        'id' => $ticket->admin?->id,
+                        'name' => $ticket->admin?->name,
+                        'email' => $ticket->admin?->email
+                    ],
                     'date_consommation' => $ticket->date_consommation?->format('Y-m-d H:i:s'),
                     'date_expiration' => $ticket->date_expiration?->format('Y-m-d H:i:s'),
                     'consomme' => $ticket->consomme
@@ -859,7 +933,7 @@ class JetonEsengoController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Une erreur est survenue lors de la récupération de l\'historique des tickets',
-                'error' => $e->getMessage()
+                'error' => 'Une erreur est survenue lors de la récupération de l\'historique des tickets'
             ], 500);
         }
     }

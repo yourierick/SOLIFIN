@@ -6,7 +6,7 @@ import React, {
   useCallback,
 } from "react";
 import axios from "axios";
-import MoneyOffIcon from '@mui/icons-material/MoneyOff';
+import MoneyOffIcon from "@mui/icons-material/MoneyOff";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { toast } from "react-toastify";
@@ -97,29 +97,16 @@ const Finances = () => {
 
   // États pour les données
   const [transactions, setTransactions] = useState([]);
-  const [bonusPoints, setBonusPoints] = useState([]);
-  const [userPointsBonus, setUserPointsBonus] = useState({
-    points_dispos_total: 0,
-    points_utilises_total: 0,
-  });
   const [summary, setSummary] = useState(null);
   const [transactionStats, setTransactionStats] = useState([]);
   const [walletBalance, setWalletBalance] = useState({
     balance: 0,
     totalEarned: 0,
     totalWithdrawn: 0,
-    bonusPoints: 0,
   });
 
   // États pour la pagination
   const [transactionPagination, setTransactionPagination] = useState({
-    page: 0,
-    totalPages: 0,
-    totalItems: 0,
-    perPage: 10,
-  });
-
-  const [bonusPointsPagination, setBonusPointsPagination] = useState({
     page: 0,
     totalPages: 0,
     totalItems: 0,
@@ -138,7 +125,6 @@ const Finances = () => {
   // États pour le chargement et les erreurs
   const [loading, setLoading] = useState({
     transactions: false,
-    bonusPoints: false,
     summary: false,
     wallet: false,
     transactionStats: false,
@@ -146,7 +132,6 @@ const Finances = () => {
 
   const [error, setError] = useState({
     transactions: null,
-    bonusPoints: null,
     summary: null,
     wallet: null,
     transactionStats: null,
@@ -167,12 +152,10 @@ const Finances = () => {
     "reception",
     "withdrawal",
     "transfer",
-    "bonus",
     "commission de parrainage",
     "commission de retrait",
     "purchase",
   ];
-  const bonusPointsTypes = ["gain", "conversion"];
 
   // État pour stocker les packs distincts
   const [packOptions, setPackOptions] = useState([]);
@@ -200,32 +183,35 @@ const Finances = () => {
   // Gestionnaires pour le défilement horizontal de la barre d'onglets
   const handleScrollLeft = () => {
     if (tabsRef.current) {
-      const container = tabsRef.current.querySelector('.MuiTabs-scroller');
+      const container = tabsRef.current.querySelector(".MuiTabs-scroller");
       if (container) {
         // Défilement d'une distance équivalente à la largeur d'un onglet (environ 150px)
-        container.scrollBy({ left: -150, behavior: 'smooth' });
+        container.scrollBy({ left: -150, behavior: "smooth" });
       }
     }
   };
 
   const handleScrollRight = () => {
     if (tabsRef.current) {
-      const container = tabsRef.current.querySelector('.MuiTabs-scroller');
+      const container = tabsRef.current.querySelector(".MuiTabs-scroller");
       if (container) {
         // Défilement d'une distance équivalente à la largeur d'un onglet (environ 150px)
-        container.scrollBy({ left: 150, behavior: 'smooth' });
+        container.scrollBy({ left: 150, behavior: "smooth" });
       }
     }
   };
-  
+
   // Effet pour configurer l'affichage initial des onglets sur mobile
   useEffect(() => {
     if (isSmallScreen && tabsRef.current) {
       // Assure que l'onglet actif est visible lors du chargement initial
       setTimeout(() => {
-        const activeTabElement = tabsRef.current.querySelector('.Mui-selected');
+        const activeTabElement = tabsRef.current.querySelector(".Mui-selected");
         if (activeTabElement) {
-          activeTabElement.scrollIntoView({ behavior: 'smooth', inline: 'center' });
+          activeTabElement.scrollIntoView({
+            behavior: "smooth",
+            inline: "center",
+          });
         }
       }, 100);
     }
@@ -234,14 +220,6 @@ const Finances = () => {
   // Gestionnaire de changement de page pour les transactions
   const handleTransactionPageChange = (event, newPage) => {
     setTransactionPagination((prev) => ({
-      ...prev,
-      page: newPage,
-    }));
-  };
-
-  // Gestionnaire de changement de page pour les points bonus
-  const handleBonusPointsPageChange = (event, newPage) => {
-    setBonusPointsPagination((prev) => ({
       ...prev,
       page: newPage,
     }));
@@ -350,101 +328,6 @@ const Finances = () => {
     }
   }, [filters, transactionPagination.page]);
 
-  // Fonction pour récupérer l'historique des points bonus
-  const fetchBonusPoints = useCallback(async () => {
-    try {
-      setLoading((prev) => ({ ...prev, bonusPoints: true }));
-      setError((prev) => ({ ...prev, bonusPoints: null }));
-
-      const params = {
-        page: bonusPointsPagination.page + 1,
-        ...filters,
-      };
-
-      const response = await axios.get(
-        "/api/user/finances/bonus-points-history",
-        {
-          params,
-        }
-      );
-
-      if (!response.data || !response.data.success) {
-        throw new Error(
-          response.data?.message ||
-            "Erreur lors de la récupération des points bonus"
-        );
-      }
-
-      // Accéder correctement aux données d'historique et aux points bonus
-      const historyData = response.data.data.history;
-      const bonusPointsData = response.data.data.bonus_points;
-      const userPointsBonusData = response.data.data.userPointsBonus;
-
-      // Mettre à jour l'état userPointsBonus
-      if (userPointsBonusData) {
-        setUserPointsBonus(userPointsBonusData);
-      }
-
-      // S'assurer que bonusPoints est toujours un tableau
-      setBonusPoints(Array.isArray(historyData.data) ? historyData.data : []);
-
-      // Extraire les packs distincts des points bonus
-      const distinctPacks = [];
-      if (Array.isArray(bonusPointsData)) {
-        bonusPointsData.forEach((bonusPoint) => {
-          if (bonusPoint.pack && bonusPoint.pack.id && bonusPoint.pack.name) {
-            const packExists = distinctPacks.some(
-              (pack) => pack.id === bonusPoint.pack.id
-            );
-            if (!packExists) {
-              distinctPacks.push({
-                id: bonusPoint.pack.id,
-                name: bonusPoint.pack.name,
-              });
-            }
-          }
-        });
-        setPackOptions(distinctPacks);
-      }
-
-      // S'assurer que les valeurs de pagination sont des nombres valides
-      const currentPage = parseInt(historyData.current_page, 10);
-      const perPage = parseInt(historyData.per_page, 10);
-      const totalItems = parseInt(historyData.total, 10);
-      const lastPage = parseInt(historyData.last_page, 10);
-
-      // Mettre à jour les informations de pagination à partir de l'historique
-      setBonusPointsPagination({
-        page: !isNaN(currentPage) ? currentPage - 1 : 0,
-        totalPages: !isNaN(lastPage) ? lastPage : 0,
-        totalItems: !isNaN(totalItems) ? totalItems : 0,
-        perPage: !isNaN(perPage) ? perPage : 10,
-      });
-
-      // Stocker les points bonus actuels dans un état
-      const currentBonusPoints = Array.isArray(bonusPointsData)
-        ? bonusPointsData.reduce(
-            (total, point) => total + parseFloat(point.points || 0),
-            0
-          )
-        : 0;
-      setWalletBalance((prev) => ({
-        ...prev,
-        bonusPoints: currentBonusPoints,
-      }));
-    } catch (err) {
-      console.error("Erreur lors de la récupération des points bonus:", err);
-      setError((prev) => ({
-        ...prev,
-        bonusPoints:
-          err.message ||
-          "Impossible de récupérer l'historique des points bonus. Veuillez réessayer.",
-      }));
-    } finally {
-      setLoading((prev) => ({ ...prev, bonusPoints: false }));
-    }
-  }, [filters, bonusPointsPagination.page]);
-
   // Fonction pour récupérer le résumé financier
   const fetchSummary = useCallback(async () => {
     try {
@@ -480,6 +363,7 @@ const Finances = () => {
       setLoading((prev) => ({ ...prev, summary: false }));
     }
   }, []);
+
   // Fonction pour récupérer le solde du portefeuille
   const fetchWalletBalance = useCallback(async () => {
     try {
@@ -499,7 +383,6 @@ const Finances = () => {
         balance: parseFloat(walletData.balance || 0),
         totalEarned: parseFloat(walletData.total_earned || 0),
         totalWithdrawn: parseFloat(walletData.total_withdrawn || 0),
-        bonusPoints: walletBalance.bonusPoints || 0, // Préserver les points bonus existants
       });
     } catch (err) {
       console.error("Erreur lors de la récupération du solde:", err);
@@ -507,7 +390,7 @@ const Finances = () => {
     } finally {
       setLoading((prev) => ({ ...prev, wallet: false }));
     }
-  }, [walletBalance.bonusPoints]);
+  }, []);
 
   // Fonction pour récupérer les statistiques par type de transaction
   const fetchTransactionStatsByType = useCallback(async () => {
@@ -578,13 +461,7 @@ const Finances = () => {
     fetchSummary();
     fetchWalletBalance();
     fetchTransactionStatsByType();
-    fetchBonusPoints(); // Appel de la route des points bonus à l'initialisation
-  }, [
-    fetchSummary,
-    fetchWalletBalance,
-    fetchTransactionStatsByType,
-    fetchBonusPoints,
-  ]);
+  }, [fetchSummary, fetchWalletBalance, fetchTransactionStatsByType]);
 
   // Effet pour charger les transactions lorsque les filtres ou la pagination changent
   useEffect(() => {
@@ -601,13 +478,13 @@ const Finances = () => {
   }, [activeTab, statsFilters, fetchTransactionStatsByType]);
 
   // Effet pour charger les points bonus lorsque les filtres ou la pagination changent
-  useEffect(() => {
-    if (activeTab === 1) {
-      fetchBonusPoints();
-    } else if (activeTab === 2) {
-      fetchTransactionStatsByType();
-    }
-  }, [activeTab, fetchBonusPoints, fetchTransactionStatsByType]);
+  // useEffect(() => {
+  //   if (activeTab === 1) {
+  //     fetchBonusPoints();
+  //   } else if (activeTab === 2) {
+  //     fetchTransactionStatsByType();
+  //   }
+  // }, [activeTab, fetchBonusPoints, fetchTransactionStatsByType]);
 
   // Données pour le graphique des transactions
   const transactionChartData = useMemo(() => {
@@ -643,8 +520,6 @@ const Finances = () => {
           ? "Retrait"
           : stat.type === "reception"
           ? "Réception"
-          : stat.type === "bonus"
-          ? "Bonus"
           : stat.type === "commission de parrainage"
           ? "Com. Parrainage"
           : stat.type === "commission de retrait"
@@ -658,21 +533,6 @@ const Finances = () => {
       count: parseInt(stat.count || 0),
     }));
   }, [transactionStats]);
-
-  // Données pour le graphique des points bonus
-  const bonusPointsChartData = useMemo(() => {
-    if (!summary || !summary.bonus_points_stats) return [];
-
-    return summary.bonus_points_stats.map((stat) => ({
-      type:
-        stat.type === "gain"
-          ? "Gains"
-          : stat.type === "conversion"
-          ? "Conversions"
-          : "Expirations",
-      points: parseFloat(stat.total_points || 0),
-    }));
-  }, [summary]);
 
   // Composant pour afficher les détails d'une transaction dans une fenêtre modale
   const TransactionDetailsModal = () => {
@@ -819,8 +679,7 @@ const Finances = () => {
               size="small"
               label={selectedTransaction.type}
               color={
-                selectedTransaction.type === "deposit" ||
-                selectedTransaction.type === "bonus"
+                selectedTransaction.type === "deposit"
                   ? "success"
                   : selectedTransaction.type === "withdrawal"
                   ? "error"
@@ -862,8 +721,7 @@ const Finances = () => {
                       variant="body2"
                       sx={{
                         color:
-                          selectedTransaction.type === "deposit" ||
-                          selectedTransaction.type === "bonus"
+                          selectedTransaction.type === "deposit"
                             ? "success.main"
                             : selectedTransaction.type === "withdrawal"
                             ? "error.main"
@@ -871,8 +729,7 @@ const Finances = () => {
                         fontWeight: 500,
                       }}
                     >
-                      {selectedTransaction.type === "deposit" ||
-                      selectedTransaction.type === "bonus"
+                      {selectedTransaction.type === "deposit"
                         ? `+${formatAmount(selectedTransaction.amount)}`
                         : selectedTransaction.type === "withdrawal"
                         ? `-${formatAmount(selectedTransaction.amount)}`
@@ -1056,7 +913,6 @@ const Finances = () => {
                       color={
                         transaction.type === "reception" ||
                         transaction.type === "sale" ||
-                        transaction.type === "bonus" ||
                         transaction.type === "commission de parrainage" ||
                         transaction.type === "commission de retrait" ||
                         transaction.type === "commission de transfert" ||
@@ -1069,7 +925,6 @@ const Finances = () => {
                           : "primary"
                       }
                       icon={
-                        transaction.type === "bonus" ||
                         transaction.type === "sale" ||
                         transaction.type === "commission de parrainage" ||
                         transaction.type === "commission de transfert" ||
@@ -1091,7 +946,6 @@ const Finances = () => {
                       color:
                         transaction.type === "reception" ||
                         transaction.type === "sale" ||
-                        transaction.type === "bonus" ||
                         transaction.type === "commission de parrainage" ||
                         transaction.type === "commission de retrait" ||
                         transaction.type === "commission de transfert" ||
@@ -1109,7 +963,6 @@ const Finances = () => {
                     transaction.type === "sale" ||
                     transaction.type === "commission de parrainage" ||
                     transaction.type === "commission de retrait" ||
-                    transaction.type === "bonus" ||
                     transaction.type === "commission de transfert" ||
                     transaction.type === "virtual_purchase"
                       ? `+${formatAmount(transaction.amount)}`
@@ -1183,141 +1036,6 @@ const Finances = () => {
     );
   };
 
-  // Composant pour afficher le tableau des points bonus
-  const BonusPointsTable = () => (
-    <TableContainer
-      component={Paper}
-      sx={{
-        mb: 3,
-        borderRadius: 3,
-        overflow: "hidden",
-        border: `1px solid ${isDarkMode ? "#374151" : "#e5e7eb"}`,
-        boxShadow: "none",
-        bgcolor: isDarkMode ? "#1f2937" : "fff",
-        "&:hover": {
-          boxShadow: isDarkMode ? "#1f2937" : "0 8px 20px rgba(0, 0, 0, 0.1)",
-        },
-        transition: "all 0.3s ease",
-      }}
-    >
-      <Table
-        size="small"
-        sx={{
-          bgcolor: isDarkMode ? "#1f2937" : "rgba(249, 250, 251, 0.8)",
-        }}
-      >
-        <TableHead>
-          <TableRow
-            sx={{
-              bgcolor: isDarkMode
-                ? "rgba(22, 35, 64, 0.7)"
-                : "rgba(243, 244, 246, 0.7)",
-            }}
-          >
-            <TableCell sx={{ fontWeight: 600, py: 1.5 }}>ID</TableCell>
-            <TableCell sx={{ fontWeight: 600, py: 1.5 }}>Type</TableCell>
-            <TableCell sx={{ fontWeight: 600, py: 1.5 }}>Points</TableCell>
-            <TableCell sx={{ fontWeight: 600, py: 1.5 }}>Pack</TableCell>
-            <TableCell sx={{ fontWeight: 600, py: 1.5 }}>Date</TableCell>
-            <TableCell sx={{ fontWeight: 600, py: 1.5 }}>Description</TableCell>
-          </TableRow>
-        </TableHead>
-        <TableBody>
-          {loading.bonusPoints ? (
-            Array.from(new Array(5)).map((_, index) => (
-              <TableRow key={index}>
-                <TableCell colSpan={6}>
-                  <Skeleton animation="wave" height={30} />
-                </TableCell>
-              </TableRow>
-            ))
-          ) : !Array.isArray(bonusPoints) || bonusPoints.length === 0 ? (
-            <TableRow>
-              <TableCell colSpan={6} align="center">
-                Aucun point bonus trouvé
-              </TableCell>
-            </TableRow>
-          ) : (
-            bonusPoints.map((point) => (
-              <TableRow key={point.id} hover>
-                <TableCell>{point.id}</TableCell>
-                <TableCell>
-                  <Chip
-                    size="small"
-                    label={point.type}
-                    color={
-                      point.type === "gain"
-                        ? "success"
-                        : point.type === "conversion"
-                        ? "primary"
-                        : "error"
-                    }
-                    icon={
-                      point.type === "gain" ? (
-                        <ArrowDownwardIcon fontSize="small" />
-                      ) : point.type === "conversion" ? (
-                        <PaidIcon fontSize="small" />
-                      ) : (
-                        <HistoryIcon fontSize="small" />
-                      )
-                    }
-                    sx={{ fontWeight: 500 }}
-                  />
-                </TableCell>
-                <TableCell
-                  sx={{
-                    color:
-                      point.type === "gain"
-                        ? "success.main"
-                        : point.type === "conversion"
-                        ? "primary.main"
-                        : "error.main",
-                    fontWeight: 500,
-                  }}
-                >
-                  {point.type === "gain"
-                    ? `+${point.points} pts`
-                    : `-${point.points} pts`}
-                </TableCell>
-                <TableCell>
-                  {point.pack ? (
-                    <Tooltip title={point.pack.name}>
-                      <Chip
-                        size="small"
-                        label={`${point.pack.name}`}
-                        variant="outlined"
-                        color="info"
-                      />
-                    </Tooltip>
-                  ) : (
-                    "-"
-                  )}
-                </TableCell>
-                <TableCell>{formatDate(point.created_at)}</TableCell>
-                <TableCell>{point.description || "-"}</TableCell>
-              </TableRow>
-            ))
-          )}
-        </TableBody>
-      </Table>
-      <TablePagination
-        component="div"
-        count={bonusPointsPagination.totalItems || 0}
-        page={
-          Number.isNaN(bonusPointsPagination.page)
-            ? 0
-            : bonusPointsPagination.page
-        }
-        onPageChange={handleBonusPointsPageChange}
-        rowsPerPage={bonusPointsPagination.perPage || 10}
-        rowsPerPageOptions={[10, 25, 50]}
-        labelDisplayedRows={({ from, to, count }) =>
-          `${from}-${to} sur ${count !== -1 ? count : `plus de ${to}`}`
-        }
-      />
-    </TableContainer>
-  );
-
   // Composant pour afficher le graphique des transactions
   const TransactionsChart = () => {
     // Préparation des données pour le graphique des transactions
@@ -1352,9 +1070,6 @@ const Finances = () => {
             break;
           case "reception":
             displayName = "Réception";
-            break;
-          case "bonus":
-            displayName = "Bonus";
             break;
           case "virtual_purchase":
             displayName = "Virtuels";
@@ -1612,183 +1327,6 @@ const Finances = () => {
     );
   };
 
-  // Composant pour afficher le graphique des points bonus
-  const BonusPointsChart = () => {
-    // Préparation des données pour le graphique des points bonus
-    const bonusPointsChartData = useMemo(() => {
-      if (
-        !bonusPoints ||
-        !Array.isArray(bonusPoints) ||
-        bonusPoints.length === 0
-      ) {
-        return [];
-      }
-
-      // Grouper les points bonus par type
-      const groupedByType = bonusPoints.reduce((acc, point) => {
-        const type = point.type === "gain" ? "Gains" : "Conversions";
-
-        if (!acc[type]) {
-          acc[type] = {
-            type,
-            points: 0,
-            count: 0,
-          };
-        }
-
-        // Utiliser points ou amount selon la structure des données
-        acc[type].points += parseFloat(point.points || point.amount) || 0;
-        acc[type].count += 1;
-
-        return acc;
-      }, {});
-
-      return Object.values(groupedByType);
-    }, [bonusPoints]);
-
-    return (
-      <Paper
-        sx={{
-          p: 3,
-          mb: 3,
-          borderRadius: 3,
-          bgcolor: isDarkMode
-            ? "rgba(31, 41, 55, 0.5)"
-            : "rgba(249, 250, 251, 0.8)",
-          boxShadow: "none",
-          border: `1px solid ${isDarkMode ? "#374151" : "#e5e7eb"}`,
-          transition: "all 0.3s ease",
-          "&:hover": {
-            boxShadow: isDarkMode
-              ? "0 8px 20px rgba(0, 0, 0, 0.3)"
-              : "0 8px 20px rgba(0, 0, 0, 0.1)",
-          },
-        }}
-      >
-        <Box
-          sx={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            mb: 2,
-          }}
-        >
-          <Typography
-            variant="h6"
-            sx={{ display: "flex", alignItems: "center" }}
-          >
-            <LightBulbIcon sx={{ mr: 1, color: "warning.main" }} />
-            Répartition des points bonus
-          </Typography>
-          <Tooltip title="Ces données représentent la répartition des points bonus par type">
-            <IconButton size="small">
-              <InfoIcon fontSize="small" />
-            </IconButton>
-          </Tooltip>
-        </Box>
-        <Box sx={{ height: 300, width: "100%" }}>
-          {loading.bonusPoints ? (
-            <Box
-              sx={{
-                height: "100%",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              <CircularProgress size={40} />
-            </Box>
-          ) : bonusPointsChartData.length === 0 ? (
-            <Box
-              sx={{
-                height: "100%",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                flexDirection: "column",
-                gap: 2,
-              }}
-            >
-              <Typography variant="body2" color="text.secondary">
-                Aucune donnée disponible
-              </Typography>
-              <Button
-                variant="outlined"
-                size="small"
-                startIcon={<RefreshIcon />}
-                onClick={() => fetchBonusPoints()}
-              >
-                Actualiser
-              </Button>
-            </Box>
-          ) : (
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart
-                data={bonusPointsChartData}
-                margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-              >
-                <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
-                <XAxis
-                  dataKey="type"
-                  tick={{ fill: isDarkMode ? "#e5e7eb" : "#374151" }}
-                  axisLine={{ stroke: isDarkMode ? "#4b5563" : "#9ca3af" }}
-                />
-                <YAxis
-                  tick={{ fill: isDarkMode ? "#e5e7eb" : "#374151" }}
-                  axisLine={{ stroke: isDarkMode ? "#4b5563" : "#9ca3af" }}
-                />
-                <RechartsTooltip
-                  contentStyle={{
-                    backgroundColor: isDarkMode ? "#1f2937" : "#fff",
-                    border: `1px solid ${isDarkMode ? "#374151" : "#e5e7eb"}`,
-                    borderRadius: "8px",
-                    boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
-                  }}
-                  formatter={(value, name) => [
-                    `${value.toLocaleString("fr-FR")} points`,
-                    name === "points" ? "Points" : name,
-                  ]}
-                  labelFormatter={(label) => `Type: ${label}`}
-                />
-                <Bar
-                  dataKey="points"
-                  name="Points"
-                  fill={theme.palette.warning.main}
-                  radius={[4, 4, 0, 0]}
-                  animationDuration={1500}
-                  animationEasing="ease-in-out"
-                />
-              </BarChart>
-            </ResponsiveContainer>
-          )}
-        </Box>
-        <Box
-          sx={{
-            mt: 2,
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-          }}
-        >
-          <Typography variant="caption" color="text.secondary">
-            Total:{" "}
-            {bonusPointsChartData
-              .reduce((sum, item) => sum + (item.points || 0), 0)
-              .toLocaleString("fr-FR")}{" "}
-            points
-          </Typography>
-          <Typography variant="caption" color="text.secondary">
-            {bonusPointsChartData.reduce(
-              (sum, item) => sum + (item.count || 0),
-              0
-            )}{" "}
-            transactions
-          </Typography>
-        </Box>
-      </Paper>
-    );
-  };
-
   // Composant pour afficher les filtres des transactions
   const TransactionFilters = () => (
     <Paper
@@ -1874,8 +1412,6 @@ const Finances = () => {
                     ? "Réception"
                     : type === "transfer"
                     ? "Transfert des fonds"
-                    : type === "bonus"
-                    ? "Bonus"
                     : type === "purchase"
                     ? "Achat"
                     : type === "commission de parrainage"
@@ -1965,142 +1501,13 @@ const Finances = () => {
     </Paper>
   );
 
-  // Composant pour afficher les filtres des points bonus
-  const BonusPointsFilters = () => (
-    <Paper
-      sx={{
-        p: 3,
-        mb: 3,
-        borderRadius: 3,
-        bgcolor: isDarkMode
-          ? "rgba(31, 41, 55, 0.5)"
-          : "rgba(249, 250, 251, 0.8)",
-        boxShadow: "none",
-        border: `1px solid ${isDarkMode ? "#374151" : "#e5e7eb"}`,
-        transition: "all 0.3s ease",
-        "&:hover": {
-          boxShadow: isDarkMode
-            ? "0 8px 20px rgba(0, 0, 0, 0.3)"
-            : "0 8px 20px rgba(0, 0, 0, 0.1)",
-        },
-      }}
-      elevation={0}
-    >
-      <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
-        <FilterListIcon sx={{ mr: 1, color: "secondary.main" }} />
-        <Typography variant="subtitle1" fontWeight={600}>
-          Filtres
-        </Typography>
-        <Box sx={{ flexGrow: 1 }} />
-        <Button
-          variant="text"
-          startIcon={<RefreshIcon />}
-          onClick={resetFilters}
-          size="small"
-          color="inherit"
-        >
-          Réinitialiser
-        </Button>
-      </Box>
-
-      <Grid container spacing={2}>
-        <Grid item xs={12} sm={6} md={3}>
-          <FormControl fullWidth size="small" variant="outlined">
-            <InputLabel>Type de points</InputLabel>
-            <Select
-              value={filters.type}
-              onChange={(e) => handleFilterChange("type", e.target.value)}
-              label="Type de points"
-            >
-              <MenuItem value="">Tous</MenuItem>
-              {bonusPointsTypes.map((type) => (
-                <MenuItem key={type} value={type}>
-                  {type}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <FormControl fullWidth size="small" variant="outlined">
-            <InputLabel>Pack</InputLabel>
-            <Select
-              value={filters.pack_id}
-              onChange={(e) => handleFilterChange("pack_id", e.target.value)}
-              label="Pack"
-              sx={{
-                bgcolor: isDarkMode ? "#1f2937" : "inherit",
-                color: isDarkMode ? "#fff" : "inherit",
-                "& .MuiOutlinedInput-notchedOutline": {
-                  borderColor: isDarkMode ? "#374151" : "rgba(0, 0, 0, 0.23)",
-                },
-                "&:hover .MuiOutlinedInput-notchedOutline": {
-                  borderColor: isDarkMode ? "#4b5563" : "rgba(0, 0, 0, 0.23)",
-                },
-                "& .MuiSvgIcon-root": {
-                  color: isDarkMode ? "#9ca3af" : "inherit",
-                },
-              }}
-              MenuProps={{
-                PaperProps: {
-                  sx: {
-                    bgcolor: isDarkMode ? "#1f2937" : "#fff",
-                    color: isDarkMode ? "#fff" : "inherit",
-                    "& .MuiMenuItem-root:hover": {
-                      bgcolor: isDarkMode ? "#374151" : "rgba(0, 0, 0, 0.04)",
-                    },
-                    "& .MuiMenuItem-root.Mui-selected": {
-                      bgcolor: isDarkMode
-                        ? "#374151"
-                        : "rgba(25, 118, 210, 0.08)",
-                    },
-                  },
-                },
-              }}
-            >
-              <MenuItem value="">Tous les packs</MenuItem>
-              {packOptions.map((pack) => (
-                <MenuItem key={pack.id} value={pack.id}>
-                  {pack.name}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <TextField
-            fullWidth
-            label="Date de début"
-            type="date"
-            size="small"
-            value={filters.date_from || ""}
-            onChange={(e) => handleFilterChange("date_from", e.target.value)}
-            InputLabelProps={{ shrink: true }}
-            variant="outlined"
-          />
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <TextField
-            fullWidth
-            label="Date de fin"
-            type="date"
-            size="small"
-            value={filters.date_to || ""}
-            onChange={(e) => handleFilterChange("date_to", e.target.value)}
-            InputLabelProps={{ shrink: true }}
-            variant="outlined"
-          />
-        </Grid>
-      </Grid>
-    </Paper>
-  );
   // Composant pour afficher le résumé financier
   const FinanceSummary = () => {
     if (!summary) return null;
 
     return (
       <Grid container spacing={3} sx={{ mb: 4 }}>
-        <Grid item xs={12} md={4}>
+        <Grid item xs={12} md={6}>
           <Card
             sx={{
               bgcolor: isDarkMode
@@ -2225,8 +1632,7 @@ const Finances = () => {
             </CardContent>
           </Card>
         </Grid>
-
-        <Grid item xs={12} md={4}>
+        <Grid item xs={12} md={6}>
           <Card
             sx={{
               bgcolor: isDarkMode
@@ -2326,119 +1732,6 @@ const Finances = () => {
             </CardContent>
           </Card>
         </Grid>
-
-        <Grid item xs={12} md={4}>
-          <Card
-            sx={{
-              bgcolor: isDarkMode
-                ? "rgba(245, 158, 11, 0.1)"
-                : "rgba(245, 158, 11, 0.05)",
-              boxShadow: "none",
-              border: `1px solid ${
-                isDarkMode
-                  ? "rgba(245, 158, 11, 0.2)"
-                  : "rgba(245, 158, 11, 0.1)"
-              }`,
-              borderRadius: 3,
-              height: "100%",
-              position: "relative",
-              overflow: "hidden",
-              transition: "all 0.3s ease",
-              "&:hover": {
-                transform: "translateY(-3px)",
-                boxShadow: isDarkMode
-                  ? "0 8px 20px rgba(0, 0, 0, 0.3)"
-                  : "0 8px 20px rgba(0, 0, 0, 0.1)",
-              },
-            }}
-          >
-            <Box
-              sx={{
-                position: "absolute",
-                top: -15,
-                right: -15,
-                width: 80,
-                height: 80,
-                borderRadius: "50%",
-                bgcolor: "warning.main",
-                opacity: 0.1,
-              }}
-            />
-            <CardContent sx={{ position: "relative", p: 3 }}>
-              <Box
-                sx={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "flex-start",
-                  mb: 2,
-                }}
-              >
-                <Typography
-                  variant="subtitle1"
-                  color="warning.main"
-                  sx={{ fontWeight: 600, fontSize: "0.9rem" }}
-                >
-                  Points bonus
-                </Typography>
-                <Box
-                  sx={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    bgcolor: "warning.main",
-                    color: "white",
-                    width: 36,
-                    height: 36,
-                    borderRadius: "50%",
-                  }}
-                >
-                  <TrendingUpIcon sx={{ fontSize: "1.2rem" }} />
-                </Box>
-              </Box>
-              <Typography
-                variant="h5"
-                component="div"
-                sx={{
-                  fontSize: "1.4rem",
-                  fontWeight: 700,
-                  color: isDarkMode ? "#fff" : "text.primary",
-                  mb: 2,
-                }}
-              >
-                <span className="mr-2">
-                  {userPointsBonus.points_dispos_total}
-                </span>
-                <span>points</span>
-              </Typography>
-
-              <Divider sx={{ my: 2 }} />
-
-              <Box sx={{ mt: 2 }}>
-                <Box
-                  sx={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                  }}
-                >
-                  <Typography variant="body2" color="text.secondary">
-                    Points utilisés
-                  </Typography>
-                  <Typography
-                    variant="body1"
-                    color="text.secondary"
-                    fontWeight={500}
-                  >
-                    <span className="mr-2">
-                      {userPointsBonus.points_utilises_total}
-                    </span>
-                    <span>points</span>
-                  </Typography>
-                </Box>
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
       </Grid>
     );
   };
@@ -2448,16 +1741,6 @@ const Finances = () => {
     <Container maxWidth="xl" sx={{ py: 4 }}>
       {/* Fenêtre modale pour les détails de transaction */}
       <TransactionDetailsModal />
-
-      <Typography
-        variant="h4"
-        component="h1"
-        gutterBottom
-        fontWeight={700}
-        sx={{ mb: 4 }}
-      >
-        Finances
-      </Typography>
 
       {/* Affichage des erreurs */}
       {error.summary && (
@@ -2470,8 +1753,8 @@ const Finances = () => {
       {loading.summary ? (
         <Box sx={{ mb: 4 }}>
           <Grid container spacing={3}>
-            {[1, 2, 3].map((item) => (
-              <Grid item xs={12} md={4} key={item}>
+            {[1, 2].map((item) => (
+              <Grid item xs={12} md={6} key={item}>
                 <Skeleton
                   variant="rectangular"
                   height={180}
@@ -2486,11 +1769,12 @@ const Finances = () => {
       )}
 
       {/* Onglets */}
-      <Box sx={{ position: "relative", mb: 3, minHeight: 48, overflow: "visible" }}>
+      <Box
+        sx={{ position: "relative", mb: 3, minHeight: 48, overflow: "visible" }}
+      >
         {/* Bouton de navigation gauche */}
         <IconButton
           onClick={handleScrollLeft}
-          
           size="small"
           sx={{
             position: "absolute",
@@ -2498,15 +1782,21 @@ const Finances = () => {
             top: "50%",
             transform: "translateY(-50%)",
             zIndex: 10,
-            bgcolor: isDarkMode ? "rgba(31, 41, 55, 0.5)" : "rgba(255, 255, 255, 0.7)",
-            color: isDarkMode ? "rgba(255, 255, 255, 0.7)" : "rgba(0, 0, 0, 0.5)",
+            bgcolor: isDarkMode
+              ? "rgba(31, 41, 55, 0.5)"
+              : "rgba(255, 255, 255, 0.7)",
+            color: isDarkMode
+              ? "rgba(255, 255, 255, 0.7)"
+              : "rgba(0, 0, 0, 0.5)",
             boxShadow: 1,
             width: 32,
             height: 32,
             transition: "all 0.2s ease",
             opacity: 0.7,
             "&:hover": {
-              bgcolor: isDarkMode ? "rgba(31, 41, 55, 0.7)" : "rgba(255, 255, 255, 0.9)",
+              bgcolor: isDarkMode
+                ? "rgba(31, 41, 55, 0.7)"
+                : "rgba(255, 255, 255, 0.9)",
               opacity: 0.9,
               transform: "translateY(-50%)",
             },
@@ -2519,7 +1809,6 @@ const Finances = () => {
         {/* Bouton de navigation droite */}
         <IconButton
           onClick={handleScrollRight}
-          
           size="small"
           sx={{
             position: "absolute",
@@ -2527,15 +1816,21 @@ const Finances = () => {
             top: "50%",
             transform: "translateY(-50%)",
             zIndex: 10,
-            bgcolor: isDarkMode ? "rgba(31, 41, 55, 0.5)" : "rgba(255, 255, 255, 0.7)",
-            color: isDarkMode ? "rgba(255, 255, 255, 0.7)" : "rgba(0, 0, 0, 0.5)",
+            bgcolor: isDarkMode
+              ? "rgba(31, 41, 55, 0.5)"
+              : "rgba(255, 255, 255, 0.7)",
+            color: isDarkMode
+              ? "rgba(255, 255, 255, 0.7)"
+              : "rgba(0, 0, 0, 0.5)",
             boxShadow: 1,
             width: 32,
             height: 32,
             transition: "all 0.2s ease",
             opacity: 0.7,
             "&:hover": {
-              bgcolor: isDarkMode ? "rgba(31, 41, 55, 0.7)" : "rgba(255, 255, 255, 0.9)",
+              bgcolor: isDarkMode
+                ? "rgba(31, 41, 55, 0.7)"
+                : "rgba(255, 255, 255, 0.9)",
               opacity: 0.9,
               transform: "translateY(-50%)",
             },
@@ -2578,44 +1873,38 @@ const Finances = () => {
               },
             }}
           >
-          <Tab
-            label="Portefeuille"
-            icon={<WalletIcon />}
-            iconPosition="start"
-            sx={{ fontWeight: 600, textTransform: "none" }}
-          />
-          <Tab
-            label="Transactions"
-            icon={<ReceiptIcon />}
-            iconPosition="start"
-            sx={{ fontWeight: 600, textTransform: "none" }}
-          />
-          <Tab
-            label="Points Bonus"
-            icon={<LightBulbIcon />}
-            iconPosition="start"
-            sx={{ fontWeight: 600, textTransform: "none" }}
-          />
-          <Tab
-            label="Statistiques"
-            icon={<InfoIcon />}
-            iconPosition="start"
-            sx={{ fontWeight: 600, textTransform: "none" }}
-          />
-          <Tab
-            label="Jetons Esengo"
-            icon={<TokenIcon />}
-            iconPosition="start"
-            sx={{ fontWeight: 600, textTransform: "none" }}
-          />
-          <Tab
-            label="Demandes de retrait"
-            icon={<MoneyOffIcon />}
-            iconPosition="start"
-            sx={{ fontWeight: 600, textTransform: "none" }}
-          />
-        </Tabs>
-      </Paper>
+            <Tab
+              label="Portefeuille"
+              icon={<WalletIcon />}
+              iconPosition="start"
+              sx={{ fontWeight: 600, textTransform: "none" }}
+            />
+            <Tab
+              label="Transactions"
+              icon={<ReceiptIcon />}
+              iconPosition="start"
+              sx={{ fontWeight: 600, textTransform: "none" }}
+            />
+            <Tab
+              label="Statistiques"
+              icon={<InfoIcon />}
+              iconPosition="start"
+              sx={{ fontWeight: 600, textTransform: "none" }}
+            />
+            <Tab
+              label="Jetons Esengo"
+              icon={<TokenIcon />}
+              iconPosition="start"
+              sx={{ fontWeight: 600, textTransform: "none" }}
+            />
+            <Tab
+              label="Demandes de retrait"
+              icon={<MoneyOffIcon />}
+              iconPosition="start"
+              sx={{ fontWeight: 600, textTransform: "none" }}
+            />
+          </Tabs>
+        </Paper>
       </Box>
 
       {/* Contenu des onglets */}
@@ -2636,21 +1925,8 @@ const Finances = () => {
           </>
         )}
 
-        {/* Onglet Points Bonus */}
-        {activeTab === 2 && (
-          <>
-            <BonusPointsFilters />
-            {error.bonusPoints && (
-              <Alert severity="error" sx={{ mb: 3 }}>
-                {error.bonusPoints}
-              </Alert>
-            )}
-            <BonusPointsTable />
-          </>
-        )}
-
         {/* Onglet Statistiques */}
-        {activeTab === 3 && (
+        {activeTab === 2 && (
           <>
             {/* Filtres pour les statistiques */}
             <Paper
@@ -2988,8 +2264,6 @@ const Finances = () => {
                                   ? "Commission de parrainage"
                                   : stat.type === "commission de retrait"
                                   ? "Commission de retrait"
-                                  : stat.type === "bonus"
-                                  ? "Bonus"
                                   : stat.type === "commission de transfert"
                                   ? "Commission de transfert"
                                   : stat.type === "virtual_purchase"
@@ -2998,7 +2272,6 @@ const Finances = () => {
                               }
                               color={
                                 stat.type === "reception" ||
-                                stat.type === "bonus" ||
                                 stat.type === "commission de parrainage" ||
                                 stat.type === "commission de retrait" ||
                                 stat.type === "commission de transfert" ||
@@ -3019,7 +2292,6 @@ const Finances = () => {
                             sx={{
                               color:
                                 stat.type === "reception" ||
-                                stat.type === "bonus" ||
                                 stat.type === "commission de parrainage" ||
                                 stat.type === "commission de retrait" ||
                                 stat.type === "commission de transfert" ||
@@ -3050,11 +2322,8 @@ const Finances = () => {
             </Paper>
 
             <Grid container spacing={3}>
-              <Grid item xs={12} md={6}>
+              <Grid item xs={12} md={12}>
                 <TransactionsChart />
-              </Grid>
-              <Grid item xs={12} md={6}>
-                <BonusPointsChart />
               </Grid>
               <Grid item xs={12}>
                 <Paper
@@ -3072,8 +2341,7 @@ const Finances = () => {
                   </Typography>
                   <Typography variant="body2" color="text.secondary" paragraph>
                     Cette section présente un aperçu visuel de vos finances. Les
-                    graphiques montrent l'évolution de vos transactions et la
-                    répartition de vos points bonus.
+                    graphiques montrent l'évolution de vos transactions
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
                     Les données sont mises à jour en temps réel et reflètent
@@ -3112,10 +2380,10 @@ const Finances = () => {
         )}
 
         {/* Onglet Jetons Esengo */}
-        {activeTab === 4 && <JetonsEsengo />}
+        {activeTab === 3 && <JetonsEsengo />}
 
         {/* Onglet Demandes de retrait */}
-        {activeTab === 5 && <WithdrawalRequests />}
+        {activeTab === 4 && <WithdrawalRequests />}
       </Box>
     </Container>
   );

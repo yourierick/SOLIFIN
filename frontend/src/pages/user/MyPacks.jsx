@@ -1,39 +1,41 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import {
+  Avatar,
+  Box,
+  Button,
   Container,
+  FormControl,
   Grid,
   Card,
   CardContent,
+  InputLabel,
   CardActions,
   Typography,
-  Button,
-  CircularProgress,
   Chip,
   Dialog,
-  DialogTitle,
-  DialogContent,
   DialogActions,
-  TextField,
-  Box,
-  IconButton,
-  Tooltip,
-  Tab,
-  Tabs,
-  InputAdornment,
-  Avatar,
+  DialogContent,
+  DialogTitle,
   Divider,
-  Badge,
-  Paper,
-  alpha,
+  Fade,
+  IconButton,
+  InputAdornment,
   List,
   ListItem,
+  ListItemAvatar,
   ListItemIcon,
   ListItemText,
-  ListItemAvatar,
-  FormControl,
-  InputLabel,
-  Select,
+  Menu,
   MenuItem,
+  Pagination,
+  Paper,
+  Select,
+  Tab,
+  Tabs,
+  TextField,
+  Tooltip,
+  useMediaQuery,
+  useTheme as useMuiTheme,
   Alert, // Import Alert
 } from "@mui/material";
 import { DataGrid } from "@mui/x-data-grid";
@@ -45,6 +47,7 @@ import {
   UsersIcon,
   MagnifyingGlassIcon,
   PlusIcon,
+  InformationCircleIcon,
   GiftIcon,
 } from "@heroicons/react/24/outline";
 import {
@@ -63,7 +66,6 @@ import { Link, useNavigate } from "react-router-dom";
 import RenewPackForm from "../../components/RenewPackForm";
 import PackStatsModal from "../../components/PackStatsModal";
 import { motion, AnimatePresence } from "framer-motion";
-import { Fade } from "@mui/material";
 import { toast } from "react-toastify";
 import { ChevronUpIcon, ChevronDownIcon } from "@heroicons/react/24/solid";
 
@@ -205,24 +207,26 @@ const CustomNode = ({ nodeDatum, isDarkMode, toggleNode }) => {
 const formatRemainingTime = (expiryDateStr) => {
   const expiryDate = new Date(expiryDateStr);
   const currentDate = new Date();
-  
+
   // Différence en millisecondes
   const diffMs = expiryDate - currentDate;
-  
+
   // Si déjà expiré
   if (diffMs <= 0) {
     return "Expiré";
   }
-  
+
   // Convertir en jours, mois, années
   const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-  const diffHours = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-  
+  const diffHours = Math.floor(
+    (diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)
+  );
+
   if (diffDays === 0) {
     if (diffHours === 0) {
       return "Dans moins d'une heure";
     }
-    return `Dans ${diffHours} heure${diffHours > 1 ? 's' : ''}`;
+    return `Dans ${diffHours} heure${diffHours > 1 ? "s" : ""}`;
   } else if (diffDays === 1) {
     return "Demain";
   } else if (diffDays < 30) {
@@ -230,13 +234,15 @@ const formatRemainingTime = (expiryDateStr) => {
   } else {
     const months = Math.floor(diffDays / 30);
     const remainingDays = diffDays % 30;
-    
+
     if (remainingDays === 0) {
       return months === 1 ? `Dans 1 mois` : `Dans ${months} mois`;
     } else {
-      return months === 1 
-        ? `Dans 1 mois et ${remainingDays} jour${remainingDays > 1 ? 's' : ''}` 
-        : `Dans ${months} mois et ${remainingDays} jour${remainingDays > 1 ? 's' : ''}`;
+      return months === 1
+        ? `Dans 1 mois et ${remainingDays} jour${remainingDays > 1 ? "s" : ""}`
+        : `Dans ${months} mois et ${remainingDays} jour${
+            remainingDays > 1 ? "s" : ""
+          }`;
     }
   }
 };
@@ -245,10 +251,12 @@ const formatRemainingTime = (expiryDateStr) => {
 const getRemainingTimeColor = (expiryDateStr) => {
   const expiryDate = new Date(expiryDateStr);
   const currentDate = new Date();
-  
+
   // Différence en jours
-  const diffDays = Math.floor((expiryDate - currentDate) / (1000 * 60 * 60 * 24));
-  
+  const diffDays = Math.floor(
+    (expiryDate - currentDate) / (1000 * 60 * 60 * 24)
+  );
+
   if (diffDays <= 7) {
     return "error.main"; // Rouge pour moins d'une semaine
   } else if (diffDays <= 30) {
@@ -271,6 +279,7 @@ export default function MyPacks() {
   const [currentPackStats, setCurrentPackStats] = useState(null);
   const [currentPackReferrals, setCurrentPackReferrals] = useState(null);
   const [currentTab, setCurrentTab] = useState(0);
+  const [selectedPackId, setSelectedPackId] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [viewMode, setViewMode] = useState("table");
   const [showExportMenu, setShowExportMenu] = useState(false);
@@ -283,7 +292,6 @@ export default function MyPacks() {
   });
   const treeRef = useRef(null);
   const [isFullScreen, setIsFullScreen] = useState(false);
-  const [selectedPackId, setSelectedPackId] = useState(null);
 
   const [copySuccess, setCopySuccess] = useState(false);
 
@@ -431,25 +439,84 @@ export default function MyPacks() {
     setStatsDialog(true);
   };
 
-  const handleReferralsClick = async (packId) => {
+  // État pour la pagination et les filtres des filleuls
+  const [referralsPagination, setReferralsPagination] = useState({
+    page: 1,
+    per_page: 10,
+    search: "",
+    status: "all",
+    start_date: "",
+    end_date: "",
+  });
+
+  // État pour stocker les métadonnées de pagination
+  const [referralsPaginationMeta, setReferralsPaginationMeta] = useState([]);
+
+  const handleReferralsClick = async (packId, newPage = 1, filters = {}) => {
     try {
-      const response = await axios.get(`/api/packs/${packId}/referrals`);
+      // Définir le pack sélectionné
+      setSelectedPackId(packId);
 
-      // Vérification des données
-      // if (response.data.data && Array.isArray(response.data.data)) {
-      //   response.data.data.forEach((generation, index) => {
-      //     //console.log(`Génération ${index + 1}:`, generation);
-      //   });
-      // }
+      // Mise à jour des paramètres de pagination
+      const paginationParams = {
+        ...referralsPagination,
+        page: newPage,
+        ...filters,
+      };
 
-      setCurrentPackReferrals(response.data.data);
-      setCurrentTab(0);
-      setSearchTerm("");
-      setReferralsDialog(true);
+      // Construction des paramètres de requête
+      const queryParams = new URLSearchParams();
+      Object.entries(paginationParams).forEach(([key, value]) => {
+        if (value !== "") queryParams.append(key, value);
+      });
+      queryParams.append("generation_tab", currentTab);
+
+      // Appel API avec paramètres de pagination
+      const response = await axios.get(
+        `/api/packs/${packId}/referrals?${queryParams.toString()}`
+      );
+
+      if (response.data && response.data.success) {
+        setCurrentPackReferrals(response.data.data);
+        setReferralsPaginationMeta(response.data.pagination || []);
+        setReferralsPagination((prev) => ({
+          ...prev,
+          page: newPage,
+          ...filters,
+        }));
+        if (!filters.generation_tab) {
+          setCurrentTab(0); // Ne réinitialiser l'onglet que si ce n'est pas un changement d'onglet
+        }
+        setSearchTerm("");
+        setReferralsDialog(true);
+      } else {
+        Notification.error("Erreur lors du chargement des filleuls");
+      }
     } catch (error) {
       console.error("Erreur complète:", error);
       Notification.error("Erreur lors du chargement des filleuls");
     }
+  };
+
+  // Fonction pour changer de page
+  const handleReferralsPageChange = (packId, newPage) => {
+    handleReferralsClick(packId, newPage);
+  };
+
+  // Fonction pour appliquer les filtres
+  const handleReferralsFilterChange = (packId, filters) => {
+    handleReferralsClick(packId, 1, filters);
+  };
+
+  // Fonction pour réinitialiser les filtres
+  const handleReferralsResetFilters = (packId) => {
+    const resetFilters = {
+      search: "",
+      status: "all",
+      start_date: "",
+      end_date: "",
+    };
+    handleReferralsClick(packId, 1, resetFilters);
   };
 
   // Fonction pour normaliser une date (convertir en objet Date valide)
@@ -867,6 +934,7 @@ export default function MyPacks() {
             flexDirection: "column",
             alignItems: "center",
             gap: 2,
+            bgcolor: isDarkMode ? "#1f2937" : "#fff",
           }}
         >
           <Box
@@ -881,32 +949,21 @@ export default function MyPacks() {
               mb: 2,
             }}
           >
-            <PlusIcon className="h-8 w-8" style={{ color: "white" }} />
+            <InformationCircleIcon
+              style={{ width: 32, height: 32, color: "white" }}
+            />
           </Box>
           <Typography variant="h5" gutterBottom sx={{ fontWeight: 600 }}>
-            Il n'y a aucun pack créé dans le système
+            Il n'y a aucun pack auquel a souscris ce compte
           </Typography>
           <Typography
             variant="body1"
             sx={{ maxWidth: "500px", mb: 2, color: "text.secondary" }}
           >
-            Ajoutez des packs pour permettre aux utilisateurs de s'inscrire et
-            de parrainer d'autres membres.
+            Vous n'avez souscris à aucun pack encore. Veuillez cliquer sur le
+            bouton au coin supérieur droit pour achéter un nouveau pack à votre
+            convenance.
           </Typography>
-          <Button
-            variant="contained"
-            onClick={() => navigate("../packs")}
-            sx={{
-              mt: 1,
-              borderRadius: "8px",
-              fontWeight: 600,
-              py: 1.2,
-              px: 3,
-              textTransform: "none",
-            }}
-          >
-            Ajouter des packs
-          </Button>
         </Paper>
       ) : (
         <Grid container spacing={3}>
@@ -1046,11 +1103,13 @@ export default function MyPacks() {
                         primaryTypographyProps={{
                           variant: "caption",
                           color: "text.secondary",
+                          component: "span",
                         }}
                         secondaryTypographyProps={{
                           variant: "body2",
                           fontWeight: 600,
                           sx: { mt: 0.5 },
+                          component: "span",
                         }}
                       />
                       <Tooltip title="Copier le code" placement="top">
@@ -1083,10 +1142,12 @@ export default function MyPacks() {
                         primaryTypographyProps={{
                           variant: "caption",
                           color: "text.secondary",
+                          component: "span",
                         }}
                         secondaryTypographyProps={{
                           variant: "body2",
                           fontWeight: 600,
+                          component: "span",
                           sx: {
                             mt: 0.5,
                             overflow: "hidden",
@@ -1133,14 +1194,19 @@ export default function MyPacks() {
                           }
                           secondary={
                             <>
-                              {new Date(userPack.expiry_date).toLocaleDateString()}
+                              {new Date(
+                                userPack.expiry_date
+                              ).toLocaleDateString()}
                               {userPack.status !== "expired" && (
                                 <Typography
                                   variant="caption"
-                                  component="div"
+                                  component="span"
                                   sx={{
                                     mt: 0.5,
-                                    color: getRemainingTimeColor(userPack.expiry_date),
+                                    display: "block",
+                                    color: getRemainingTimeColor(
+                                      userPack.expiry_date
+                                    ),
                                   }}
                                 >
                                   {formatRemainingTime(userPack.expiry_date)}
@@ -1163,6 +1229,7 @@ export default function MyPacks() {
                                 ? "error.main"
                                 : undefined,
                             sx: { mt: 0.5 },
+                            component: "span",
                           }}
                         />
                       </ListItem>
@@ -1187,10 +1254,12 @@ export default function MyPacks() {
                           primaryTypographyProps={{
                             variant: "caption",
                             color: "text.secondary",
+                            component: "span",
                           }}
                           secondaryTypographyProps={{
                             variant: "body2",
                             fontWeight: 600,
+                            component: "span",
                           }}
                         />
                       </ListItem>
@@ -1488,7 +1557,18 @@ export default function MyPacks() {
               >
                 <Tabs
                   value={currentTab}
-                  onChange={(e, newValue) => setCurrentTab(newValue)}
+                  onChange={(e, newValue) => {
+                    setCurrentTab(newValue);
+                    // Recharger les données avec le nouvel onglet
+                    if (selectedPackId) {
+                      const updatedFilters = {
+                        ...referralsPagination,
+                        page: 1, // Retour à la première page lors du changement d'onglet
+                        generation_tab: newValue,
+                      };
+                      handleReferralsClick(selectedPackId, 1, updatedFilters);
+                    }
+                  }}
                   variant="scrollable"
                   scrollButtons="auto"
                   sx={{
@@ -1940,66 +2020,140 @@ export default function MyPacks() {
                   transition={{ duration: 0.4, delay: 0.3 }}
                 >
                   {viewMode === "table" ? (
-                    <DataGrid
-                      getRowId={(row) => row.id}
-                      rows={filteredReferrals}
-                      columns={getColumnsForGeneration(currentTab)}
-                      autoHeight
-                      disableColumnMenu
-                      disableSelectionOnClick
-                      pageSize={10}
-                      rowsPerPageOptions={[10, 25, 50]}
-                      initialState={{
-                        pagination: {
-                          pageSize: 10,
-                        },
-                      }}
-                      sx={{
-                        border: "none",
-                        borderRadius: 2,
-                        bgcolor: isDarkMode
-                          ? "#1a2433"
-                          : "rgba(255, 255, 255, 0.9)",
-                        boxShadow: "0 2px 10px rgba(0, 0, 0, 0.1)",
-                        "& .MuiDataGrid-cell": {
-                          color: isDarkMode ? "grey.300" : "inherit",
-                          borderColor: isDarkMode
-                            ? "rgba(255, 255, 255, 0.1)"
-                            : "grey.200",
-                          fontSize: "0.875rem",
-                          py: 1.5,
-                        },
-                        "& .MuiDataGrid-columnHeaders": {
+                    <>
+                      <DataGrid
+                        getRowId={(row) => row.id}
+                        rows={currentPackReferrals[currentTab] || []}
+                        columns={getColumnsForGeneration(currentTab)}
+                        autoHeight
+                        disableColumnMenu
+                        disableSelectionOnClick
+                        hideFooterPagination
+                        hideFooter
+                        sx={{
+                          border: "none",
+                          borderRadius: 2,
                           bgcolor: isDarkMode
                             ? "#1a2433"
-                            : "rgba(0, 0, 0, 0.05)",
-                          borderColor: isDarkMode
-                            ? "rgba(255, 255, 255, 0.1)"
-                            : "grey.200",
-                          "& .MuiDataGrid-columnHeaderTitle": {
-                            fontWeight: 600,
+                            : "rgba(255, 255, 255, 0.9)",
+                          boxShadow: "0 2px 10px rgba(0, 0, 0, 0.1)",
+                          "& .MuiDataGrid-cell": {
+                            color: isDarkMode ? "grey.300" : "inherit",
+                            borderColor: isDarkMode
+                              ? "rgba(255, 255, 255, 0.1)"
+                              : "grey.200",
+                            fontSize: "0.875rem",
+                            py: 1.5,
                           },
-                        },
-                        "& .MuiDataGrid-row": {
-                          "&:hover": {
+                          "& .MuiDataGrid-columnHeaders": {
                             bgcolor: isDarkMode
-                              ? "rgba(255, 255, 255, 0.05)"
+                              ? "#1a2433"
+                              : "rgba(0, 0, 0, 0.05)",
+                            borderColor: isDarkMode
+                              ? "rgba(255, 255, 255, 0.1)"
+                              : "grey.200",
+                            "& .MuiDataGrid-columnHeaderTitle": {
+                              fontWeight: 600,
+                            },
+                          },
+                          "& .MuiDataGrid-row": {
+                            "&:hover": {
+                              bgcolor: isDarkMode
+                                ? "rgba(255, 255, 255, 0.05)"
+                                : "rgba(0, 0, 0, 0.02)",
+                            },
+                          },
+                          "& .MuiDataGrid-footerContainer": {
+                            borderTop: isDarkMode
+                              ? "1px solid rgba(255, 255, 255, 0.1)"
+                              : "1px solid rgba(0, 0, 0, 0.1)",
+                            bgcolor: isDarkMode
+                              ? "#1a2433"
                               : "rgba(0, 0, 0, 0.02)",
                           },
-                        },
-                        "& .MuiDataGrid-footerContainer": {
-                          borderTop: isDarkMode
-                            ? "1px solid rgba(255, 255, 255, 0.1)"
-                            : "1px solid rgba(0, 0, 0, 0.1)",
-                          bgcolor: isDarkMode
-                            ? "#1a2433"
-                            : "rgba(0, 0, 0, 0.02)",
-                        },
-                        "& .MuiTablePagination-root": {
-                          color: isDarkMode ? "grey.400" : "text.secondary",
-                        },
-                      }}
-                    />
+                          "& .MuiTablePagination-root": {
+                            color: isDarkMode ? "grey.400" : "text.secondary",
+                          },
+                        }}
+                      />
+
+                      {/* Contrôles de pagination personnalisés */}
+                      {referralsPaginationMeta &&
+                        referralsPaginationMeta[currentTab] && (
+                          <Box
+                            sx={{
+                              display: "flex",
+                              justifyContent: "space-between",
+                              alignItems: "center",
+                              mt: 2,
+                              px: 2,
+                              py: 1,
+                              bgcolor: isDarkMode
+                                ? "#1a2433"
+                                : "rgba(0, 0, 0, 0.02)",
+                              borderRadius: "0 0 8px 8px",
+                              borderTop: isDarkMode
+                                ? "1px solid rgba(255, 255, 255, 0.1)"
+                                : "1px solid rgba(0, 0, 0, 0.1)",
+                            }}
+                          >
+                            <Box sx={{ display: "flex", alignItems: "center" }}>
+                              <Typography
+                                variant="body2"
+                                sx={{
+                                  color: isDarkMode
+                                    ? "grey.400"
+                                    : "text.secondary",
+                                }}
+                              >
+                                Affichage de{" "}
+                                {referralsPaginationMeta[currentTab].from} à{" "}
+                                {referralsPaginationMeta[currentTab].to} sur{" "}
+                                {referralsPaginationMeta[currentTab].total}{" "}
+                                filleuls
+                              </Typography>
+                            </Box>
+
+                            <Pagination
+                              count={
+                                referralsPaginationMeta[currentTab].last_page
+                              }
+                              page={
+                                referralsPaginationMeta[currentTab].current_page
+                              }
+                              onChange={(e, page) =>
+                                handleReferralsPageChange(selectedPackId, page)
+                              }
+                              color="primary"
+                              size="medium"
+                              sx={{
+                                "& .MuiPaginationItem-root": {
+                                  color: isDarkMode ? "grey.300" : "inherit",
+                                  "&.Mui-selected": {
+                                    bgcolor: isDarkMode
+                                      ? "primary.dark"
+                                      : "primary.light",
+                                    color: isDarkMode
+                                      ? "common.white"
+                                      : "primary.main",
+                                    fontWeight: "bold",
+                                    "&:hover": {
+                                      bgcolor: isDarkMode
+                                        ? "primary.main"
+                                        : "primary.main",
+                                    },
+                                  },
+                                  "&:hover": {
+                                    bgcolor: isDarkMode
+                                      ? "rgba(255, 255, 255, 0.1)"
+                                      : "rgba(0, 0, 0, 0.05)",
+                                  },
+                                },
+                              }}
+                            />
+                          </Box>
+                        )}
+                    </>
                   ) : (
                     <Box
                       sx={{

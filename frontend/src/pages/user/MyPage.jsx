@@ -921,30 +921,31 @@ export default function MyPage() {
 
   return (
     <div className="px-4 py-6 sm:px-6 lg:px-2">
-      {/* Page Header - Similar to Facebook */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow mb-6">
-        <div className="h-32 bg-gradient-to-r from-primary-500 to-primary-700 rounded-t-lg relative">
-          {/* Cover Photo Area */}
+      {/* Page Header - Modern Design */}
+      <div className="bg-white/90 dark:bg-gray-800/90 rounded-lg shadow-md mb-6 overflow-hidden backdrop-blur-sm border border-gray-100 dark:border-gray-700 glassmorphism">
+        <div className="h-40 relative">
+          {/* Cover Photo Area with subtle gradient overlay */}
+          <div className="absolute inset-0 bg-gradient-to-b from-black/20 to-black/40 z-10"></div>
           {pageData?.photo_de_couverture ? (
             <img
               src={pageData.photo_de_couverture}
               alt="Photo de couverture"
-              className="h-full w-full object-cover rounded-t-lg"
+              className="h-full w-full object-cover"
             />
           ) : (
-            <div className="h-full w-full bg-gradient-to-r from-primary-500 to-primary-700 rounded-t-lg"></div>
+            <div className="h-full w-full bg-gradient-to-r from-primary-500 to-primary-700"></div>
           )}
           <button
             onClick={() => setShowCoverPhotoModal(true)}
-            className="absolute top-2 right-2 bg-white dark:bg-gray-800 text-primary-600 dark:text-primary-400 p-2 rounded-full shadow-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+            className="absolute top-3 right-3 bg-white/90 dark:bg-gray-800/90 text-primary-600 dark:text-primary-400 p-2 rounded-full shadow-lg hover:bg-white dark:hover:bg-gray-700 transition-all duration-300 ease-in-out z-20 backdrop-blur-sm hover:scale-105"
             title="Ajouter une photo de couverture"
           >
             <PlusIcon className="h-5 w-5" />
           </button>
         </div>
         <div className="px-6 pb-4 relative">
-          <div className="flex items-end -mt-12 sm:items-center sm:flex-row flex-col">
-            <div className="h-24 w-24 sm:h-32 sm:w-32 rounded-full border-4 border-white dark:border-gray-800 bg-gray-100 dark:bg-gray-700 overflow-hidden">
+          <div className="flex items-end -mt-16 sm:items-center sm:flex-row flex-col relative z-30">
+            <div className="h-24 w-24 sm:h-32 sm:w-32 rounded-full border-4 border-white dark:border-gray-800 bg-gray-100 dark:bg-gray-700 overflow-hidden shadow-lg">
               {user?.picture ? (
                 <img
                   src={user.picture}
@@ -967,14 +968,23 @@ export default function MyPage() {
                 {user?.name?.charAt(0) || "U"}
               </div>
             </div>
-            <div className="mt-4 sm:mt-0 sm:ml-4 flex-1">
+            <div className="mt-4 sm:mt-0 sm:ml-6 flex-1">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between">
                 <div>
-                  <h1 className="text-xl font-bold text-gray-900 dark:text-white">
+                  <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
                     {user?.name}
                   </h1>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">
-                    {subscribersCount} abonnés · {likesCount} mentions j'aime
+                  <p className="text-sm font-medium text-gray-600 dark:text-gray-300 flex items-center space-x-3 mt-1">
+                    <span className="flex items-center">
+                      <UsersIcon className="h-4 w-4 mr-1 text-primary-500 dark:text-primary-400" />
+                      {subscribersCount} abonnés
+                    </span>
+                    <span className="flex items-center">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1 text-red-500 dark:text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clipRule="evenodd" />
+                      </svg>
+                      {likesCount} mentions j'aime
+                    </span>
                   </p>
                 </div>
               </div>
@@ -989,13 +999,13 @@ export default function MyPage() {
       )}
 
       {/* Main Content */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow tabs-container">
+      <div className="bg-white/95 dark:bg-gray-800/95 rounded-lg shadow-md tabs-container overflow-hidden backdrop-blur-sm border border-gray-100 dark:border-gray-700 glassmorphism">
         <Tab.Group>
           {/* Custom Tab Navigation avec flèches de défilement */}
           <div className="relative">
             {/* Flèche de défilement gauche */}
             <button
-              className="absolute left-0 top-1/2 -translate-y-1/2 z-10 bg-white dark:bg-gray-800 rounded-full p-1 shadow-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary-500 disabled:opacity-40 disabled:cursor-not-allowed"
+              className="absolute left-0 top-1/2 -translate-y-1/2 z-10 bg-white/80 dark:bg-gray-800/80 rounded-full p-1.5 shadow-md hover:bg-white dark:hover:bg-gray-700 transition-all duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary-500 disabled:opacity-40 disabled:cursor-not-allowed backdrop-blur-sm"
               onClick={() => {
                 const tabList = document.querySelector(".tab-list-container");
                 tabList.scrollBy({ left: -200, behavior: "smooth" });
@@ -1006,117 +1016,131 @@ export default function MyPage() {
 
             {/* Conteneur de défilement avec masque de dégradé */}
             <div className="overflow-hidden mx-8 relative">
-              <div className="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-indigo-50 to-transparent dark:from-gray-700 dark:to-transparent z-[1]"></div>
-              <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-indigo-50 to-transparent dark:from-gray-700 dark:to-transparent z-[1]"></div>
+              <div className="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-white to-transparent dark:from-gray-800 dark:to-transparent z-[1]"></div>
+              <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-white to-transparent dark:from-gray-800 dark:to-transparent z-[1]"></div>
 
               <div className="tab-list-container overflow-x-auto scrollbar-hide">
-                <Tab.List className="flex space-x-1 rounded-t-lg bg-indigo-50 dark:bg-gray-700 p-1 whitespace-nowrap min-w-max">
+                <Tab.List className="flex space-x-1 rounded-t-lg bg-gray-50 dark:bg-gray-800 p-2 whitespace-nowrap min-w-max border-b border-gray-100 dark:border-gray-700">
                   <Tab
                     className={({ selected }) =>
                       classNames(
-                        "flex-shrink-0 min-w-[120px] py-3 px-4 text-sm font-medium rounded-lg transition-all duration-200",
-                        "focus:outline-none focus:ring-2 ring-offset-2 ring-offset-indigo-400 ring-white ring-opacity-60",
+                        "flex-shrink-0 min-w-[120px] py-2.5 px-4 text-sm font-medium rounded-md transition-all duration-300 ease-in-out flex items-center justify-center gap-1.5",
+                        "focus:outline-none",
                         selected
-                          ? "bg-white dark:bg-gray-600 shadow-md text-primary-700 dark:text-white transform scale-105"
-                          : "text-gray-600 dark:text-gray-300 hover:bg-white/[0.15] hover:text-primary-600 hover:transform hover:scale-105"
+                          ? "bg-white dark:bg-gray-700 shadow-sm text-primary-700 dark:text-white border border-gray-100 dark:border-gray-600"
+                          : "text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50 hover:text-primary-600"
                       )
                     }
                   >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                      <path d="M5 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H5zM5 11a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2H5zM11 5a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V5zM11 13a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+                    </svg>
                     Publicités
                   </Tab>
                   <Tab
                     className={({ selected }) =>
                       classNames(
-                        "flex-shrink-0 min-w-[120px] py-3 px-4 text-sm font-medium rounded-lg transition-all duration-200",
-                        "focus:outline-none focus:ring-2 ring-offset-2 ring-offset-indigo-400 ring-white ring-opacity-60",
+                        "flex-shrink-0 min-w-[120px] py-2.5 px-4 text-sm font-medium rounded-md transition-all duration-300 ease-in-out flex items-center justify-center gap-1.5",
+                        "focus:outline-none",
                         selected
-                          ? "bg-white dark:bg-gray-600 shadow-md text-indigo-700 dark:text-white transform scale-105"
-                          : "text-gray-600 dark:text-gray-300 hover:bg-white/[0.15] hover:text-indigo-600 hover:transform hover:scale-105"
+                          ? "bg-white dark:bg-gray-700 shadow-sm text-primary-700 dark:text-white border border-gray-100 dark:border-gray-600"
+                          : "text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50 hover:text-primary-600"
                       )
                     }
                   >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M6 6V5a3 3 0 013-3h2a3 3 0 013 3v1h2a2 2 0 012 2v3.57A22.952 22.952 0 0110 13a22.95 22.95 0 01-8-1.43V8a2 2 0 012-2h2zm2-1a1 1 0 011-1h2a1 1 0 011 1v1H8V5zm1 5a1 1 0 011-1h.01a1 1 0 110 2H10a1 1 0 01-1-1z" clipRule="evenodd" />
+                      <path d="M2 13.692V16a2 2 0 002 2h12a2 2 0 002-2v-2.308A24.974 24.974 0 0110 15c-2.796 0-5.487-.46-8-1.308z" />
+                    </svg>
                     Offres d'emploi
                   </Tab>
                   <Tab
                     className={({ selected }) =>
                       classNames(
-                        "flex-shrink-0 min-w-[120px] py-3 px-4 text-sm font-medium rounded-lg transition-all duration-200",
-                        "focus:outline-none focus:ring-2 ring-offset-2 ring-offset-primary-400 ring-white ring-opacity-60",
+                        "flex-shrink-0 min-w-[120px] py-2.5 px-4 text-sm font-medium rounded-md transition-all duration-300 ease-in-out flex items-center justify-center gap-1.5",
+                        "focus:outline-none",
                         selected
-                          ? "bg-white dark:bg-gray-600 shadow-md text-primary-700 dark:text-white transform scale-105"
-                          : "text-gray-600 dark:text-gray-300 hover:bg-white/[0.15] hover:text-primary-600 hover:transform hover:scale-105"
+                          ? "bg-white dark:bg-gray-700 shadow-sm text-primary-700 dark:text-white border border-gray-100 dark:border-gray-600"
+                          : "text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50 hover:text-primary-600"
                       )
                     }
                   >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M6.672 1.911a1 1 0 10-1.932.518l.259.966a1 1 0 001.932-.518l-.26-.966zM2.429 4.74a1 1 0 10-.517 1.932l.966.259a1 1 0 00.517-1.932l-.966-.26zm8.814-.569a1 1 0 00-1.415-1.414l-.707.707a1 1 0 101.415 1.415l.707-.708zm-7.071 7.072l.707-.707A1 1 0 003.465 9.12l-.708.707a1 1 0 001.415 1.415l.707-.708zm3.2-5.171a1 1 0 00-1.3 1.3l4 10a1 1 0 001.823.075l1.38-2.759 3.018 3.02a1 1 0 001.414-1.415l-3.019-3.02 2.76-1.379a1 1 0 00-.076-1.822l-10-4z" clipRule="evenodd" />
+                    </svg>
                     Opportunités
                   </Tab>
                   <Tab
                     className={({ selected }) =>
                       classNames(
-                        "flex-shrink-0 min-w-[120px] py-3 px-4 text-sm font-medium rounded-lg transition-all duration-200",
-                        "focus:outline-none focus:ring-2 ring-offset-2 ring-offset-primary-400 ring-white ring-opacity-60",
+                        "flex-shrink-0 min-w-[120px] py-2.5 px-4 text-sm font-medium rounded-md transition-all duration-300 ease-in-out flex items-center justify-center gap-1.5",
+                        "focus:outline-none",
                         selected
-                          ? "bg-white dark:bg-gray-600 shadow-md text-primary-700 dark:text-white transform scale-105"
-                          : "text-gray-600 dark:text-gray-300 hover:bg-white/[0.15] hover:text-primary-600 hover:transform hover:scale-105"
+                          ? "bg-white dark:bg-gray-700 shadow-sm text-primary-700 dark:text-white border border-gray-100 dark:border-gray-600"
+                          : "text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50 hover:text-primary-600"
                       )
                     }
                   >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                      <path d="M8 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM15 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0z" />
+                      <path d="M3 4a1 1 0 00-1 1v10a1 1 0 001 1h1.05a2.5 2.5 0 014.9 0H10a1 1 0 001-1V5a1 1 0 00-1-1H3zM14 7a1 1 0 00-1 1v6.05A2.5 2.5 0 0115.95 16H17a1 1 0 001-1v-5a1 1 0 00-.293-.707l-2-2A1 1 0 0015 7h-1z" />
+                    </svg>
                     Livreurs
                   </Tab>
                   <Tab
                     className={({ selected }) =>
                       classNames(
-                        "flex-shrink-0 min-w-[120px] py-3 px-4 text-sm font-medium rounded-lg transition-all duration-200",
-                        "focus:outline-none focus:ring-2 ring-offset-2 ring-offset-primary-400 ring-white ring-opacity-60",
+                        "flex-shrink-0 min-w-[120px] py-2.5 px-4 text-sm font-medium rounded-md transition-all duration-300 ease-in-out flex items-center justify-center gap-1.5",
+                        "focus:outline-none",
                         selected
-                          ? "bg-white dark:bg-gray-600 shadow-md text-primary-700 dark:text-white transform scale-105"
-                          : "text-gray-600 dark:text-gray-300 hover:bg-white/[0.15] hover:text-primary-600 hover:transform hover:scale-105"
+                          ? "bg-white dark:bg-gray-700 shadow-sm text-primary-700 dark:text-white border border-gray-100 dark:border-gray-600"
+                          : "text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50 hover:text-primary-600"
                       )
                     }
                   >
-                    <AcademicCapIcon className="h-5 w-5 inline-block mr-1" />
+                    <AcademicCapIcon className="h-4 w-4" />
                     Formations
                   </Tab>
                   <Tab
                     className={({ selected }) =>
                       classNames(
-                        "flex-shrink-0 min-w-[120px] py-3 px-4 text-sm font-medium rounded-lg transition-all duration-200",
-                        "focus:outline-none focus:ring-2 ring-offset-2 ring-offset-primary-400 ring-white ring-opacity-60",
+                        "flex-shrink-0 min-w-[120px] py-2.5 px-4 text-sm font-medium rounded-md transition-all duration-300 ease-in-out flex items-center justify-center gap-1.5",
+                        "focus:outline-none",
                         selected
-                          ? "bg-white dark:bg-gray-600 shadow-md text-primary-700 dark:text-white transform scale-105"
-                          : "text-gray-600 dark:text-gray-300 hover:bg-white/[0.15] hover:text-primary-600 hover:transform hover:scale-105"
+                          ? "bg-white dark:bg-gray-700 shadow-sm text-primary-700 dark:text-white border border-gray-100 dark:border-gray-600"
+                          : "text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50 hover:text-primary-600"
                       )
                     }
                   >
-                    <UsersIcon className="h-5 w-5 inline-block mr-1" />
+                    <UsersIcon className="h-4 w-4" />
                     Pages
                   </Tab>
                   <Tab
                     className={({ selected }) =>
                       classNames(
-                        "flex-shrink-0 min-w-[120px] py-3 px-4 text-sm font-medium rounded-lg transition-all duration-200",
-                        "focus:outline-none focus:ring-2 ring-offset-2 ring-offset-primary-400 ring-white ring-opacity-60",
+                        "flex-shrink-0 min-w-[120px] py-2.5 px-4 text-sm font-medium rounded-md transition-all duration-300 ease-in-out flex items-center justify-center gap-1.5",
+                        "focus:outline-none",
                         selected
-                          ? "bg-white dark:bg-gray-600 shadow-md text-primary-700 dark:text-white transform scale-105"
-                          : "text-gray-600 dark:text-gray-300 hover:bg-white/[0.15] hover:text-primary-600 hover:transform hover:scale-105"
+                          ? "bg-white dark:bg-gray-700 shadow-sm text-primary-700 dark:text-white border border-gray-100 dark:border-gray-600"
+                          : "text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50 hover:text-primary-600"
                       )
                     }
                   >
-                    <DocumentTextIcon className="h-5 w-5 inline-block mr-1" />
+                    <DocumentTextIcon className="h-4 w-4" />
                     Produits numériques
                   </Tab>
                   <Tab
                     className={({ selected }) =>
                       classNames(
-                        "flex-shrink-0 min-w-[120px] py-3 px-4 text-sm font-medium rounded-lg transition-all duration-200",
-                        "focus:outline-none focus:ring-2 ring-offset-2 ring-offset-primary-400 ring-white ring-opacity-60",
+                        "flex-shrink-0 min-w-[120px] py-2.5 px-4 text-sm font-medium rounded-md transition-all duration-300 ease-in-out flex items-center justify-center gap-1.5",
+                        "focus:outline-none",
                         selected
-                          ? "bg-white dark:bg-gray-600 shadow-md text-primary-700 dark:text-white transform scale-105"
-                          : "text-gray-600 dark:text-gray-300 hover:bg-white/[0.15] hover:text-primary-600 hover:transform hover:scale-105"
+                          ? "bg-white dark:bg-gray-700 shadow-sm text-primary-700 dark:text-white border border-gray-100 dark:border-gray-600"
+                          : "text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50 hover:text-primary-600"
                       )
                     }
                   >
-                    <ChatBubbleLeftRightIcon className="h-5 w-5 inline-block mr-1" />
+                    <ChatBubbleLeftRightIcon className="h-4 w-4" />
                     Social
                   </Tab>
                 </Tab.List>
@@ -1125,7 +1149,7 @@ export default function MyPage() {
 
             {/* Flèche de défilement droite */}
             <button
-              className="absolute right-0 top-1/2 -translate-y-1/2 z-10 bg-white dark:bg-gray-800 rounded-full p-1 shadow-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary-500 disabled:opacity-40 disabled:cursor-not-allowed"
+              className="absolute right-0 top-1/2 -translate-y-1/2 z-10 bg-white/80 dark:bg-gray-800/80 rounded-full p-1.5 shadow-md hover:bg-white dark:hover:bg-gray-700 transition-all duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary-500 disabled:opacity-40 disabled:cursor-not-allowed backdrop-blur-sm"
               onClick={() => {
                 const tabList = document.querySelector(".tab-list-container");
                 tabList.scrollBy({ left: 200, behavior: "smooth" });
@@ -1718,11 +1742,11 @@ export default function MyPage() {
                                       digitalProductsPagination.currentPage ===
                                       1
                                     }
-                                    className={`px-3 py-1 rounded-md ${
+                                    className={`px-3 py-1 rounded-md transition-all duration-300 ease-in-out ${
                                       digitalProductsPagination.currentPage ===
                                       1
                                         ? "bg-gray-200 text-gray-500 cursor-not-allowed dark:bg-gray-700 dark:text-gray-400"
-                                        : "bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
+                                        : "bg-gray-100 text-gray-700 hover:bg-gray-200 hover:shadow-md dark:hover:bg-gray-600"
                                     }`}
                                   >
                                     Précédent
@@ -1750,11 +1774,11 @@ export default function MyPage() {
                                           })
                                         )
                                       }
-                                      className={`px-3 py-1 rounded-md ${
+                                      className={`px-3 py-1 rounded-md transition-all duration-300 ease-in-out ${
                                         digitalProductsPagination.currentPage ===
                                         page
-                                          ? "bg-blue-600 text-white dark:bg-blue-500"
-                                          : "bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
+                                          ? "bg-blue-600 text-white shadow-md scale-105"
+                                          : "bg-gray-100 text-gray-700 hover:bg-gray-200 hover:shadow-md dark:hover:bg-gray-600 hover:scale-105"
                                       }`}
                                     >
                                       {page}
@@ -1787,7 +1811,7 @@ export default function MyPage() {
                                           digitalProductsPagination.itemsPerPage
                                       )
                                     }
-                                    className={`px-3 py-1 rounded-md ${
+                                    className={`px-3 py-1 rounded-md transition-all duration-300 ease-in-out ${
                                       digitalProductsPagination.currentPage ===
                                       Math.ceil(
                                         getFilteredPublications(
@@ -1797,7 +1821,7 @@ export default function MyPage() {
                                           digitalProductsPagination.itemsPerPage
                                       )
                                         ? "bg-gray-200 text-gray-500 cursor-not-allowed dark:bg-gray-700 dark:text-gray-400"
-                                        : "bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
+                                        : "bg-gray-100 text-gray-700 hover:bg-gray-200 hover:shadow-md dark:hover:bg-gray-600"
                                     }`}
                                   >
                                     Suivant
@@ -1869,7 +1893,7 @@ export default function MyPage() {
                           {/* Filtres pour le catalogue */}
                           <div className="flex flex-wrap gap-2 mb-4">
                             <div
-                              className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium cursor-pointer transition-colors ${
+                              className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium cursor-pointer transition-all duration-300 ease-in-out hover:scale-105 ${
                                 catalogFilters.type === "tous"
                                   ? "bg-primary-100 text-primary-800 dark:bg-primary-900 dark:text-primary-200"
                                   : "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200 hover:bg-primary-100 hover:text-primary-800 dark:hover:bg-primary-900 dark:hover:text-primary-200"
@@ -1884,7 +1908,7 @@ export default function MyPage() {
                               Tous
                             </div>
                             <div
-                              className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium cursor-pointer transition-colors ${
+                              className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium cursor-pointer transition-all duration-300 ease-in-out hover:scale-105 ${
                                 catalogFilters.type === "ebook"
                                   ? "bg-primary-100 text-primary-800 dark:bg-primary-900 dark:text-primary-200"
                                   : "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200 hover:bg-primary-100 hover:text-primary-800 dark:hover:bg-primary-900 dark:hover:text-primary-200"
@@ -1899,7 +1923,7 @@ export default function MyPage() {
                               E-books
                             </div>
                             <div
-                              className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium cursor-pointer transition-colors ${
+                              className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium cursor-pointer transition-all duration-300 ease-in-out hover:scale-105 ${
                                 catalogFilters.type === "fichier_admin"
                                   ? "bg-primary-100 text-primary-800 dark:bg-primary-900 dark:text-primary-200"
                                   : "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200 hover:bg-primary-100 hover:text-primary-800 dark:hover:bg-primary-900 dark:hover:text-primary-200"
@@ -1925,7 +1949,7 @@ export default function MyPage() {
                               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                                 {catalogProducts.map((product) => (
                                   <div key={product.id} className="mb-4">
-                                    <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden transition-all hover:shadow-lg">
+                                    <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden transition-all duration-300 ease-in-out hover:shadow-lg hover:translate-y-[-4px] glassmorphism">
                                       {product.image_url ? (
                                         <div className="h-40 bg-gray-200 dark:bg-gray-700 overflow-hidden">
                                           <img
@@ -2178,7 +2202,7 @@ export default function MyPage() {
       {/* Publication Form Modal */}
       {isFormOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center z-50">
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto glassmorphism">
             <div className="p-4 border-b dark:border-gray-700 flex justify-between items-center">
               <h3 className="text-lg font-medium text-gray-900 dark:text-white">
                 {isEditMode ? "Modifier" : "Créer"}{" "}
