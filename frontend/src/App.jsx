@@ -74,7 +74,8 @@ import FormationManagement from "./pages/admin/components/FormationManagement";
 import CadeauxManagement from "./pages/admin/components/CadeauxManagement";
 import TicketVerification from "./pages/admin/components/TicketVerification";
 import JetonsEsengo from "./pages/user/components/JetonsEsengo";
-import AdminManagement from "./pages/admin/AdminManagement";
+// import AdminManagement from "./pages/admin/AdminManagement";
+import UsersManagement from "./pages/admin/UsersManagement";
 import ContentManagement from "./pages/admin/components/ContentManagement";
 
 function App() {
@@ -176,9 +177,9 @@ function App() {
             }
           >
             <Route index element={<AdminDashboard />} />
-            <Route path="users" element={<Users />} />
+            <Route path="users" element={<UsersManagement />} />
             <Route path="users/:id" element={<UserDetails />} />
-            {/* <Route path="wallets" element={<Wallets />} /> */}
+            <Route path="wallets" element={<Wallets />} />
             <Route path="packs" element={<Packs />} />
             <Route path="packs/add" element={<AddPack />} />
             <Route path="packs/edit/:id" element={<EditPack />} />
@@ -192,7 +193,7 @@ function App() {
             <Route path="content-management" element={<ContentManagement />} />
             <Route path="profile" element={<AdminProfile />} />
             <Route path="settings" element={<Settings />} />
-            <Route path="administrators" element={<AdminManagement />} />
+            {/* <Route path="administrators" element={<AdminManagement />} /> */}
             {/* <Route path="testimonials" element={<TestimonialManagement />} /> */}
             <Route path="faqs" element={<FaqManagement />} />
             {/* <Route path="formations" element={<FormationManagement />} /> */}

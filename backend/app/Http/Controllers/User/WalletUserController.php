@@ -97,6 +97,7 @@ class WalletUserController extends Controller
      */
     public function funds_transfer(Request $request)
     {
+        \Log::info($request->all());
         try {
             $request->validate([
                 'recipient_account_id' => 'required',
@@ -155,6 +156,8 @@ class WalletUserController extends Controller
             $senderMetadata = [
                 "Bénéficiaire" => $recipientWallet->user->name,
                 "Montant" => number_format($request->original_amount, 2) . " $",
+                "Frais de transaction" => number_format($request->fee_amount, 2) . " $",
+                "Frais de commission" => number_format($request->commission_amount, 2) . " $",
                 "Description" => $request->description ?? 'Transfert de fonds',
                 "Détails" => "Vous avez transféré " . number_format($request->original_amount, 2) . " $ au compte " . $recipientWallet->user->account_id
             ];
@@ -252,7 +255,6 @@ class WalletUserController extends Controller
                 $recipient->name,
                 false,
                 $request->description ?? 'Transfert de fonds',
-                $user->is_admin
             ));
             
             $recipient->notify(new FundsTransferred(
@@ -276,6 +278,7 @@ class WalletUserController extends Controller
                 'recipient' => $request->recipient_account_id ?? null,
                 'amount' => $request->amount ?? null
             ]);
+            \Log::error($e->getTraceAsString());
             
             return response()->json([
                 'success' => false,

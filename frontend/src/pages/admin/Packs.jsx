@@ -31,6 +31,147 @@ import { useTheme as useAppTheme } from "../../contexts/ThemeContext";
 // Import du composant MyPacks avec lazy loading
 const MyPacks = lazy(() => import("./MyPacks"));
 
+// Composant FormulaireAjoutBonus déplacé en dehors pour éviter la re-création
+const FormulaireAjoutBonus = ({
+  packId,
+  onBonusAdded,
+  bonusType,
+  onBonusTypeChange,
+  setBonusRates,
+}) => {
+  const [formBonus, setFormBonus] = useState({
+    type: "esengo",
+    nombre_filleuls: "",
+    points_attribues: "",
+  });
+
+  const handleBonusChange = (e) => {
+    const { name, value } = e.target;
+    setFormBonus((prevState) => {
+      const newState = {
+        ...prevState,
+        [name]: value,
+      };
+      return newState;
+    });
+  };
+
+  const handleBonusSubmit = async (e) => {
+    e.preventDefault();
+
+    // Pas de validation spéciale nécessaire pour les jetons Esengo
+
+    try {
+      const response = await axios.post(
+        `/api/admin/packs/${packId}/bonus-rates`,
+        formBonus
+      );
+      if (response.data.success) {
+        Notification.success("Jetons Esengo configurés avec succès");
+
+        // Mettre à jour la liste des bonus immédiatement
+        const updatedBonusResponse = await axios.get(
+          `/api/admin/packs/${packId}/bonus-rates`
+        );
+        if (updatedBonusResponse.data.success) {
+          setBonusRates(updatedBonusResponse.data.bonusRates || []);
+        }
+
+        setFormBonus({
+          type: "esengo",
+          nombre_filleuls: "",
+          points_attribues: "",
+        });
+        onBonusAdded();
+      }
+    } catch (error) {
+      // Gérer l'erreur lorsqu'un type de bonus est déjà configuré
+      if (error.response && error.response.status === 422) {
+        Notification.error(
+          error.response.data.message ||
+            "Une configuration de jetons Esengo existe déjà pour ce pack"
+        );
+      } else {
+        Notification.error(
+          "Une erreur est survenue lors de l'ajout du bonus. Veuillez réessayer."
+        );
+      }
+    }
+  };
+
+  // Type fixé à Esengo uniquement
+
+  return (
+    <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md mb-4">
+      <h3 className="text-lg font-semibold mb-4 text-gray-800 dark:text-white">
+        Configurer les jetons Esengo
+      </h3>
+      <form onSubmit={handleBonusSubmit}>
+        {/* Type fixé à Esengo - pas de sélection nécessaire */}
+
+        <div className="mb-4">
+          <label
+            htmlFor="nombre_filleuls"
+            className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+          >
+            Nombre de filleuls pour obtenir des jetons
+          </label>
+          <input
+            type="number"
+            id="nombre_filleuls"
+            name="nombre_filleuls"
+            value={formBonus.nombre_filleuls}
+            onChange={handleBonusChange}
+            onFocus={() => console.log("Input focused: nombre_filleuls")}
+            onBlur={() => console.log("Input blurred: nombre_filleuls")}
+            onKeyDown={(e) => console.log("Key pressed:", e.key)}
+            className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+            min="1"
+            required
+            placeholder="Ex: 5 (1 jeton tous les 5 filleuls)"
+            disabled={false}
+            readOnly={false}
+          />
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+            Si un utilisateur parraine 10 filleuls, il recevra 1 jeton.
+          </p>
+        </div>
+
+        <div className="mb-4">
+          <label
+            htmlFor="points_attribues"
+            className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+          >
+            Nombre de jetons Esengo par palier
+          </label>
+          <input
+            type="number"
+            id="points_attribues"
+            name="points_attribues"
+            value={formBonus.points_attribues}
+            onChange={handleBonusChange}
+            className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+            min="1"
+            required
+            placeholder="Ex: 1 (1 jeton par palier atteint)"
+            disabled={false}
+            readOnly={false}
+          />
+        </div>
+
+        {/* Champ valeur_point supprimé car non nécessaire pour les jetons Esengo */}
+
+        <button
+          type="submit"
+          className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
+        >
+          Ajouter
+        </button>
+      </form>
+    </div>
+  );
+};
+
 export default function Packs() {
   // État pour gérer les onglets
   const [activeTab, setActiveTab] = useState(0);
@@ -41,9 +182,10 @@ export default function Packs() {
   const [packs, setPacks] = useState([]);
   const [filteredPacks, setFilteredPacks] = useState([]);
   const [loading, setLoading] = useState(true);
-  
+
   // État pour les permissions utilisateur
   const [userPermissions, setUserPermissions] = useState([]);
+  const [loadingPermissions, setLoadingPermissions] = useState(true);
   const { user } = useAuth();
   const { showToast } = useToast();
   const [isCommissionModalVisible, setIsCommissionModalVisible] =
@@ -68,7 +210,7 @@ export default function Packs() {
   const [selectedPackIdForBonus, setSelectedPackIdForBonus] = useState(null);
   const [selectedPackNameForBonus, setSelectedPackNameForBonus] = useState("");
   const [bonusRates, setBonusRates] = useState([]);
-  const [currentBonusType, setCurrentBonusType] = useState("delais");
+  const [currentBonusType, setCurrentBonusType] = useState("esengo");
   const [newBonusRate, setNewBonusRate] = useState({
     frequence: "weekly",
     nombre_filleuls: 5,
@@ -86,19 +228,105 @@ export default function Packs() {
     valeur_point: "",
   });
 
+  // Fonction pour déterminer les onglets disponibles en fonction des permissions
+  const getAvailableTabs = () => {
+    const tabs = [];
+
+    if (
+      userPermissions.includes("manage-packs") ||
+      userPermissions.includes("super-admin")
+    ) {
+      tabs.push("gestion");
+    }
+
+    if (
+      userPermissions.includes("manage-own-packs") ||
+      userPermissions.includes("super-admin")
+    ) {
+      tabs.push("mes-packs");
+    }
+
+    return tabs;
+  };
+
   // Fonction pour gérer le changement d'onglet
   const handleTabChange = (event, newValue) => {
-    setActiveTab(newValue);
+    const availableTabs = getAvailableTabs();
+
+    if (newValue >= 0 && newValue < availableTabs.length) {
+      setActiveTab(newValue);
+    }
+  };
+
+  // Fonction pour récupérer les permissions de l'utilisateur
+  const fetchUserPermissions = async () => {
+    setLoadingPermissions(true);
+    try {
+      // Récupérer les permissions depuis l'API pour tous les utilisateurs
+      const response = await axios.get(`/api/user/permissions`);
+      if (response.data && response.data.permissions) {
+        // Stocker les slugs des permissions
+        const permissionSlugs = response.data.permissions.map(
+          (permission) => permission.slug
+        );
+        setUserPermissions(permissionSlugs);
+      } else {
+        setUserPermissions([]);
+      }
+    } catch (error) {
+      console.error(
+        "[DEBUG] Erreur lors de la récupération des permissions:",
+        error
+      );
+      setUserPermissions([]);
+    } finally {
+      setLoadingPermissions(false);
+    }
   };
 
   useEffect(() => {
-    fetchPacks();
+    fetchUserPermissions();
+    // Charger les packs seulement si l'utilisateur a la permission manage-packs
+    if (
+      userPermissions.includes("manage-packs") ||
+      userPermissions.includes("super-admin")
+    ) {
+      fetchPacks();
+    }
   }, []);
+
+  // Initialiser l'onglet actif en fonction des permissions disponibles
+  useEffect(() => {
+    if (!loadingPermissions) {
+      const availableTabs = getAvailableTabs();
+
+      // Si aucun onglet n'est disponible, ne rien faire
+      if (availableTabs.length === 0) {
+        return;
+      }
+
+      // Si l'onglet actif n'est pas dans les onglets disponibles, sélectionner le premier onglet disponible
+      if (!availableTabs[activeTab]) {
+        setActiveTab(0);
+      }
+    }
+  }, [userPermissions, loadingPermissions]);
+
+  // Charger les packs quand les permissions sont chargées
+  useEffect(() => {
+    if (
+      !loadingPermissions &&
+      (userPermissions.includes("manage-packs") ||
+        userPermissions.includes("super-admin"))
+    ) {
+      fetchPacks();
+    }
+  }, [userPermissions, loadingPermissions]);
 
   useEffect(() => {
     applyFilters();
   }, [packs, filters]);
-  
+
   // Récupérer les permissions de l'utilisateur
   useEffect(() => {
     const fetchUserPermissions = async () => {
@@ -229,55 +457,10 @@ export default function Packs() {
     setSelectedPackNameForBonus("");
     setBonusRates([]);
     setNewBonusRate({
-      frequence: "weekly",
+      frequence: "monthly",
       nombre_filleuls: 5,
-      taux_bonus: 50,
+      points_attribues: 1,
     });
-  };
-
-  const handleNewBonusRateChange = (e) => {
-    const { name, value } = e.target;
-    setNewBonusRate((prev) => ({
-      ...prev,
-      [name]:
-        name === "nombre_filleuls" || name === "taux_bonus"
-          ? Number(value)
-          : value,
-    }));
-  };
-
-  const addBonusRate = async () => {
-    try {
-      const response = await axios.post(
-        `/api/admin/packs/${selectedPackIdForBonus}/bonus-rates`,
-        newBonusRate
-      );
-      if (response.data.success) {
-        showToast(response.data.message, "success");
-        setBonusRates((prev) => [...prev, response.data.bonusRate]);
-        setNewBonusRate({
-          frequence: "weekly",
-          nombre_filleuls: 5,
-          taux_bonus: 50,
-        });
-      }
-    } catch (err) {
-      Notification.error("Erreur lors de l'ajout du taux de bonus");
-    }
-  };
-
-  const updateBonusRate = async (id, data) => {
-    try {
-      const response = await axios.put(`/api/admin/bonus-rates/${id}`, data);
-      if (response.data.success) {
-        showToast(response.data.message, "success");
-        setBonusRates((prev) =>
-          prev.map((rate) => (rate.id === id ? response.data.bonusRate : rate))
-        );
-      }
-    } catch (err) {
-      Notification.error("Erreur lors de la mise à jour du taux de bonus");
-    }
   };
 
   const deleteBonusRate = async (id) => {
@@ -352,224 +535,6 @@ export default function Packs() {
     }
   };
 
-  const FormulaireAjoutBonus = ({
-    packId,
-    onBonusAdded,
-    bonusType,
-    onBonusTypeChange,
-  }) => {
-    const [formBonus, setFormBonus] = useState({
-      type: bonusType || "delais",
-      nombre_filleuls: "",
-      points_attribues: "",
-      valeur_point: "",
-    });
-
-    // Mettre à jour formBonus lorsque bonusType change
-    useEffect(() => {
-      setFormBonus((prev) => ({
-        ...prev,
-        type: bonusType,
-      }));
-    }, [bonusType]);
-
-    const handleBonusChange = (e) => {
-      const { name, value } = e.target;
-
-      // Si on change le type, on réinitialise la valeur du point si nécessaire
-      if (name === "type" && value === "esengo") {
-        setFormBonus({ ...formBonus, [name]: value, valeur_point: "" });
-        // Mettre à jour l'état du type dans le composant parent
-        onBonusTypeChange && onBonusTypeChange(value);
-      } else {
-        setFormBonus({ ...formBonus, [name]: value });
-        if (name === "type") {
-          // Mettre à jour l'état du type dans le composant parent
-          onBonusTypeChange && onBonusTypeChange(value);
-        }
-      }
-    };
-
-    const handleBonusSubmit = async (e) => {
-      e.preventDefault();
-
-      // Validation côté client
-      if (formBonus.type === "delais" && !formBonus.valeur_point) {
-        Notification.error(
-          "La valeur du point est requise pour les bonus sur délais"
-        );
-        return;
-      } else {
-        delete formBonus.valeur_point;
-      }
-
-      try {
-        const response = await axios.post(
-          `/api/admin/packs/${packId}/bonus-rates`,
-          formBonus
-        );
-        if (response.data.success) {
-          Notification.success(
-            formBonus.type === "delais"
-              ? "Bonus sur délais ajouté avec succès"
-              : "Jetons Esengo configurés avec succès"
-          );
-
-          // Mettre à jour la liste des bonus immédiatement
-          const updatedBonusResponse = await axios.get(
-            `/api/admin/packs/${packId}/bonus-rates`
-          );
-          if (updatedBonusResponse.data.success) {
-            setBonusRates(updatedBonusResponse.data.bonusRates || []);
-          }
-
-          setFormBonus({
-            type: "delais",
-            nombre_filleuls: "",
-            points_attribues: "",
-            valeur_point: "",
-          });
-          onBonusAdded();
-        }
-      } catch (error) {
-        // Gérer l'erreur lorsqu'un type de bonus est déjà configuré
-        if (error.response && error.response.status === 422) {
-          Notification.error(
-            error.response.data.message ||
-              (formBonus.type === "delais"
-                ? "Un bonus sur délais a déjà été configuré pour ce pack"
-                : "Une configuration de jetons Esengo existe déjà pour ce pack")
-          );
-        } else {
-          Notification.error(
-            "Une erreur est survenue lors de l'ajout du bonus. Veuillez réessayer."
-          );
-          console.error("Erreur lors de l'ajout du bonus:", error);
-        }
-      }
-    };
-
-    const isDelaisType = formBonus.type === "delais";
-
-    return (
-      <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md mb-4">
-        <h3 className="text-lg font-semibold mb-4 text-gray-800 dark:text-white">
-          {isDelaisType
-            ? "Configurer le bonus sur délais"
-            : "Configurer les jetons Esengo"}
-        </h3>
-        <form onSubmit={handleBonusSubmit}>
-          <div className="mb-4">
-            <label
-              htmlFor="type"
-              className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-            >
-              Type de bonus
-            </label>
-            <select
-              id="type"
-              name="type"
-              value={formBonus.type}
-              onChange={handleBonusChange}
-              className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
-              required
-            >
-              <option value="delais">Bonus sur délais (hebdomadaire)</option>
-              <option value="esengo">Jetons Esengo (mensuel)</option>
-            </select>
-          </div>
-
-          <div className="mb-4">
-            <label
-              htmlFor="nombre_filleuls"
-              className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-            >
-              {isDelaisType
-                ? "Nombre de filleuls pour 1 point"
-                : "Nombre de filleuls pour obtenir des jetons"}
-            </label>
-            <input
-              type="number"
-              id="nombre_filleuls"
-              name="nombre_filleuls"
-              value={formBonus.nombre_filleuls}
-              onChange={handleBonusChange}
-              className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
-              min="1"
-              required
-              placeholder={
-                isDelaisType
-                  ? "Ex: 7 (1 point tous les 7 filleuls)"
-                  : "Ex: 5 (1 jeton tous les 5 filleuls)"
-              }
-            />
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-              {isDelaisType
-                ? "Si un utilisateur parraine 14 filleuls, il recevra 2 points. S'il en parraine 21, il recevra 3 points, etc."
-                : "Si un utilisateur parraine 10 filleuls, il recevra 2 jetons."}
-            </p>
-          </div>
-
-          <div className="mb-4">
-            <label
-              htmlFor="points_attribues"
-              className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-            >
-              {isDelaisType
-                ? "Points attribués par palier"
-                : "Nombre de jetons Esengo par palier"}
-            </label>
-            <input
-              type="number"
-              id="points_attribues"
-              name="points_attribues"
-              value={formBonus.points_attribues}
-              onChange={handleBonusChange}
-              className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
-              min="1"
-              required
-              placeholder={
-                isDelaisType
-                  ? "Ex: 1 (1 point par palier atteint)"
-                  : "Ex: 1 (1 jeton par palier atteint)"
-              }
-            />
-          </div>
-
-          {isDelaisType && (
-            <div className="mb-4">
-              <label
-                htmlFor="valeur_point"
-                className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-              >
-                Valeur d'un point en devise ($)
-              </label>
-              <input
-                type="number"
-                id="valeur_point"
-                name="valeur_point"
-                value={formBonus.valeur_point}
-                onChange={handleBonusChange}
-                className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
-                min="0.01"
-                step="0.01"
-                required
-                placeholder="Ex: 10.00 (10$ par point)"
-              />
-            </div>
-          )}
-
-          <button
-            type="submit"
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
-          >
-            Ajouter
-          </button>
-        </form>
-      </div>
-    );
-  };
-
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -582,332 +547,371 @@ export default function Packs() {
     <div className="container mx-auto px-4 py-8">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">
-          {activeTab === 0 ? "Gestion des Packs" : "Mes Packs"}
+          {!loadingPermissions && getAvailableTabs().length > 0
+            ? getAvailableTabs()[activeTab] === "gestion"
+              ? "Gestion des Packs"
+              : "Mes Packs"
+            : "Gestion des Packs"}
         </h1>
         <div className="flex space-x-2">
-          {activeTab === 0 && (
-            <>
-              <button
-                onClick={() => setShowFilters(!showFilters)}
-                className="inline-flex items-center px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600"
-              >
-                <FunnelIcon className="h-5 w-5" />
-              </button>
-              <button
-                onClick={fetchPacks}
-                className="inline-flex items-center px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600"
-              >
-                <ArrowPathIcon className="h-5 w-5" />
-              </button>
-              <Link
-                to="/admin/packs/add"
-                className="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-md flex items-center"
-              >
-                <PlusIcon className="h-5 w-5 mr-2" />
-                Ajouter un pack
-              </Link>
-            </>
-          )}
+          {!loadingPermissions &&
+            getAvailableTabs()[activeTab] === "gestion" && (
+              <>
+                <button
+                  onClick={() => setShowFilters(!showFilters)}
+                  className="inline-flex items-center px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600"
+                >
+                  <FunnelIcon className="h-5 w-5" />
+                </button>
+                <button
+                  onClick={fetchPacks}
+                  className="inline-flex items-center px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600"
+                >
+                  <ArrowPathIcon className="h-5 w-5" />
+                </button>
+                <Link
+                  to="/admin/packs/add"
+                  className="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-md flex items-center"
+                >
+                  <PlusIcon className="h-5 w-5 mr-2" />
+                  Ajouter un pack
+                </Link>
+              </>
+            )}
         </div>
       </div>
 
-      {/* Onglets avec design moderne */}
-      <Paper
-        elevation={isDarkMode ? 2 : 3}
-        sx={{
-          p: 0,
-          mb: 3,
-          bgcolor: isDarkMode ? "#1f2937" : "#fff",
-          borderRadius: 2,
-          overflow: "hidden",
-          transition: "all 0.3s ease",
-          boxShadow: isDarkMode
-            ? "0 4px 20px rgba(0,0,0,0.3)"
-            : "0 4px 20px rgba(0,0,0,0.1)",
-        }}
-      >
-        <Tabs
-          value={activeTab}
-          onChange={handleTabChange}
-          variant="scrollable"
-          scrollButtons="auto"
-          allowScrollButtonsMobile
-          TabIndicatorProps={{
-            style: {
-              backgroundColor: isDarkMode ? "#3b82f6" : "#2563eb",
-              height: 3,
-              borderRadius: "3px 3px 0 0",
-            },
-          }}
+      {/* Onglets avec design moderne - Afficher seulement si l'utilisateur a des permissions */}
+      {!loadingPermissions && getAvailableTabs().length > 0 && (
+        <Paper
+          elevation={isDarkMode ? 2 : 3}
           sx={{
-            borderBottom: 1,
-            borderColor: isDarkMode
-              ? "rgba(55, 65, 81, 0.5)"
-              : "rgba(0, 0, 0, 0.08)",
-            bgcolor: isDarkMode ? "#111827" : "#f8fafc",
-            "& .MuiTabs-flexContainer": {
-              gap: 1,
-              px: 1,
-              pt: 1,
-            },
-            "& .MuiTab-root": {
-              minHeight: 48,
-              transition: "all 0.2s ease",
-              borderRadius: "8px 8px 0 0",
-              fontWeight: 500,
-              textTransform: "none",
-              fontSize: "0.95rem",
-              "&:hover": {
-                backgroundColor: isDarkMode
-                  ? "rgba(59, 130, 246, 0.1)"
-                  : "rgba(37, 99, 235, 0.05)",
-                color: isDarkMode ? "#60a5fa" : "#3b82f6",
-              },
-              "&.Mui-selected": {
-                color: isDarkMode ? "#60a5fa" : "#2563eb",
-                fontWeight: 600,
-              },
-            },
+            p: 0,
+            mb: 3,
+            bgcolor: isDarkMode ? "#1f2937" : "#fff",
+            borderRadius: 2,
+            overflow: "hidden",
+            transition: "all 0.3s ease",
+            boxShadow: isDarkMode
+              ? "0 4px 20px rgba(0,0,0,0.3)"
+              : "0 4px 20px rgba(0,0,0,0.1)",
           }}
         >
-          <Tab
-            icon={<FunnelIcon className="h-5 w-5" />}
-            iconPosition="start"
-            label="Gestion des packs"
-            onMouseEnter={() => setTabHover(0)}
-            onMouseLeave={() => setTabHover(null)}
-            sx={{
-              transform: tabHover === 0 ? "translateY(-2px)" : "none",
-            }}
-          />
-          <Tab
-            icon={<PlusIcon className="h-5 w-5" />}
-            iconPosition="start"
-            label="Mes packs"
-            onMouseEnter={() => setTabHover(1)}
-            onMouseLeave={() => setTabHover(null)}
-            disabled={!userPermissions.includes("manage-own-packs") && !userPermissions.includes("super-admin")}
-            sx={{
-              transform: tabHover === 1 ? "translateY(-2px)" : "none",
-              opacity: !userPermissions.includes("manage-own-packs") && !userPermissions.includes("super-admin") ? 0.5 : 1,
-              "&.Mui-disabled": {
-                color: "text.disabled",
-                cursor: "not-allowed",
+          <Tabs
+            value={activeTab}
+            onChange={handleTabChange}
+            variant="scrollable"
+            scrollButtons="auto"
+            allowScrollButtonsMobile
+            TabIndicatorProps={{
+              style: {
+                backgroundColor: isDarkMode ? "#3b82f6" : "#2563eb",
+                height: 3,
+                borderRadius: "3px 3px 0 0",
               },
             }}
-          />
-        </Tabs>
-      </Paper>
-
-      {/* Contenu de l'onglet Gestion des packs */}
-      {activeTab === 0 && showFilters && (
-        <div className="mt-4 bg-white dark:bg-gray-800 p-4 rounded-lg shadow border border-gray-200 dark:border-gray-700">
-          <div className="flex flex-wrap gap-4">
-            <div className="flex-1 min-w-[200px]">
-              <label
-                htmlFor="search"
-                className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-              >
-                Recherche
-              </label>
-              <input
-                type="text"
-                id="search"
-                name="search"
-                value={filters.search}
-                onChange={handleFilterChange}
-                placeholder="Rechercher par nom ou avantage"
-                className="block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
-              />
-            </div>
-            <div className="flex-1 min-w-[200px]">
-              <label
-                htmlFor="category"
-                className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-              >
-                Catégorie
-              </label>
-              <input
-                type="text"
-                id="category"
-                name="category"
-                value={filters.category}
-                onChange={handleFilterChange}
-                placeholder="Filtrer par catégorie"
-                className="block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
-              />
-            </div>
-            <div className="flex-1 min-w-[200px]">
-              <label
-                htmlFor="status"
-                className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-              >
-                Statut
-              </label>
-              <select
-                id="status"
-                name="status"
-                value={filters.status}
-                onChange={handleFilterChange}
-                className="block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
-              >
-                <option value="">Tous</option>
-                <option value="active">Actif</option>
-                <option value="inactive">Inactif</option>
-              </select>
-            </div>
-            <div className="flex items-end">
-              <button
-                onClick={resetFilters}
-                className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600"
-              >
-                Réinitialiser
-              </button>
-            </div>
-          </div>
-        </div>
+            sx={{
+              borderBottom: 1,
+              borderColor: isDarkMode
+                ? "rgba(55, 65, 81, 0.5)"
+                : "rgba(0, 0, 0, 0.08)",
+              bgcolor: isDarkMode ? "#111827" : "#f8fafc",
+              "& .MuiTabs-flexContainer": {
+                gap: 1,
+                px: 1,
+                pt: 1,
+              },
+              "& .MuiTab-root": {
+                minHeight: 48,
+                transition: "all 0.2s ease",
+                borderRadius: "8px 8px 0 0",
+                fontWeight: 500,
+                textTransform: "none",
+                fontSize: "0.95rem",
+                "&:hover": {
+                  backgroundColor: isDarkMode
+                    ? "rgba(59, 130, 246, 0.1)"
+                    : "rgba(37, 99, 235, 0.05)",
+                  color: isDarkMode ? "#60a5fa" : "#3b82f6",
+                },
+                "&.Mui-selected": {
+                  color: isDarkMode ? "#60a5fa" : "#2563eb",
+                  fontWeight: 600,
+                },
+              },
+            }}
+          >
+            {/* Afficher les onglets en fonction des permissions disponibles */}
+            {getAvailableTabs().map((tab, index) =>
+              tab === "gestion" ? (
+                <Tab
+                  key="gestion"
+                  icon={<FunnelIcon className="h-5 w-5" />}
+                  iconPosition="start"
+                  label="Gestion des packs"
+                  onMouseEnter={() => setTabHover(index)}
+                  onMouseLeave={() => setTabHover(null)}
+                  sx={{
+                    transform: tabHover === index ? "translateY(-2px)" : "none",
+                  }}
+                />
+              ) : (
+                <Tab
+                  key="mes-packs"
+                  icon={<PlusIcon className="h-5 w-5" />}
+                  iconPosition="start"
+                  label="Mes packs"
+                  onMouseEnter={() => setTabHover(index)}
+                  onMouseLeave={() => setTabHover(null)}
+                  sx={{
+                    transform: tabHover === index ? "translateY(-2px)" : "none",
+                  }}
+                />
+              )
+            )}
+          </Tabs>
+        </Paper>
       )}
 
-      {/* Table des packs */}
-      {activeTab === 0 && (
-        <div className="mt-8 flex flex-col">
-          <div className="-my-2 -mx-4 overflow-x-auto sm:-mx-6 lg:-mx-8">
-            <div className="inline-block min-w-full py-2 align-middle md:px-6 lg:px-8">
-              <div className="overflow-hidden shadow ring-1 ring-black ring-opacity-5 dark:ring-white dark:ring-opacity-10 md:rounded-lg">
-                <table className="min-w-full divide-y divide-gray-300 dark:divide-gray-600">
-                  <thead className="bg-gray-50 dark:bg-gray-700">
-                    <tr>
-                      <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900 dark:text-gray-200">
-                        N°
-                      </th>
-                      <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900 dark:text-gray-200">
-                        Catégorie
-                      </th>
-                      <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900 dark:text-gray-200">
-                        Nom
-                      </th>
-                      <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900 dark:text-gray-200">
-                        Type d'abonnement
-                      </th>
-                      <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900 dark:text-gray-200">
-                        Prix
-                      </th>
-                      <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900 dark:text-gray-200">
-                        Status
-                      </th>
-                      <th className="px-3 py-3.5 text-center text-sm font-semibold text-gray-900 dark:text-gray-200">
-                        Actions
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-200 dark:divide-gray-700 bg-white dark:bg-gray-800">
-                    {filteredPacks.map((pack) => (
-                      <tr
-                        key={pack.id}
-                        className="hover:bg-gray-50 dark:hover:bg-gray-700"
-                      >
-                        <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-900 dark:text-gray-200">
-                          {filteredPacks.indexOf(pack) + 1}
-                        </td>
-                        <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-900 dark:text-gray-200">
-                          {pack.categorie}
-                        </td>
-                        <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-900 dark:text-gray-200">
-                          {pack.name}
-                        </td>
-                        <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-900 dark:text-gray-200">
-                          {pack.abonnement}
-                        </td>
-                        <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-900 dark:text-gray-200">
-                          {pack.price} $
-                        </td>
-                        <td className="whitespace-nowrap px-3 py-4 text-sm">
-                          <button
-                            onClick={() => togglePackStatus(pack.id)}
-                            className={`px-2 py-1 rounded-full text-xs font-medium ${
-                              pack.status
-                                ? "bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200"
-                                : "bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200"
-                            }`}
-                          >
-                            {pack.status ? "Actif" : "Inactif"}
-                          </button>
-                        </td>
-                        <td className="whitespace-nowrap px-3 py-4 text-sm text-center">
-                          <div className="flex items-center justify-center">
-                            <div className="flex space-x-1">
-                              <button
-                                onClick={() => showCommissionModal(pack.id)}
-                                className="p-1 rounded-md text-primary-600 dark:text-primary-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200"
-                                title="Gérer les commissions"
-                              >
-                                <CurrencyDollarIcon className="h-4 w-4" />
-                              </button>
-                              <Link
-                                to={`/admin/packs/edit/${pack.id}`}
-                                className="p-1 rounded-md text-primary-600 dark:text-primary-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200"
-                                title="Modifier ce pack"
-                              >
-                                <PencilIcon className="h-4 w-4" />
-                              </Link>
-                              <button
-                                onClick={() =>
-                                  showBonusModal(pack.id, pack.name)
-                                }
-                                className="p-1 rounded-md text-green-600 dark:text-green-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200"
-                                title="Configurer les bonus"
-                              >
-                                <GiftIcon className="h-4 w-4" />
-                              </button>
-                              <button
-                                onClick={() =>
-                                  showDeleteModal(pack.id, pack.name)
-                                }
-                                className="p-1 rounded-md text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200"
-                                title="Supprimer ce pack"
-                              >
-                                <TrashIcon className="h-4 w-4" />
-                              </button>
-                            </div>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+      {!loadingPermissions && (
+        <>
+          {/* Contenu de l'onglet Gestion des packs */}
+          {getAvailableTabs()[activeTab] === "gestion" && showFilters && (
+            <div className="mt-4 bg-white dark:bg-gray-800 p-4 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+              <div className="flex flex-wrap gap-4">
+                <div className="flex-1 min-w-[200px]">
+                  <label
+                    htmlFor="search"
+                    className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                  >
+                    Recherche
+                  </label>
+                  <input
+                    type="text"
+                    id="search"
+                    name="search"
+                    value={filters.search}
+                    onChange={handleFilterChange}
+                    placeholder="Rechercher par nom ou avantage"
+                    className="block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
+                  />
+                </div>
+                <div className="flex-1 min-w-[200px]">
+                  <label
+                    htmlFor="category"
+                    className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                  >
+                    Catégorie
+                  </label>
+                  <input
+                    type="text"
+                    id="category"
+                    name="category"
+                    value={filters.category}
+                    onChange={handleFilterChange}
+                    placeholder="Filtrer par catégorie"
+                    className="block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
+                  />
+                </div>
+                <div className="flex-1 min-w-[200px]">
+                  <label
+                    htmlFor="status"
+                    className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                  >
+                    Statut
+                  </label>
+                  <select
+                    id="status"
+                    name="status"
+                    value={filters.status}
+                    onChange={handleFilterChange}
+                    className="block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
+                  >
+                    <option value="">Tous</option>
+                    <option value="active">Actif</option>
+                    <option value="inactive">Inactif</option>
+                  </select>
+                </div>
+                <div className="flex items-end">
+                  <button
+                    onClick={resetFilters}
+                    className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600"
+                  >
+                    Réinitialiser
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
-        </div>
+          )}
+
+          {/* Table des packs */}
+          {getAvailableTabs()[activeTab] === "gestion" && (
+            <div className="mt-8 flex flex-col">
+              <div className="-my-2 -mx-4 overflow-x-auto sm:-mx-6 lg:-mx-8">
+                <div className="inline-block min-w-full py-2 align-middle md:px-6 lg:px-8">
+                  <div className="overflow-hidden shadow ring-1 ring-black ring-opacity-5 dark:ring-white dark:ring-opacity-10 md:rounded-lg">
+                    <table className="min-w-full divide-y divide-gray-300 dark:divide-gray-600">
+                      <thead className="bg-gray-50 dark:bg-gray-700">
+                        <tr>
+                          <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900 dark:text-gray-200">
+                            N°
+                          </th>
+                          <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900 dark:text-gray-200">
+                            Catégorie
+                          </th>
+                          <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900 dark:text-gray-200">
+                            Nom
+                          </th>
+                          <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900 dark:text-gray-200">
+                            Type d'abonnement
+                          </th>
+                          <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900 dark:text-gray-200">
+                            Prix
+                          </th>
+                          <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900 dark:text-gray-200">
+                            Status
+                          </th>
+                          <th className="px-3 py-3.5 text-center text-sm font-semibold text-gray-900 dark:text-gray-200">
+                            Actions
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-200 dark:divide-gray-700 bg-white dark:bg-gray-800">
+                        {filteredPacks.map((pack) => (
+                          <tr
+                            key={pack.id}
+                            className="hover:bg-gray-50 dark:hover:bg-gray-700"
+                          >
+                            <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-900 dark:text-gray-200">
+                              {filteredPacks.indexOf(pack) + 1}
+                            </td>
+                            <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-900 dark:text-gray-200">
+                              {pack.categorie}
+                            </td>
+                            <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-900 dark:text-gray-200">
+                              {pack.name}
+                            </td>
+                            <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-900 dark:text-gray-200">
+                              {pack.abonnement}
+                            </td>
+                            <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-900 dark:text-gray-200">
+                              {pack.price} $
+                            </td>
+                            <td className="whitespace-nowrap px-3 py-4 text-sm">
+                              <button
+                                onClick={() => togglePackStatus(pack.id)}
+                                className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                  pack.status
+                                    ? "bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200"
+                                    : "bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200"
+                                }`}
+                              >
+                                {pack.status ? "Actif" : "Inactif"}
+                              </button>
+                            </td>
+                            <td className="whitespace-nowrap px-3 py-4 text-sm text-center">
+                              <div className="flex items-center justify-center">
+                                <div className="flex space-x-1">
+                                  <button
+                                    onClick={() => showCommissionModal(pack.id)}
+                                    className="p-1 rounded-md text-primary-600 dark:text-primary-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200"
+                                    title="Gérer les commissions"
+                                  >
+                                    <CurrencyDollarIcon className="h-4 w-4" />
+                                  </button>
+                                  <Link
+                                    to={`/admin/packs/edit/${pack.id}`}
+                                    className="p-1 rounded-md text-primary-600 dark:text-primary-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200"
+                                    title="Modifier ce pack"
+                                  >
+                                    <PencilIcon className="h-4 w-4" />
+                                  </Link>
+                                  <button
+                                    onClick={() =>
+                                      showBonusModal(pack.id, pack.name)
+                                    }
+                                    className="p-1 rounded-md text-green-600 dark:text-green-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200"
+                                    title="Configurer les bonus"
+                                  >
+                                    <GiftIcon className="h-4 w-4" />
+                                  </button>
+                                  <button
+                                    onClick={() =>
+                                      showDeleteModal(pack.id, pack.name)
+                                    }
+                                    className="p-1 rounded-md text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200"
+                                    title="Supprimer ce pack"
+                                  >
+                                    <TrashIcon className="h-4 w-4" />
+                                  </button>
+                                </div>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Onglet "Mes packs" */}
+          {getAvailableTabs()[activeTab] === "mes-packs" && (
+            <Box sx={{ mt: 2 }}>
+              <Suspense
+                fallback={
+                  <Box
+                    display="flex"
+                    justifyContent="center"
+                    alignItems="center"
+                    height="400px"
+                  >
+                    <CircularProgress color="primary" />
+                    <Typography variant="body1" ml={2} color="textSecondary">
+                      Chargement des packs...
+                    </Typography>
+                  </Box>
+                }
+              >
+                <MyPacks />
+              </Suspense>
+            </Box>
+          )}
+
+          {/* Message si aucun onglet n'est disponible */}
+          {!loadingPermissions && getAvailableTabs().length === 0 && (
+            <div className="mt-8 text-center">
+              <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-md p-6">
+                <ExclamationTriangleIcon className="mx-auto h-12 w-12 text-yellow-400 dark:text-yellow-500" />
+                <h3 className="mt-2 text-sm font-medium text-yellow-800 dark:text-yellow-200">
+                  Accès restreint
+                </h3>
+                <p className="mt-1 text-sm text-yellow-600 dark:text-yellow-300">
+                  Vous n'avez pas les permissions nécessaires pour accéder à
+                  cette section.
+                </p>
+              </div>
+            </div>
+          )}
+        </>
       )}
 
-      {/* Onglet "Mes packs" */}
-      {activeTab === 1 && (
-        <Box sx={{ mt: 2 }}>
-          <Suspense
-            fallback={
-              <Box
-                display="flex"
-                justifyContent="center"
-                alignItems="center"
-                height="400px"
-              >
-                <CircularProgress color="primary" />
-                <Typography variant="body1" ml={2} color="textSecondary">
-                  Chargement des packs...
-                </Typography>
-              </Box>
-            }
-          >
-            <MyPacks />
-          </Suspense>
-        </Box>
+      {/* Indicateur de chargement des permissions */}
+      {loadingPermissions && (
+        <div className="mt-8 text-center">
+          <CircularProgress color="primary" />
+          <Typography variant="body1" mt={2} color="textSecondary">
+            Vérification des permissions...
+          </Typography>
+        </div>
       )}
 
       {/* Modal de suppression */}
       {isDeleteModalVisible && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl p-6 max-w-md w-full border border-gray-200 dark:border-gray-700">
             <div className="flex items-center mb-4 text-red-500">
               <ExclamationTriangleIcon className="h-6 w-6 mr-2" />
               <h3 className="text-lg font-semibold">
@@ -941,165 +945,205 @@ export default function Packs() {
       {/* Modal de configuration des bonus */}
       {isBonusModalVisible && (
         <div
-          className="fixed inset-0 z-50 bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center"
+          className="fixed inset-0 z-50 bg-black/60 backdrop-blur-md flex items-center justify-center p-4"
           onClick={hideBonusModal}
         >
           <div
-            className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full mx-4 flex flex-col max-h-[90vh]"
+            className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] border border-gray-200 dark:border-gray-700 flex flex-col"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* En-tête fixe */}
-            <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-              <h3 className="text-lg leading-6 font-medium text-gray-900 dark:text-white">
-                Configuration des bonus pour {selectedPackNameForBonus}
-              </h3>
+            {/* En-tête avec gradient */}
+            <div className="bg-gradient-to-r from-emerald-600 to-teal-600 px-6 py-4 flex-shrink-0">
+              <div className="flex justify-between items-center">
+                <div className="flex items-center space-x-3">
+                  <div className="p-2 bg-white/20 rounded-lg">
+                    <GiftIcon className="h-6 w-6 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold text-white">
+                      Configuration des Jetons Esengo
+                    </h3>
+                    <p className="text-emerald-100 text-sm">
+                      Pack: {selectedPackNameForBonus}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={hideBonusModal}
+                  className="p-2 hover:bg-white/20 rounded-lg transition-colors duration-200"
+                >
+                  <XMarkIcon className="h-6 w-6 text-white" />
+                </button>
+              </div>
             </div>
 
             {/* Contenu défilant */}
-            <div className="flex-1 overflow-y-auto px-6 py-4">
-              {/* Liste des taux de bonus existants */}
-              {bonusRates.length > 0 ? (
-                <div className="overflow-x-auto mb-6">
-                  <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                    <thead className="bg-gray-50 dark:bg-gray-700">
-                      <tr>
-                        <th
-                          scope="col"
-                          className="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
-                        >
-                          Type
-                        </th>
-                        <th
-                          scope="col"
-                          className="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
-                        >
-                          Fréquence
-                        </th>
-                        <th
-                          scope="col"
-                          className="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
-                        >
-                          Filleuls
-                        </th>
-                        <th
-                          scope="col"
-                          className="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
-                        >
-                          Points/Jetons
-                        </th>
-                        <th
-                          scope="col"
-                          className="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
-                        >
-                          Valeur ($)
-                        </th>
-                        <th
-                          scope="col"
-                          className="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
-                        >
-                          Actions
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                      {bonusRates.map((rate) => (
-                        <tr
-                          key={rate.id}
-                          className="hover:bg-gray-50 dark:hover:bg-gray-700"
-                        >
-                          <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-900 dark:text-gray-200">
-                            {rate.type === "delais" ? "Délais" : "Esengo"}
-                          </td>
-                          <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-900 dark:text-gray-200">
-                            {rate.frequence === "weekly" && "Hebdomadaire"}
-                            {rate.frequence === "monthly" && "Mensuel"}
-                          </td>
-                          <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-900 dark:text-gray-200">
-                            {rate.nombre_filleuls} filleuls
-                          </td>
-                          <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-900 dark:text-gray-200">
-                            {rate.type === "delais"
-                              ? `${rate.points_attribues} pts`
-                              : `${rate.points_attribues} jetons`}
-                          </td>
-                          <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-900 dark:text-gray-200">
-                            {rate.valeur_point ? `${rate.valeur_point}$` : "-"}
-                          </td>
-                          <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-900 dark:text-gray-200">
-                            <button
-                              onClick={() => handleDeleteBonusRate(rate.id)}
-                              className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300"
+            <div className="flex-1 overflow-y-auto px-6 py-6 min-h-0">
+              {/* Section des taux existants */}
+              <div className="mb-8">
+                <div className="flex items-center space-x-2 mb-4">
+                  <div className="w-2 h-2 bg-emerald-500 rounded-full"></div>
+                  <h4 className="text-lg font-semibold text-gray-900 dark:text-white">
+                    Taux de bonus configurés
+                  </h4>
+                </div>
+
+                {bonusRates.length > 0 ? (
+                  <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
+                    <div className="overflow-x-auto">
+                      <table className="min-w-full">
+                        <thead>
+                          <tr className="border-b border-gray-200 dark:border-gray-700">
+                            <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-300">
+                              Type de bonus
+                            </th>
+                            <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-300">
+                              Fréquence
+                            </th>
+                            <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-300">
+                              Nombre de filleuls
+                            </th>
+                            <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-300">
+                              Jetons attribués
+                            </th>
+                            <th className="px-4 py-3 text-center text-sm font-semibold text-gray-700 dark:text-gray-300">
+                              Actions
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                          {bonusRates.map((rate) => (
+                            <tr
+                              key={rate.id}
+                              className="hover:bg-white/50 dark:hover:bg-gray-700/50 transition-colors duration-150"
                             >
-                              <TrashIcon className="h-5 w-5" />
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              ) : (
-                <div className="mb-6 text-center py-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                  <p className="text-gray-500 dark:text-gray-400">
-                    Aucun taux de bonus configuré pour ce pack
-                  </p>
-                </div>
-              )}
-
-              {/* Formulaire d'ajout de taux de bonus */}
-              <FormulaireAjoutBonus
-                packId={selectedPackIdForBonus}
-                onBonusAdded={() => setBonusRates((prev) => [...prev])}
-                bonusType={currentBonusType}
-                onBonusTypeChange={setCurrentBonusType}
-              />
-
-              {/* Exemple explicatif conditionnel selon le type de bonus */}
-              <div className="mt-6 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-900/30 rounded-md p-4">
-                <div className="flex">
-                  <div className="flex-shrink-0">
-                    <svg
-                      className="h-5 w-5 text-yellow-400"
-                      xmlns="http://www.w3.org/2000/svg"
-                      viewBox="0 0 20 20"
-                      fill="currentColor"
-                    >
-                      <path
-                        fillRule="evenodd"
-                        d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
-                        clipRule="evenodd"
-                      />
-                    </svg>
+                              <td className="px-4 py-4">
+                                <div className="flex items-center space-x-2">
+                                  <div className="w-2 h-2 bg-emerald-500 rounded-full"></div>
+                                  <span className="text-sm font-medium text-gray-900 dark:text-gray-200">
+                                    Jetons Esengo
+                                  </span>
+                                </div>
+                              </td>
+                              <td className="px-4 py-4">
+                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
+                                  Mensuel
+                                </span>
+                              </td>
+                              <td className="px-4 py-4">
+                                <span className="text-sm text-gray-900 dark:text-gray-200 font-medium">
+                                  {rate.nombre_filleuls} filleuls
+                                </span>
+                              </td>
+                              <td className="px-4 py-4">
+                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300">
+                                  {rate.points_attribues} jetons
+                                </span>
+                              </td>
+                              <td className="px-4 py-4 text-center">
+                                <button
+                                  onClick={() => deleteBonusRate(rate.id)}
+                                  className="inline-flex items-center p-2 text-red-600 hover:text-red-800 hover:bg-red-50 dark:text-red-400 dark:hover:text-red-300 dark:hover:bg-red-900/20 rounded-lg transition-colors duration-200"
+                                  title="Supprimer ce taux"
+                                >
+                                  <TrashIcon className="h-4 w-4" />
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
                   </div>
-                  <div className="ml-3">
-                    <h3 className="text-sm font-medium text-yellow-800 dark:text-yellow-200">
-                      {currentBonusType === "delais"
-                        ? "Exemple - Bonus sur délais"
-                        : "Exemple - Jetons Esengo"}
+                ) : (
+                  <div className="text-center py-12 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800/50 dark:to-gray-700/50 rounded-xl border-2 border-dashed border-gray-300 dark:border-gray-600">
+                    <GiftIcon className="mx-auto h-12 w-12 text-gray-400 dark:text-gray-500 mb-4" />
+                    <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+                      Aucun taux configuré
                     </h3>
-                    <div className="mt-2 text-sm text-yellow-700 dark:text-yellow-300">
-                      {currentBonusType === "delais" ? (
+                    <p className="text-gray-500 dark:text-gray-400">
+                      Commencez par ajouter un taux de bonus pour ce pack
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* Section d'ajout de nouveau taux */}
+              <div className="mb-8">
+                <div className="flex items-center space-x-2 mb-4">
+                  <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                  <h4 className="text-lg font-semibold text-gray-900 dark:text-white">
+                    Ajouter un nouveau taux
+                  </h4>
+                </div>
+
+                <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700 shadow-sm">
+                  <FormulaireAjoutBonus
+                    packId={selectedPackIdForBonus}
+                    onBonusAdded={() => setBonusRates((prev) => [...prev])}
+                    bonusType={currentBonusType}
+                    onBonusTypeChange={setCurrentBonusType}
+                    setBonusRates={setBonusRates}
+                  />
+                </div>
+              </div>
+
+              {/* Section d'aide et exemple */}
+              <div className="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 border border-amber-200 dark:border-amber-800/30 rounded-xl p-6">
+                <div className="flex items-start space-x-4">
+                  <div className="flex-shrink-0">
+                    <div className="p-2 bg-amber-100 dark:bg-amber-900/30 rounded-lg">
+                      <svg
+                        className="h-6 w-6 text-amber-600 dark:text-amber-400"
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        strokeWidth={1.5}
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M12 18v-5.25m0 0a6.01 6.01 0 001.5-.189m-1.5.189a6.01 6.01 0 01-1.5-.189m3.75 7.478a12.06 12.06 0 01-4.5 0m3.75 2.383a14.406 14.406 0 003.75-1.262c.955-.46 1.749-1.124 2.343-1.96a6.006 6.006 0 00.344-6.296 6.006 6.006 0 00-3.154-3.154 6.006 6.006 0 00-6.296.344c-.836.594-1.5 1.388-1.96 2.343a14.406 14.406 0 00-1.262 3.75 14.405 14.405 0 001.262 3.75c.46.955 1.124 1.749 1.96 2.343a6.006 6.006 0 006.296.344 6.006 6.006 0 003.154-3.154 6.006 6.006 0 00-.344-6.296c-.594-.836-1.388-1.5-2.343-1.96a14.405 14.405 0 00-3.75-1.262z"
+                        />
+                      </svg>
+                    </div>
+                  </div>
+                  <div className="flex-1">
+                    <h4 className="text-lg font-semibold text-amber-900 dark:text-amber-200 mb-3">
+                      💡 Comment fonctionnent les jetons Esengo ?
+                    </h4>
+                    <div className="space-y-3 text-sm text-amber-800 dark:text-amber-300">
+                      <div className="flex items-start space-x-2">
+                        <div className="w-1.5 h-1.5 bg-amber-500 rounded-full mt-2 flex-shrink-0"></div>
                         <p>
-                          Si vous configurez un palier de{" "}
-                          <strong>1 point</strong> pour{" "}
-                          <strong>7 filleuls</strong> avec une fréquence{" "}
-                          <strong>hebdomadaire</strong>, alors un utilisateur
-                          qui parraine 7 filleuls en une semaine recevra un
-                          bonus de 1 point pour ce pack. Ces points sont
-                          convertis en valeur monétaire selon la valeur du point
-                          configurée.
+                          <strong>Exemple :</strong> Si vous configurez{" "}
+                          <span className="bg-amber-200 dark:bg-amber-800 px-2 py-1 rounded font-medium">
+                            2 jetons
+                          </span>{" "}
+                          pour{" "}
+                          <span className="bg-amber-200 dark:bg-amber-800 px-2 py-1 rounded font-medium">
+                            10 filleuls
+                          </span>
+                          , un utilisateur qui parraine 10 filleuls dans le mois
+                          recevra 2 jetons Esengo.
                         </p>
-                      ) : (
+                      </div>
+                      <div className="flex items-start space-x-2">
+                        <div className="w-1.5 h-1.5 bg-amber-500 rounded-full mt-2 flex-shrink-0"></div>
                         <p>
-                          Si vous configurez <strong>1 jeton</strong> pour{" "}
-                          <strong>5 filleuls</strong> avec une fréquence{" "}
-                          <strong>mensuelle</strong>, alors un utilisateur qui
-                          parraine 5 filleuls en un mois recevra 1 jeton Esengo.
-                          Ces jetons permettent aux utilisateurs de participer à
-                          des tirages au sort pour gagner des cadeaux de valeur
-                          variable.
+                          <strong>Utilisation :</strong> Ces jetons permettent
+                          de participer aux tirages au sort pour gagner des
+                          cadeaux de valeur variable.
                         </p>
-                      )}
+                      </div>
+                      <div className="flex items-start space-x-2">
+                        <div className="w-1.5 h-1.5 bg-amber-500 rounded-full mt-2 flex-shrink-0"></div>
+                        <p>
+                          <strong>Fréquence :</strong> Les bonus sont calculés
+                          mensuellement selon les critères définis.
+                        </p>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -1107,11 +1151,220 @@ export default function Packs() {
             </div>
 
             {/* Pied de page fixe */}
-            <div className="px-6 py-4 bg-gray-50 dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 rounded-b-lg">
-              <div className="flex justify-end">
+            <div className="bg-gray-50 dark:bg-gray-800 px-6 py-4 border-t border-gray-200 dark:border-gray-700 flex-shrink-0 rounded-b-2xl">
+              <div className="flex justify-between items-center">
+                <div className="text-xs text-gray-500 dark:text-gray-400">
+                  Les modifications sont appliquées immédiatement
+                </div>
                 <button
                   onClick={hideBonusModal}
-                  className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-md hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors duration-200"
+                  className="px-6 py-2.5 bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800 text-white rounded-lg font-medium transition-all duration-200 shadow-sm hover:shadow-md"
+                >
+                  Fermer
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de gestion des taux de commission */}
+      {isCommissionModalVisible && (
+        <div
+          className="fixed inset-0 z-50 bg-black/60 backdrop-blur-md flex items-center justify-center p-4"
+          onClick={() => setIsCommissionModalVisible(false)}
+        >
+          <div
+            className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] border border-gray-200 dark:border-gray-700 flex flex-col"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* En-tête avec gradient */}
+            <div className="bg-gradient-to-r from-blue-600 to-purple-600 px-6 py-4 flex-shrink-0">
+              <div className="flex justify-between items-center">
+                <div className="flex items-center space-x-3">
+                  <div className="p-2 bg-white/20 rounded-lg">
+                    <CurrencyDollarIcon className="h-6 w-6 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold text-white">
+                      Taux de Commission
+                    </h3>
+                    <p className="text-blue-100 text-sm">
+                      Configuration des niveaux de parrainage
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setIsCommissionModalVisible(false)}
+                  className="p-2 hover:bg-white/20 rounded-lg transition-colors duration-200"
+                >
+                  <XMarkIcon className="h-6 w-6 text-white" />
+                </button>
+              </div>
+            </div>
+
+            {/* Contenu principal */}
+            <div className="p-6 overflow-y-auto flex-1 min-h-0">
+              <div className="mb-6">
+                <div className="flex items-center space-x-2 mb-3">
+                  <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                  <p className="text-gray-600 dark:text-gray-300 font-medium">
+                    Configuration des commissions par génération
+                  </p>
+                </div>
+                <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">
+                  Définissez les taux de commission pour chaque niveau de
+                  parrainage. Ces taux seront appliqués automatiquement sur tous
+                  les achats effectués par les filleuls.
+                </p>
+              </div>
+
+              {/* Grille des niveaux de commission */}
+              <div className="grid gap-4 mb-8">
+                {[1, 2, 3, 4].map((level) => (
+                  <div
+                    key={level}
+                    className="group bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-700 rounded-xl p-4 border border-gray-200 dark:border-gray-600 hover:shadow-lg hover:scale-[1.02] transition-all duration-300"
+                  >
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-3 sm:space-y-0">
+                      <div className="flex items-center space-x-4">
+                        <div className="flex-shrink-0">
+                          <div
+                            className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm ${
+                              level === 1
+                                ? "bg-gradient-to-r from-green-500 to-green-600"
+                                : level === 2
+                                ? "bg-gradient-to-r from-blue-500 to-blue-600"
+                                : level === 3
+                                ? "bg-gradient-to-r from-purple-500 to-purple-600"
+                                : "bg-gradient-to-r from-orange-500 to-orange-600"
+                            }`}
+                          >
+                            {level}
+                          </div>
+                        </div>
+                        <div>
+                          <h4 className="font-semibold text-gray-900 dark:text-white">
+                            {level === 1 && "Première génération"}
+                            {level === 2 && "Deuxième génération"}
+                            {level === 3 && "Troisième génération"}
+                            {level === 4 && "Quatrième génération"}
+                          </h4>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">
+                            {level === 1 && "Filleuls directs"}
+                            {level === 2 && "Filleuls des filleuls"}
+                            {level === 3 && "Troisième niveau"}
+                            {level === 4 && "Quatrième niveau"}
+                          </p>
+                        </div>
+                      </div>
+
+                      <form
+                        className="flex items-center space-x-3"
+                        onSubmit={(e) => {
+                          e.preventDefault();
+                          const rate = parseFloat(e.target.rate.value);
+                          handleCommissionSubmit(level, rate);
+                        }}
+                      >
+                        <div className="relative">
+                          <input
+                            type="number"
+                            name="rate"
+                            step="0.01"
+                            min="0"
+                            max="100"
+                            defaultValue={commissionRates[level]}
+                            className="w-20 px-3 py-2 pr-8 text-center font-semibold rounded-lg border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:border-blue-500 focus:ring-2 focus:ring-blue-200 dark:focus:ring-blue-800 transition-all duration-200"
+                            placeholder="0"
+                          />
+                          <span className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-gray-400 font-medium text-sm">
+                            %
+                          </span>
+                        </div>
+                        <button
+                          type="submit"
+                          className="px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-medium rounded-lg shadow-md hover:shadow-lg transform hover:scale-105 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                        >
+                          <span className="flex items-center space-x-1">
+                            <span>Sauver</span>
+                            <svg
+                              className="w-4 h-4"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M5 13l4 4L19 7"
+                              />
+                            </svg>
+                          </span>
+                        </button>
+                      </form>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Section d'information améliorée */}
+              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-5">
+                <div className="flex items-start space-x-4">
+                  <div className="flex-shrink-0">
+                    <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-full flex items-center justify-center">
+                      <svg
+                        className="w-5 h-5 text-white"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                        />
+                      </svg>
+                    </div>
+                  </div>
+                  <div className="flex-1">
+                    <h4 className="font-semibold text-blue-900 dark:text-blue-100 mb-2">
+                      💡 Comment ça fonctionne ?
+                    </h4>
+                    <div className="text-sm text-blue-800 dark:text-blue-200 space-y-2">
+                      <p>
+                        Les taux de commission sont appliqués en cascade sur les
+                        achats de vos filleuls :
+                      </p>
+                      <div className="bg-white/50 dark:bg-gray-800/50 rounded-lg p-3 mt-3">
+                        <p className="font-medium mb-1">Exemple pratique :</p>
+                        <p>
+                          Si vous définissez{" "}
+                          <span className="font-bold text-blue-700 dark:text-blue-300">
+                            10%
+                          </span>{" "}
+                          pour la 1ère génération, vous recevrez 10% de
+                          commission sur tous les achats effectués par vos
+                          filleuls directs.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Pied de page */}
+            <div className="bg-gray-50 dark:bg-gray-800 px-6 py-4 border-t border-gray-200 dark:border-gray-700 flex-shrink-0 rounded-b-2xl">
+              <div className="flex justify-between items-center">
+                <div className="text-xs text-gray-500 dark:text-gray-400">
+                  Les modifications sont appliquées immédiatement
+                </div>
+                <button
+                  onClick={() => setIsCommissionModalVisible(false)}
+                  className="px-4 py-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg font-medium transition-colors duration-200"
                 >
                   Fermer
                 </button>

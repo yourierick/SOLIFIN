@@ -742,110 +742,42 @@ const Users = () => {
                             {user.status === "active" ? "Actif" : "Inactif"}
                           </span>
                         </td>
-                        <td className="px-4 py-3 whitespace-nowrap text-right text-sm font-medium">
-                          <div className="flex justify-end items-center">
-                            <Menu
-                              as="div"
-                              className="relative inline-block text-left"
+                        <td className="px-4 py-3 whitespace-nowrap text-sm font-medium">
+                          <div className="flex justify-end items-center space-x-2">
+                            {/* Bouton Voir les détails */}
+                            <button
+                              onClick={() => handleViewDetails(user)}
+                              className="inline-flex items-center p-1.5 border border-transparent rounded-full shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 dark:focus:ring-offset-gray-800 transition-colors duration-200"
+                              title="Voir les détails"
                             >
-                              <div>
-                                <Menu.Button className="p-1.5 rounded-full text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200">
-                                  <EllipsisVerticalIcon className="h-5 w-5" />
-                                </Menu.Button>
-                              </div>
-                              <Transition
-                                as={Fragment}
-                                enter="transition ease-out duration-100"
-                                enterFrom="transform opacity-0 scale-95"
-                                enterTo="transform opacity-100 scale-100"
-                                leave="transition ease-in duration-75"
-                                leaveFrom="transform opacity-100 scale-100"
-                                leaveTo="transform opacity-0 scale-95"
-                              >
-                                <Menu.Items className="absolute right-0 mt-2 w-56 origin-top-right divide-y divide-gray-100 rounded-md bg-white dark:bg-gray-800 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none z-50">
-                                  <div className="px-1 py-1">
-                                    <Menu.Item>
-                                      {({ active }) => (
-                                        <button
-                                          onClick={() =>
-                                            handleViewDetails(user)
-                                          }
-                                          className={`${
-                                            active
-                                              ? "bg-gray-100 dark:bg-gray-700"
-                                              : ""
-                                          } flex w-full items-center px-4 py-2 text-sm text-gray-700 dark:text-gray-300`}
-                                        >
-                                          <InfoIcon
-                                            fontSize="small"
-                                            className="mr-2 text-indigo-600 dark:text-indigo-400"
-                                          />
-                                          <span>Voir les détails</span>
-                                        </button>
-                                      )}
-                                    </Menu.Item>
-
-                                    <Menu.Item>
-                                      {({ active }) => (
-                                        <button
-                                          onClick={() =>
-                                            handleOpenResetPassword(user)
-                                          }
-                                          className={`${
-                                            active
-                                              ? "bg-gray-100 dark:bg-gray-700"
-                                              : ""
-                                          } flex w-full items-center px-4 py-2 text-sm text-gray-700 dark:text-gray-300`}
-                                        >
-                                          <LockResetIcon
-                                            fontSize="small"
-                                            className="mr-2 text-blue-600 dark:text-blue-400"
-                                          />
-                                          <span>
-                                            Réinitialiser mot de passe
-                                          </span>
-                                        </button>
-                                      )}
-                                    </Menu.Item>
-
-                                    <Menu.Item>
-                                      {({ active }) => (
-                                        <button
-                                          onClick={() =>
-                                            toggleUserStatus(user.id)
-                                          }
-                                          className={`${
-                                            active
-                                              ? "bg-gray-100 dark:bg-gray-700"
-                                              : ""
-                                          } flex w-full items-center px-4 py-2 text-sm text-gray-700 dark:text-gray-300`}
-                                        >
-                                          {user.status === "active" ? (
-                                            <>
-                                              <ToggleOnIcon
-                                                fontSize="small"
-                                                className="mr-2 text-green-600 dark:text-green-400"
-                                              />
-                                              <span>
-                                                Désactiver l'utilisateur
-                                              </span>
-                                            </>
-                                          ) : (
-                                            <>
-                                              <ToggleOffIcon
-                                                fontSize="small"
-                                                className="mr-2 text-red-600 dark:text-red-400"
-                                              />
-                                              <span>Activer l'utilisateur</span>
-                                            </>
-                                          )}
-                                        </button>
-                                      )}
-                                    </Menu.Item>
-                                  </div>
-                                </Menu.Items>
-                              </Transition>
-                            </Menu>
+                              <InfoIcon fontSize="small" className="h-4 w-4" />
+                            </button>
+                            
+                            {/* Bouton Réinitialiser mot de passe */}
+                            <button
+                              onClick={() => handleOpenResetPassword(user)}
+                              className="inline-flex items-center p-1.5 border border-transparent rounded-full shadow-sm text-white bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-offset-gray-800 transition-colors duration-200"
+                              title="Réinitialiser mot de passe"
+                            >
+                              <LockResetIcon fontSize="small" className="h-4 w-4" />
+                            </button>
+                            
+                            {/* Bouton Activer/Désactiver utilisateur */}
+                            <button
+                              onClick={() => toggleUserStatus(user.id)}
+                              className={`inline-flex items-center p-1.5 border border-transparent rounded-full shadow-sm text-white focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition-colors duration-200 ${
+                                user.status === "active"
+                                  ? "bg-red-600 hover:bg-red-700 dark:bg-red-500 dark:hover:bg-red-600 focus:ring-red-500"
+                                  : "bg-green-600 hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600 focus:ring-green-500"
+                              }`}
+                              title={user.status === "active" ? "Désactiver l'utilisateur" : "Activer l'utilisateur"}
+                            >
+                              {user.status === "active" ? (
+                                <ToggleOnIcon fontSize="small" className="h-4 w-4" />
+                              ) : (
+                                <ToggleOffIcon fontSize="small" className="h-4 w-4" />
+                              )}
+                            </button>
                           </div>
                         </td>
                       </tr>

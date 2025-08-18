@@ -42,6 +42,13 @@ return new class extends Migration
                 'created_at' => now(),
                 'updated_at' => now(),
             ],
+            [
+                'nom' => 'distributeur agréé',
+                'slug' => 'authorized-distributor',
+                'description' => 'Distributeur agréé',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
         ]);
     }
 

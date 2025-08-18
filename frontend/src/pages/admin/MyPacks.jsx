@@ -738,12 +738,13 @@ export default function MyPacks() {
   };
 
   return (
-    <Container sx={{ py: 4, bgcolor: isDarkMode ? "#2a3441" : "#fff" }}>
+    <Container sx={{ py: 4, bgcolor: isDarkMode ? "#1f2937" : "#fff" }}>
       {userPacks.length === 0 ? (
         <Paper
           elevation={0}
           sx={{
             p: 5,
+            bgcolor: isDarkMode ? "#111827" : "#f3f4f6",
             textAlign: "center",
             borderRadius: "12px",
             border: isDarkMode
@@ -770,7 +771,7 @@ export default function MyPacks() {
             <PlusIcon className="h-8 w-8" style={{ color: "white" }} />
           </Box>
           <Typography variant="h5" gutterBottom sx={{ fontWeight: 600 }}>
-            Il n'y a aucun pack créé dans le système
+            Ce compte ne possède aucun pack
           </Typography>
           <Typography
             variant="body1"

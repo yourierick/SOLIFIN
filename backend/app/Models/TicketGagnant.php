@@ -28,6 +28,7 @@ class TicketGagnant extends Model
         'code_jeton',
         'date_expiration',
         'consomme',
+        'admin_id',
         'date_consommation',
         'code_verification'
     ];
@@ -47,6 +48,14 @@ class TicketGagnant extends Model
      * Relation avec l'utilisateur
      */
     public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
+
+    /**
+     * Relation avec l'administrateur qui a remis le cadeau
+     */
+    public function admin()
     {
         return $this->belongsTo(User::class);
     }

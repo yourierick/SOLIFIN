@@ -56,48 +56,20 @@ class BonusPointsSeeder extends Seeder
     {
         // Supprimer les taux existants
         BonusRates::truncate();
-
-        $frequencies = ['daily', 'weekly', 'monthly', 'yearly'];
         $pointValues = [0.1, 0.2, 0.5, 1, 2];
 
         foreach ($packs as $pack) {
-            foreach ($frequencies as $frequency) {
-                // Valeurs différentes selon la fréquence
-                switch ($frequency) {
-                    case 'daily':
-                        $filleulsThreshold = rand(1, 3);
-                        $pointsAwarded = 1;
-                        $pointValue = $pointValues[array_rand($pointValues)];
-                        break;
-                    case 'weekly':
-                        $filleulsThreshold = rand(3, 7);
-                        $pointsAwarded = 2;
-                        $pointValue = $pointValues[array_rand($pointValues)] * 2;
-                        break;
-                    case 'monthly':
-                        $filleulsThreshold = rand(10, 15);
-                        $pointsAwarded = 5;
-                        $pointValue = $pointValues[array_rand($pointValues)] * 5;
-                        break;
-                    case 'yearly':
-                        $filleulsThreshold = rand(50, 100);
-                        $pointsAwarded = 20;
-                        $pointValue = $pointValues[array_rand($pointValues)] * 10;
-                        break;
-                    default:
-                        $filleulsThreshold = 5;
-                        $pointsAwarded = 1;
-                        $pointValue = 0.5;
-                }
+            $filleulsThreshold = rand(3, 7);
+            $pointsAwarded = 2;
+            $pointValue = $pointValues[array_rand($pointValues)] * 2;
 
-                BonusRates::create([
+            BonusRates::create([
                     'pack_id' => $pack->id,
-                    'frequence' => $frequency,
+                    'frequence' => 'weekly',
                     'nombre_filleuls' => $filleulsThreshold,
                     'points_attribues' => $pointsAwarded,
                     'valeur_point' => $pointValue
                 ]);
-            }
         }
 
         $this->command->info('Taux de bonus créés pour ' . count($packs) . ' packs.');
@@ -166,8 +138,7 @@ class BonusPointsSeeder extends Seeder
                 
                 // Descriptions différentes selon le type
                 if ($type === 'gain') {
-                    $frequencies = ['daily', 'weekly', 'monthly', 'yearly'];
-                    $frequency = $frequencies[array_rand($frequencies)];
+                    $frequency = 'weekly';
                     $filleulsCount = rand(5, 20);
                     $description = "Bonus $frequency pour $filleulsCount filleuls parrainés";
                     $metadata = json_encode([

@@ -113,7 +113,7 @@ class FinanceController extends Controller
                 DB::raw('SUM(amount) as total_amount'),
                 DB::raw('MIN(created_at) as first_transaction'),
                 DB::raw('MAX(created_at) as last_transaction')
-            )
+            )->where('status', 'completed')
             ->groupBy('type')
             ->get();
             

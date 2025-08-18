@@ -353,14 +353,6 @@ export default function RegistrationPaymentForm({
       const periods = Math.ceil(months / step);
       // Le montant total est le prix du pack multiplié par le nombre de périodes
       setTotalAmount(pack.price * periods);
-
-      console.log("Calcul du montant total:", {
-        prix_pack: pack.price,
-        duree_mois: months,
-        pas_abonnement: step,
-        periodes: periods,
-        montant_total: pack.price * periods,
-      });
     }
   }, [pack, months]);
 
@@ -370,14 +362,6 @@ export default function RegistrationPaymentForm({
       const step = getSubscriptionStep(pack.abonnement);
       const periods = Math.ceil(months / step);
       setTotalAmount(pack.price * periods);
-
-      console.log("Initialisation du montant total:", {
-        prix_pack: pack.price,
-        duree_mois: months,
-        pas_abonnement: step,
-        periodes: periods,
-        montant_total: pack.price * periods,
-      });
 
       // Récupérer le pourcentage de frais global une seule fois à l'ouverture du modal
       const fetchGlobalFeePercentage = async () => {
@@ -493,7 +477,6 @@ export default function RegistrationPaymentForm({
           localUnitPriceConverted = localUnitPrice;
           setUnitPriceConverted(localUnitPrice);
           setCurrentCurrency("USD");
-          console.log("Pas de conversion nécessaire (devise USD)");
         }
         // Si on a déjà un prix unitaire converti pour cette devise, l'utiliser
         else if (
@@ -504,14 +487,9 @@ export default function RegistrationPaymentForm({
           convertedAmt = unitPriceConverted * periods;
           convertedAmt = parseFloat(convertedAmt.toFixed(2));
           setConvertedAmount(convertedAmt);
-          console.log(
-            "Utilisation du prix unitaire déjà converti:",
-            unitPriceConverted
-          );
         }
         // Sinon, faire une nouvelle conversion
         else {
-          console.log("Nouvelle conversion nécessaire");
           // Approche améliorée: convertir d'abord le prix unitaire (prix par période)
           // puis calculer le montant total converti
 
@@ -546,19 +524,6 @@ export default function RegistrationPaymentForm({
             setUnitPriceConverted(localUnitPrice);
           }
         }
-
-        console.log("Conversion de devise (optimisée):", {
-          prix_pack: localUnitPrice,
-          duree_mois: months,
-          pas_abonnement: step,
-          periodes: periods,
-          prix_unitaire_usd: localUnitPrice,
-          prix_unitaire_converti: localUnitPriceConverted,
-          montant_total_usd: totalAmount,
-          montant_converti: convertedAmt,
-          devise_actuelle: currentCurrency,
-          devise_cible: selectedCurrency,
-        });
       }
 
       // Calculer les frais localement avec le pourcentage global
@@ -567,12 +532,6 @@ export default function RegistrationPaymentForm({
       if (percentage > 0) {
         const fee = convertedAmt * (percentage / 100);
         setTransactionFees(fee);
-
-        console.log("Calcul des frais:", {
-          pourcentage: percentage,
-          montant_converti: convertedAmt,
-          frais: fee,
-        });
       } else {
         setTransactionFees(0);
       }
@@ -662,8 +621,6 @@ export default function RegistrationPaymentForm({
       // Créer le numéro complet sans le +
       const phoneCode = "243";
       const phoneWithCode = `${phoneCode}${cleanPhoneNumber}`;
-
-      console.log("Numéro de téléphone formaté pour API:", phoneWithCode);
 
       paymentDetails = {
         phoneNumber: cleanPhoneNumber,
@@ -928,10 +885,12 @@ export default function RegistrationPaymentForm({
 
   return (
     <div
-      className={`fixed inset-0 z-10 flex items-center justify-center ${isThemeDark ? "dark bg-black/70" : "bg-black/60"}`}
-      style={{ 
+      className={`fixed inset-0 z-10 flex items-center justify-center ${
+        isThemeDark ? "dark bg-black/70" : "bg-black/60"
+      }`}
+      style={{
         zIndex: 40,
-        backdropFilter: "blur(5px)"
+        backdropFilter: "blur(5px)",
       }}
     >
       <style>{customStyles}</style>
@@ -940,9 +899,9 @@ export default function RegistrationPaymentForm({
           isThemeDark ? "bg-gray-800 text-white" : "bg-white"
         }`}
         style={{
-          boxShadow: isThemeDark 
-            ? "0 10px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.4)" 
-            : "0 10px 25px -5px rgba(0, 0, 0, 0.2), 0 8px 10px -6px rgba(0, 0, 0, 0.1)"
+          boxShadow: isThemeDark
+            ? "0 10px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.4)"
+            : "0 10px 25px -5px rgba(0, 0, 0, 0.2), 0 8px 10px -6px rgba(0, 0, 0, 0.1)",
         }}
       >
         {/* En-tête avec dégradé */}
@@ -953,7 +912,9 @@ export default function RegistrationPaymentForm({
               : "bg-gradient-to-r from-green-800 to-green-900 text-white"
           }`}
           style={{
-            borderBottom: isThemeDark ? "1px solid rgba(255, 255, 255, 0.1)" : "none"
+            borderBottom: isThemeDark
+              ? "1px solid rgba(255, 255, 255, 0.1)"
+              : "none",
           }}
         >
           <div className="flex items-center justify-between">
@@ -974,15 +935,17 @@ export default function RegistrationPaymentForm({
         </div>
 
         {error && (
-          <Alert 
-            severity="error" 
+          <Alert
+            severity="error"
             className="mx-6 mt-4 mb-0"
             sx={{
-              backgroundColor: isThemeDark ? 'rgba(244, 67, 54, 0.1)' : 'rgba(244, 67, 54, 0.1)',
-              color: isThemeDark ? '#fff' : 'inherit',
-              '& .MuiAlert-icon': {
-                color: isThemeDark ? 'rgba(244, 67, 54, 0.9)' : 'inherit'
-              }
+              backgroundColor: isThemeDark
+                ? "rgba(244, 67, 54, 0.1)"
+                : "rgba(244, 67, 54, 0.1)",
+              color: isThemeDark ? "#fff" : "inherit",
+              "& .MuiAlert-icon": {
+                color: isThemeDark ? "rgba(244, 67, 54, 0.9)" : "inherit",
+              },
             }}
           >
             {error}
@@ -990,10 +953,10 @@ export default function RegistrationPaymentForm({
         )}
 
         <form onSubmit={handleSubmit}>
-          <div 
+          <div
             className="max-h-[60vh] overflow-y-auto p-6 pt-4 custom-scrollbar"
             style={{
-              backgroundColor: isThemeDark ? '#1f2937' : '#ffffff',
+              backgroundColor: isThemeDark ? "#1f2937" : "#ffffff",
             }}
           >
             <h1 className="text-lg font-bold mb-3 text-secondary-600 dark:text-secondary-400">
@@ -1203,9 +1166,9 @@ export default function RegistrationPaymentForm({
                   isThemeDark ? "bg-gray-700" : "bg-gray-50"
                 }`}
                 style={{
-                  boxShadow: isThemeDark 
-                    ? "0 2px 5px rgba(0, 0, 0, 0.2)" 
-                    : "0 2px 5px rgba(0, 0, 0, 0.05)"
+                  boxShadow: isThemeDark
+                    ? "0 2px 5px rgba(0, 0, 0, 0.2)"
+                    : "0 2px 5px rgba(0, 0, 0, 0.05)",
                 }}
               >
                 <div className="flex justify-between items-center">
@@ -1274,10 +1237,16 @@ export default function RegistrationPaymentForm({
               </div>
 
               {pack?.sponsorName && (
-                <div 
-                  className={`mt-3 p-2 rounded-lg ${isThemeDark ? "bg-yellow-900 text-yellow-200" : "bg-yellow-100 text-yellow-800"}`}
+                <div
+                  className={`mt-3 p-2 rounded-lg ${
+                    isThemeDark
+                      ? "bg-yellow-900 text-yellow-200"
+                      : "bg-yellow-100 text-yellow-800"
+                  }`}
                   style={{
-                    borderLeft: `4px solid ${isThemeDark ? "#fbbf24" : "#f59e0b"}`,
+                    borderLeft: `4px solid ${
+                      isThemeDark ? "#fbbf24" : "#f59e0b"
+                    }`,
                   }}
                 >
                   <Typography variant="body2">
@@ -1290,10 +1259,12 @@ export default function RegistrationPaymentForm({
           </div>
 
           {/* Bouton de paiement - en dehors de la zone scrollable */}
-          <div 
-            className={`p-6 pt-4 flex items-center justify-between border-t ${isThemeDark ? "border-gray-700" : "border-gray-200"}`}
+          <div
+            className={`p-6 pt-4 flex items-center justify-between border-t ${
+              isThemeDark ? "border-gray-700" : "border-gray-200"
+            }`}
             style={{
-              backgroundColor: isThemeDark ? '#1f2937' : '#ffffff',
+              backgroundColor: isThemeDark ? "#1f2937" : "#ffffff",
             }}
           >
             <Typography variant="body2" color="textSecondary">
@@ -1320,12 +1291,12 @@ export default function RegistrationPaymentForm({
                 borderRadius: "8px",
                 textTransform: "none",
                 fontWeight: "bold",
-                backgroundColor: isThemeDark ? '#2E7D32' : '#2E7D32',
-                '&:hover': {
-                  backgroundColor: isThemeDark ? '#1B5E20' : '#1B5E20',
+                backgroundColor: isThemeDark ? "#2E7D32" : "#2E7D32",
+                "&:hover": {
+                  backgroundColor: isThemeDark ? "#1B5E20" : "#1B5E20",
                 },
-                boxShadow: isThemeDark 
-                  ? "0 4px 10px rgba(0, 0, 0, 0.3)" 
+                boxShadow: isThemeDark
+                  ? "0 4px 10px rgba(0, 0, 0, 0.3)"
                   : "0 4px 10px rgba(0, 0, 0, 0.1)",
               }}
             >

@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import axios from 'axios';
-import { format } from 'date-fns';
-import { fr } from 'date-fns/locale';
+import React, { useState, useEffect, useCallback } from "react";
+import axios from "axios";
+import { format } from "date-fns";
+import { fr } from "date-fns/locale";
 import {
   Box,
   Typography,
@@ -33,8 +33,8 @@ import {
   useMediaQuery,
   CircularProgress,
   Skeleton,
-  Divider
-} from '@mui/material';
+  Divider,
+} from "@mui/material";
 import {
   Delete as DeleteIcon,
   Cancel as CancelIcon,
@@ -47,15 +47,15 @@ import {
   Payment as PaymentIcon,
   MoneyOff as MoneyOffIcon,
   CheckCircle as CheckCircleIcon,
-  Error as ErrorIcon
-} from '@mui/icons-material';
-import { toast } from 'react-toastify';
+  Error as ErrorIcon,
+} from "@mui/icons-material";
+import { toast } from "react-toastify";
 
 // Composant principal pour les demandes de retrait
 const WithdrawalRequests = () => {
   const theme = useTheme();
-  const isDarkMode = theme.palette.mode === 'dark';
-  const isSmallScreen = useMediaQuery(theme.breakpoints.down('md'));
+  const isDarkMode = theme.palette.mode === "dark";
+  const isSmallScreen = useMediaQuery(theme.breakpoints.down("md"));
 
   // États pour les données
   const [withdrawalRequests, setWithdrawalRequests] = useState([]);
@@ -67,16 +67,16 @@ const WithdrawalRequests = () => {
     page: 0,
     totalPages: 0,
     totalItems: 0,
-    perPage: 10
+    perPage: 10,
   });
 
   // États pour les filtres
   const [filters, setFilters] = useState({
-    status: '',
-    payment_method: '',
-    date_from: '',
-    date_to: '',
-    search: ''
+    status: "",
+    payment_method: "",
+    date_from: "",
+    date_to: "",
+    search: "",
   });
 
   // États pour les dialogues de confirmation
@@ -88,33 +88,33 @@ const WithdrawalRequests = () => {
 
   // Options pour les filtres
   const statusOptions = [
-    { value: 'pending', label: 'En attente' },
-    { value: 'approved', label: 'Approuvé' },
-    { value: 'rejected', label: 'Rejeté' },
-    { value: 'cancelled', label: 'Annulé' },
-    { value: 'failed', label: 'Échoué' }
+    { value: "pending", label: "En attente" },
+    { value: "approved", label: "Approuvé" },
+    { value: "rejected", label: "Rejeté" },
+    { value: "cancelled", label: "Annulé" },
+    { value: "failed", label: "Échoué" },
   ];
 
   const paymentMethodOptions = [
-    { value: 'mobile-money', label: 'Mobile Money' },
-    { value: 'credit-card', label: 'Carte de crédit' }
+    { value: "mobile-money", label: "Mobile Money" },
+    { value: "credit-card", label: "Carte de crédit" },
   ];
 
   // Fonction pour formater les montants
   const formatAmount = (amount) => {
-    if (amount === undefined || amount === null) return '0,00 $';
-    return new Intl.NumberFormat('fr-FR', {
-      style: 'currency',
-      currency: 'USD'
+    if (amount === undefined || amount === null) return "0,00 $";
+    return new Intl.NumberFormat("fr-FR", {
+      style: "currency",
+      currency: "USD",
     }).format(amount);
   };
 
   // Fonction pour formater les dates
   const formatDate = (dateString) => {
-    if (!dateString) return '';
-    return format(new Date(dateString), 'dd MMM yyyy HH:mm', { locale: fr });
+    if (!dateString) return "";
+    return format(new Date(dateString), "dd MMM yyyy HH:mm", { locale: fr });
   };
-  
+
   // Fonction pour récupérer les demandes de retrait
   const fetchWithdrawalRequests = useCallback(async () => {
     try {
@@ -124,13 +124,16 @@ const WithdrawalRequests = () => {
       const params = {
         page: pagination.page + 1,
         per_page: pagination.perPage,
-        ...filters
+        ...filters,
       };
 
-      const response = await axios.get('/api/withdrawal/requests', { params });
+      const response = await axios.get("/api/withdrawal/requests", { params });
 
       if (!response.data || !response.data.success) {
-        throw new Error(response.data?.message || 'Erreur lors de la récupération des demandes de retrait');
+        throw new Error(
+          response.data?.message ||
+            "Erreur lors de la récupération des demandes de retrait"
+        );
       }
 
       const data = response.data.data;
@@ -140,11 +143,17 @@ const WithdrawalRequests = () => {
         page: data.current_page ? data.current_page - 1 : 0,
         totalPages: data.last_page || 0,
         totalItems: data.total || 0,
-        perPage: data.per_page || 10
+        perPage: data.per_page || 10,
       });
     } catch (err) {
-      console.error('Erreur lors de la récupération des demandes de retrait:', err);
-      setError(err.message || 'Impossible de récupérer les demandes de retrait. Veuillez réessayer.');
+      console.error(
+        "Erreur lors de la récupération des demandes de retrait:",
+        err
+      );
+      setError(
+        err.message ||
+          "Impossible de récupérer les demandes de retrait. Veuillez réessayer."
+      );
     } finally {
       setLoading(false);
     }
@@ -154,18 +163,24 @@ const WithdrawalRequests = () => {
   const cancelWithdrawalRequest = async () => {
     try {
       setLoading(true);
-      
-      const response = await axios.post(`/api/withdrawal/request/${selectedRequestId}/cancel`);
-      
+
+      const response = await axios.post(
+        `/api/withdrawal/request/${selectedRequestId}/cancel`
+      );
+
       if (!response.data || !response.data.success) {
-        throw new Error(response.data?.message || 'Erreur lors de l\'annulation de la demande');
+        throw new Error(
+          response.data?.message || "Erreur lors de l'annulation de la demande"
+        );
       }
-      
-      toast.success('Demande de retrait annulée avec succès');
+
+      toast.success("Demande de retrait annulée avec succès");
       fetchWithdrawalRequests();
     } catch (err) {
-      console.error('Erreur lors de l\'annulation de la demande:', err);
-      toast.error(err.message || 'Impossible d\'annuler la demande. Veuillez réessayer.');
+      console.error("Erreur lors de l'annulation de la demande:", err);
+      toast.error(
+        err.message || "Impossible d'annuler la demande. Veuillez réessayer."
+      );
     } finally {
       setLoading(false);
       setCancelDialogOpen(false);
@@ -177,18 +192,25 @@ const WithdrawalRequests = () => {
   const deleteWithdrawalRequest = async () => {
     try {
       setLoading(true);
-      
-      const response = await axios.delete(`/api/withdrawal/requests/${selectedRequestId}`);
-      
+
+      const response = await axios.delete(
+        `/api/withdrawal/requests/${selectedRequestId}`
+      );
+
       if (!response.data || !response.data.success) {
-        throw new Error(response.data?.message || 'Erreur lors de la suppression de la demande');
+        throw new Error(
+          response.data?.message ||
+            "Erreur lors de la suppression de la demande"
+        );
       }
-      
-      toast.success('Demande de retrait supprimée avec succès');
+
+      toast.success("Demande de retrait supprimée avec succès");
       fetchWithdrawalRequests();
     } catch (err) {
-      console.error('Erreur lors de la suppression de la demande:', err);
-      toast.error(err.message || 'Impossible de supprimer la demande. Veuillez réessayer.');
+      console.error("Erreur lors de la suppression de la demande:", err);
+      toast.error(
+        err.message || "Impossible de supprimer la demande. Veuillez réessayer."
+      );
     } finally {
       setLoading(false);
       setDeleteDialogOpen(false);
@@ -198,28 +220,28 @@ const WithdrawalRequests = () => {
 
   // Gestionnaire de changement de page
   const handlePageChange = (event, newPage) => {
-    setPagination(prev => ({
+    setPagination((prev) => ({
       ...prev,
-      page: newPage
+      page: newPage,
     }));
   };
 
   // Gestionnaire de changement de filtre
   const handleFilterChange = (name, value) => {
-    setFilters(prev => ({
+    setFilters((prev) => ({
       ...prev,
-      [name]: value
+      [name]: value,
     }));
   };
 
   // Fonction pour réinitialiser les filtres
   const resetFilters = () => {
     setFilters({
-      status: '',
-      payment_method: '',
-      date_from: '',
-      date_to: '',
-      search: ''
+      status: "",
+      payment_method: "",
+      date_from: "",
+      date_to: "",
+      search: "",
     });
   };
 
@@ -244,24 +266,36 @@ const WithdrawalRequests = () => {
   // Fonction pour obtenir la couleur de la puce de statut
   const getStatusColor = (status) => {
     switch (status) {
-      case 'pending': return 'warning';
-      case 'approved': return 'success';
-      case 'rejected': return 'error';
-      case 'cancelled': return 'default';
-      case 'failed': return 'error';
-      default: return 'default';
+      case "pending":
+        return "warning";
+      case "approved":
+        return "success";
+      case "rejected":
+        return "error";
+      case "cancelled":
+        return "default";
+      case "failed":
+        return "error";
+      default:
+        return "default";
     }
   };
 
   // Fonction pour obtenir le libellé du statut
   const getStatusLabel = (status) => {
     switch (status) {
-      case 'pending': return 'En attente';
-      case 'approved': return 'Approuvé';
-      case 'rejected': return 'Rejeté';
-      case 'cancelled': return 'Annulé';
-      case 'failed': return 'Échoué';
-      default: return status;
+      case "pending":
+        return "En attente";
+      case "approved":
+        return "Approuvé";
+      case "rejected":
+        return "Rejeté";
+      case "cancelled":
+        return "Annulé";
+      case "failed":
+        return "Échoué";
+      default:
+        return status;
     }
   };
 
@@ -305,7 +339,7 @@ const WithdrawalRequests = () => {
               <InputLabel>Statut</InputLabel>
               <Select
                 value={filters.status}
-                onChange={(e) => handleFilterChange('status', e.target.value)}
+                onChange={(e) => handleFilterChange("status", e.target.value)}
                 label="Statut"
               >
                 <MenuItem value="">Tous</MenuItem>
@@ -322,7 +356,9 @@ const WithdrawalRequests = () => {
               <InputLabel>Méthode de paiement</InputLabel>
               <Select
                 value={filters.payment_method}
-                onChange={(e) => handleFilterChange('payment_method', e.target.value)}
+                onChange={(e) =>
+                  handleFilterChange("payment_method", e.target.value)
+                }
                 label="Méthode de paiement"
               >
                 <MenuItem value="">Toutes</MenuItem>
@@ -340,8 +376,8 @@ const WithdrawalRequests = () => {
               label="Date de début"
               type="date"
               size="small"
-              value={filters.date_from || ''}
-              onChange={(e) => handleFilterChange('date_from', e.target.value)}
+              value={filters.date_from || ""}
+              onChange={(e) => handleFilterChange("date_from", e.target.value)}
               InputLabelProps={{ shrink: true }}
               variant="outlined"
             />
@@ -352,8 +388,8 @@ const WithdrawalRequests = () => {
               label="Date de fin"
               type="date"
               size="small"
-              value={filters.date_to || ''}
-              onChange={(e) => handleFilterChange('date_to', e.target.value)}
+              value={filters.date_to || ""}
+              onChange={(e) => handleFilterChange("date_to", e.target.value)}
               InputLabelProps={{ shrink: true }}
               variant="outlined"
             />
@@ -364,9 +400,11 @@ const WithdrawalRequests = () => {
               label="Rechercher"
               size="small"
               value={filters.search}
-              onChange={(e) => handleFilterChange('search', e.target.value)}
+              onChange={(e) => handleFilterChange("search", e.target.value)}
               InputProps={{
-                startAdornment: <SearchIcon sx={{ color: 'action.active', mr: 1 }} />,
+                startAdornment: (
+                  <SearchIcon sx={{ color: "action.active", mr: 1 }} />
+                ),
               }}
               variant="outlined"
               placeholder="Rechercher par ID, montant..."
@@ -378,7 +416,7 @@ const WithdrawalRequests = () => {
               color="primary"
               onClick={fetchWithdrawalRequests}
               fullWidth
-              sx={{ height: '40px' }}
+              sx={{ height: "40px" }}
               startIcon={<RefreshIcon />}
             >
               Appliquer
@@ -393,9 +431,14 @@ const WithdrawalRequests = () => {
   const renderTable = () => {
     if (loading && withdrawalRequests.length === 0) {
       return (
-        <Box sx={{ width: '100%' }}>
+        <Box sx={{ width: "100%" }}>
           {[1, 2, 3, 4, 5].map((item) => (
-            <Skeleton key={item} variant="rectangular" height={60} sx={{ mb: 1, borderRadius: 1 }} />
+            <Skeleton
+              key={item}
+              variant="rectangular"
+              height={60}
+              sx={{ mb: 1, borderRadius: 1 }}
+            />
           ))}
         </Box>
       );
@@ -414,18 +457,21 @@ const WithdrawalRequests = () => {
         <Paper
           sx={{
             p: 4,
-            textAlign: 'center',
+            textAlign: "center",
             borderRadius: 2,
             bgcolor: isDarkMode ? "#1f2937" : "rgba(249, 250, 251, 0.8)",
           }}
           elevation={0}
         >
-          <MoneyOffIcon sx={{ fontSize: 60, color: 'text.secondary', opacity: 0.5, mb: 2 }} />
+          <MoneyOffIcon
+            sx={{ fontSize: 60, color: "text.secondary", opacity: 0.5, mb: 2 }}
+          />
           <Typography variant="h6" color="text.secondary" gutterBottom>
             Aucune demande de retrait trouvée
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-            Vous n'avez pas encore effectué de demande de retrait ou aucune demande ne correspond à vos filtres.
+            Vous n'avez pas encore effectué de demande de retrait ou aucune
+            demande ne correspond à vos filtres.
           </Typography>
           <Button
             variant="outlined"
@@ -445,7 +491,7 @@ const WithdrawalRequests = () => {
           component={Paper}
           sx={{
             borderRadius: 2,
-            overflow: 'hidden',
+            overflow: "hidden",
             bgcolor: isDarkMode ? "#1f2937" : "rgba(249, 250, 251, 0.8)",
           }}
           elevation={0}
@@ -467,9 +513,7 @@ const WithdrawalRequests = () => {
                   <TableCell>{request.id}</TableCell>
                   <TableCell>{formatDate(request.created_at)}</TableCell>
                   <TableCell>{formatAmount(request.amount)}</TableCell>
-                  <TableCell>
-                    {request.payment_method === 'mobile-money' ? 'Mobile Money' : 'Carte de crédit'}
-                  </TableCell>
+                  <TableCell>{request.payment_method}</TableCell>
                   <TableCell>
                     <Chip
                       label={getStatusLabel(request.status)}
@@ -488,8 +532,9 @@ const WithdrawalRequests = () => {
                         <InfoIcon fontSize="small" />
                       </IconButton>
                     </Tooltip>
-                    
-                    {(request.status === 'pending' || request.status === 'failed') && (
+
+                    {(request.status === "pending" ||
+                      request.status === "failed") && (
                       <Tooltip title="Annuler">
                         <IconButton
                           size="small"
@@ -500,8 +545,8 @@ const WithdrawalRequests = () => {
                         </IconButton>
                       </Tooltip>
                     )}
-                    
-                    {request.status === 'pending' && (
+
+                    {request.status === "pending" && (
                       <Tooltip title="Supprimer">
                         <IconButton
                           size="small"
@@ -526,17 +571,19 @@ const WithdrawalRequests = () => {
           onPageChange={handlePageChange}
           rowsPerPage={pagination.perPage}
           rowsPerPageOptions={[10]}
-          labelDisplayedRows={({ from, to, count }) => `${from}-${to} sur ${count}`}
+          labelDisplayedRows={({ from, to, count }) =>
+            `${from}-${to} sur ${count}`
+          }
           sx={{ mt: 2 }}
         />
       </>
     );
   };
-  
+
   // Rendu du dialogue de détails
   const renderDetailsDialog = () => {
     if (!selectedRequest) return null;
-    
+
     return (
       <Dialog
         open={detailsDialogOpen}
@@ -548,7 +595,7 @@ const WithdrawalRequests = () => {
           Détails de la demande de retrait
           <IconButton
             onClick={() => setDetailsDialogOpen(false)}
-            sx={{ position: 'absolute', right: 8, top: 8 }}
+            sx={{ position: "absolute", right: 8, top: 8 }}
           >
             <CloseIcon />
           </IconButton>
@@ -556,19 +603,31 @@ const WithdrawalRequests = () => {
         <DialogContent dividers>
           <Grid container spacing={2}>
             <Grid item xs={6}>
-              <Typography variant="subtitle2" color="text.secondary">ID</Typography>
+              <Typography variant="subtitle2" color="text.secondary">
+                ID
+              </Typography>
               <Typography variant="body1">{selectedRequest.id}</Typography>
             </Grid>
             <Grid item xs={6}>
-              <Typography variant="subtitle2" color="text.secondary">Date</Typography>
-              <Typography variant="body1">{formatDate(selectedRequest.created_at)}</Typography>
+              <Typography variant="subtitle2" color="text.secondary">
+                Date
+              </Typography>
+              <Typography variant="body1">
+                {formatDate(selectedRequest.created_at)}
+              </Typography>
             </Grid>
             <Grid item xs={6}>
-              <Typography variant="subtitle2" color="text.secondary">Montant</Typography>
-              <Typography variant="body1">{formatAmount(selectedRequest.amount)}</Typography>
+              <Typography variant="subtitle2" color="text.secondary">
+                Montant
+              </Typography>
+              <Typography variant="body1">
+                {formatAmount(selectedRequest.amount)}
+              </Typography>
             </Grid>
             <Grid item xs={6}>
-              <Typography variant="subtitle2" color="text.secondary">Statut</Typography>
+              <Typography variant="subtitle2" color="text.secondary">
+                Statut
+              </Typography>
               <Chip
                 label={getStatusLabel(selectedRequest.status)}
                 color={getStatusColor(selectedRequest.status)}
@@ -577,52 +636,76 @@ const WithdrawalRequests = () => {
               />
             </Grid>
             <Grid item xs={12}>
-              <Typography variant="subtitle2" color="text.secondary">Méthode de paiement</Typography>
+              <Typography variant="subtitle2" color="text.secondary">
+                Méthode de paiement
+              </Typography>
               <Typography variant="body1">
-                {selectedRequest.payment_method === 'mobile-money' ? 'Mobile Money' : 'Carte de crédit'}
+                {selectedRequest.payment_method === "mobile-money"
+                  ? "Mobile Money"
+                  : "Carte de crédit"}
               </Typography>
             </Grid>
-            
+
             {selectedRequest.payment_details && (
               <>
                 <Grid item xs={12}>
                   <Divider sx={{ my: 1 }} />
-                  <Typography variant="subtitle1" sx={{ mb: 1 }}>Détails du paiement</Typography>
+                  <Typography variant="subtitle1" sx={{ mb: 1 }}>
+                    Détails du paiement
+                  </Typography>
                 </Grid>
-                
+
                 {selectedRequest.payment_details.phone_number && (
                   <Grid item xs={6}>
-                    <Typography variant="subtitle2" color="text.secondary">Numéro de téléphone</Typography>
-                    <Typography variant="body1">{selectedRequest.payment_details.phone_number}</Typography>
+                    <Typography variant="subtitle2" color="text.secondary">
+                      Numéro de téléphone
+                    </Typography>
+                    <Typography variant="body1">
+                      {selectedRequest.payment_details.phone_number}
+                    </Typography>
                   </Grid>
                 )}
-                
+
                 {selectedRequest.payment_details.telecom && (
                   <Grid item xs={6}>
-                    <Typography variant="subtitle2" color="text.secondary">Opérateur</Typography>
-                    <Typography variant="body1">{selectedRequest.payment_details.telecom}</Typography>
+                    <Typography variant="subtitle2" color="text.secondary">
+                      Opérateur
+                    </Typography>
+                    <Typography variant="body1">
+                      {selectedRequest.payment_details.telecom}
+                    </Typography>
                   </Grid>
                 )}
-                
+
                 {selectedRequest.session_id && (
                   <Grid item xs={12}>
-                    <Typography variant="subtitle2" color="text.secondary">ID de session</Typography>
-                    <Typography variant="body1" sx={{ wordBreak: 'break-all' }}>{selectedRequest.session_id}</Typography>
+                    <Typography variant="subtitle2" color="text.secondary">
+                      ID de session
+                    </Typography>
+                    <Typography variant="body1" sx={{ wordBreak: "break-all" }}>
+                      {selectedRequest.session_id}
+                    </Typography>
                   </Grid>
                 )}
-                
+
                 {selectedRequest.transaction_id && (
                   <Grid item xs={12}>
-                    <Typography variant="subtitle2" color="text.secondary">ID de transaction</Typography>
-                    <Typography variant="body1" sx={{ wordBreak: 'break-all' }}>{selectedRequest.transaction_id}</Typography>
+                    <Typography variant="subtitle2" color="text.secondary">
+                      ID de transaction
+                    </Typography>
+                    <Typography variant="body1" sx={{ wordBreak: "break-all" }}>
+                      {selectedRequest.transaction_id}
+                    </Typography>
                   </Grid>
                 )}
               </>
             )}
-            
+
             {selectedRequest.notes && (
               <Grid item xs={12}>
-                <Typography variant="subtitle2" color="text.secondary">Notes</Typography>
+                <Typography variant="subtitle2" color="text.secondary">
+                  Notes
+                </Typography>
                 <Typography variant="body1">{selectedRequest.notes}</Typography>
               </Grid>
             )}
@@ -636,7 +719,7 @@ const WithdrawalRequests = () => {
       </Dialog>
     );
   };
-  
+
   // Rendu du dialogue d'annulation
   const renderCancelDialog = () => {
     return (
@@ -649,19 +732,22 @@ const WithdrawalRequests = () => {
         <DialogTitle>Annuler la demande de retrait</DialogTitle>
         <DialogContent>
           <DialogContentText>
-            Êtes-vous sûr de vouloir annuler cette demande de retrait ? Cette action ne peut pas être annulée.
+            Êtes-vous sûr de vouloir annuler cette demande de retrait ? Cette
+            action ne peut pas être annulée.
           </DialogContentText>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setCancelDialogOpen(false)} color="inherit">
             Annuler
           </Button>
-          <Button 
-            onClick={cancelWithdrawalRequest} 
-            color="warning" 
+          <Button
+            onClick={cancelWithdrawalRequest}
+            color="warning"
             variant="contained"
             disabled={loading}
-            startIcon={loading ? <CircularProgress size={20} /> : <CancelIcon />}
+            startIcon={
+              loading ? <CircularProgress size={20} /> : <CancelIcon />
+            }
           >
             Confirmer
           </Button>
@@ -669,7 +755,7 @@ const WithdrawalRequests = () => {
       </Dialog>
     );
   };
-  
+
   // Rendu du dialogue de suppression
   const renderDeleteDialog = () => {
     return (
@@ -682,19 +768,22 @@ const WithdrawalRequests = () => {
         <DialogTitle>Supprimer la demande de retrait</DialogTitle>
         <DialogContent>
           <DialogContentText>
-            Êtes-vous sûr de vouloir supprimer cette demande de retrait ? Cette action ne peut pas être annulée.
+            Êtes-vous sûr de vouloir supprimer cette demande de retrait ? Cette
+            action ne peut pas être annulée.
           </DialogContentText>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setDeleteDialogOpen(false)} color="inherit">
             Annuler
           </Button>
-          <Button 
-            onClick={deleteWithdrawalRequest} 
-            color="error" 
+          <Button
+            onClick={deleteWithdrawalRequest}
+            color="error"
             variant="contained"
             disabled={loading}
-            startIcon={loading ? <CircularProgress size={20} /> : <DeleteIcon />}
+            startIcon={
+              loading ? <CircularProgress size={20} /> : <DeleteIcon />
+            }
           >
             Supprimer
           </Button>
@@ -702,16 +791,16 @@ const WithdrawalRequests = () => {
       </Dialog>
     );
   };
-  
+
   // Rendu principal du composant
   return (
     <Box>
       {/* Filtres */}
       {renderFilters()}
-      
+
       {/* Tableau des demandes */}
       {renderTable()}
-      
+
       {/* Dialogues */}
       {renderDetailsDialog()}
       {renderCancelDialog()}

@@ -1032,7 +1032,7 @@ export default function UserDetails({ userId }) {
           case "sales":
             color = "text-purple-800";
             bgColor = "bg-purple-100";
-            label = "Bonus";
+            label = "Vente";
             break;
           default:
             color = "text-gray-800";
@@ -1682,21 +1682,21 @@ export default function UserDetails({ userId }) {
                     hideFooterSelectedRowCount
                     sx={{
                       height: 450,
-                      width: '100%',
-                      '& .MuiDataGrid-virtualScroller': {
-                        overflowY: 'auto',
-                        '&::-webkit-scrollbar': {
-                          width: '8px',
-                          backgroundColor: isDarkMode ? '#1e1e1e' : '#f5f5f5'
+                      width: "100%",
+                      "& .MuiDataGrid-virtualScroller": {
+                        overflowY: "auto",
+                        "&::-webkit-scrollbar": {
+                          width: "8px",
+                          backgroundColor: isDarkMode ? "#1e1e1e" : "#f5f5f5",
                         },
-                        '&::-webkit-scrollbar-thumb': {
-                          backgroundColor: isDarkMode ? '#555' : '#ccc',
-                          borderRadius: '4px'
+                        "&::-webkit-scrollbar-thumb": {
+                          backgroundColor: isDarkMode ? "#555" : "#ccc",
+                          borderRadius: "4px",
                         },
-                        '&::-webkit-scrollbar-thumb:hover': {
-                          backgroundColor: isDarkMode ? '#777' : '#aaa'
-                        }
-                      }
+                        "&::-webkit-scrollbar-thumb:hover": {
+                          backgroundColor: isDarkMode ? "#777" : "#aaa",
+                        },
+                      },
                     }}
                     componentsProps={{
                       basePopper: {
@@ -1877,111 +1877,6 @@ export default function UserDetails({ userId }) {
                         </dd>
                       </div>
                     </dl>
-                  </div>
-                </div>
-
-                {/* Points Bonus */}
-                <div className="bg-white dark:bg-gray-800 shadow rounded-lg overflow-hidden">
-                  <div className="px-4 py-5 sm:px-6 border-b border-gray-200 dark:border-gray-700">
-                    <h3 className="text-lg leading-6 font-medium text-gray-900 dark:text-white flex items-center">
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        className="h-5 w-5 mr-2 text-blue-500"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                        />
-                      </svg>
-                      Points Bonus
-                    </h3>
-                  </div>
-                  <div className="px-4 py-5 sm:p-6">
-                    <dl className="grid grid-cols-1 gap-x-4 gap-y-6 sm:grid-cols-2">
-                      <div className="sm:col-span-1">
-                        <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                          Points disponibles
-                        </dt>
-                        <dd className="mt-1 text-lg font-semibold text-purple-600 dark:text-purple-400">
-                          {userPoints?.disponibles || "0"} points
-                        </dd>
-                      </div>
-                      <div className="sm:col-span-1">
-                        <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                          Points utilisés
-                        </dt>
-                        <dd className="mt-1 text-lg font-semibold text-gray-600 dark:text-gray-400">
-                          {userPoints?.utilises || "0"} points
-                        </dd>
-                      </div>
-                      <div className="sm:col-span-1">
-                        <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                          Valeur moyenne d'un point
-                        </dt>
-                        <dd className="mt-1 text-lg font-semibold text-blue-600 dark:text-blue-400">
-                          {userPoints?.valeur_point || "0.00"} $
-                        </dd>
-                      </div>
-                      <div className="sm:col-span-1">
-                        <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                          Valeur moyenne totale
-                        </dt>
-                        <dd className="mt-1 text-lg font-semibold text-green-600 dark:text-green-400">
-                          {userPoints?.valeur_totale || "0.00"} $
-                        </dd>
-                      </div>
-                    </dl>
-
-                    {/* Affichage des points par pack */}
-                    {userPoints?.points_par_pack &&
-                      userPoints.points_par_pack.length > 0 && (
-                        <div className="mt-6">
-                          <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
-                            Points par pack
-                          </h4>
-                          <div className="bg-gray-50 dark:bg-gray-900 rounded-lg overflow-hidden">
-                            <div className="grid grid-cols-6 gap-4 py-2 px-4 bg-gray-100 dark:bg-gray-800 text-xs font-medium text-gray-500 dark:text-gray-400">
-                              <div>N°</div>
-                              <div>Pack</div>
-                              <div>Disponibles</div>
-                              <div>Utilisés</div>
-                              <div>Valeur point</div>
-                              <div>Valeur totale</div>
-                            </div>
-                            <div
-                              className="max-h-40 overflow-y-auto"
-                              style={{ scrollbarWidth: "thin" }}
-                            >
-                              {userPoints.points_par_pack.map(
-                                (packPoints, index) => (
-                                  <div
-                                    key={index}
-                                    className="grid grid-cols-6 gap-4 py-3 px-4 border-t border-gray-200 dark:border-gray-700 text-sm"
-                                  >
-                                    <div className="font-medium text-gray-900 dark:text-white">
-                                      {index + 1}
-                                    </div>
-                                    <div className="font-medium text-gray-900 dark:text-white">
-                                      {packPoints.pack_name}
-                                    </div>
-                                    <div>{packPoints.disponibles} points</div>
-                                    <div>{packPoints.utilises} points</div>
-                                    <div>{packPoints.valeur_point} $</div>
-                                    <div className="font-medium text-blue-600 dark:text-blue-400">
-                                      {packPoints.valeur_totale} $
-                                    </div>
-                                  </div>
-                                )
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      )}
                   </div>
                 </div>
               </div>

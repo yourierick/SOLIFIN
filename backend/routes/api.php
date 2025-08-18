@@ -55,11 +55,12 @@ Route::prefix('serdipay')->group(function () {
         // Initier un paiement pour l'achat d'un pack
         Route::post('/payment', [App\Http\Controllers\SerdiPayController::class, 'initiatePayment']);
     });
-    // Endpoint pour recevoir les callbacks de SerdiPay
-    Route::post('/callback', [App\Http\Controllers\SerdiPayController::class, 'handleCallback']);
     // Endpoint pour réessayer une inscription après un échec (sans payer à nouveau)
     Route::post('/retry-registration', [App\Http\Controllers\SerdiPayController::class, 'retryRegistration']);
 });
+
+// Endpoint pour recevoir les callbacks de SerdiPay
+Route::post('/payment/callback', [App\Http\Controllers\SerdiPayController::class, 'handleCallback']);
 
 //Récupération des paramètres publics
 Route::get('/settings/load', [App\Http\Controllers\HomeController::class, 'getSettings']);
@@ -225,10 +226,10 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
         Route::get('/wallet-balance', [\App\Http\Controllers\User\FinanceController::class, 'getWalletBalance']);
         Route::get('/summary', [\App\Http\Controllers\User\FinanceController::class, 'getSummary']);
         
-        // Routes pour les points bonus
-        Route::get('/bonus-points-history', [\App\Http\Controllers\User\FinanceController::class, 'getBonusPointsHistory']);
-        Route::get('/bonus-points-stats', [\App\Http\Controllers\User\FinanceController::class, 'getBonusPointsStats']);
-        Route::get('/bonus-points-types', [\App\Http\Controllers\User\FinanceController::class, 'getBonusPointsTypes']);
+        // // Routes pour les points bonus
+        // Route::get('/bonus-points-history', [\App\Http\Controllers\User\FinanceController::class, 'getBonusPointsHistory']);
+        // Route::get('/bonus-points-stats', [\App\Http\Controllers\User\FinanceController::class, 'getBonusPointsStats']);
+        // Route::get('/bonus-points-types', [\App\Http\Controllers\User\FinanceController::class, 'getBonusPointsTypes']);
         
         // Routes pour les jetons Esengo et tickets gagnants
         Route::get('/jetons-esengo', [\App\Http\Controllers\JetonEsengoController::class, 'getJetonsEsengo']);
@@ -386,12 +387,12 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
     // Route pour vérifier le statut du pack de publication
     Route::get('/user-pack/status', [App\Http\Controllers\UserPackController::class, 'checkPackStatus']);
 
-    // Routes pour les points bonus des utilisateurs
-    Route::prefix('user/bonus-points')->group(function () {
-        Route::get('/', [App\Http\Controllers\UserBonusPointController::class, 'getUserPoints']);
-        Route::get('/history', [App\Http\Controllers\UserBonusPointController::class, 'getPointsHistory']);
-        Route::post('/convert', [App\Http\Controllers\UserBonusPointController::class, 'convertPoints']);
-    });
+    // // Routes pour les points bonus des utilisateurs
+    // Route::prefix('user/bonus-points')->group(function () {
+    //     Route::get('/', [App\Http\Controllers\UserBonusPointController::class, 'getUserPoints']);
+    //     Route::get('/history', [App\Http\Controllers\UserBonusPointController::class, 'getPointsHistory']);
+    //     Route::post('/convert', [App\Http\Controllers\UserBonusPointController::class, 'convertPoints']);
+    // });
 
     //Transfert de fonds entre wallets
 
@@ -454,15 +455,15 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function ()
         Route::get('/packs/{pack}/commission-rates', [PackController::class, 'getCommissionRates']);
         Route::post('/packs/{pack}/commission-rate', [PackController::class, 'updateCommissionRate']);
         
-        // Routes de gestion des bonus sur délais
+        // Routes de gestion des bonus (jeton esengo)
         Route::get('/packs/{packId}/bonus-rates', [PackController::class, 'getBonusRates']);
         Route::post('/packs/{packId}/bonus-rates', [PackController::class, 'storeBonusRate']);
-        Route::put('/bonus-rates/{id}', [PackController::class, 'updateBonusRate']);
         Route::delete('/bonus-rates/{id}', [PackController::class, 'deleteBonusRate']);
     });
 
-    //Routes pour la gestion des utilisateurs
+    //Routes pour la gestion des administrateurs
     Route::middleware('permission:manage-admins')->group(function () {
+        Route::get('get-roles', [UserController::class, 'getRoles']);
         Route::get('admins', [UserController::class, 'getAdmins']);
         Route::post('/admins/create', [UserController::class, 'createAdmin']);
         Route::patch('admins/{id}', [UserController::class, 'updateAdmin']);
@@ -510,7 +511,6 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function ()
         // Routes pour la gestion des wallets
         Route::get('/wallets/data', [WalletController::class, 'getWalletData']);
         Route::post('/admin/wallets/withdraw', [WalletController::class, 'withdraw']);
-        Route::post('/wallet/funds-transfer', [App\Http\Controllers\Admin\WalletController::class, 'funds_transfer']);
     });
 
     Route::middleware('permission:manage-content')->group(function () {
@@ -611,24 +611,24 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function ()
     Route::get('/dashboard/transactions', [App\Http\Controllers\Admin\AdminDashboardController::class, 'getTransactions']);
     Route::get('/dashboard/pack-stats', [App\Http\Controllers\Admin\AdminDashboardController::class, 'getPackStats']);
     Route::get('/dashboard/data', [App\Http\Controllers\Admin\AdminDashboardController::class, 'getDashboardData']);
-    
-    // Routes pour la gestion des tickets gagnants
-    Route::middleware('permission:verify-tickets')->group(function () {
-        
-    });
 
     Route::middleware('permission:manage-gifts')->group(function () {
-        // Routes pour la gestion des cadeaux (jetons Esengo)
-        Route::prefix('/cadeaux')->group(function () {
-            Route::get('/', [\App\Http\Controllers\JetonEsengoController::class, 'getCadeaux']);
-            Route::post('/', [\App\Http\Controllers\JetonEsengoController::class, 'saveCadeau']);
-            Route::put('/{id}', [\App\Http\Controllers\JetonEsengoController::class, 'saveCadeau']);
-            Route::delete('/{id}', [\App\Http\Controllers\JetonEsengoController::class, 'deleteCadeau']);
+        Route::middleware('permission:manage-tickets')->group(function () {
+            Route::get('/tickets/my-history', [\App\Http\Controllers\JetonEsengoController::class, 'getMyHistoriqueTickets']);
+            Route::get('/tickets/{code}', [\App\Http\Controllers\JetonEsengoController::class, 'verifierTicket']);
+            Route::post('/tickets/consommer/{id}', [\App\Http\Controllers\JetonEsengoController::class, 'consommerTicket']);
         });
-
-        Route::get('/tickets/historique', [\App\Http\Controllers\JetonEsengoController::class, 'getHistoriqueTicketsConsommes']);
-        Route::get('/tickets/{code}', [\App\Http\Controllers\JetonEsengoController::class, 'verifierTicket']);
-        Route::post('/tickets/{id}/consommer', [\App\Http\Controllers\JetonEsengoController::class, 'consommerTicket']);
+        
+        // Routes pour la gestion des cadeaux (jetons Esengo)
+        Route::middleware('permission:manage-gifts-history')->group(function () {
+            Route::get('/tickets/historique', [\App\Http\Controllers\JetonEsengoController::class, 'getHistoriqueTicketsGagnants']);
+            Route::prefix('/cadeaux')->group(function () {
+                Route::get('/', [\App\Http\Controllers\JetonEsengoController::class, 'getCadeaux']);
+                Route::post('/', [\App\Http\Controllers\JetonEsengoController::class, 'saveCadeau']);
+                Route::put('/{id}', [\App\Http\Controllers\JetonEsengoController::class, 'saveCadeau']);
+                Route::delete('/{id}', [\App\Http\Controllers\JetonEsengoController::class, 'deleteCadeau']);
+            });
+        });
     });
     
     Route::middleware('permission:view-finances', 'permission:manage-wallets')->group(function () {
@@ -640,10 +640,10 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function ()
         Route::get('/finances/system-balance', [\App\Http\Controllers\Admin\FinanceController::class, 'getSystemBalance']);
         Route::get('/finances/summary', [\App\Http\Controllers\Admin\FinanceController::class, 'getSummary']);
         
-        // Routes pour la gestion des points bonus
-        Route::get('/finances/bonus-points-history', [\App\Http\Controllers\Admin\FinanceController::class, 'getBonusPointsHistory']);
-        Route::get('/finances/bonus-points-stats', [\App\Http\Controllers\Admin\FinanceController::class, 'getBonusPointsStats']);
-        Route::get('/finances/bonus-points-types', [\App\Http\Controllers\Admin\FinanceController::class, 'getBonusPointsTypes']);
+        // // Routes pour la gestion des points bonus
+        // Route::get('/finances/bonus-points-history', [\App\Http\Controllers\Admin\FinanceController::class, 'getBonusPointsHistory']);
+        // Route::get('/finances/bonus-points-stats', [\App\Http\Controllers\Admin\FinanceController::class, 'getBonusPointsStats']);
+        // Route::get('/finances/bonus-points-types', [\App\Http\Controllers\Admin\FinanceController::class, 'getBonusPointsTypes']);
     });
     
     Route::middleware('permission:manage-faqs')->group(function () {

@@ -21,6 +21,7 @@ class CreateTicketsGagnantsTable extends Migration
             $table->string('code_jeton')->unique()->comment('Code unique du jeton Esengo utilisé');
             $table->dateTime('date_expiration')->default(Carbon::now()->addHours(48));
             $table->boolean('consomme')->default(false);
+            $table->foreignId('admin_id')->nullable()->constrained('users');
             $table->dateTime('date_consommation')->nullable();
             $table->string('code_verification')->unique()->comment('Code à présenter pour récupérer le cadeau');
             $table->timestamps();

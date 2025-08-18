@@ -90,16 +90,6 @@ const Finances = () => {
   const [statsByType, setStatsByType] = useState([]);
   const [statsByPeriod, setStatsByPeriod] = useState([]);
 
-  // États pour les points bonus
-  const [bonusPointsHistory, setBonusPointsHistory] = useState([]);
-  const [bonusPointsHistoryAll, setBonusPointsHistoryAll] = useState([]); // Toutes les données non filtrées
-  const [bonusPointsTypes, setBonusPointsTypes] = useState([]);
-  const [bonusPointsStats, setBonusPointsStats] = useState(null);
-  const [bonusPointsStatsOriginal, setBonusPointsStatsOriginal] =
-    useState(null); // Données statistiques originales
-  const [loadingBonusPoints, setLoadingBonusPoints] = useState(true);
-  const [errorBonusPoints, setErrorBonusPoints] = useState(null);
-
   // États pour la pagination
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
@@ -118,7 +108,6 @@ const Finances = () => {
 
   // États pour les onglets
   const [activeTab, setActiveTab] = useState(0);
-  const [activeBonusTab, setActiveBonusTab] = useState(0);
 
   // État pour les permissions
   const [userPermissions, setUserPermissions] = useState([]);
@@ -138,9 +127,6 @@ const Finances = () => {
     fetchSummary();
     fetchTransactions();
     fetchStatsByType();
-    fetchBonusPointsTypes();
-    fetchBonusPointsHistory();
-    fetchBonusPointsStats();
   }, []);
 
   // Appliquer les filtres lorsqu'ils changent
@@ -149,20 +135,6 @@ const Finances = () => {
       fetchTransactions();
       fetchStatsByType();
       fetchStatsByPeriod();
-
-      // Pour les points bonus, on applique les filtres localement
-      if (bonusPointsHistoryAll.length > 0) {
-        applyLocalBonusPointsFilters();
-      } else {
-        // Si les données n'ont pas encore été chargées, on les récupère
-        fetchBonusPointsHistory();
-      }
-
-      if (bonusPointsStatsOriginal) {
-        applyLocalBonusPointsStatsFilters();
-      } else {
-        fetchBonusPointsStats();
-      }
     }
   }, [filters]);
 
@@ -317,193 +289,6 @@ const Finances = () => {
     }
   };
 
-  // Fonction pour récupérer l'historique des points bonus
-  const fetchBonusPointsHistory = async () => {
-    try {
-      setLoadingBonusPoints(true);
-
-      // Récupérer toutes les données sans filtre
-      const response = await axios.get(
-        "/api/admin/finances/bonus-points-history"
-      );
-
-      if (response.data.success) {
-        const allData = response.data.data.data;
-        setBonusPointsHistoryAll(allData);
-
-        // Appliquer les filtres localement sur les données récupérées
-        applyLocalBonusPointsFilters(allData);
-        setErrorBonusPoints(null);
-      } else {
-        setErrorBonusPoints(
-          response.data.message ||
-            "Erreur lors du chargement de l'historique des points bonus"
-        );
-      }
-    } catch (err) {
-      setErrorBonusPoints(
-        "Erreur lors du chargement de l'historique des points bonus: " +
-          (err.response?.data?.message || err.message)
-      );
-      console.error(
-        "Erreur lors du chargement de l'historique des points bonus:",
-        err
-      );
-    } finally {
-      setLoadingBonusPoints(false);
-    }
-  };
-
-  // Fonction pour appliquer les filtres localement sur l'historique des points bonus
-  const applyLocalBonusPointsFilters = (data = null) => {
-    const dataToFilter = data || bonusPointsHistoryAll;
-
-    if (!dataToFilter.length) return;
-
-    let filteredData = [...dataToFilter];
-
-    // Filtrer par type si spécifié
-    if (filters.type) {
-      filteredData = filteredData.filter((item) => item.type === filters.type);
-    }
-
-    // Filtrer par ID utilisateur si spécifié
-    if (filters.userId) {
-      filteredData = filteredData.filter(
-        (item) => item.user_id === parseInt(filters.userId)
-      );
-    }
-
-    // Filtrer par ID pack si spécifié
-    if (filters.packId) {
-      filteredData = filteredData.filter(
-        (item) => item.pack_id === parseInt(filters.packId)
-      );
-    }
-
-    // Filtrer par date de début si spécifiée
-    if (filters.dateFrom) {
-      const dateFrom = new Date(filters.dateFrom);
-      filteredData = filteredData.filter(
-        (item) => new Date(item.created_at) >= dateFrom
-      );
-    }
-
-    // Filtrer par date de fin si spécifiée
-    if (filters.dateTo) {
-      const dateTo = new Date(filters.dateTo);
-      dateTo.setHours(23, 59, 59, 999); // Fin de journée
-      filteredData = filteredData.filter(
-        (item) => new Date(item.created_at) <= dateTo
-      );
-    }
-
-    // Recherche par terme si spécifié
-    if (filters.searchTerm) {
-      const searchTerm = filters.searchTerm.toLowerCase();
-      filteredData = filteredData.filter((item) => {
-        return (
-          (item.description &&
-            item.description.toLowerCase().includes(searchTerm)) ||
-          item.id.toString().includes(searchTerm) ||
-          (item.user &&
-            item.user.name &&
-            item.user.name.toLowerCase().includes(searchTerm)) ||
-          (item.user &&
-            item.user.email &&
-            item.user.email.toLowerCase().includes(searchTerm)) ||
-          (item.pack &&
-            item.pack.name &&
-            item.pack.name.toLowerCase().includes(searchTerm))
-        );
-      });
-    }
-
-    setBonusPointsHistory(filteredData);
-  };
-
-  // Fonction pour récupérer les types de points bonus
-  const fetchBonusPointsTypes = async () => {
-    try {
-      const response = await axios.get(
-        "/api/admin/finances/bonus-points-types"
-      );
-
-      if (response.data.success) {
-        setBonusPointsTypes(response.data.data);
-      }
-    } catch (err) {
-      console.error(
-        "Erreur lors du chargement des types de points bonus:",
-        err
-      );
-    }
-  };
-
-  // Fonction pour récupérer les statistiques des points bonus
-  const fetchBonusPointsStats = async () => {
-    try {
-      setLoadingBonusPoints(true);
-
-      // Récupérer toutes les données sans filtre
-      const response = await axios.get(
-        "/api/admin/finances/bonus-points-stats"
-      );
-
-      if (response.data.success) {
-        const statsData = response.data.data;
-        setBonusPointsStatsOriginal(statsData);
-
-        // Appliquer les filtres localement sur les données récupérées
-        applyLocalBonusPointsStatsFilters(statsData);
-      }
-    } catch (err) {
-      console.error(
-        "Erreur lors du chargement des statistiques des points bonus:",
-        err
-      );
-    } finally {
-      setLoadingBonusPoints(false);
-    }
-  };
-
-  // Fonction pour appliquer les filtres localement sur les statistiques des points bonus
-  const applyLocalBonusPointsStatsFilters = (data = null) => {
-    const statsData = data || bonusPointsStatsOriginal;
-
-    if (!statsData) return;
-
-    // Créer une copie des données pour les filtrer
-    let filteredStats = JSON.parse(JSON.stringify(statsData));
-
-    // Si des filtres sont appliqués, on filtre les données correspondantes dans les statistiques
-    if (
-      filters.userId ||
-      filters.packId ||
-      filters.dateFrom ||
-      filters.dateTo
-    ) {
-      // Filtrer les statistiques par pack si nécessaire
-      if (filters.packId) {
-        filteredStats.stats_by_pack = filteredStats.stats_by_pack.filter(
-          (pack) => pack.pack_id === parseInt(filters.packId)
-        );
-      }
-
-      // Filtrer les top utilisateurs si nécessaire
-      if (filters.userId) {
-        filteredStats.top_users = filteredStats.top_users.filter(
-          (user) => user.user_id === parseInt(filters.userId)
-        );
-      }
-
-      // Note: Les filtres de date et les totaux sont déjà gérés par le backend
-      // car ils nécessitent des calculs complexes sur l'ensemble des données
-    }
-
-    setBonusPointsStats(filteredStats);
-  };
-
   // Gestionnaire de changement d'onglet
   const handleTabChange = (event, newValue) => {
     setActiveTab(newValue);
@@ -539,15 +324,6 @@ const Finances = () => {
       packId: "",
       searchTerm: "",
     });
-
-    // Réinitialiser les données filtrées avec les données originales
-    if (bonusPointsHistoryAll.length > 0) {
-      setBonusPointsHistory(bonusPointsHistoryAll);
-    }
-
-    if (bonusPointsStatsOriginal) {
-      setBonusPointsStats(bonusPointsStatsOriginal);
-    }
   };
 
   // Fonction pour formater les montants
@@ -672,104 +448,6 @@ const Finances = () => {
     XLSX.writeFile(workbook, fileName);
   };
 
-  // Fonction pour exporter l'historique des points bonus au format Excel
-  const exportBonusPointsHistoryToExcel = () => {
-    // Préparation des données pour l'export
-    const dataToExport = bonusPointsHistory.map((entry) => ({
-      ID: entry.id,
-      Utilisateur: entry.user?.name || "N/A",
-      Pack: entry.pack?.name || "N/A",
-      Points: entry.points,
-      Type:
-        entry.type === "gain"
-          ? "Gain"
-          : entry.type === "conversion"
-          ? "Conversion"
-          : entry.type,
-      Description: entry.description || "N/A",
-      Date: formatDate(entry.created_at),
-      "Date de création": format(
-        new Date(entry.created_at),
-        "yyyy-MM-dd HH:mm:ss"
-      ),
-      "Date de mise à jour": format(
-        new Date(entry.updated_at),
-        "yyyy-MM-dd HH:mm:ss"
-      ),
-    }));
-
-    // Création d'une feuille de calcul
-    const worksheet = XLSX.utils.json_to_sheet(dataToExport);
-
-    // Création d'un classeur
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Points Bonus");
-
-    // Génération du nom de fichier avec date
-    const fileName = `points_bonus_${format(
-      new Date(),
-      "yyyy-MM-dd_HH-mm"
-    )}.xlsx`;
-
-    // Téléchargement du fichier
-    XLSX.writeFile(workbook, fileName);
-  };
-
-  // Fonction pour exporter les statistiques des points bonus au format Excel
-  const exportBonusPointsStatsToExcel = () => {
-    if (!bonusPointsStats) return;
-
-    // Préparation des données pour l'export par type
-    const dataByType = bonusPointsStats.stats_by_type.map((stat) => ({
-      Type:
-        stat.type === "gain"
-          ? "Gain"
-          : stat.type === "conversion"
-          ? "Conversion"
-          : stat.type,
-      Nombre: stat.count,
-      "Points totaux": stat.total_points,
-    }));
-
-    // Préparation des données pour l'export par pack
-    const dataByPack = bonusPointsStats.stats_by_pack.map((stat) => ({
-      Pack: stat.pack_name,
-      Nombre: stat.count,
-      "Points totaux": stat.total_points,
-    }));
-
-    // Préparation des données pour l'export des top utilisateurs
-    const dataTopUsers = bonusPointsStats.top_users.map((user) => ({
-      Utilisateur: user.user_name,
-      Email: user.user_email,
-      "Points disponibles": user.total_points,
-    }));
-
-    // Création des feuilles de calcul
-    const worksheetByType = XLSX.utils.json_to_sheet(dataByType);
-    const worksheetByPack = XLSX.utils.json_to_sheet(dataByPack);
-    const worksheetTopUsers = XLSX.utils.json_to_sheet(dataTopUsers);
-
-    // Création d'un classeur
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheetByType, "Par Type");
-    XLSX.utils.book_append_sheet(workbook, worksheetByPack, "Par Pack");
-    XLSX.utils.book_append_sheet(
-      workbook,
-      worksheetTopUsers,
-      "Top Utilisateurs"
-    );
-
-    // Génération du nom de fichier avec date
-    const fileName = `stats_points_bonus_${format(
-      new Date(),
-      "yyyy-MM-dd_HH-mm"
-    )}.xlsx`;
-
-    // Téléchargement du fichier
-    XLSX.writeFile(workbook, fileName);
-  };
-
   return (
     <Box sx={{ p: 3 }}>
       <Typography variant="h4" gutterBottom>
@@ -858,7 +536,7 @@ const Finances = () => {
                   color: isDarkMode ? "#fff" : "text.primary",
                 }}
               >
-                {userPermissions.includes("manage-wallets") ||
+                {userPermissions.includes("view-transactions") ||
                 userPermissions.includes("super-admin")
                   ? formatAmount(systemBalance?.balance || 0)
                   : formatAmount(0)}
@@ -945,7 +623,7 @@ const Finances = () => {
                   color: isDarkMode ? "#fff" : "text.primary",
                 }}
               >
-                {userPermissions.includes("manage-wallets") ||
+                {userPermissions.includes("view-transactions") ||
                 userPermissions.includes("super-admin")
                   ? formatAmount(systemBalance?.total_in || 0)
                   : formatAmount(0)}
@@ -963,9 +641,7 @@ const Finances = () => {
                 : "rgba(239, 68, 68, 0.05)",
               boxShadow: "none",
               border: `1px solid ${
-                isDarkMode
-                  ? "rgba(239, 68, 68, 0.2)"
-                  : "rgba(239, 68, 68, 0.1)"
+                isDarkMode ? "rgba(239, 68, 68, 0.2)" : "rgba(239, 68, 68, 0.1)"
               }`,
               borderRadius: 3,
               height: "100%",
@@ -1032,7 +708,7 @@ const Finances = () => {
                   color: isDarkMode ? "#fff" : "text.primary",
                 }}
               >
-                {userPermissions.includes("manage-wallets") ||
+                {userPermissions.includes("view-transactions") ||
                 userPermissions.includes("super-admin")
                   ? formatAmount(systemBalance?.total_out || 0)
                   : formatAmount(0)}
@@ -1050,9 +726,7 @@ const Finances = () => {
                 : "rgba(79, 70, 229, 0.05)",
               boxShadow: "none",
               border: `1px solid ${
-                isDarkMode
-                  ? "rgba(79, 70, 229, 0.2)"
-                  : "rgba(79, 70, 229, 0.1)"
+                isDarkMode ? "rgba(79, 70, 229, 0.2)" : "rgba(79, 70, 229, 0.1)"
               }`,
               borderRadius: 3,
               height: "100%",
@@ -1119,7 +793,7 @@ const Finances = () => {
                   color: isDarkMode ? "#fff" : "text.primary",
                 }}
               >
-                {userPermissions.includes("manage-wallets") ||
+                {userPermissions.includes("view-transactions") ||
                 userPermissions.includes("super-admin")
                   ? transactions.length > 0
                     ? transactions.length
@@ -1190,42 +864,19 @@ const Finances = () => {
           }}
         >
           <Tab
-            icon={<WalletIcon fontSize="small" />}
-            iconPosition="start"
-            label="Portefeuille"
-            onMouseEnter={() => setTabHover(0)}
-            onMouseLeave={() => setTabHover(null)}
-            disabled={
-              !userPermissions.includes("manage-wallets") &&
-              !userPermissions.includes("super-admin")
-            }
-            sx={{
-              transform: tabHover === 0 ? "translateY(-2px)" : "none",
-              opacity:
-                !userPermissions.includes("manage-wallets") &&
-                !userPermissions.includes("super-admin")
-                  ? 0.5
-                  : 1,
-              "&.Mui-disabled": {
-                color: "text.disabled",
-                cursor: "not-allowed",
-              },
-            }}
-          />
-          <Tab
             icon={<CreditCardIcon fontSize="small" />}
             iconPosition="start"
             label="Transactions"
             onMouseEnter={() => setTabHover(1)}
             onMouseLeave={() => setTabHover(null)}
             disabled={
-              !userPermissions.includes("manage-wallets") &&
+              !userPermissions.includes("view-transactions") &&
               !userPermissions.includes("super-admin")
             }
             sx={{
               transform: tabHover === 1 ? "translateY(-2px)" : "none",
               opacity:
-                !userPermissions.includes("manage-wallets") &&
+                !userPermissions.includes("view-transactions") &&
                 !userPermissions.includes("super-admin")
                   ? 0.5
                   : 1,
@@ -1242,36 +893,13 @@ const Finances = () => {
             onMouseEnter={() => setTabHover(2)}
             onMouseLeave={() => setTabHover(null)}
             disabled={
-              !userPermissions.includes("manage-wallets") &&
+              !userPermissions.includes("view-transactions") &&
               !userPermissions.includes("super-admin")
             }
             sx={{
               transform: tabHover === 2 ? "translateY(-2px)" : "none",
               opacity:
-                !userPermissions.includes("manage-wallets") &&
-                !userPermissions.includes("super-admin")
-                  ? 0.5
-                  : 1,
-              "&.Mui-disabled": {
-                color: "text.disabled",
-                cursor: "not-allowed",
-              },
-            }}
-          />
-          <Tab
-            icon={<CardGiftcardIcon fontSize="small" />}
-            iconPosition="start"
-            label="Points Bonus"
-            onMouseEnter={() => setTabHover(3)}
-            onMouseLeave={() => setTabHover(null)}
-            disabled={
-              !userPermissions.includes("manage-wallets") &&
-              !userPermissions.includes("super-admin")
-            }
-            sx={{
-              transform: tabHover === 3 ? "translateY(-2px)" : "none",
-              opacity:
-                !userPermissions.includes("manage-wallets") &&
+                !userPermissions.includes("view-transactions") &&
                 !userPermissions.includes("super-admin")
                   ? 0.5
                   : 1,
@@ -1331,28 +959,6 @@ const Finances = () => {
 
         {/* Contenu de l'onglet actif */}
         {activeTab === 0 && (
-          <Box p={3}>
-            {/* Composant Wallets */}
-            <Suspense
-              fallback={
-                <Box
-                  display="flex"
-                  justifyContent="center"
-                  alignItems="center"
-                  height="400px"
-                >
-                  <CircularProgress color="primary" />
-                  <Typography variant="body1" ml={2} color="textSecondary">
-                    Chargement du portefeuille...
-                  </Typography>
-                </Box>
-              }
-            >
-              <Wallets />
-            </Suspense>
-          </Box>
-        )}
-        {activeTab === 1 && (
           <Box sx={{ p: 2 }}>
             {loading ? (
               <Box sx={{ display: "flex", justifyContent: "center", p: 4 }}>
@@ -1373,7 +979,7 @@ const Finances = () => {
                   sx={{
                     p: 2,
                     mb: 3,
-                    bgcolor: isDarkMode ? "#1f2937" : "#fff",
+                    bgcolor: isDarkMode ? "#111827" : "#fff",
                     borderRadius: 2,
                   }}
                 >
@@ -1401,6 +1007,15 @@ const Finances = () => {
                         sx={{ ml: 1 }}
                       >
                         <RefreshIcon />
+                      </IconButton>
+                      <IconButton
+                        onClick={exportTransactionsToExcel}
+                        color="default"
+                        size="small"
+                        title="Exporter vers Excel"
+                        sx={{ ml: 1 }}
+                      >
+                        <FileDownloadIcon />
                       </IconButton>
                     </Box>
                   </Box>
@@ -1570,19 +1185,7 @@ const Finances = () => {
                     </Box>
                   )}
                 </Paper>
-                <Box
-                  sx={{ display: "flex", justifyContent: "flex-end", mb: 2 }}
-                >
-                  <Button
-                    variant="outlined"
-                    size="small"
-                    startIcon={<FileDownloadIcon />}
-                    onClick={exportTransactionsToExcel}
-                    sx={{ textTransform: "none" }}
-                  >
-                    Exporter en Excel
-                  </Button>
-                </Box>
+
                 <TableContainer
                   sx={{
                     boxShadow: isDarkMode
@@ -1636,6 +1239,7 @@ const Finances = () => {
                                 padding: "10px 16px",
                                 color: isDarkMode ? "#fff" : "#475569",
                               },
+                              bgcolor: isDarkMode ? "#1d2432" : "#fff",
                             }}
                           >
                             <TableCell>{transaction.id}</TableCell>
@@ -1678,10 +1282,6 @@ const Finances = () => {
                                         return isDarkMode
                                           ? "#92400e"
                                           : "#fef3c7";
-                                      case "bonus":
-                                        return isDarkMode
-                                          ? "#4f46e5"
-                                          : "#e0e7ff";
                                       case "sales":
                                         return isDarkMode
                                           ? "#064e3b"
@@ -1807,7 +1407,7 @@ const Finances = () => {
         )}
 
         {/* Statistiques par type */}
-        {activeTab === 2 && (
+        {activeTab === 1 && (
           <Box sx={{ p: 2 }}>
             {statsByType.length === 0 ? (
               <Alert severity="info" sx={{ mb: 2 }}>
@@ -1818,15 +1418,15 @@ const Finances = () => {
                 <Box
                   sx={{ display: "flex", justifyContent: "flex-end", mb: 2 }}
                 >
-                  <Button
-                    variant="outlined"
-                    size="small"
-                    startIcon={<FileDownloadIcon />}
+                  <IconButton
                     onClick={exportStatsToExcel}
-                    sx={{ textTransform: "none" }}
+                    color="default"
+                    size="small"
+                    title="Exporter vers Excel"
+                    sx={{ ml: 1 }}
                   >
-                    Exporter en Excel
-                  </Button>
+                    <FileDownloadIcon />
+                  </IconButton>
                 </Box>
                 <TableContainer
                   sx={{
@@ -1875,6 +1475,7 @@ const Finances = () => {
                               padding: "10px 16px",
                               color: isDarkMode ? "#fff" : "#475569",
                             },
+                            bgcolor: isDarkMode ? "#1d2432" : "#fff",
                           }}
                         >
                           <TableCell>
@@ -1906,8 +1507,6 @@ const Finances = () => {
                                       return isDarkMode ? "#9f1239" : "#fee2e2";
                                     case "frais de transfert":
                                       return isDarkMode ? "#92400e" : "#fef3c7";
-                                    case "bonus":
-                                      return isDarkMode ? "#4f46e5" : "#e0e7ff";
                                     case "sales":
                                       return isDarkMode ? "#064e3b" : "#d1fae5";
                                     case "virtual_sale":
@@ -1948,1028 +1547,7 @@ const Finances = () => {
           </Box>
         )}
 
-        {/* Points Bonus */}
-        {activeTab === 3 && (
-          <Box sx={{ p: 2 }}>
-            {/* Cartes de résumé des points bonus */}
-            {bonusPointsStats && (
-              <Grid container spacing={3} sx={{ mb: 4 }}>
-                <Grid item xs={12} sm={6} md={3}>
-                  <Card
-                    sx={{
-                      bgcolor: isDarkMode
-                        ? "rgba(79, 70, 229, 0.1)"
-                        : "rgba(79, 70, 229, 0.05)",
-                      boxShadow: "none",
-                      border: `1px solid ${
-                        isDarkMode
-                          ? "rgba(79, 70, 229, 0.2)"
-                          : "rgba(79, 70, 229, 0.2)"
-                      }`,
-                      borderRadius: 3,
-                      height: "100%",
-                      position: "relative",
-                      overflow: "hidden",
-                      transition: "all 0.3s ease",
-                      "&:hover": {
-                        transform: "translateY(-3px)",
-                        boxShadow: isDarkMode
-                          ? "0 8px 20px rgba(0, 0, 0, 0.3)"
-                          : "0 8px 20px rgba(0, 0, 0, 0.1)",
-                      },
-                    }}
-                  >
-                    <Box
-                      sx={{
-                        position: "absolute",
-                        top: -15,
-                        right: -15,
-                        width: 80,
-                        height: 80,
-                        borderRadius: "50%",
-                        bgcolor: "primary.main",
-                        opacity: 0.1,
-                      }}
-                    />
-                    <CardContent sx={{ position: "relative", p: 3 }}>
-                      <Box
-                        sx={{
-                          display: "flex",
-                          justifyContent: "space-between",
-                          alignItems: "flex-start",
-                          mb: 2,
-                        }}
-                      >
-                        <Typography
-                          variant="subtitle1"
-                          color="primary"
-                          sx={{ fontWeight: 600, fontSize: "0.9rem" }}
-                        >
-                          Points gagnés
-                        </Typography>
-                        <Box
-                          sx={{
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            bgcolor: "primary.main",
-                            color: "white",
-                            width: 36,
-                            height: 36,
-                            borderRadius: "50%",
-                          }}
-                        >
-                          <TrendingUpIcon sx={{ fontSize: "1.2rem" }} />
-                        </Box>
-                      </Box>
-                      <Typography
-                        variant="h5"
-                        component="div"
-                        sx={{
-                          fontSize: "1.4rem",
-                          fontWeight: 700,
-                          color: isDarkMode ? "#fff" : "text.primary",
-                        }}
-                      >
-                        {bonusPointsStats.total_points_gained || 0}
-                      </Typography>
-                    </CardContent>
-                  </Card>
-                </Grid>
-                <Grid item xs={12} sm={6} md={3}>
-                  <Card
-                    sx={{
-                      bgcolor: isDarkMode
-                        ? "rgba(16, 185, 129, 0.1)"
-                        : "rgba(16, 185, 129, 0.05)",
-                      boxShadow: "none",
-                      border: `1px solid ${
-                        isDarkMode
-                          ? "rgba(31, 41, 223, 0.2)"
-                          : "rgba(16, 185, 129, 0.2)"
-                      }`,
-                      borderRadius: 3,
-                      height: "100%",
-                      position: "relative",
-                      overflow: "hidden",
-                      transition: "all 0.3s ease",
-                      "&:hover": {
-                        transform: "translateY(-3px)",
-                        boxShadow: isDarkMode
-                          ? "0 8px 20px rgba(0, 0, 0, 0.3)"
-                          : "0 8px 20px rgba(0, 0, 0, 0.1)",
-                      },
-                    }}
-                  >
-                    <Box
-                      sx={{
-                        position: "absolute",
-                        top: -15,
-                        right: -15,
-                        width: 80,
-                        height: 80,
-                        borderRadius: "50%",
-                        bgcolor: "success.main",
-                        opacity: 0.1,
-                      }}
-                    />
-                    <CardContent sx={{ position: "relative", p: 3 }}>
-                      <Box
-                        sx={{
-                          display: "flex",
-                          justifyContent: "space-between",
-                          alignItems: "flex-start",
-                          mb: 2,
-                        }}
-                      >
-                        <Typography
-                          variant="subtitle1"
-                          color="success.main"
-                          sx={{ fontWeight: 600, fontSize: "0.9rem" }}
-                        >
-                          Points convertis
-                        </Typography>
-                        <Box
-                          sx={{
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            bgcolor: "success.main",
-                            color: "white",
-                            width: 36,
-                            height: 36,
-                            borderRadius: "50%",
-                          }}
-                        >
-                          <AttachMoneyIcon sx={{ fontSize: "1.2rem" }} />
-                        </Box>
-                      </Box>
-                      <Typography
-                        variant="h5"
-                        component="div"
-                        sx={{
-                          fontSize: "1.4rem",
-                          fontWeight: 700,
-                          color: isDarkMode ? "#fff" : "text.primary",
-                        }}
-                      >
-                        {bonusPointsStats.total_points_converted || 0}
-                      </Typography>
-                    </CardContent>
-                  </Card>
-                </Grid>
-              </Grid>
-            )}
-
-            {/* Onglets pour l'historique et les statistiques des points bonus */}
-            <Tabs
-              value={activeBonusTab}
-              onChange={(e, newValue) => setActiveBonusTab(newValue)}
-              sx={{
-                borderBottom: 1,
-                borderColor: isDarkMode ? "#374151" : "divider",
-                bgcolor: isDarkMode ? "#111827" : "#f8f9fa",
-                mb: 2,
-              }}
-            >
-              <Tab label="Historique des points" />
-              <Tab label="Statistiques détaillées" />
-            </Tabs>
-
-            {/* Contenu des sous-onglets des points bonus */}
-            {activeBonusTab === 0 && (
-              /* Historique des points bonus */
-              <Box>
-                {/* Filtres spécifiques pour les points bonus */}
-                <Paper
-                  sx={{
-                    p: 2,
-                    mb: 3,
-                    bgcolor: isDarkMode ? "#1f2937" : "#fff",
-                    borderRadius: 2,
-                  }}
-                >
-                  <Box
-                    sx={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                      mb: 2,
-                    }}
-                  >
-                    <Typography variant="h6">
-                      Filtres des points bonus
-                    </Typography>
-                    <Box>
-                      <IconButton
-                        onClick={() => setShowFilters(!showFilters)}
-                        color="primary"
-                        size="small"
-                      >
-                        <FilterListIcon />
-                      </IconButton>
-                      <IconButton
-                        onClick={resetFilters}
-                        color="default"
-                        size="small"
-                        sx={{ ml: 1 }}
-                      >
-                        <RefreshIcon />
-                      </IconButton>
-                    </Box>
-                  </Box>
-
-                  {/* Zone de recherche toujours visible */}
-                  <TextField
-                    fullWidth
-                    size="small"
-                    label="Rechercher par utilisateur, description ou ID"
-                    value={filters.searchTerm}
-                    onChange={(e) =>
-                      handleFilterChange("searchTerm", e.target.value)
-                    }
-                    variant="outlined"
-                    sx={{
-                      mb: 2,
-                      bgcolor: isDarkMode ? "#111827" : "#fff",
-                      "& .MuiOutlinedInput-root": {
-                        "& fieldset": {
-                          borderColor: isDarkMode ? "#374151" : "#e5e7eb",
-                        },
-                      },
-                      "& .MuiInputLabel-root": {
-                        color: isDarkMode ? "#9ca3af" : "inherit",
-                      },
-                      "& .MuiInputBase-input": {
-                        color: isDarkMode ? "#fff" : "inherit",
-                      },
-                    }}
-                  />
-
-                  {showFilters && (
-                    <Box
-                      sx={{
-                        display: "flex",
-                        flexWrap: "wrap",
-                        gap: 2,
-                        alignItems: "center",
-                        mt: 2,
-                      }}
-                    >
-                      <FormControl
-                        size="small"
-                        sx={{
-                          minWidth: 150,
-                          bgcolor: isDarkMode ? "#111827" : "#fff",
-                          "& .MuiOutlinedInput-root": {
-                            "& fieldset": {
-                              borderColor: isDarkMode ? "#374151" : "#e5e7eb",
-                            },
-                          },
-                        }}
-                      >
-                        <InputLabel id="bonus-type-filter-label">
-                          Type de points
-                        </InputLabel>
-                        <Select
-                          labelId="bonus-type-filter-label"
-                          value={filters.type}
-                          label="Type de points"
-                          onChange={(e) =>
-                            handleFilterChange("type", e.target.value)
-                          }
-                          sx={{
-                            color: isDarkMode ? "#fff" : "inherit",
-                            "& .MuiSelect-icon": {
-                              color: isDarkMode ? "#fff" : "inherit",
-                            },
-                          }}
-                        >
-                          <MenuItem value="">
-                            <em>Tous</em>
-                          </MenuItem>
-                          {bonusPointsTypes.map((type) => (
-                            <MenuItem key={type} value={type}>
-                              {type === "gain"
-                                ? "Gain"
-                                : type === "conversion"
-                                ? "Conversion"
-                                : type}
-                            </MenuItem>
-                          ))}
-                        </Select>
-                      </FormControl>
-
-                      <FormControl
-                        size="small"
-                        sx={{
-                          minWidth: 150,
-                          bgcolor: isDarkMode ? "#111827" : "#fff",
-                          "& .MuiOutlinedInput-root": {
-                            "& fieldset": {
-                              borderColor: isDarkMode ? "#374151" : "#e5e7eb",
-                            },
-                          },
-                        }}
-                      >
-                        <InputLabel id="user-id-filter-label">
-                          ID Utilisateur
-                        </InputLabel>
-                        <TextField
-                          labelId="user-id-filter-label"
-                          value={filters.userId}
-                          onChange={(e) =>
-                            handleFilterChange("userId", e.target.value)
-                          }
-                          label="ID Utilisateur"
-                          size="small"
-                          type="number"
-                          sx={{
-                            minWidth: 150,
-                            color: isDarkMode ? "#fff" : "inherit",
-                            "& .MuiInputBase-input": {
-                              color: isDarkMode ? "#fff" : "inherit",
-                            },
-                          }}
-                        />
-                      </FormControl>
-
-                      <FormControl
-                        size="small"
-                        sx={{
-                          minWidth: 150,
-                          bgcolor: isDarkMode ? "#111827" : "#fff",
-                          "& .MuiOutlinedInput-root": {
-                            "& fieldset": {
-                              borderColor: isDarkMode ? "#374151" : "#e5e7eb",
-                            },
-                          },
-                        }}
-                      >
-                        <InputLabel id="pack-id-filter-label">
-                          ID Pack
-                        </InputLabel>
-                        <TextField
-                          labelId="pack-id-filter-label"
-                          value={filters.packId}
-                          onChange={(e) =>
-                            handleFilterChange("packId", e.target.value)
-                          }
-                          label="ID Pack"
-                          size="small"
-                          type="number"
-                          sx={{
-                            minWidth: 150,
-                            color: isDarkMode ? "#fff" : "inherit",
-                            "& .MuiInputBase-input": {
-                              color: isDarkMode ? "#fff" : "inherit",
-                            },
-                          }}
-                        />
-                      </FormControl>
-
-                      <TextField
-                        label="Date de début"
-                        type="date"
-                        value={filters.dateFrom}
-                        onChange={(e) =>
-                          handleFilterChange("dateFrom", e.target.value)
-                        }
-                        InputLabelProps={{ shrink: true }}
-                        size="small"
-                        sx={{
-                          minWidth: 150,
-                          bgcolor: isDarkMode ? "#111827" : "#fff",
-                          "& .MuiOutlinedInput-root": {
-                            "& fieldset": {
-                              borderColor: isDarkMode ? "#374151" : "#e5e7eb",
-                            },
-                          },
-                          "& .MuiInputBase-input": {
-                            color: isDarkMode ? "#fff" : "inherit",
-                          },
-                        }}
-                      />
-
-                      <TextField
-                        label="Date de fin"
-                        type="date"
-                        value={filters.dateTo}
-                        onChange={(e) =>
-                          handleFilterChange("dateTo", e.target.value)
-                        }
-                        InputLabelProps={{ shrink: true }}
-                        size="small"
-                        sx={{
-                          minWidth: 150,
-                          bgcolor: isDarkMode ? "#111827" : "#fff",
-                          "& .MuiOutlinedInput-root": {
-                            "& fieldset": {
-                              borderColor: isDarkMode ? "#374151" : "#e5e7eb",
-                            },
-                          },
-                          "& .MuiInputBase-input": {
-                            color: isDarkMode ? "#fff" : "inherit",
-                          },
-                        }}
-                      />
-                    </Box>
-                  )}
-                </Paper>
-
-                {loadingBonusPoints ? (
-                  <Box sx={{ display: "flex", justifyContent: "center", p: 4 }}>
-                    <CircularProgress />
-                  </Box>
-                ) : errorBonusPoints ? (
-                  <Alert severity="error" sx={{ mb: 2 }}>
-                    {errorBonusPoints}
-                  </Alert>
-                ) : bonusPointsHistory.length === 0 ? (
-                  <Alert severity="info" sx={{ mb: 2 }}>
-                    Aucun historique de points bonus trouvé
-                  </Alert>
-                ) : (
-                  <>
-                    <Box
-                      sx={{
-                        display: "flex",
-                        justifyContent: "flex-end",
-                        mb: 2,
-                      }}
-                    >
-                      <Button
-                        variant="outlined"
-                        size="small"
-                        startIcon={<FileDownloadIcon />}
-                        onClick={exportBonusPointsHistoryToExcel}
-                        sx={{ textTransform: "none" }}
-                      >
-                        Exporter en Excel
-                      </Button>
-                    </Box>
-                    <TableContainer
-                      sx={{
-                        boxShadow: isDarkMode
-                          ? "none"
-                          : "0 2px 10px rgba(0, 0, 0, 0.05)",
-                        borderRadius: 2,
-                        overflow: "hidden",
-                      }}
-                    >
-                      <Table size="small">
-                        <TableHead>
-                          <TableRow
-                            sx={{
-                              bgcolor: isDarkMode ? "#111827" : "#f0f4f8",
-                              "& th": {
-                                fontWeight: "bold",
-                                color: isDarkMode ? "#fff" : "#334155",
-                                fontSize: "0.85rem",
-                                padding: "12px 16px",
-                                borderBottom: isDarkMode
-                                  ? "1px solid #374151"
-                                  : "2px solid #e2e8f0",
-                              },
-                            }}
-                          >
-                            <TableCell>ID</TableCell>
-                            <TableCell>Utilisateur</TableCell>
-                            <TableCell>Pack</TableCell>
-                            <TableCell>Points</TableCell>
-                            <TableCell>Type</TableCell>
-                            <TableCell>Description</TableCell>
-                            <TableCell>Date</TableCell>
-                          </TableRow>
-                        </TableHead>
-                        <TableBody>
-                          {bonusPointsHistory
-                            .slice(
-                              page * rowsPerPage,
-                              page * rowsPerPage + rowsPerPage
-                            )
-                            .map((entry) => (
-                              <TableRow
-                                key={entry.id}
-                                sx={{
-                                  "&:hover": {
-                                    bgcolor: isDarkMode ? "#374151" : "#f8fafc",
-                                  },
-                                  borderBottom: `1px solid ${
-                                    isDarkMode ? "#374151" : "#e2e8f0"
-                                  }`,
-                                  "& td": {
-                                    padding: "10px 16px",
-                                    color: isDarkMode ? "#fff" : "#475569",
-                                  },
-                                }}
-                              >
-                                <TableCell>{entry.id}</TableCell>
-                                <TableCell>
-                                  {entry.user?.name || "N/A"}
-                                </TableCell>
-                                <TableCell>
-                                  {entry.pack?.name || "N/A"}
-                                </TableCell>
-                                <TableCell
-                                  sx={{
-                                    fontWeight: "bold",
-                                    color:
-                                      entry.type === "gain"
-                                        ? "success.main"
-                                        : "error.main",
-                                  }}
-                                >
-                                  {entry.points}
-                                </TableCell>
-                                <TableCell>
-                                  <Chip
-                                    label={
-                                      entry.type === "gain"
-                                        ? "Gain"
-                                        : entry.type === "conversion"
-                                        ? "Conversion"
-                                        : entry.type
-                                    }
-                                    size="small"
-                                    sx={{
-                                      bgcolor:
-                                        entry.type === "gain"
-                                          ? isDarkMode
-                                            ? "rgba(16, 185, 129, 0.2)"
-                                            : "rgba(16, 185, 129, 0.1)"
-                                          : isDarkMode
-                                          ? "rgba(239, 68, 68, 0.2)"
-                                          : "rgba(239, 68, 68, 0.1)",
-                                      color:
-                                        entry.type === "gain"
-                                          ? "success.main"
-                                          : "error.main",
-                                    }}
-                                  />
-                                </TableCell>
-                                <TableCell>
-                                  {entry.description || "N/A"}
-                                </TableCell>
-                                <TableCell>
-                                  {formatDate(entry.created_at)}
-                                </TableCell>
-                              </TableRow>
-                            ))}
-                        </TableBody>
-                      </Table>
-                    </TableContainer>
-                    <TablePagination
-                      component="div"
-                      count={bonusPointsHistory.length}
-                      page={page}
-                      onPageChange={handleChangePage}
-                      rowsPerPage={rowsPerPage}
-                      onRowsPerPageChange={handleChangeRowsPerPage}
-                      rowsPerPageOptions={[5, 10, 25, 50]}
-                      labelRowsPerPage="Lignes par page:"
-                      labelDisplayedRows={({ from, to, count }) =>
-                        `${from}-${to} sur ${count}`
-                      }
-                      sx={{
-                        color: isDarkMode ? "#fff" : "inherit",
-                        "& .MuiTablePagination-selectIcon": {
-                          color: isDarkMode ? "#fff" : "inherit",
-                        },
-                      }}
-                    />
-                  </>
-                )}
-              </Box>
-            )}
-
-            {activeBonusTab === 1 && bonusPointsStats && (
-              /* Statistiques détaillées des points bonus */
-              <Box>
-                {/* Filtres spécifiques pour les statistiques des points bonus */}
-                <Paper
-                  sx={{
-                    p: 2,
-                    mb: 3,
-                    bgcolor: isDarkMode ? "#1f2937" : "#fff",
-                    borderRadius: 2,
-                  }}
-                >
-                  <Box
-                    sx={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                      mb: 2,
-                    }}
-                  >
-                    <Typography variant="h6">
-                      Filtres des statistiques
-                    </Typography>
-                    <Box>
-                      <IconButton
-                        onClick={() => setShowFilters(!showFilters)}
-                        color="primary"
-                        size="small"
-                      >
-                        <FilterListIcon />
-                      </IconButton>
-                      <IconButton
-                        onClick={resetFilters}
-                        color="default"
-                        size="small"
-                        sx={{ ml: 1 }}
-                      >
-                        <RefreshIcon />
-                      </IconButton>
-                    </Box>
-                  </Box>
-
-                  {showFilters && (
-                    <Box
-                      sx={{
-                        display: "flex",
-                        flexWrap: "wrap",
-                        gap: 2,
-                        alignItems: "center",
-                        mt: 2,
-                      }}
-                    >
-                      <FormControl
-                        size="small"
-                        sx={{
-                          minWidth: 150,
-                          bgcolor: isDarkMode ? "#111827" : "#fff",
-                          "& .MuiOutlinedInput-root": {
-                            "& fieldset": {
-                              borderColor: isDarkMode ? "#374151" : "#e5e7eb",
-                            },
-                          },
-                        }}
-                      >
-                        <InputLabel id="user-id-stats-filter-label">
-                          ID Utilisateur
-                        </InputLabel>
-                        <TextField
-                          labelId="user-id-stats-filter-label"
-                          value={filters.userId}
-                          onChange={(e) =>
-                            handleFilterChange("userId", e.target.value)
-                          }
-                          label="ID Utilisateur"
-                          size="small"
-                          type="number"
-                          sx={{
-                            minWidth: 150,
-                            color: isDarkMode ? "#fff" : "inherit",
-                            "& .MuiInputBase-input": {
-                              color: isDarkMode ? "#fff" : "inherit",
-                            },
-                          }}
-                        />
-                      </FormControl>
-
-                      <FormControl
-                        size="small"
-                        sx={{
-                          minWidth: 150,
-                          bgcolor: isDarkMode ? "#111827" : "#fff",
-                          "& .MuiOutlinedInput-root": {
-                            "& fieldset": {
-                              borderColor: isDarkMode ? "#374151" : "#e5e7eb",
-                            },
-                          },
-                        }}
-                      >
-                        <InputLabel id="pack-id-stats-filter-label">
-                          ID Pack
-                        </InputLabel>
-                        <TextField
-                          labelId="pack-id-stats-filter-label"
-                          value={filters.packId}
-                          onChange={(e) =>
-                            handleFilterChange("packId", e.target.value)
-                          }
-                          label="ID Pack"
-                          size="small"
-                          type="number"
-                          sx={{
-                            minWidth: 150,
-                            color: isDarkMode ? "#fff" : "inherit",
-                            "& .MuiInputBase-input": {
-                              color: isDarkMode ? "#fff" : "inherit",
-                            },
-                          }}
-                        />
-                      </FormControl>
-
-                      <TextField
-                        label="Date de début"
-                        type="date"
-                        value={filters.dateFrom}
-                        onChange={(e) =>
-                          handleFilterChange("dateFrom", e.target.value)
-                        }
-                        InputLabelProps={{ shrink: true }}
-                        size="small"
-                        sx={{
-                          minWidth: 150,
-                          bgcolor: isDarkMode ? "#111827" : "#fff",
-                          "& .MuiOutlinedInput-root": {
-                            "& fieldset": {
-                              borderColor: isDarkMode ? "#374151" : "#e5e7eb",
-                            },
-                          },
-                          "& .MuiInputBase-input": {
-                            color: isDarkMode ? "#fff" : "inherit",
-                          },
-                        }}
-                      />
-
-                      <TextField
-                        label="Date de fin"
-                        type="date"
-                        value={filters.dateTo}
-                        onChange={(e) =>
-                          handleFilterChange("dateTo", e.target.value)
-                        }
-                        InputLabelProps={{ shrink: true }}
-                        size="small"
-                        sx={{
-                          minWidth: 150,
-                          bgcolor: isDarkMode ? "#111827" : "#fff",
-                          "& .MuiOutlinedInput-root": {
-                            "& fieldset": {
-                              borderColor: isDarkMode ? "#374151" : "#e5e7eb",
-                            },
-                          },
-                          "& .MuiInputBase-input": {
-                            color: isDarkMode ? "#fff" : "inherit",
-                          },
-                        }}
-                      />
-                    </Box>
-                  )}
-                </Paper>
-
-                <Box
-                  sx={{ display: "flex", justifyContent: "flex-end", mb: 2 }}
-                >
-                  <Button
-                    variant="outlined"
-                    size="small"
-                    startIcon={<FileDownloadIcon />}
-                    onClick={exportBonusPointsStatsToExcel}
-                    sx={{ textTransform: "none" }}
-                  >
-                    Exporter les statistiques
-                  </Button>
-                </Box>
-
-                <Grid container spacing={3}>
-                  {/* Statistiques par type */}
-                  <Grid item xs={12} md={6}>
-                    <Card
-                      sx={{
-                        bgcolor: isDarkMode ? "#1f2937" : "#fff",
-                        borderRadius: 2,
-                        boxShadow: isDarkMode
-                          ? "0 4px 6px rgba(0, 0, 0, 0.2)"
-                          : "0 1px 3px rgba(0, 0, 0, 0.1)",
-                        overflow: "hidden",
-                      }}
-                    >
-                      <CardContent>
-                        <Typography
-                          variant="subtitle1"
-                          sx={{ fontWeight: 600, mb: 2 }}
-                        >
-                          Par type
-                        </Typography>
-                        <TableContainer>
-                          <Table size="small">
-                            <TableHead>
-                              <TableRow
-                                sx={{
-                                  bgcolor: isDarkMode ? "#111827" : "#c8dbcc",
-                                  "& th": { fontWeight: "bold" },
-                                }}
-                              >
-                                <TableCell>Type</TableCell>
-                                <TableCell>Nombre</TableCell>
-                                <TableCell>Points totaux</TableCell>
-                              </TableRow>
-                            </TableHead>
-                            <TableBody>
-                              {bonusPointsStats.stats_by_type.map((stat) => (
-                                <TableRow
-                                  key={stat.type}
-                                  sx={{
-                                    "&:hover": {
-                                      bgcolor: isDarkMode
-                                        ? "#374151"
-                                        : "#f8fafc",
-                                    },
-                                    borderBottom: `1px solid ${
-                                      isDarkMode ? "#374151" : "#e2e8f0"
-                                    }`,
-                                    "& td": {
-                                      padding: "10px 16px",
-                                      color: isDarkMode ? "#fff" : "#475569",
-                                    },
-                                  }}
-                                >
-                                  <TableCell>
-                                    <Chip
-                                      label={
-                                        stat.type === "gain"
-                                          ? "Gain"
-                                          : stat.type === "conversion"
-                                          ? "Conversion"
-                                          : stat.type
-                                      }
-                                      size="small"
-                                      sx={{
-                                        bgcolor:
-                                          stat.type === "gain"
-                                            ? isDarkMode
-                                              ? "rgba(16, 185, 129, 0.2)"
-                                              : "rgba(16, 185, 129, 0.1)"
-                                            : isDarkMode
-                                            ? "rgba(239, 68, 68, 0.2)"
-                                            : "rgba(239, 68, 68, 0.1)",
-                                        color:
-                                          stat.type === "gain"
-                                            ? "success.main"
-                                            : "error.main",
-                                      }}
-                                    />
-                                  </TableCell>
-                                  <TableCell>{stat.count}</TableCell>
-                                  <TableCell
-                                    sx={{
-                                      fontWeight: "bold",
-                                      color:
-                                        stat.type === "gain"
-                                          ? "success.main"
-                                          : "error.main",
-                                    }}
-                                  >
-                                    {stat.total_points}
-                                  </TableCell>
-                                </TableRow>
-                              ))}
-                            </TableBody>
-                          </Table>
-                        </TableContainer>
-                      </CardContent>
-                    </Card>
-                  </Grid>
-
-                  {/* Statistiques par pack */}
-                  <Grid item xs={12} md={6}>
-                    <Card
-                      sx={{
-                        bgcolor: isDarkMode ? "#1f2937" : "#fff",
-                        borderRadius: 2,
-                        boxShadow: isDarkMode
-                          ? "0 4px 6px rgba(0, 0, 0, 0.2)"
-                          : "0 1px 3px rgba(0, 0, 0, 0.1)",
-                        overflow: "hidden",
-                      }}
-                    >
-                      <CardContent>
-                        <Typography
-                          variant="subtitle1"
-                          sx={{ fontWeight: 600, mb: 2 }}
-                        >
-                          Par pack
-                        </Typography>
-                        <TableContainer>
-                          <Table size="small">
-                            <TableHead>
-                              <TableRow
-                                sx={{
-                                  bgcolor: isDarkMode ? "#111827" : "#c8dbcc",
-                                  "& th": { fontWeight: "bold" },
-                                }}
-                              >
-                                <TableCell>Pack</TableCell>
-                                <TableCell>Nombre</TableCell>
-                                <TableCell>Points totaux</TableCell>
-                              </TableRow>
-                            </TableHead>
-                            <TableBody>
-                              {bonusPointsStats.stats_by_pack.map((stat) => (
-                                <TableRow
-                                  key={stat.pack_id}
-                                  sx={{
-                                    "&:hover": {
-                                      bgcolor: isDarkMode
-                                        ? "#374151"
-                                        : "#f8fafc",
-                                    },
-                                    borderBottom: `1px solid ${
-                                      isDarkMode ? "#374151" : "#e2e8f0"
-                                    }`,
-                                    "& td": {
-                                      padding: "10px 16px",
-                                      color: isDarkMode ? "#fff" : "#475569",
-                                    },
-                                  }}
-                                >
-                                  <TableCell>{stat.pack_name}</TableCell>
-                                  <TableCell>{stat.count}</TableCell>
-                                  <TableCell sx={{ fontWeight: "bold" }}>
-                                    {stat.total_points}
-                                  </TableCell>
-                                </TableRow>
-                              ))}
-                            </TableBody>
-                          </Table>
-                        </TableContainer>
-                      </CardContent>
-                    </Card>
-                  </Grid>
-
-                  {/* Top utilisateurs */}
-                  <Grid item xs={12}>
-                    <Card
-                      sx={{
-                        bgcolor: isDarkMode ? "#1f2937" : "#fff",
-                        borderRadius: 2,
-                        boxShadow: isDarkMode
-                          ? "0 4px 6px rgba(0, 0, 0, 0.2)"
-                          : "0 1px 3px rgba(0, 0, 0, 0.1)",
-                        overflow: "hidden",
-                        mt: 2,
-                      }}
-                    >
-                      <CardContent>
-                        <Typography
-                          variant="subtitle1"
-                          sx={{ fontWeight: 600, mb: 2 }}
-                        >
-                          Top utilisateurs avec le plus de points
-                        </Typography>
-                        <TableContainer>
-                          <Table size="small">
-                            <TableHead>
-                              <TableRow
-                                sx={{
-                                  bgcolor: isDarkMode ? "#111827" : "#c8dbcc",
-                                  "& th": { fontWeight: "bold" },
-                                }}
-                              >
-                                <TableCell>Utilisateur</TableCell>
-                                <TableCell>Email</TableCell>
-                                <TableCell>Points disponibles</TableCell>
-                              </TableRow>
-                            </TableHead>
-                            <TableBody>
-                              {bonusPointsStats.top_users.map((user) => (
-                                <TableRow
-                                  key={user.user_id}
-                                  sx={{
-                                    "&:hover": {
-                                      bgcolor: isDarkMode
-                                        ? "#374151"
-                                        : "#f8fafc",
-                                    },
-                                    borderBottom: `1px solid ${
-                                      isDarkMode ? "#374151" : "#e2e8f0"
-                                    }`,
-                                    "& td": {
-                                      padding: "10px 16px",
-                                      color: isDarkMode ? "#fff" : "#475569",
-                                    },
-                                  }}
-                                >
-                                  <TableCell>{user.user_name}</TableCell>
-                                  <TableCell>{user.user_email}</TableCell>
-                                  <TableCell
-                                    sx={{
-                                      fontWeight: "bold",
-                                      color: "primary.main",
-                                    }}
-                                  >
-                                    {user.total_points}
-                                  </TableCell>
-                                </TableRow>
-                              ))}
-                            </TableBody>
-                          </Table>
-                        </TableContainer>
-                      </CardContent>
-                    </Card>
-                  </Grid>
-                </Grid>
-              </Box>
-            )}
-          </Box>
-        )}
-
-        {activeTab === 4 && (
+        {activeTab === 2 && (
           <Box p={3}>
             {/* Composant Commissions */}
             <Suspense
@@ -2992,7 +1570,7 @@ const Finances = () => {
           </Box>
         )}
 
-        {activeTab === 5 && (
+        {activeTab === 3 && (
           <Box p={3}>
             {/* Composant WithdrawalRequests */}
             <Suspense
@@ -3021,57 +1599,151 @@ const Finances = () => {
         onClose={handleCloseTransactionModal}
         maxWidth="md"
         fullWidth
-        sx={{
-          "& .MuiBackdrop-root": {
-            backdropFilter: "blur(5px)",
-            backgroundColor: "rgba(0, 0, 0, 0.7)",
-          },
-        }}
         PaperProps={{
           sx: {
-            bgcolor: isDarkMode ? "#111827" : "#fff",
-            color: isDarkMode ? "#fff" : "inherit",
-            borderRadius: 2,
-            boxShadow: isDarkMode
-              ? "0 8px 32px rgba(0, 0, 0, 0.5)"
-              : "0 8px 32px rgba(0, 0, 0, 0.2)",
-          },
+            borderRadius: 3,
+            maxHeight: '90vh',
+            boxShadow: isDarkMode 
+              ? '0 25px 50px -12px rgba(0, 0, 0, 0.6)' 
+              : '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+            backdropFilter: 'blur(20px)',
+            background: isDarkMode
+              ? 'linear-gradient(135deg, rgba(31, 41, 55, 0.95) 0%, rgba(31, 41, 55, 0.9) 100%)'
+              : 'linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0.9) 100%)',
+            border: isDarkMode
+              ? '1px solid rgba(255, 255, 255, 0.1)'
+              : '1px solid rgba(255, 255, 255, 0.2)',
+            overflow: 'hidden'
+          }
+        }}
+        BackdropProps={{
+          sx: {
+            backdropFilter: 'blur(8px)',
+            backgroundColor: isDarkMode 
+              ? 'rgba(0, 0, 0, 0.7)' 
+              : 'rgba(0, 0, 0, 0.4)',
+          }
         }}
       >
         <DialogTitle
           sx={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            borderBottom: `1px solid ${isDarkMode ? "#374151" : "#e5e7eb"}`,
+            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            color: 'white',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            p: 3,
+            position: 'relative',
+            '&::before': {
+              content: '""',
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              background: 'linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.05) 100%)',
+              backdropFilter: 'blur(10px)',
+            }
           }}
         >
-          <Typography variant="h6" component="div">
-            Détails de la transaction #{selectedTransaction?.id}
-          </Typography>
-          <IconButton onClick={handleCloseTransactionModal} size="small">
+          <Box sx={{ display: 'flex', alignItems: 'center', position: 'relative', zIndex: 1 }}>
+            <Box
+              sx={{
+                background: 'linear-gradient(135deg, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0.1) 100%)',
+                borderRadius: '50%',
+                p: 1.5,
+                mr: 3,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                backdropFilter: 'blur(10px)',
+                border: '1px solid rgba(255,255,255,0.2)',
+                boxShadow: '0 8px 32px rgba(0,0,0,0.1)'
+              }}
+            >
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+              </svg>
+            </Box>
+            <Box>
+              <Typography variant="h5" sx={{ fontWeight: 700, mb: 0.5 }}>
+                Détails de la transaction
+              </Typography>
+              <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                Transaction #{selectedTransaction?.id}
+              </Typography>
+            </Box>
+          </Box>
+          <IconButton 
+            onClick={handleCloseTransactionModal} 
+            sx={{
+              position: 'relative',
+              zIndex: 1,
+              color: 'white',
+              background: 'rgba(255,255,255,0.1)',
+              backdropFilter: 'blur(10px)',
+              border: '1px solid rgba(255,255,255,0.2)',
+              transition: 'all 0.3s ease-in-out',
+              '&:hover': {
+                background: 'rgba(255,255,255,0.2)',
+                transform: 'rotate(90deg)',
+              }
+            }}
+          >
             <CloseIcon />
           </IconButton>
         </DialogTitle>
-        <DialogContent sx={{ py: 3 }}>
+        <DialogContent sx={{ p: 4, background: 'transparent' }}>
           {selectedTransaction && (
             <Grid container spacing={3}>
               <Grid item xs={12} md={6}>
                 <Paper
                   sx={{
-                    p: 2,
-                    bgcolor: isDarkMode
-                      ? "rgba(31, 41, 55, 0.5)"
-                      : "rgba(249, 250, 251, 0.8)",
-                    borderRadius: 2,
-                    border: `1px solid ${isDarkMode ? "#374151" : "#e5e7eb"}`,
+                    background: isDarkMode
+                      ? 'linear-gradient(135deg, rgba(31, 41, 55, 0.8) 0%, rgba(31, 41, 55, 0.6) 100%)'
+                      : 'linear-gradient(135deg, rgba(76, 175, 80, 0.1) 0%, rgba(139, 195, 74, 0.05) 100%)',
+                    backdropFilter: 'blur(20px)',
+                    border: isDarkMode
+                      ? '1px solid rgba(76, 175, 80, 0.3)'
+                      : '1px solid rgba(76, 175, 80, 0.2)',
+                    borderRadius: 3,
+                    boxShadow: isDarkMode
+                      ? '0 8px 32px rgba(0, 0, 0, 0.3)'
+                      : '0 8px 32px rgba(76, 175, 80, 0.1)',
+                    p: 3,
+                    transition: 'all 0.3s ease-in-out',
+                    '&:hover': {
+                      transform: 'translateY(-2px)',
+                      boxShadow: isDarkMode
+                        ? '0 12px 40px rgba(0, 0, 0, 0.4)'
+                        : '0 12px 40px rgba(76, 175, 80, 0.15)',
+                    }
                   }}
                 >
-                  <Typography
-                    variant="subtitle2"
-                    color="text.secondary"
-                    gutterBottom
+                  <Typography 
+                    variant="h6" 
+                    gutterBottom 
+                    sx={{ 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      mb: 3,
+                      fontWeight: 700,
+                      background: 'linear-gradient(135deg, #4caf50 0%, #8bc34a 100%)',
+                      backgroundClip: 'text',
+                      WebkitBackgroundClip: 'text',
+                      WebkitTextFillColor: 'transparent'
+                    }}
                   >
+                    <Box 
+                      sx={{ 
+                        width: 4, 
+                        height: 24, 
+                        background: 'linear-gradient(135deg, #4caf50 0%, #8bc34a 100%)', 
+                        borderRadius: 2, 
+                        mr: 2,
+                        boxShadow: '0 4px 12px rgba(76, 175, 80, 0.3)'
+                      }} 
+                    />
                     Informations générales
                   </Typography>
                   <List dense>
@@ -3097,8 +1769,6 @@ const Finances = () => {
                                 : selectedTransaction.type ===
                                   "frais de transfert"
                                 ? "frais de transfert"
-                                : selectedTransaction.type === "bonus"
-                                ? "bonus"
                                 : selectedTransaction.type
                             }
                             size="small"
@@ -3116,8 +1786,6 @@ const Finances = () => {
                                     return isDarkMode ? "#9f1239" : "#fee2e2";
                                   case "frais de transfert":
                                     return isDarkMode ? "#92400e" : "#fef3c7";
-                                  case "bonus":
-                                    return isDarkMode ? "#4f46e5" : "#e0e7ff";
                                   case "sales":
                                     return isDarkMode ? "#064e3b" : "#d1fae5";
                                   case "virtual_sale":
@@ -3207,20 +1875,52 @@ const Finances = () => {
               <Grid item xs={12} md={6}>
                 <Paper
                   sx={{
-                    p: 2,
-                    bgcolor: isDarkMode
-                      ? "rgba(31, 41, 55, 0.5)"
-                      : "rgba(249, 250, 251, 0.8)",
-                    borderRadius: 2,
-                    height: "100%",
-                    border: `1px solid ${isDarkMode ? "#374151" : "#e5e7eb"}`,
+                    background: isDarkMode
+                      ? 'linear-gradient(135deg, rgba(31, 41, 55, 0.8) 0%, rgba(31, 41, 55, 0.6) 100%)'
+                      : 'linear-gradient(135deg, rgba(33, 150, 243, 0.1) 0%, rgba(3, 169, 244, 0.05) 100%)',
+                    backdropFilter: 'blur(20px)',
+                    border: isDarkMode
+                      ? '1px solid rgba(33, 150, 243, 0.3)'
+                      : '1px solid rgba(33, 150, 243, 0.2)',
+                    borderRadius: 3,
+                    boxShadow: isDarkMode
+                      ? '0 8px 32px rgba(0, 0, 0, 0.3)'
+                      : '0 8px 32px rgba(33, 150, 243, 0.1)',
+                    p: 3,
+                    height: '100%',
+                    transition: 'all 0.3s ease-in-out',
+                    '&:hover': {
+                      transform: 'translateY(-2px)',
+                      boxShadow: isDarkMode
+                        ? '0 12px 40px rgba(0, 0, 0, 0.4)'
+                        : '0 12px 40px rgba(33, 150, 243, 0.15)',
+                    }
                   }}
                 >
-                  <Typography
-                    variant="subtitle2"
-                    color="text.secondary"
-                    gutterBottom
+                  <Typography 
+                    variant="h6" 
+                    gutterBottom 
+                    sx={{ 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      mb: 3,
+                      fontWeight: 700,
+                      background: 'linear-gradient(135deg, #2196f3 0%, #03a9f4 100%)',
+                      backgroundClip: 'text',
+                      WebkitBackgroundClip: 'text',
+                      WebkitTextFillColor: 'transparent'
+                    }}
                   >
+                    <Box 
+                      sx={{ 
+                        width: 4, 
+                        height: 24, 
+                        background: 'linear-gradient(135deg, #2196f3 0%, #03a9f4 100%)', 
+                        borderRadius: 2, 
+                        mr: 2,
+                        boxShadow: '0 4px 12px rgba(33, 150, 243, 0.3)'
+                      }} 
+                    />
                     Métadonnées
                   </Typography>
                   {selectedTransaction.metadata &&
@@ -3259,21 +1959,57 @@ const Finances = () => {
             </Grid>
           )}
         </DialogContent>
-        <DialogActions
+        <Box
           sx={{
-            borderTop: `1px solid ${isDarkMode ? "#374151" : "#e5e7eb"}`,
-            px: 3,
-            py: 2,
+            background: isDarkMode
+              ? 'linear-gradient(135deg, rgba(31, 41, 55, 0.8) 0%, rgba(31, 41, 55, 0.6) 100%)'
+              : 'linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.05) 100%)',
+            backdropFilter: 'blur(20px)',
+            borderTop: isDarkMode
+              ? '1px solid rgba(255,255,255,0.05)'
+              : '1px solid rgba(255,255,255,0.1)',
           }}
         >
-          <Button
-            onClick={handleCloseTransactionModal}
-            variant="outlined"
-            startIcon={<CloseIcon />}
-          >
-            Fermer
-          </Button>
-        </DialogActions>
+          <DialogActions sx={{ p: 3 }}>
+            <Button
+              onClick={handleCloseTransactionModal}
+              variant="outlined"
+              startIcon={<CloseIcon />}
+              sx={{ 
+                minWidth: 120,
+                background: isDarkMode
+                  ? 'rgba(31, 41, 55, 0.8)'
+                  : 'rgba(255, 255, 255, 0.1)',
+                backdropFilter: 'blur(20px)',
+                border: isDarkMode
+                  ? '1px solid rgba(255, 255, 255, 0.1)'
+                  : '1px solid rgba(255, 255, 255, 0.2)',
+                borderRadius: 3,
+                color: 'text.primary',
+                fontWeight: 600,
+                textTransform: 'none',
+                fontSize: '0.95rem',
+                py: 1.5,
+                transition: 'all 0.3s ease-in-out',
+                '&:hover': {
+                  background: isDarkMode
+                    ? 'rgba(31, 41, 55, 0.9)'
+                    : 'rgba(255, 255, 255, 0.2)',
+                  border: isDarkMode
+                    ? '1px solid rgba(255, 255, 255, 0.2)'
+                    : '1px solid rgba(255, 255, 255, 0.3)',
+                  transform: 'translateY(-2px)',
+                  boxShadow: '0 8px 24px rgba(0, 0, 0, 0.1)',
+                },
+                '&:active': {
+                  transform: 'translateY(0px)',
+                }
+              }}
+            >
+              Fermer
+            </Button>
+          </DialogActions>
+        </Box>
       </Dialog>
     </Box>
   );

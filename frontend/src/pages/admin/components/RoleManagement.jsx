@@ -90,17 +90,73 @@ const RoleManagement = () => {
   // Gérer les changements de permissions
   const handlePermissionChange = (permissionId) => {
     setFormData((prev) => {
-      const permissions = [...prev.permissions];
-      if (permissions.includes(permissionId)) {
-        return {
-          ...prev,
-          permissions: permissions.filter((id) => id !== permissionId),
-        };
-      } else {
-        return {
-          ...prev,
-          permissions: [...permissions, permissionId],
-        };
+      const currentPermissions = [...prev.permissions];
+      const isRemoving = currentPermissions.includes(permissionId);
+      
+      // Trouver les permissions par slug
+      const manageGiftsId = permissions.find(p => p.slug === "manage-gifts")?.id;
+      const manageGiftsHistoryId = permissions.find(p => p.slug === "manage-gifts-history")?.id;
+      const manageTicketsId = permissions.find(p => p.slug === "manage-tickets")?.id;
+      
+      // Vérifier si la permission cliquée est manage-gifts
+      const isManageGifts = permissionId === manageGiftsId;
+      
+      // Si on désactive une permission
+      if (isRemoving) {
+        // Si on désactive manage-gifts, désactiver aussi les permissions dépendantes
+        if (isManageGifts) {
+          return {
+            ...prev,
+            permissions: currentPermissions.filter(id => 
+              id !== manageGiftsId && 
+              id !== manageGiftsHistoryId && 
+              id !== manageTicketsId
+            ),
+          };
+        } else {
+          // Désactivation normale pour les autres permissions
+          return {
+            ...prev,
+            permissions: currentPermissions.filter(id => id !== permissionId),
+          };
+        }
+      } 
+      // Si on active une permission
+      else {
+        // Si on active manage-gifts, activer aussi les permissions dépendantes
+        if (isManageGifts) {
+          const newPermissions = [...currentPermissions, permissionId];
+          
+          // Ajouter les permissions dépendantes si elles ne sont pas déjà présentes
+          if (manageGiftsHistoryId && !newPermissions.includes(manageGiftsHistoryId)) {
+            newPermissions.push(manageGiftsHistoryId);
+          }
+          
+          if (manageTicketsId && !newPermissions.includes(manageTicketsId)) {
+            newPermissions.push(manageTicketsId);
+          }
+          
+          return {
+            ...prev,
+            permissions: newPermissions,
+          };
+        } 
+        // Si on essaie d'activer une permission dépendante
+        else if (
+          (permissionId === manageGiftsHistoryId || permissionId === manageTicketsId) && 
+          !currentPermissions.includes(manageGiftsId)
+        ) {
+          // Ne pas permettre l'activation des permissions dépendantes si manage-gifts est désactivé
+          toast.warning("Vous devez d'abord activer la permission 'Gérer les cadeaux'");
+          return prev;
+        } 
+        // Activation normale pour les autres permissions
+        else {
+          return {
+            ...prev,
+            permissions: [...currentPermissions, permissionId],
+          };
+        }
       }
     });
   };

@@ -19,14 +19,14 @@ class ProcessBonusPoints extends Command
      *
      * @var string
      */
-    protected $signature = 'solifin:process-bonus-points {frequency? : Fréquence spécifique à traiter (weekly, monthly)}';
+    protected $signature = 'solifin:process-bonus-points {frequency? : Fréquence spécifique à traiter (monthly)}';
 
     /**
      * La description de la commande console.
      *
      * @var string
      */
-    protected $description = 'Traite l\'attribution des points bonus selon la fréquence spécifiée';
+    protected $description = 'Traite l\'attribution des jetons Esengo (mensuel)';
 
     /**
      * Le service d'attribution des points bonus.
@@ -61,43 +61,23 @@ class ProcessBonusPoints extends Command
         try {
             if ($frequency) {
                 // Vérifier que la fréquence est valide
-                if (!in_array($frequency, ['weekly', 'monthly'])) {
-                    $this->error("Fréquence invalide: $frequency. Utilisez weekly ou monthly.");
+                if ($frequency !== 'monthly') {
+                    $this->error("Fréquence invalide: $frequency. Utilisez monthly pour les jetons Esengo.");
                     return Command::FAILURE;
                 }
                 
-                $this->info("Traitement des points bonus pour la fréquence: $frequency");
+                $this->info("Traitement des jetons Esengo (mensuel)");
                 $stats = $this->bonusPointsService->processBonusPointsByFrequency($frequency);
             } else {
-                // Déterminer les fréquences à traiter en fonction du jour
+                // Traiter uniquement les jetons Esengo si on est le premier jour du mois
                 $today = Carbon::now();
-                $frequencies = [];
                 
-                // Si on est lundi, traiter les bonus sur délais (hebdomadaires)
-                if ($today->dayOfWeek === 1) { // 1 = Lundi
-                    $frequencies[] = 'weekly'; // Pour les bonus sur délais
-                    $this->info("Traitement des bonus sur délais (hebdomadaire)");
-                }
-                
-                // Si on est le premier jour du mois, traiter les jetons Esengo (mensuels)
                 if ($today->day === 1) {
-                    $frequencies[] = 'monthly'; // Pour les jetons Esengo
                     $this->info("Traitement des jetons Esengo (mensuel)");
-                }
-                
-                $stats = ['users_processed' => 0, 'points_attributed' => 0, 'errors' => 0];
-                
-                foreach ($frequencies as $freq) {
-                    $this->info("Traitement des points bonus pour la fréquence: $freq");
-                    $result = $this->bonusPointsService->processBonusPointsByFrequency($freq);
-                    
-                    if (isset($result['error_message'])) {
-                        $this->error("Erreur lors du traitement de la fréquence $freq: {$result['error_message']}");
-                    }
-                    
-                    $stats['users_processed'] += $result['users_processed'];
-                    $stats['points_attributed'] += $result['points_attributed'];
-                    $stats['errors'] += $result['errors'];
+                    $stats = $this->bonusPointsService->processBonusPointsByFrequency('monthly');
+                } else {
+                    $this->info("Aucun traitement prévu aujourd'hui. Les jetons Esengo sont traités le 1er de chaque mois.");
+                    $stats = ['users_processed' => 0, 'points_attributed' => 0, 'errors' => 0];
                 }
             }
             

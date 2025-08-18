@@ -24,11 +24,30 @@ const AdminCreation = ({
     password_confirmation: "",
     phone: "",
     address: "",
+    role_id: "",
     pays: "",
     province: "",
     ville: "",
     sexe: "M",
   });
+
+  const [roles, setRoles] = useState([]);
+
+  useEffect(() => {
+    fetchRoles();
+  }, []);
+
+  const fetchRoles = async () => {
+    try {
+      const response = await axios.get("/api/admin/get-roles", {
+        headers: { Authorization: `Bearer ${authToken}` },
+      });
+      setRoles(response.data.data);
+    } catch (error) {
+      console.error("Erreur lors de la récupération des rôles:", error);
+      Notification.error("Erreur lors de la récupération des rôles");
+    }
+  };
 
   // Récupérer les détails d'un administrateur pour l'édition
   const fetchAdminDetails = async (adminId) => {
@@ -48,6 +67,7 @@ const AdminCreation = ({
         password_confirmation: "", // Confirmation vide en édition
         phone: adminData.phone || "",
         address: adminData.address || "",
+        role_id: adminData.role_id || "",
         pays: adminData.pays || "",
         province: adminData.province || "",
         ville: adminData.ville || "",
@@ -93,6 +113,7 @@ const AdminCreation = ({
       password_confirmation: "",
       phone: "",
       address: "",
+      role_id: "",
       pays: "",
       province: "",
       ville: "",
@@ -188,13 +209,14 @@ const AdminCreation = ({
       {/* Bouton pour ouvrir le modal (uniquement en mode création) */}
       {!adminToEdit && (
         <div className="flex justify-between items-center mb-4">
-          <h3 className="text-xl font-semibold">Création d'administrateurs</h3>
+          <h3 className="text-xl font-semibold">
+            Gérez les comptes administrateurs.
+          </h3>
           <button
             onClick={openModal}
             className="flex items-center px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
           >
             <UserPlusIcon className="h-5 w-5 mr-2" />
-            Nouvel administrateur
           </button>
         </div>
       )}
@@ -329,6 +351,25 @@ const AdminCreation = ({
                     onChange={handleChange}
                     className="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded text-gray-800 dark:text-white"
                   />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Rôle
+                  </label>
+                  <select
+                    name="role_id"
+                    value={formData.role_id}
+                    onChange={handleChange}
+                    className="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded text-gray-800 dark:text-white"
+                  >
+                    <option value="">Sélectionnez un rôle</option>
+                    {roles.map((role) => (
+                      <option key={role.id} value={role.id}>
+                        {role.nom}
+                      </option>
+                    ))}
+                  </select>
                 </div>
 
                 <div className="grid grid-cols-3 gap-2">

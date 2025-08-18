@@ -82,29 +82,17 @@ const navigationItems = [
     icon: UsersIcon,
     permission: "manage-users",
   },
-  {
-    name: "Administrateurs",
-    href: "/admin/administrators",
-    icon: ShieldCheckIcon,
-    permission: "manage-admins",
-  },
   // {
   //   name: "Demandes de retrait",
   //   href: "/admin/withdrawal-requests",
   //   icon: BanknotesIcon,
   //   permission: "manage-withdrawals",
   // },
-  // {
-  //   name: "Portefeuilles",
-  //   href: "/admin/wallets",
-  //   icon: WalletIcon,
-  //   permission: "manage-wallets",
-  // },
   {
-    name: "Packs",
-    href: "/admin/packs",
-    icon: ListBulletIcon,
-    permission: "manage-packs",
+    name: "Portefeuilles",
+    href: "/admin/wallets",
+    icon: WalletIcon,
+    permission: "manage-wallets",
   },
   // {
   //   name: "Mes packs",
@@ -123,6 +111,12 @@ const navigationItems = [
     href: "/admin/finances",
     icon: ChartBarIcon,
     permission: "view-finances",
+  },
+  {
+    name: "Packs",
+    href: "/admin/packs",
+    icon: ListBulletIcon,
+    permission: "manage-packs",
   },
   {
     name: "Cadeaux Esengo",

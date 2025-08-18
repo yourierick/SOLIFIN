@@ -242,13 +242,6 @@ class WithdrawalController extends Controller
      */
     public function request(Request $request, $walletId)
     {
-        \Log::info('Tentative de retrait - Début', [
-            'request' => $request->all(),
-            'wallet_id' => $walletId,
-            'method' => $request->method(),
-            'url' => $request->url(),
-            'headers' => $request->header()
-        ]);
         try {
             $validator = Validator::make($request->all(), [
                 'phone_number' => 'required_if:payment_type,mobile-money',
@@ -316,17 +309,24 @@ class WithdrawalController extends Controller
             $transactionFee = TransactionFee::where('payment_method', $request->payment_method)
                 ->where('is_active', true)
                 ->first();
-            
+
+            if (!$transactionFee) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Méthode de paiement non disponible pour l\'instant'
+                ], 404);
+            }
+        
             // Récupérer le pourcentage de frais spécifiques (API)
             $pourcentage_frais_api = $transactionFee ? $transactionFee->withdrawal_fee_percentage : 0;
             
             // Récupérer le pourcentage de frais système depuis les paramètres globaux
             $pourcentage_frais_system = Setting::where('key', 'withdrawal_fee_percentage')->first();
-            $pourcentage_frais_system = $pourcentage_frais_system ? (float)$pourcentage_frais_system->withdrawal_fee_percentage : 0; // 0% par défaut si non défini
+            $pourcentage_frais_system = $pourcentage_frais_system ? (float)$pourcentage_frais_system->value : 0; // 0% par défaut si non défini
             
             // Récupérer le pourcentage de commission depuis les paramètres globaux
             $pourcentage_frais_commission = Setting::where('key', 'withdrawal_commission')->first();
-            $pourcentage_frais_commission = $pourcentage_frais_commission ? (float)$pourcentage_frais_commission->withdrawal_commission : 0; // 0% par défaut si non défini
+            $pourcentage_frais_commission = $pourcentage_frais_commission ? (float)$pourcentage_frais_commission->value : 0; // 0% par défaut si non défini
             
             // Calculer les frais spécifiques (API)
             $frais_api = $amount * $pourcentage_frais_api / 100;
@@ -338,7 +338,7 @@ class WithdrawalController extends Controller
             $frais_de_commission = 0;
             $firstUserPack = UserPack::where('user_id', $user->id)->first();
             
-            if ($firstUserPack) {
+            if ($firstUserPack && !$user->is_admin) {
                 $pack = Pack::find($firstUserPack->pack_id);
                 $sponsor = $firstUserPack->sponsor;
                 
@@ -346,7 +346,7 @@ class WithdrawalController extends Controller
                     // Vérifier si le pack du parrain est actif
                     $isActivePackSponsor = $sponsor->packs()
                         ->where('pack_id', $pack->id)
-                        ->where('status', 'active')
+                        ->where('user_packs.status', 'active')
                         ->exists();
                     
                     if ($isActivePackSponsor) {
@@ -430,7 +430,7 @@ class WithdrawalController extends Controller
             DB::rollBack();
             Log::error('Erreur lors de la création de la demande', [
                 'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'la_trace' => $e->getTraceAsString()
             ]);
             return response()->json([
                 'success' => false,
@@ -458,6 +458,7 @@ class WithdrawalController extends Controller
             }
             
             $requests = WithdrawalRequest::with(['user', 'user.wallet'])
+                ->where('status', 'pending')
                 ->orderBy('created_at', 'desc')
                 ->get()
                 ->map(function ($request) {
@@ -469,6 +470,7 @@ class WithdrawalController extends Controller
                         'wallet_balance' => $request->user->wallet->balance,
                         'amount' => $request->amount,
                         'status' => $request->status,
+                        'payment_status' => $request->payment_status,
                         'payment_method' => $request->payment_method,
                         'payment_details' => $request->payment_details,
                         'admin_note' => $request->admin_note,
@@ -536,7 +538,7 @@ class WithdrawalController extends Controller
 
             // Utiliser le service pour annuler la demande
             $withdrawalService = app(\App\Services\WithdrawalService::class);
-            $result = $withdrawalService->cancelWithdrawal($withdrawal);
+            $result = $withdrawalService->cancelWithdrawal($withdrawal, $user);
             
             return response()->json([
                 'success' => $result['success'],

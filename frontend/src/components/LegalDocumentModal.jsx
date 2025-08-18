@@ -48,30 +48,34 @@ export default function LegalDocumentModal({ documentKey, isOpen, onClose }) {
 
   // Classes Tailwind pour le contenu Markdown
   const markdownClasses = {
-    h1: `text-3xl font-bold mb-6 ${
+    h1: `text-2xl sm:text-3xl font-bold mb-4 sm:mb-6 ${
       isDarkMode ? "text-white" : "text-gray-900"
     }`,
-    h2: `text-2xl font-bold mt-8 mb-4 ${
+    h2: `text-xl sm:text-2xl font-bold mt-6 sm:mt-8 mb-3 sm:mb-4 ${
       isDarkMode ? "text-white" : "text-gray-900"
     }`,
-    h3: `text-xl font-bold mt-6 mb-3 ${
+    h3: `text-lg sm:text-xl font-bold mt-4 sm:mt-6 mb-2 sm:mb-3 ${
       isDarkMode ? "text-white" : "text-gray-900"
     }`,
-    p: `mb-4 ${isDarkMode ? "text-gray-300" : "text-gray-700"}`,
-    ul: `list-disc pl-6 mb-4 ${isDarkMode ? "text-gray-300" : "text-gray-700"}`,
-    ol: `list-decimal pl-6 mb-4 ${
+    p: `mb-3 sm:mb-4 text-sm sm:text-base ${
       isDarkMode ? "text-gray-300" : "text-gray-700"
     }`,
-    li: `mb-2`,
+    ul: `list-disc pl-4 sm:pl-6 mb-3 sm:mb-4 text-sm sm:text-base ${
+      isDarkMode ? "text-gray-300" : "text-gray-700"
+    }`,
+    ol: `list-decimal pl-4 sm:pl-6 mb-3 sm:mb-4 text-sm sm:text-base ${
+      isDarkMode ? "text-gray-300" : "text-gray-700"
+    }`,
+    li: `mb-1.5 sm:mb-2 text-sm sm:text-base`,
     a: `text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300`,
-    blockquote: `border-l-4 border-primary-500 pl-4 italic my-4 ${
+    blockquote: `border-l-4 border-primary-500 pl-3 sm:pl-4 italic my-3 sm:my-4 text-sm sm:text-base ${
       isDarkMode ? "text-gray-400" : "text-gray-600"
     }`,
-    table: `min-w-full border-collapse my-6`,
-    th: `border border-gray-300 dark:border-gray-700 px-4 py-2 bg-gray-100 dark:bg-gray-800 ${
+    table: `min-w-full border-collapse my-4 sm:my-6 text-sm sm:text-base`,
+    th: `border border-gray-300 dark:border-gray-700 px-2 sm:px-4 py-1 sm:py-2 bg-gray-100 dark:bg-gray-800 ${
       isDarkMode ? "text-white" : "text-gray-900"
     }`,
-    td: `border border-gray-300 dark:border-gray-700 px-4 py-2 ${
+    td: `border border-gray-300 dark:border-gray-700 px-2 sm:px-4 py-1 sm:py-2 ${
       isDarkMode ? "text-gray-300" : "text-gray-700"
     }`,
   };
@@ -116,13 +120,13 @@ export default function LegalDocumentModal({ documentKey, isOpen, onClose }) {
           />
 
           {/* Modal */}
-          <div className="flex min-h-screen items-center justify-center p-4">
+          <div className="flex min-h-screen items-center justify-center p-2 sm:p-4">
             <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
               transition={{ duration: 0.3 }}
-              className={`relative w-full max-w-4xl max-h-[90vh] overflow-y-auto ${
+              className={`relative w-full max-w-4xl max-h-[85vh] sm:max-h-[90vh] overflow-y-auto ${
                 isDarkMode ? "bg-gray-800" : "bg-white"
               } rounded-lg shadow-xl`}
               onClick={(e) => e.stopPropagation()}
@@ -130,25 +134,25 @@ export default function LegalDocumentModal({ documentKey, isOpen, onClose }) {
               {/* Bouton de fermeture */}
               <button
                 onClick={onClose}
-                className={`absolute top-4 right-4 p-2 rounded-full ${
+                className={`absolute top-2 right-2 sm:top-4 sm:right-4 p-2 rounded-full z-10 ${
                   isDarkMode
                     ? "bg-gray-700 text-gray-300 hover:bg-gray-600"
                     : "bg-gray-200 text-gray-700 hover:bg-gray-300"
                 } transition-colors`}
                 aria-label="Fermer"
               >
-                <XMarkIcon className="h-6 w-6" />
+                <XMarkIcon className="h-5 w-5 sm:h-6 sm:w-6" />
               </button>
 
-              <div className="p-6 md:p-8">
+              <div className="p-4 sm:p-6 md:p-8">
                 {loading ? (
-                  <div className="flex justify-center items-center h-64">
+                  <div className="flex justify-center items-center h-40 sm:h-64">
                     <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-600"></div>
                   </div>
                 ) : error ? (
-                  <div className="text-center py-12">
+                  <div className="text-center py-8 sm:py-12">
                     <h2
-                      className={`text-2xl font-bold mb-4 ${
+                      className={`text-xl sm:text-2xl font-bold mb-3 sm:mb-4 ${
                         isDarkMode ? "text-white" : "text-gray-900"
                       }`}
                     >
@@ -163,18 +167,19 @@ export default function LegalDocumentModal({ documentKey, isOpen, onClose }) {
                     </p>
                     <button
                       onClick={onClose}
-                      className="inline-flex items-center px-4 py-2 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-primary-600 hover:bg-primary-700"
+                      className="inline-flex items-center px-3 py-1.5 sm:px-4 sm:py-2 border border-transparent text-sm sm:text-base font-medium rounded-md shadow-sm text-white bg-primary-600 hover:bg-primary-700"
                     >
                       Fermer
                     </button>
                   </div>
-                ) : legalDoc ? (
+                ) : legalDoc.content ? (
                   <>
                     <motion.div
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
-                      className="prose max-w-none dark:prose-invert"
+                      className="prose prose-sm sm:prose-base md:prose-lg max-w-none dark:prose-invert"
                     >
+                      <h2>{legalDoc.title}</h2>
                       <ReactMarkdown
                         rehypePlugins={[rehypeSanitize]}
                         components={{
@@ -222,11 +227,36 @@ export default function LegalDocumentModal({ documentKey, isOpen, onClose }) {
                           ),
                         }}
                       >
-                        {legalDoc.content}
+                        {legalDoc.content ?? "aucun document légal"}
                       </ReactMarkdown>
                     </motion.div>
                   </>
-                ) : null}
+                ) : (
+                  <div className="text-center py-8 sm:py-12">
+                    <h2
+                      className={
+                        isDarkMode
+                          ? "text-xl sm:text-2xl font-bold mb-3 sm:mb-4 text-white"
+                          : "text-xl sm:text-2xl font-bold mb-3 sm:mb-4 text-gray-900"
+                      }
+                    >
+                      Aucun document légal
+                    </h2>
+                    <p
+                      className={
+                        isDarkMode ? "mb-6 text-gray-400" : "mb-6 text-gray-600"
+                      }
+                    >
+                      Le document demandé n'est pas disponible.
+                    </p>
+                    <button
+                      onClick={onClose}
+                      className="inline-flex items-center px-3 py-1.5 sm:px-4 sm:py-2 border border-transparent text-sm sm:text-base font-medium rounded-md shadow-sm text-white bg-primary-600 hover:bg-primary-700"
+                    >
+                      Fermer
+                    </button>
+                  </div>
+                )}
               </div>
             </motion.div>
           </div>

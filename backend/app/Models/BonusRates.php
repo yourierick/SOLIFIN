@@ -9,7 +9,7 @@ class BonusRates extends Model
     protected $fillable = [
         'pack_id',
         'frequence',
-        'nombre_filleuls',    // Nombre de filleuls pour obtenir 1 point (seuil)
+        'nombre_filleuls',    // Nombre de filleuls pour obtenir 1 Jeton Esengo (seuil)
         'points_attribues',   // Nombre de points attribués pour ce seuil
         'valeur_point',       // Valeur d'un point en devise
         'type',

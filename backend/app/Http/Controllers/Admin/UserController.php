@@ -20,6 +20,7 @@ use App\Models\Commission;
 use App\Models\Role;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Storage;
+use App\Services\WalletService;
 
 
 class UserController extends BaseController
@@ -69,6 +70,10 @@ class UserController extends BaseController
             }
 
             $users = $query->paginate(10);
+
+            foreach ($users as $user) {
+                $user->picture = $user->picture ? asset('storage/' . $user->picture) : null;
+            }
 
             return response()->json([
                 'success' => true,
@@ -1034,6 +1039,7 @@ class UserController extends BaseController
                 'password' => 'required|string|min:8',
                 'phone' => 'required|string',
                 'address' => 'required|string',
+                'role_id' => 'required|exists:roles,id',
                 'pays' => 'required|string',
                 'province' => 'required|string',
                 'ville' => 'required|string',
@@ -1042,7 +1048,7 @@ class UserController extends BaseController
             
             DB::beginTransaction();
 
-            $role = Role::where('slug', 'gestionnaire')->first();
+            $role = Role::find($validated['role_id']);
             
             // Créer l'utilisateur administrateur
             $admin = User::create([
@@ -1050,6 +1056,7 @@ class UserController extends BaseController
                 'email' => $validated['email'],
                 'password' => Hash::make($validated['password']),
                 'phone' => $validated['phone'] ?? null,
+                'role_id' => $role->id,
                 'address' => $validated['address'] ?? null,
                 'pays' => $validated['pays'] ?? null,
                 'province' => $validated['province'] ?? null,
@@ -1057,7 +1064,6 @@ class UserController extends BaseController
                 'sexe' => $validated['sexe'] === "masculin" ? "homme" : "femme",
                 'status' => 'active',
                 'is_admin' => true,
-                'role_id' => $role->id,
             ]);
 
             $users = User::all();
@@ -1068,6 +1074,9 @@ class UserController extends BaseController
             
             $admin->account_id = $account_id;
             $admin->save();
+
+            $walletService = new WalletService();
+            $walletService->createUserWallet($admin->id);
 
             DB::commit();
             
@@ -1092,6 +1101,23 @@ class UserController extends BaseController
                 'message' => 'Erreur lors de la création de l\'administrateur',
                 'error' => $e->getMessage()
             ], 500);
+        }
+    }
+
+    public function getRoles()
+    {
+        try {
+            $roles = Role::where("slug", '!=', "user")->where("slug", '!=', "super-admin")->get();
+            \Log::info("ici");
+            return response()->json([
+                'success' => true,
+                'data' => $roles
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Rôles non trouvés'
+            ], 404);
         }
     }
 

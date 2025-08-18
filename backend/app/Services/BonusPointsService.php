@@ -4,9 +4,8 @@ namespace App\Services;
 
 use App\Models\BonusRates;
 use App\Models\Cadeau;
+use App\Models\Setting;
 use App\Models\User;
-use App\Models\UserBonusPoint;
-use App\Models\UserBonusPointHistory;
 use App\Models\UserJetonEsengo;
 use App\Models\UserJetonEsengoHistory;
 use App\Models\Pack;
@@ -28,10 +27,7 @@ class BonusPointsService
     /**
      * Constantes pour les types de fréquences
      */
-    const FREQUENCY_DAILY = 'daily';
-    const FREQUENCY_WEEKLY = 'weekly';
     const FREQUENCY_MONTHLY = 'monthly';
-    const FREQUENCY_YEARLY = 'yearly';
     
     /**
      * Taille des lots pour le traitement des utilisateurs
@@ -39,12 +35,12 @@ class BonusPointsService
     const BATCH_SIZE = 100;
     
     /**
-     * Traite l'attribution des points bonus pour une fréquence spécifique
-     * Pour chaque utilisateur avec des packs actifs, calcule et attribue les points bonus
-     * en fonction du nombre de filleuls parrainés durant la période et du type de bonus
+     * Traite l'attribution des jetons Esengo pour une fréquence spécifique
+     * Pour chaque utilisateur avec des packs actifs, calcule et attribue les jetons Esengo
+     * en fonction du nombre de filleuls parrainés durant la période mensuelle
      * 
-     * @param string $frequency Fréquence à traiter (daily, weekly, monthly, yearly)
-     * @return array Statistiques sur les points attribués
+     * @param string $frequency Fréquence à traiter (monthly uniquement)
+     * @return array Statistiques sur les jetons attribués
      */
     public function processBonusPointsByFrequency($frequency)
     {
@@ -94,14 +90,12 @@ class BonusPointsService
     /**
      * Détermine le type de bonus à traiter selon la fréquence
      * 
-     * @param string $frequency Fréquence (daily, weekly, monthly, yearly)
-     * @return string|null Type de bonus ou null si aucun ne correspond
+     * @param string $frequency Fréquence (monthly uniquement)
+     * @return string|null Type de bonus (TYPE_ESENGO) ou null si fréquence invalide
      */
     private function getBonusTypeForFrequency($frequency)
     {
         switch ($frequency) {
-            case self::FREQUENCY_WEEKLY:
-                return BonusRates::TYPE_DELAIS; // Bonus sur délais (hebdomadaire)
             case self::FREQUENCY_MONTHLY:
                 return BonusRates::TYPE_ESENGO; // Jeton Esengo (mensuel)
             default:
@@ -190,11 +184,8 @@ class BonusPointsService
             return;
         }
         
-        // Traitement différent selon le type de bonus
-        if ($bonusType === BonusRates::TYPE_DELAIS) {
-            // Bonus sur délais (points standard)
-            $this->processBonusSurDelais($user, $userPack, $pack, $bonusRate, $pointsToAward, $filleulsCount, $frequency, $stats);
-        } else if ($bonusType === BonusRates::TYPE_ESENGO) {
+        // Traitement uniquement pour les jetons Esengo
+        if ($bonusType === BonusRates::TYPE_ESENGO) {
             // Jetons Esengo (codes uniques)
             $this->processJetonEsengo($user, $userPack, $pack, $bonusRate, $pointsToAward, $filleulsCount, $frequency, $stats);
         }
@@ -218,10 +209,10 @@ class BonusPointsService
     
     /**
      * Obtient la plage de dates pour une fréquence donnée
-     * Calcule les dates de début et de fin pour la période correspondant à la fréquence
+     * Calcule les dates de début et de fin pour la période mensuelle
      * 
-     * @param string $frequency Fréquence (daily, weekly, monthly, yearly)
-     * @return array Tableau contenant la date de début et la date de fin
+     * @param string $frequency Fréquence (monthly uniquement)
+     * @return array Tableau contenant la date de début et la date de fin du mois
      */
     private function getDateRangeForFrequency($frequency)
     {
@@ -230,28 +221,10 @@ class BonusPointsService
         $endDate = null;
         
         switch ($frequency) {
-            case 'daily':
-                // Aujourd'hui (de minuit à 23:59:59)
-                $startDate = $now->copy()->startOfDay();
-                $endDate = $now->copy()->endOfDay();
-                break;
-                
-            case 'weekly':
-                // Cette semaine (du lundi au dimanche)
-                $startDate = $now->copy()->startOfWeek();
-                $endDate = $now->copy()->endOfWeek();
-                break;
-                
             case 'monthly':
                 // Ce mois (du 1er au dernier jour du mois)
                 $startDate = $now->copy()->startOfMonth();
                 $endDate = $now->copy()->endOfMonth();
-                break;
-                
-            case 'yearly':
-                // Cette année (du 1er janvier au 31 décembre)
-                $startDate = $now->copy()->startOfYear();
-                $endDate = $now->copy()->endOfYear();
                 break;
                 
             default:
@@ -262,34 +235,25 @@ class BonusPointsService
     }
     
     /**
-     * Génère une description pour l'attribution des points selon la fréquence
+     * Génère une description pour l'attribution des jetons Esengo selon la fréquence
      * 
-     * @param string $frequency Fréquence (daily, weekly, monthly, yearly)
+     * @param string $frequency Fréquence (monthly uniquement)
      * @param int $filleulsCount Nombre de filleuls parrainés
-     * @return string Description
+     * @return string Description pour les jetons Esengo
      */
     private function getDescriptionForFrequency($frequency, $filleulsCount)
     {
         $periodText = '';
         
         switch ($frequency) {
-            case 'daily':
-                $periodText = "journalier";
-                break;
-            case 'weekly':
-                $periodText = "hebdomadaire";
-                break;
             case 'monthly':
                 $periodText = "mensuel";
-                break;
-            case 'yearly':
-                $periodText = "annuel";
                 break;
             default:
                 $periodText = $frequency;
         }
         
-        return "Bonus $periodText pour $filleulsCount filleuls parrainés";
+        return "Jetons Esengo $periodText pour $filleulsCount filleuls parrainés";
     }
     
     /**
@@ -315,8 +279,8 @@ class BonusPointsService
      * Trouve le taux de bonus pour un pack et une fréquence donnés
      * 
      * @param int $packId ID du pack
-     * @param string $frequency Fréquence (daily, weekly, monthly, yearly)
-     * @param string|null $type Type de bonus (delais ou esengo)
+     * @param string $frequency Fréquence (monthly uniquement)
+     * @param string|null $type Type de bonus (esengo uniquement)
      * @return BonusRates|null Taux de bonus ou null si aucun n'est configuré
      */
     private function findBonusRateForPack($packId, $frequency, $type = null)
@@ -332,150 +296,14 @@ class BonusPointsService
     }
     
     /**
-     * Convertit des points en devise pour un utilisateur
-     * Vérifie les conditions nécessaires et effectue la conversion
+     * Prépare les métadonnées pour les jetons Esengo
      * 
-     * @param int $userId ID de l'utilisateur
-     * @param int $packId ID du pack
-     * @param int $points Nombre de points à convertir
-     * @return array Résultat de la conversion
-     */
-    public function convertPointsToWallet($userId, $packId, $points)
-    {
-        try {
-            // Valider les paramètres
-            if (!$userId || !$packId || $points <= 0) {
-                return [
-                    'success' => false,
-                    'message' => 'Paramètres invalides pour la conversion'
-                ];
-            }
-            
-            // Récupérer l'utilisateur
-            $user = User::find($userId);
-            if (!$user) {
-                return [
-                    'success' => false,
-                    'message' => 'Utilisateur non trouvé'
-                ];
-            }
-            
-            // Vérifier que le pack existe et est actif pour l'utilisateur
-            $userPack = UserPack::where('user_id', $user->id)
-                ->where('pack_id', $packId)
-                ->where('status', 'active')
-                ->where('payment_status', 'completed')
-                ->first();
-                
-            if (!$userPack) {
-                return [
-                    'success' => false,
-                    'message' => 'Pack non trouvé ou inactif pour cet utilisateur'
-                ];
-            }
-            
-            // Récupérer le taux de bonus pour obtenir la valeur du point
-            // On utilise la fréquence hebdomadaire par défaut pour la valeur du point
-            $bonusRate = $this->findBonusRateForPack($packId, 'weekly');
-            if (!$bonusRate || $bonusRate->valeur_point <= 0) {
-                return [
-                    'success' => false,
-                    'message' => 'La valeur d\'un point n\'est pas configurée pour ce pack'
-                ];
-            }
-            
-            // Récupérer les points de l'utilisateur pour ce pack spécifique
-            $userPoints = UserBonusPoint::getOrCreate($userId, $packId);
-            
-            if ($points > $userPoints->points_disponibles) {
-                return [
-                    'success' => false,
-                    'message' => 'Nombre de points insuffisant'
-                ];
-            }
-            
-            // Convertir les points en devise
-            $amount = $userPoints->convertPointsToWallet($points);
-            
-            if ($amount === false) {
-                return [
-                    'success' => false,
-                    'message' => 'Erreur lors de la conversion des points'
-                ];
-            }
-            
-            return [
-                'success' => true,
-                'message' => "Conversion réussie de $points points en $amount devise",
-                'amount' => $amount,
-                'points_converted' => $points,
-                'remaining_points' => $userPoints->points_disponibles
-            ];
-        } catch (\Exception $e) {
-            Log::error("Erreur lors de la conversion des points: " . $e->getMessage());
-            return [
-                'success' => false,
-                'message' => 'Une erreur est survenue lors de la conversion des points'
-            ];
-        }
-    }
-    
-    /**
-     * Traite l'attribution des points bonus sur délais (hebdomadaire)
-     * 
-     * @param User $user Utilisateur concerné
-     * @param UserPack $userPack Pack de l'utilisateur
-     * @param Pack $pack Pack concerné
-     * @param BonusRates $bonusRate Taux de bonus applicable
-     * @param int $pointsToAward Nombre de points à attribuer
-     * @param int $filleulsCount Nombre de filleuls parrainés
-     * @param string $frequency Fréquence du bonus
-     * @param array &$stats Statistiques à mettre à jour
-     * @return void
-     */
-    private function processBonusSurDelais($user, $userPack, $pack, $bonusRate, $pointsToAward, $filleulsCount, $frequency, &$stats)
-    {
-        try {
-            // Préparer la description et les métadonnées
-            $description = $this->getDescriptionForFrequency($frequency, $filleulsCount);
-            $metadata = $this->prepareBonusMetadata($frequency, $filleulsCount, $pack, $bonusRate, BonusRates::TYPE_DELAIS);
-            
-            // Attribuer les points
-            $pointsAdded = $this->awardPointsToUser(
-                $user->id,
-                $userPack->pack_id,
-                $pointsToAward,
-                $pack->id,
-                $description,
-                $metadata
-            );
-            
-            if ($pointsAdded) {
-                $stats['points_attributed'] += $pointsToAward;
-                
-                // Envoyer une notification à l'utilisateur
-                $this->sendBonusNotification(
-                    $user,
-                    $pointsToAward,
-                    BonusRates::TYPE_DELAIS,
-                    $filleulsCount
-                );
-            }
-        } catch (\Exception $e) {
-            Log::error("Erreur lors de l'attribution des points bonus sur délais: " . $e->getMessage());
-            $stats['errors']++;
-        }
-    }
-    
-    /**
-     * Prépare les métadonnées pour les bonus
-     * 
-     * @param string $frequency Fréquence du bonus
+     * @param string $frequency Fréquence du bonus (monthly)
      * @param int $filleulsCount Nombre de filleuls parrainés
      * @param Pack $pack Pack concerné
      * @param BonusRates $bonusRate Taux de bonus applicable
-     * @param string $type Type de bonus (delais ou esengo)
-     * @return array Métadonnées formatées
+     * @param string $type Type de bonus (esengo uniquement)
+     * @return array Métadonnées formatées pour les jetons Esengo
      */
     private function prepareBonusMetadata($frequency, $filleulsCount, $pack, $bonusRate, $type)
     {
@@ -490,33 +318,17 @@ class BonusPointsService
         ];
     }
     
-    /**
-     * Attribue des points à un utilisateur
-     * 
-     * @param int $userId ID de l'utilisateur
-     * @param int $userPackId ID du pack utilisateur
-     * @param int $pointsToAward Nombre de points à attribuer
-     * @param int $packId ID du pack
-     * @param string $description Description pour l'historique
-     * @param array $metadata Métadonnées à associer aux points
-     * @return bool True si les points ont été attribués avec succès
-     */
-    private function awardPointsToUser($userId, $userPackId, $pointsToAward, $packId, $description, $metadata)
-    {
-        $userPoints = UserBonusPoint::getOrCreate($userId, $userPackId);
-        
-        return $userPoints->addPoints(
-            $pointsToAward,
-            $packId,
-            $description,
-            $metadata
-        );
-    }
+
     
     /**
-     * Durée d'expiration des jetons Esengo en mois
+     * Récupère la durée d'expiration des jetons Esengo depuis les paramètres
+     * 
+     * @return int Durée en mois
      */
-    const JETON_EXPIRATION_MONTHS = 3;
+    private function getJetonExpirationMonths()
+    {
+        return (int) Setting::getValue('jeton_expiration_months', 3);
+    }
     
     /**
      * Traite l'attribution des jetons Esengo (mensuel)
@@ -542,7 +354,7 @@ class BonusPointsService
             $commonMetadata = $this->prepareJetonMetadata($frequency, $filleulsCount, $pack, $bonusRate);
             
             // Date d'expiration des jetons
-            $expirationDate = Carbon::now()->addMonths(self::JETON_EXPIRATION_MONTHS);
+            $expirationDate = Carbon::now()->addMonths($this->getJetonExpirationMonths());
             
             // Créer les jetons Esengo pour l'utilisateur
             $jetonsCreated = $this->createJetonsForUser(
@@ -630,9 +442,14 @@ class BonusPointsService
     // La méthode generateUniqueJetonCode a été remplacée par UserJetonEsengo::generateUniqueCode
     
     /**
-     * Durée d'expiration des tickets gagnants en mois
+     * Récupère la durée d'expiration des tickets gagnants depuis les paramètres
+     * 
+     * @return int Durée en mois
      */
-    const TICKET_EXPIRATION_MONTHS = 3;
+    private function getTicketExpirationMonths()
+    {
+        return (int) Setting::getValue('ticket_expiration_months', 3);
+    }
     
     /**
      * Longueur du code de vérification des tickets
@@ -746,7 +563,7 @@ class BonusPointsService
     private function createTicketGagnant($user, $jeton, $cadeau, $jetonCode)
     {
         // Générer un ticket gagnant
-        $expirationDate = now()->addMonths(self::TICKET_EXPIRATION_MONTHS);
+        $expirationDate = now()->addMonths($this->getTicketExpirationMonths());
         $verificationCode = $this->generateVerificationCode();
         
         $ticketGagnant = new \App\Models\TicketGagnant([
@@ -899,7 +716,7 @@ class BonusPointsService
      * 
      * @param User $user Utilisateur à notifier
      * @param int $points Nombre de points/jetons attribués
-     * @param string $type Type de bonus (delais ou esengo)
+     * @param string $type Type de bonus (esengo uniquement)
      * @param int $filleulsCount Nombre de filleuls parrainés
      * @return void
      */
@@ -909,13 +726,8 @@ class BonusPointsService
             $message = '';
             $title = '';
             
-            if ($type === BonusRates::TYPE_DELAIS) {
-                $title = 'Bonus sur délais attribué';
-                $message = "Grâce à vos parrainages cette semaine, vous avez gagné $points points bonus.";
-            } else if ($type === BonusRates::TYPE_ESENGO) {
-                $title = 'Jetons Esengo attribués';
-                $message = "Grâce à vos parrainages au courant de ce mois, vous avez gagné $points jetons bonus.";
-            }
+            $title = 'Jetons Esengo attribués';
+            $message = "Grâce à vos parrainages au courant de ce mois, vous avez gagné $points jetons bonus.";
             
             // Créer une notification dans la base de données
             $user->notify(new \App\Notifications\BonusPointsNotification(

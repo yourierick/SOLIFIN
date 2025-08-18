@@ -16,7 +16,6 @@ class FundsTransferred extends Notification implements ShouldQueue
     private $recipientName;
     private $isRecipient;
     private $description;
-    private $is_admin;
 
     /**
      * Create a new notification instance.
@@ -34,7 +33,6 @@ class FundsTransferred extends Notification implements ShouldQueue
         $this->recipientName = $recipientName;
         $this->isRecipient = $isRecipient;
         $this->description = $description;
-        $this->is_admin = $is_admin;
     }
 
     /**

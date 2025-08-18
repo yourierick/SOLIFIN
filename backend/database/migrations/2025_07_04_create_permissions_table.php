@@ -93,6 +93,20 @@ return new class extends Migration
                 'updated_at' => now(),
             ],
             [
+                'nom' => 'Vérification des tickets',
+                'slug' => 'manage-tickets',
+                'description' => 'Vérifier les tickets, autorisation spéciale',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
+                'nom' => 'Gérer les cadeaux et historique',
+                'slug' => 'manage-gifts-history',
+                'description' => 'Gestion effective des cadeaux et historique',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
                 'nom' => 'Gérer les témoignages',
                 'slug' => 'manage-testimonials',
                 'description' => 'Gérer les témoignages des utilisateurs',

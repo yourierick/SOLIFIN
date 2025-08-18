@@ -5,6 +5,23 @@ import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { format } from "date-fns";
 import {
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Typography,
+  Button,
+  Grid,
+  Card,
+  CardContent,
+  Chip,
+  TextField,
+  Box,
+  IconButton,
+  Divider,
+  Paper,
+} from "@mui/material";
+import {
   XMarkIcon,
   ClockIcon,
   CheckCircleIcon,
@@ -51,10 +68,20 @@ const WithdrawalRequests = () => {
 
   // États principaux
   const [requestsArray, setRequestsArray] = useState([]);
+  const [filteredRequestsArray, setFilteredRequestsArray] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [requestToDelete, setRequestToDelete] = useState(null);
   const [adminNote, setAdminNote] = useState("");
+
+  // États pour les filtres de l'onglet demandes en attente
+  const [pendingFilters, setPendingFilters] = useState({
+    payment_method: "",
+    start_date: "",
+    end_date: "",
+    search: "",
+  });
+  const [showPendingFilters, setShowPendingFilters] = useState(false);
 
   // États pour les actions
   const [isProcessing, setIsProcessing] = useState(false);
@@ -93,11 +120,21 @@ const WithdrawalRequests = () => {
     }
   }, [activeTab]);
 
+  // Effet pour filtrer les demandes en attente
+  useEffect(() => {
+    if (requestsArray.length > 0) {
+      applyPendingFilters();
+    } else {
+      setFilteredRequestsArray([]);
+    }
+  }, [requestsArray, pendingFilters]);
+
   // Fonction pour récupérer les demandes en attente
   const fetchPendingRequests = async () => {
     try {
       setLoading(true);
       const response = await axios.get("/api/admin/withdrawal/requests");
+      console.log(response.data);
       if (response.data.success) {
         setRequestsArray(response.data.requests || []);
       } else {
@@ -109,6 +146,59 @@ const WithdrawalRequests = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Fonction pour appliquer les filtres aux demandes en attente
+  const applyPendingFilters = () => {
+    let filtered = [...requestsArray];
+
+    // Filtre par méthode de paiement
+    if (pendingFilters.payment_method) {
+      filtered = filtered.filter(
+        (request) => request.payment_method === pendingFilters.payment_method
+      );
+    }
+
+    // Filtre par date de début
+    if (pendingFilters.start_date) {
+      const startDate = new Date(pendingFilters.start_date);
+      filtered = filtered.filter((request) => {
+        const requestDate = new Date(request.created_at);
+        return requestDate >= startDate;
+      });
+    }
+
+    // Filtre par date de fin
+    if (pendingFilters.end_date) {
+      const endDate = new Date(pendingFilters.end_date);
+      endDate.setHours(23, 59, 59, 999); // Fin de journée
+      filtered = filtered.filter((request) => {
+        const requestDate = new Date(request.created_at);
+        return requestDate <= endDate;
+      });
+    }
+
+    // Filtre par recherche (ID, nom d'utilisateur)
+    if (pendingFilters.search) {
+      const searchTerm = pendingFilters.search.toLowerCase();
+      filtered = filtered.filter((request) => {
+        const userId = request.id.toString();
+        const userName = request.user ? request.user.name.toLowerCase() : "";
+        return userId.includes(searchTerm) || userName.includes(searchTerm);
+      });
+    }
+
+    setFilteredRequestsArray(filtered);
+  };
+
+  // Fonction pour réinitialiser les filtres des demandes en attente
+  const resetPendingFilters = () => {
+    setPendingFilters({
+      payment_method: "",
+      start_date: "",
+      end_date: "",
+      search: "",
+    });
   };
 
   // Fonction pour récupérer toutes les demandes avec filtres
@@ -141,11 +231,34 @@ const WithdrawalRequests = () => {
 
       const response = await axios.get(url);
 
-      console.log(response.data);
       if (response.data.success) {
-        setAllRequests(response.data.withdrawal_requests.data || []);
+        setAllRequests(response.data.withdrawal_requests?.data || []);
         setAllRequestsMeta(response.data.withdrawal_requests);
-        setStats(response.data.stats);
+
+        // Adapter les données pour correspondre à la structure attendue par le composant
+        const statsData = response.data.stats || {};
+
+        // S'assurer que toutes les propriétés nécessaires sont présentes
+        const formattedStats = {
+          ...statsData,
+          // Utiliser les propriétés du backend ou des valeurs par défaut
+          total_amount: statsData.total_amount || 0,
+          pending_amount: statsData.pending_amount || 0,
+          approved_amount: statsData.approved_amount || 0,
+          rejected_amount: statsData.rejected_amount || 0,
+          paid_amount: statsData.paid_amount || 0,
+
+          // Renommer les propriétés pour correspondre à celles attendues par le composant
+          pending_requests: statsData.pending_requests || 0,
+          approved_requests: statsData.approved_requests || 0,
+          rejected_requests: statsData.rejected_requests || 0,
+
+          // Adapter les données pour les graphiques
+          monthly_stats: statsData.monthly_stats || [],
+          payment_method_stats: statsData.payment_method_stats || [],
+        };
+
+        setStats(formattedStats);
       } else {
         toast.error("Erreur lors de la récupération des données d'analyse");
       }
@@ -324,7 +437,11 @@ const WithdrawalRequests = () => {
         return isDarkMode
           ? "bg-red-900 text-red-300"
           : "bg-red-100 text-red-800";
-      case "processed":
+      case "failed":
+        return isDarkMode
+          ? "bg-red-900 text-red-300"
+          : "bg-red-100 text-red-800";
+      case "paid":
         return isDarkMode
           ? "bg-blue-900 text-blue-300"
           : "bg-blue-100 text-blue-800";
@@ -343,8 +460,10 @@ const WithdrawalRequests = () => {
         return <CheckCircleIcon className="h-4 w-4" />;
       case "rejected":
         return <XCircleIcon className="h-4 w-4" />;
-      case "processed":
-        return <CheckIcon className="h-4 w-4" />;
+      case "failed":
+        return <XCircleIcon className="h-4 w-4" />;
+      case "paid":
+        return <CheckCircleIcon className="h-4 w-4" />;
       default:
         return <ClockIcon className="h-4 w-4" />;
     }
@@ -353,11 +472,11 @@ const WithdrawalRequests = () => {
   // Pagination pour l'onglet des demandes en attente
   const indexOfLastRequest = currentPage * requestsPerPage;
   const indexOfFirstRequest = indexOfLastRequest - requestsPerPage;
-  const currentRequests = requestsArray.slice(
+  const currentRequests = filteredRequestsArray.slice(
     indexOfFirstRequest,
     indexOfLastRequest
   );
-  const totalPages = Math.ceil(requestsArray.length / requestsPerPage);
+  const totalPages = Math.ceil(filteredRequestsArray.length / requestsPerPage);
 
   const paginate = (pageNumber) => setCurrentPage(pageNumber);
   const nextPage = () =>
@@ -417,13 +536,125 @@ const WithdrawalRequests = () => {
       {activeTab === "pending" ? (
         // Onglet des demandes en attente
         <div>
-          {requestsArray.length === 0 ? (
+          {/* Section des filtres pour les demandes en attente */}
+          <div className="mb-6 bg-white dark:bg-gray-800 rounded-lg shadow-md p-4">
+            <div className="flex justify-between items-center mb-4">
+              <h4 className="text-lg font-medium text-gray-900 dark:text-white">
+                Filtres
+              </h4>
+              <button
+                onClick={() => setShowPendingFilters(!showPendingFilters)}
+                className="flex items-center text-sm text-primary-600 dark:text-primary-400 hover:text-primary-800 dark:hover:text-primary-300 focus:outline-none"
+              >
+                <FunnelIcon className="h-5 w-5 mr-1" />
+                {showPendingFilters
+                  ? "Masquer les filtres"
+                  : "Afficher les filtres"}
+              </button>
+            </div>
+
+            {showPendingFilters && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Méthode de paiement
+                  </label>
+                  <select
+                    value={pendingFilters.payment_method}
+                    onChange={(e) =>
+                      setPendingFilters({
+                        ...pendingFilters,
+                        payment_method: e.target.value,
+                      })
+                    }
+                    className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  >
+                    <option value="">Toutes</option>
+                    <option value="visa">Visa</option>
+                    <option value="mastercard">Mastercard</option>
+                    <option value="orange-money">Orange Money</option>
+                    <option value="airtel-money">Airtel Money</option>
+                    <option value="afrimoney">Afrimoney</option>
+                    <option value="m-pesa">M-Pesa</option>
+                    <option value="american-express">American Express</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Date de début
+                  </label>
+                  <input
+                    type="date"
+                    value={pendingFilters.start_date}
+                    onChange={(e) =>
+                      setPendingFilters({
+                        ...pendingFilters,
+                        start_date: e.target.value,
+                      })
+                    }
+                    className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Date de fin
+                  </label>
+                  <input
+                    type="date"
+                    value={pendingFilters.end_date}
+                    onChange={(e) =>
+                      setPendingFilters({
+                        ...pendingFilters,
+                        end_date: e.target.value,
+                      })
+                    }
+                    className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  />
+                </div>
+              </div>
+            )}
+
+            <div className="flex flex-col sm:flex-row justify-between items-center">
+              <div className="w-full sm:w-1/2 mb-4 sm:mb-0">
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={pendingFilters.search}
+                    onChange={(e) =>
+                      setPendingFilters({
+                        ...pendingFilters,
+                        search: e.target.value,
+                      })
+                    }
+                    placeholder="Rechercher par ID, utilisateur..."
+                    className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 pl-10 pr-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  />
+                  <MagnifyingGlassIcon className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
+                </div>
+              </div>
+
+              <div className="flex space-x-2">
+                <button
+                  onClick={resetPendingFilters}
+                  className="px-4 py-2 bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-300 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800"
+                >
+                  Réinitialiser
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {filteredRequestsArray.length === 0 ? (
             <div
               className={`text-center py-8 ${
                 isDarkMode ? "text-gray-400" : "text-gray-500"
               }`}
             >
-              Aucune demande de retrait en cours
+              {requestsArray.length === 0
+                ? "Aucune demande de retrait en cours"
+                : "Aucune demande ne correspond aux critères de recherche"}
             </div>
           ) : (
             <>
@@ -471,7 +702,14 @@ const WithdrawalRequests = () => {
                             isDarkMode ? "text-gray-400" : "text-gray-500"
                           }`}
                         >
-                          Statut
+                          Statut de traitement
+                        </th>
+                        <th
+                          className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${
+                            isDarkMode ? "text-gray-400" : "text-gray-500"
+                          }`}
+                        >
+                          Statut de paiement
                         </th>
                         <th
                           className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${
@@ -514,7 +752,7 @@ const WithdrawalRequests = () => {
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">
                             {new Intl.NumberFormat("fr-FR", {
                               style: "currency",
-                              currency: "EUR",
+                              currency: "USD",
                             }).format(request.amount)}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">
@@ -532,7 +770,26 @@ const WithdrawalRequests = () => {
                                   {request.status === "pending" && "En attente"}
                                   {request.status === "approved" && "Approuvé"}
                                   {request.status === "rejected" && "Rejeté"}
-                                  {request.status === "processed" && "Traité"}
+                                  {request.status === "cancelled" && "Annulé"}
+                                  {request.status === "failed" && "Échoué"}
+                                </span>
+                              </span>
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span
+                              className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(
+                                request.payment_status
+                              )}`}
+                            >
+                              <span className="flex items-center">
+                                {getStatusIcon(request.payment_status)}
+                                <span className="ml-1">
+                                  {request.payment_status === "pending" &&
+                                    "En attente"}
+                                  {request.payment_status === "paid" && "Payé"}
+                                  {request.payment_status === "failed" &&
+                                    "Échoué"}
                                 </span>
                               </span>
                             </span>
@@ -569,6 +826,13 @@ const WithdrawalRequests = () => {
               </div>
 
               {/* Pagination */}
+              <div className="mt-4 text-sm text-gray-500 dark:text-gray-400">
+                Affichage de{" "}
+                {filteredRequestsArray.length > 0 ? indexOfFirstRequest + 1 : 0}{" "}
+                à {Math.min(indexOfLastRequest, filteredRequestsArray.length)}{" "}
+                sur {filteredRequestsArray.length} demandes
+              </div>
+
               {totalPages > 1 && (
                 <div className="flex justify-center mt-6">
                   <nav className="flex items-center">
@@ -650,7 +914,8 @@ const WithdrawalRequests = () => {
                     <option value="pending">En attente</option>
                     <option value="approved">Approuvé</option>
                     <option value="rejected">Rejeté</option>
-                    <option value="processed">Traité</option>
+                    <option value="cancelled">Annulé</option>
+                    <option value="failed">Échoué</option>
                   </select>
                 </div>
 
@@ -666,9 +931,13 @@ const WithdrawalRequests = () => {
                     className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500"
                   >
                     <option value="">Toutes</option>
-                    <option value="bank_transfer">Virement bancaire</option>
-                    <option value="paypal">PayPal</option>
-                    <option value="stripe">Stripe</option>
+                    <option value="visa">Visa</option>
+                    <option value="mastercard">Mastercard</option>
+                    <option value="orange-money">Orange Money</option>
+                    <option value="airtel-money">Airtel Money</option>
+                    <option value="afrimoney">Afrimoney</option>
+                    <option value="m-pesa">M-Pesa</option>
+                    <option value="american-express">American Express</option>
                   </select>
                 </div>
 
@@ -777,7 +1046,7 @@ const WithdrawalRequests = () => {
                             En attente
                           </p>
                           <p className="text-lg font-semibold text-gray-900 dark:text-white">
-                            {stats.pending_count} (
+                            {stats.pending_requests} (
                             {new Intl.NumberFormat("fr-FR", {
                               style: "currency",
                               currency: "USD",
@@ -819,7 +1088,7 @@ const WithdrawalRequests = () => {
                             Rejetés
                           </p>
                           <p className="text-lg font-semibold text-gray-900 dark:text-white">
-                            {stats.rejected_count} (
+                            {stats.rejected_requests} (
                             {new Intl.NumberFormat("fr-FR", {
                               style: "currency",
                               currency: "USD",
@@ -838,17 +1107,17 @@ const WithdrawalRequests = () => {
                         Demandes par mois
                       </h5>
                       <div className="h-64">
-                        {stats.monthly_data && (
+                        {stats.monthly_stats && (
                           <Bar
                             data={{
-                              labels: stats.monthly_data.map(
-                                (item) => item.month
+                              labels: stats.monthly_stats.map(
+                                (item) => `${item.month}/${item.year}`
                               ),
                               datasets: [
                                 {
                                   label: "Montant total",
-                                  data: stats.monthly_data.map(
-                                    (item) => item.amount
+                                  data: stats.monthly_stats.map(
+                                    (item) => item.total_amount
                                   ),
                                   backgroundColor: isDarkMode
                                     ? "rgba(79, 70, 229, 0.7)"
@@ -903,16 +1172,16 @@ const WithdrawalRequests = () => {
                         Méthodes de paiement
                       </h5>
                       <div className="h-64">
-                        {stats.payment_methods && (
+                        {stats.payment_method_stats && (
                           <Pie
                             data={{
-                              labels: stats.payment_methods.map(
-                                (item) => item.method
+                              labels: stats.payment_method_stats.map(
+                                (item) => item.payment_method
                               ),
                               datasets: [
                                 {
-                                  data: stats.payment_methods.map(
-                                    (item) => item.amount
+                                  data: stats.payment_method_stats.map(
+                                    (item) => item.total_amount
                                   ),
                                   backgroundColor: [
                                     "rgba(79, 70, 229, 0.7)",
@@ -999,7 +1268,14 @@ const WithdrawalRequests = () => {
                               isDarkMode ? "text-gray-400" : "text-gray-500"
                             }`}
                           >
-                            Statut
+                            Statut de traitement
+                          </th>
+                          <th
+                            className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${
+                              isDarkMode ? "text-gray-400" : "text-gray-500"
+                            }`}
+                          >
+                            Statut de paiement
                           </th>
                           <th
                             className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${
@@ -1052,7 +1328,7 @@ const WithdrawalRequests = () => {
                               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">
                                 {new Intl.NumberFormat("fr-FR", {
                                   style: "currency",
-                                  currency: "EUR",
+                                  currency: "USD",
                                 }).format(request.amount)}
                               </td>
                               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">
@@ -1073,8 +1349,27 @@ const WithdrawalRequests = () => {
                                         "Approuvé"}
                                       {request.status === "rejected" &&
                                         "Rejeté"}
-                                      {request.status === "processed" &&
-                                        "Traité"}
+                                      {request.status === "cancelled" &&
+                                        "Annulé"}
+                                      {request.status === "failed" && "Échoué"}
+                                    </span>
+                                  </span>
+                                </span>
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap">
+                                <span
+                                  className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(
+                                    request.payment_status
+                                  )}`}
+                                >
+                                  <span className="flex items-center">
+                                    {getStatusIcon(request.payment_status)}
+                                    <span className="ml-1">
+                                      {request.payment_status === "pending" &&
+                                        "En attente"}
+                                      {request.payment_status === "paid" &&
+                                        "Payé"}
+                                      {request.status === "failed" && "Échoué"}
                                     </span>
                                   </span>
                                 </span>
@@ -1295,206 +1590,681 @@ const WithdrawalRequests = () => {
         </div>
       )}
       {/* Modal de détails de la demande */}
-      {selectedRequest && (
-        <div className="fixed inset-0 z-50 overflow-y-auto">
-          <div className="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-            <div
-              className="fixed inset-0 transition-opacity"
-              aria-hidden="true"
+      <Dialog
+        open={!!selectedRequest}
+        onClose={() => setSelectedRequest(null)}
+        maxWidth="md"
+        fullWidth
+        PaperProps={{
+          sx: (theme) => ({
+            borderRadius: 3,
+            maxHeight: '90vh',
+            boxShadow: theme.palette.mode === 'dark' 
+              ? '0 25px 50px -12px rgba(0, 0, 0, 0.6)' 
+              : '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+            backdropFilter: 'blur(20px)',
+            background: theme.palette.mode === 'dark'
+              ? 'linear-gradient(135deg, rgba(31, 41, 55, 0.95) 0%, rgba(31, 41, 55, 0.9) 100%)'
+              : 'linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0.9) 100%)',
+            border: theme.palette.mode === 'dark'
+              ? '1px solid rgba(255, 255, 255, 0.1)'
+              : '1px solid rgba(255, 255, 255, 0.2)',
+            overflow: 'hidden'
+          })
+        }}
+        BackdropProps={{
+          sx: (theme) => ({
+            backdropFilter: 'blur(8px)',
+            backgroundColor: theme.palette.mode === 'dark' 
+              ? 'rgba(0, 0, 0, 0.7)' 
+              : 'rgba(0, 0, 0, 0.4)',
+          })
+        }}
+      >
+        {selectedRequest && (
+          <>
+            <DialogTitle
+              sx={{
+                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                color: 'white',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                p: 3,
+                position: 'relative',
+                '&::before': {
+                  content: '""',
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  background: 'linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.05) 100%)',
+                  backdropFilter: 'blur(10px)',
+                }
+              }}
             >
-              <div className="absolute inset-0 bg-gray-500 dark:bg-gray-900 opacity-75"></div>
-            </div>
-            <span
-              className="hidden sm:inline-block sm:align-middle sm:h-screen"
-              aria-hidden="true"
-            >
-              &#8203;
-            </span>
-            <div className="inline-block align-bottom bg-white dark:bg-gray-800 rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
-              <div className="bg-white dark:bg-gray-800 px-4 pt-5 pb-4 sm:p-6">
-                <div className="flex justify-between items-start">
-                  <h3 className="text-lg leading-6 font-medium text-gray-900 dark:text-white">
-                    Détails de la demande #{selectedRequest.id}
-                  </h3>
-                  <button
-                    onClick={() => setSelectedRequest(null)}
-                    className="bg-white dark:bg-gray-800 rounded-md text-gray-400 hover:text-gray-500 dark:hover:text-gray-300 focus:outline-none"
-                  >
-                    <XMarkIcon className="h-6 w-6" />
-                  </button>
-                </div>
-                <div className="mt-4 space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                        ID
-                      </p>
-                      <p className="mt-1 text-sm text-gray-900 dark:text-white">
-                        {selectedRequest.id}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                        Statut
-                      </p>
-                      <p className="mt-1">
-                        <span
-                          className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(
-                            selectedRequest.status
-                          )}`}
-                        >
-                          <span className="flex items-center">
-                            {getStatusIcon(selectedRequest.status)}
-                            <span className="ml-1">
-                              {selectedRequest.status === "pending" &&
-                                "En attente"}
-                              {selectedRequest.status === "approved" &&
-                                "Approuvé"}
-                              {selectedRequest.status === "rejected" &&
-                                "Rejeté"}
-                              {selectedRequest.status === "processed" &&
-                                "Traité"}
-                            </span>
-                          </span>
-                        </span>
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                        Utilisateur
-                      </p>
-                      <p className="mt-1 text-sm text-gray-900 dark:text-white">
-                        {selectedRequest.user
-                          ? selectedRequest.user.name
-                          : "Utilisateur inconnu"}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                        Email
-                      </p>
-                      <p className="mt-1 text-sm text-gray-900 dark:text-white">
-                        {selectedRequest.user
-                          ? selectedRequest.user.email
-                          : "Email inconnu"}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                        Montant
-                      </p>
-                      <p className="mt-1 text-sm text-gray-900 dark:text-white">
-                        {new Intl.NumberFormat("fr-FR", {
-                          style: "currency",
-                          currency: "EUR",
-                        }).format(selectedRequest.amount)}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                        Méthode de paiement
-                      </p>
-                      <p className="mt-1 text-sm text-gray-900 dark:text-white">
-                        {selectedRequest.payment_method}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                        Date de création
-                      </p>
-                      <p className="mt-1 text-sm text-gray-900 dark:text-white">
-                        {format(
-                          new Date(selectedRequest.created_at),
-                          "dd/MM/yyyy HH:mm"
-                        )}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                        Dernière mise à jour
-                      </p>
-                      <p className="mt-1 text-sm text-gray-900 dark:text-white">
-                        {format(
-                          new Date(selectedRequest.updated_at),
-                          "dd/MM/yyyy HH:mm"
-                        )}
-                      </p>
-                    </div>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                      Détails du paiement
-                    </p>
-                    <p className="mt-1 text-sm text-gray-900 dark:text-white whitespace-pre-wrap">
-                      {selectedRequest.payment_details || "Aucun détail fourni"}
-                    </p>
-                  </div>
+              <Box sx={{ display: 'flex', alignItems: 'center', position: 'relative', zIndex: 1 }}>
+                <Box
+                  sx={{
+                    background: 'linear-gradient(135deg, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0.1) 100%)',
+                    borderRadius: '50%',
+                    p: 1.5,
+                    mr: 3,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    backdropFilter: 'blur(10px)',
+                    border: '1px solid rgba(255,255,255,0.2)',
+                    boxShadow: '0 8px 32px rgba(0,0,0,0.1)'
+                  }}
+                >
+                  <EyeIcon style={{ width: 24, height: 24, color: 'white' }} />
+                </Box>
+                <Box>
+                  <Typography variant="h5" component="div" sx={{ fontWeight: 600, mb: 0.5 }}>
+                    Demande #{selectedRequest.id}
+                  </Typography>
+                  <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                    Détails de la demande de retrait
+                  </Typography>
+                </Box>
+              </Box>
+              <IconButton
+                onClick={() => setSelectedRequest(null)}
+                size="large"
+                sx={{ 
+                  color: 'white',
+                  position: 'relative',
+                  zIndex: 1,
+                  background: 'rgba(255,255,255,0.1)',
+                  backdropFilter: 'blur(10px)',
+                  border: '1px solid rgba(255,255,255,0.2)',
+                  '&:hover': {
+                    background: 'rgba(255,255,255,0.2)',
+                    transform: 'scale(1.05)'
+                  },
+                  transition: 'all 0.2s ease-in-out'
+                }}
+              >
+                <XMarkIcon style={{ width: 24, height: 24 }} />
+              </IconButton>
+            </DialogTitle>
 
-                  <div>
-                    <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                      Note administrative
-                    </p>
-                    <textarea
-                      value={adminNote}
-                      onChange={(e) => setAdminNote(e.target.value)}
-                      className="mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                      rows="3"
-                      placeholder="Ajouter une note administrative..."
-                    ></textarea>
-                  </div>
-                </div>
-              </div>
-              <div className="bg-gray-50 dark:bg-gray-700 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
-                {selectedRequest.status === "pending" && (
-                  <>
-                    <button
-                      type="button"
-                      onClick={() => handleApproveRequest(selectedRequest.id)}
-                      disabled={isProcessing}
-                      className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-green-600 text-base font-medium text-white hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 sm:ml-3 sm:w-auto sm:text-sm"
+            <DialogContent sx={{ p: 4, background: 'linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.05) 100%)' }}>
+              {/* Section des statuts */}
+              <Box sx={{ mb: 5 }}>
+                <Grid container spacing={3}>
+                  <Grid item xs={12} md={6}>
+                    <Card
+                      sx={(theme) => ({
+                        background: theme.palette.mode === 'dark'
+                          ? 'linear-gradient(135deg, rgba(76, 175, 80, 0.15) 0%, rgba(139, 195, 74, 0.08) 100%)'
+                          : 'linear-gradient(135deg, rgba(76, 175, 80, 0.1) 0%, rgba(139, 195, 74, 0.05) 100%)',
+                        backdropFilter: 'blur(20px)',
+                        border: theme.palette.mode === 'dark'
+                          ? '1px solid rgba(76, 175, 80, 0.3)'
+                          : '1px solid rgba(76, 175, 80, 0.2)',
+                        borderRadius: 3,
+                        boxShadow: theme.palette.mode === 'dark'
+                          ? '0 8px 32px rgba(0, 0, 0, 0.3)'
+                          : '0 8px 32px rgba(76, 175, 80, 0.1)',
+                        transition: 'all 0.3s ease-in-out',
+                        '&:hover': {
+                          transform: 'translateY(-4px)',
+                          boxShadow: theme.palette.mode === 'dark'
+                            ? '0 12px 40px rgba(0, 0, 0, 0.4)'
+                            : '0 12px 40px rgba(76, 175, 80, 0.15)',
+                        }
+                      })}
                     >
-                      {isProcessing ? "Traitement..." : "Approuver"}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleRejectRequest(selectedRequest.id)}
-                      disabled={isProcessing}
-                      className="mt-3 w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
+                      <CardContent sx={{ p: 3 }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                          <Box
+                            sx={{
+                              width: 4,
+                              height: 40,
+                              background: 'linear-gradient(135deg, #4caf50 0%, #8bc34a 100%)',
+                              borderRadius: 2,
+                              mr: 2
+                            }}
+                          />
+                          <Typography variant="h6" sx={{ fontWeight: 600, color: 'text.primary' }}>
+                            Statut de traitement
+                          </Typography>
+                        </Box>
+                        <Chip
+                          icon={getStatusIcon(selectedRequest.status)}
+                          label={
+                            selectedRequest.status === "pending" ? "En attente" :
+                            selectedRequest.status === "approved" ? "Approuvé" :
+                            selectedRequest.status === "rejected" ? "Rejeté" :
+                            selectedRequest.status === "cancelled" ? "Annulé" :
+                            selectedRequest.status === "failed" ? "Échoué" : selectedRequest.status
+                          }
+                          color={
+                            selectedRequest.status === "approved" ? "success" :
+                            selectedRequest.status === "rejected" || selectedRequest.status === "failed" ? "error" :
+                            selectedRequest.status === "cancelled" ? "warning" : "default"
+                          }
+                          variant="filled"
+                          sx={{
+                            fontSize: '0.875rem',
+                            fontWeight: 600,
+                            px: 2,
+                            py: 1,
+                            borderRadius: 2,
+                            boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+                          }}
+                        />
+                      </CardContent>
+                    </Card>
+                  </Grid>
+                  <Grid item xs={12} md={6}>
+                    <Card
+                      sx={(theme) => ({
+                        background: theme.palette.mode === 'dark'
+                          ? 'linear-gradient(135deg, rgba(33, 150, 243, 0.15) 0%, rgba(3, 169, 244, 0.08) 100%)'
+                          : 'linear-gradient(135deg, rgba(33, 150, 243, 0.1) 0%, rgba(3, 169, 244, 0.05) 100%)',
+                        backdropFilter: 'blur(20px)',
+                        border: theme.palette.mode === 'dark'
+                          ? '1px solid rgba(33, 150, 243, 0.3)'
+                          : '1px solid rgba(33, 150, 243, 0.2)',
+                        borderRadius: 3,
+                        boxShadow: theme.palette.mode === 'dark'
+                          ? '0 8px 32px rgba(0, 0, 0, 0.3)'
+                          : '0 8px 32px rgba(33, 150, 243, 0.1)',
+                        transition: 'all 0.3s ease-in-out',
+                        '&:hover': {
+                          transform: 'translateY(-4px)',
+                          boxShadow: theme.palette.mode === 'dark'
+                            ? '0 12px 40px rgba(0, 0, 0, 0.4)'
+                            : '0 12px 40px rgba(33, 150, 243, 0.15)',
+                        }
+                      })}
                     >
-                      {isProcessing ? "Traitement..." : "Rejeter"}
-                    </button>
-                  </>
-                )}
-                {selectedRequest.status === "failed" && (
-                  <button
-                    type="button"
-                    onClick={handleApproveRequest}
-                    disabled={isDeleting}
-                    className="mt-3 w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
+                      <CardContent sx={{ p: 3 }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                          <Box
+                            sx={{
+                              width: 4,
+                              height: 40,
+                              background: 'linear-gradient(135deg, #2196f3 0%, #03a9f4 100%)',
+                              borderRadius: 2,
+                              mr: 2
+                            }}
+                          />
+                          <Typography variant="h6" sx={{ fontWeight: 600, color: 'text.primary' }}>
+                            Statut de paiement
+                          </Typography>
+                        </Box>
+                        <Chip
+                          icon={getStatusIcon(selectedRequest.payment_status)}
+                          label={
+                            selectedRequest.payment_status === "pending" ? "En attente" :
+                            selectedRequest.payment_status === "paid" ? "Payé" :
+                            selectedRequest.payment_status === "failed" ? "Échoué" : selectedRequest.payment_status
+                          }
+                          color={
+                            selectedRequest.payment_status === "paid" ? "success" :
+                            selectedRequest.payment_status === "failed" ? "error" : "default"
+                          }
+                          variant="filled"
+                          sx={{
+                            fontSize: '0.875rem',
+                            fontWeight: 600,
+                            px: 2,
+                            py: 1,
+                            borderRadius: 2,
+                            boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+                          }}
+                        />
+                      </CardContent>
+                    </Card>
+                  </Grid>
+                </Grid>
+              </Box>
+
+              {/* Section des informations principales */}
+              <Box sx={{ mb: 5 }}>
+                <Typography 
+                  variant="h5" 
+                  gutterBottom 
+                  sx={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    mb: 3,
+                    fontWeight: 700,
+                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                    backgroundClip: 'text',
+                    WebkitBackgroundClip: 'text',
+                    WebkitTextFillColor: 'transparent'
+                  }}
+                >
+                  <Box 
+                    sx={{ 
+                      width: 6, 
+                      height: 30, 
+                      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', 
+                      borderRadius: 3, 
+                      mr: 2,
+                      boxShadow: '0 4px 12px rgba(102, 126, 234, 0.3)'
+                    }} 
+                  />
+                  Informations générales
+                </Typography>
+                <Paper
+                sx={(theme) => ({
+                  background: theme.palette.mode === 'dark'
+                    ? 'linear-gradient(135deg, rgba(31, 41, 55, 0.8) 0%, rgba(31, 41, 55, 0.6) 100%)'
+                    : 'linear-gradient(135deg, rgba(255,255,255,0.25) 0%, rgba(255,255,255,0.1) 100%)',
+                  backdropFilter: 'blur(20px)',
+                  border: theme.palette.mode === 'dark'
+                    ? '1px solid rgba(255,255,255,0.1)'
+                    : '1px solid rgba(255,255,255,0.2)',
+                  borderRadius: 3,
+                  boxShadow: theme.palette.mode === 'dark'
+                    ? '0 8px 32px rgba(0,0,0,0.4)'
+                    : '0 8px 32px rgba(0,0,0,0.1)',
+                  p: 4,
+                  mb: 4
+                })}>
+                  <Grid container>
+                    <Grid item xs={12} md={6} sx={{ borderRight: { md: 1 }, borderColor: 'rgba(255,255,255,0.1)' }}>
+                      <Box sx={{ p: 4 }}>
+                        <Box sx={{ mb: 4 }}>
+                          <Typography variant="body2" sx={{ color: 'text.secondary', mb: 1, fontWeight: 500 }}>
+                            ID de la demande
+                          </Typography>
+                          <Typography variant="h6" sx={{ fontWeight: 600, color: 'text.primary' }}>
+                            #{selectedRequest.id}
+                          </Typography>
+                        </Box>
+                        <Box sx={{ mb: 4 }}>
+                          <Typography variant="body2" sx={{ color: 'text.secondary', mb: 1, fontWeight: 500 }}>
+                            Utilisateur
+                          </Typography>
+                          <Typography variant="body1" sx={{ fontWeight: 600, color: 'text.primary' }}>
+                            {selectedRequest.user ? selectedRequest.user.name : "Utilisateur inconnu"}
+                          </Typography>
+                        </Box>
+                        <Box>
+                          <Typography variant="body2" sx={{ color: 'text.secondary', mb: 1, fontWeight: 500 }}>
+                            Adresse email
+                          </Typography>
+                          <Typography variant="body1" sx={{ fontWeight: 600, color: 'text.primary', wordBreak: 'break-word' }}>
+                            {selectedRequest.user ? selectedRequest.user.email : "Email inconnu"}
+                          </Typography>
+                        </Box>
+                      </Box>
+                    </Grid>
+                    <Grid item xs={12} md={6}>
+                      <Box sx={{ p: 4 }}>
+                        <Box sx={{ mb: 4 }}>
+                          <Typography variant="body2" sx={{ color: 'text.secondary', mb: 1, fontWeight: 500 }}>
+                            Montant demandé
+                          </Typography>
+                          <Typography 
+                            variant="h6" 
+                            sx={{ 
+                              fontWeight: 700, 
+                              background: 'linear-gradient(135deg, #4caf50 0%, #8bc34a 100%)',
+                              backgroundClip: 'text',
+                              WebkitBackgroundClip: 'text',
+                              WebkitTextFillColor: 'transparent'
+                            }}
+                          >
+                            {new Intl.NumberFormat("fr-FR", {
+                              style: "currency",
+                              currency: "USD",
+                            }).format(selectedRequest.amount)}
+                          </Typography>
+                        </Box>
+                        <Box sx={{ mb: 4 }}>
+                          <Typography variant="body2" sx={{ color: 'text.secondary', mb: 1, fontWeight: 500 }}>
+                            Méthode de paiement
+                          </Typography>
+                          <Typography variant="body1" sx={{ fontWeight: 600, color: 'text.primary' }}>
+                            {selectedRequest.payment_method}
+                          </Typography>
+                        </Box>
+                        <Box sx={{ mb: 4 }}>
+                          <Typography variant="body2" sx={{ color: 'text.secondary', mb: 1, fontWeight: 500 }}>
+                            Date de création
+                          </Typography>
+                          <Typography variant="body1" sx={{ fontWeight: 600, color: 'text.primary' }}>
+                            {selectedRequest.created_at
+                              ? format(new Date(selectedRequest.created_at), "dd/MM/yyyy HH:mm")
+                              : "Date non disponible"}
+                          </Typography>
+                        </Box>
+                        <Box>
+                          <Typography variant="body2" sx={{ color: 'text.secondary', mb: 1, fontWeight: 500 }}>
+                            Dernière mise à jour
+                          </Typography>
+                          <Typography variant="body1" sx={{ fontWeight: 600, color: 'text.primary' }}>
+                            {selectedRequest.updated_at
+                              ? format(new Date(selectedRequest.updated_at), "dd/MM/yyyy HH:mm")
+                              : "Date non disponible"}
+                          </Typography>
+                        </Box>
+                      </Box>
+                    </Grid>
+                  </Grid>
+                </Paper>
+              </Box>
+
+              {/* Section des détails de paiement */}
+              <Box sx={{ mb: 5 }}>
+                <Typography 
+                  variant="h5" 
+                  gutterBottom 
+                  sx={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    mb: 3,
+                    fontWeight: 700,
+                    background: 'linear-gradient(135deg, #2196f3 0%, #03a9f4 100%)',
+                    backgroundClip: 'text',
+                    WebkitBackgroundClip: 'text',
+                    WebkitTextFillColor: 'transparent'
+                  }}
+                >
+                  <Box 
+                    sx={{ 
+                      width: 6, 
+                      height: 30, 
+                      background: 'linear-gradient(135deg, #2196f3 0%, #03a9f4 100%)', 
+                      borderRadius: 3, 
+                      mr: 2,
+                      boxShadow: '0 4px 12px rgba(33, 150, 243, 0.3)'
+                    }} 
+                  />
+                  Détails du paiement
+                </Typography>
+                <Paper
+                  sx={(theme) => ({
+                    background: theme.palette.mode === 'dark'
+                      ? 'linear-gradient(135deg, rgba(31, 41, 55, 0.8) 0%, rgba(31, 41, 55, 0.6) 100%)'
+                      : 'linear-gradient(135deg, rgba(33, 150, 243, 0.1) 0%, rgba(3, 169, 244, 0.05) 100%)',
+                    backdropFilter: 'blur(20px)',
+                    border: theme.palette.mode === 'dark'
+                      ? '1px solid rgba(33, 150, 243, 0.3)'
+                      : '1px solid rgba(33, 150, 243, 0.2)',
+                    borderRadius: 3,
+                    boxShadow: theme.palette.mode === 'dark'
+                      ? '0 8px 32px rgba(0, 0, 0, 0.4)'
+                      : '0 8px 32px rgba(33, 150, 243, 0.1)',
+                    p: 3,
+                    maxHeight: 250,
+                    overflow: 'auto',
+                    '&::-webkit-scrollbar': {
+                      width: 8,
+                    },
+                    '&::-webkit-scrollbar-track': {
+                      background: theme.palette.mode === 'dark'
+                        ? 'rgba(255,255,255,0.05)'
+                        : 'rgba(255,255,255,0.1)',
+                      borderRadius: 4,
+                    },
+                    '&::-webkit-scrollbar-thumb': {
+                      background: 'linear-gradient(135deg, #2196f3 0%, #03a9f4 100%)',
+                      borderRadius: 4,
+                    },
+                  })}
+                >
+                  <Typography
+                    component="pre"
+                    variant="body2"
+                    sx={{
+                      fontFamily: 'JetBrains Mono, Consolas, Monaco, monospace',
+                      whiteSpace: 'pre-wrap',
+                      wordBreak: 'break-word',
+                      m: 0,
+                      color: 'text.primary',
+                      lineHeight: 1.6,
+                      fontSize: '0.875rem'
+                    }}
                   >
-                    {isDeleting ? "Traitement..." : "Réessayer"}
-                  </button>
-                )}
-                <button
-                  type="button"
-                  onClick={handleSaveAdminNote}
-                  disabled={isSavingNote}
-                  className="mt-3 w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-primary-600 text-base font-medium text-white hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
+                    {typeof selectedRequest.payment_details === "object"
+                      ? JSON.stringify(selectedRequest.payment_details, null, 2)
+                      : selectedRequest.payment_details || "Aucun détail fourni"}
+                  </Typography>
+                </Paper>
+              </Box>
+
+              {/* Section de la note administrative */}
+              <Box>
+                <Typography 
+                  variant="h5" 
+                  gutterBottom 
+                  sx={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    mb: 3,
+                    fontWeight: 700,
+                    background: 'linear-gradient(135deg, #4caf50 0%, #8bc34a 100%)',
+                    backgroundClip: 'text',
+                    WebkitBackgroundClip: 'text',
+                    WebkitTextFillColor: 'transparent'
+                  }}
                 >
-                  {isSavingNote ? "Enregistrement..." : "Enregistrer la note"}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setSelectedRequest(null)}
-                  className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 dark:border-gray-600 shadow-sm px-4 py-2 bg-white dark:bg-gray-800 text-base font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 sm:mt-0 sm:w-auto sm:text-sm"
-                >
-                  Fermer
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+                  <Box 
+                    sx={{ 
+                      width: 6, 
+                      height: 30, 
+                      background: 'linear-gradient(135deg, #4caf50 0%, #8bc34a 100%)', 
+                      borderRadius: 3, 
+                      mr: 2,
+                      boxShadow: '0 4px 12px rgba(76, 175, 80, 0.3)'
+                    }} 
+                  />
+                  Note administrative
+                </Typography>
+                <TextField
+                  fullWidth
+                  multiline
+                  rows={4}
+                  value={adminNote}
+                  onChange={(e) => setAdminNote(e.target.value)}
+                  placeholder="Ajouter une note administrative..."
+                  variant="outlined"
+                  sx={(theme) => ({ 
+                    mb: 2,
+                    '& .MuiOutlinedInput-root': {
+                      background: theme.palette.mode === 'dark'
+                        ? 'linear-gradient(135deg, rgba(31, 41, 55, 0.8) 0%, rgba(31, 41, 55, 0.6) 100%)'
+                        : 'linear-gradient(135deg, rgba(255,255,255,0.25) 0%, rgba(255,255,255,0.1) 100%)',
+                      backdropFilter: 'blur(20px)',
+                      borderRadius: 3,
+                      '& fieldset': {
+                        border: theme.palette.mode === 'dark'
+                          ? '1px solid rgba(76, 175, 80, 0.3)'
+                          : '1px solid rgba(76, 175, 80, 0.2)',
+                      },
+                      '&:hover fieldset': {
+                        border: theme.palette.mode === 'dark'
+                          ? '1px solid rgba(76, 175, 80, 0.5)'
+                          : '1px solid rgba(76, 175, 80, 0.4)',
+                      },
+                      '&.Mui-focused fieldset': {
+                        border: '2px solid rgba(76, 175, 80, 0.6)',
+                        boxShadow: '0 0 0 3px rgba(76, 175, 80, 0.1)',
+                      },
+                    },
+                    '& .MuiInputBase-input': {
+                      color: 'text.primary',
+                      fontWeight: 500,
+                    },
+                    '& .MuiInputBase-input::placeholder': {
+                      color: 'text.secondary',
+                      opacity: 0.7,
+                    }
+                  })}
+                />
+              </Box>
+            </DialogContent>
+
+            <Box
+              sx={(theme) => ({
+                background: theme.palette.mode === 'dark'
+                  ? 'linear-gradient(135deg, rgba(31, 41, 55, 0.8) 0%, rgba(31, 41, 55, 0.6) 100%)'
+                  : 'linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.05) 100%)',
+                backdropFilter: 'blur(20px)',
+                borderTop: theme.palette.mode === 'dark'
+                  ? '1px solid rgba(255,255,255,0.05)'
+                  : '1px solid rgba(255,255,255,0.1)',
+              })}
+            >
+              <DialogActions sx={{ p: 4 }}>
+                <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', justifyContent: 'flex-end', width: '100%' }}>
+                  {selectedRequest.status === "pending" && (
+                    <>
+                      <Button
+                        variant="contained"
+                        startIcon={<CheckIcon style={{ width: 20, height: 20 }} />}
+                        onClick={() => handleApproveRequest(selectedRequest.id)}
+                        disabled={isProcessing}
+                        sx={{ 
+                          minWidth: 140,
+                          background: 'linear-gradient(135deg, #4caf50 0%, #8bc34a 100%)',
+                          backdropFilter: 'blur(20px)',
+                          border: '1px solid rgba(76, 175, 80, 0.3)',
+                          borderRadius: 3,
+                          boxShadow: '0 8px 32px rgba(76, 175, 80, 0.3)',
+                          color: 'white',
+                          fontWeight: 600,
+                          textTransform: 'none',
+                          fontSize: '0.95rem',
+                          py: 1.5,
+                          transition: 'all 0.3s ease-in-out',
+                          '&:hover': {
+                            background: 'linear-gradient(135deg, #66bb6a 0%, #9ccc65 100%)',
+                            transform: 'translateY(-2px)',
+                            boxShadow: '0 12px 40px rgba(76, 175, 80, 0.4)',
+                          },
+                          '&:active': {
+                            transform: 'translateY(0px)',
+                          },
+                          '&:disabled': {
+                            background: 'rgba(76, 175, 80, 0.3)',
+                            color: 'rgba(255, 255, 255, 0.5)',
+                          }
+                        }}
+                      >
+                        {isProcessing ? "Traitement..." : "Approuver"}
+                      </Button>
+                      <Button
+                        variant="contained"
+                        startIcon={<XMarkIcon style={{ width: 20, height: 20 }} />}
+                        onClick={() => handleRejectRequest(selectedRequest.id)}
+                        disabled={isProcessing}
+                        sx={{ 
+                          minWidth: 140,
+                          background: 'linear-gradient(135deg, #f44336 0%, #e57373 100%)',
+                          backdropFilter: 'blur(20px)',
+                          border: '1px solid rgba(244, 67, 54, 0.3)',
+                          borderRadius: 3,
+                          boxShadow: '0 8px 32px rgba(244, 67, 54, 0.3)',
+                          color: 'white',
+                          fontWeight: 600,
+                          textTransform: 'none',
+                          fontSize: '0.95rem',
+                          py: 1.5,
+                          transition: 'all 0.3s ease-in-out',
+                          '&:hover': {
+                            background: 'linear-gradient(135deg, #ef5350 0%, #ef9a9a 100%)',
+                            transform: 'translateY(-2px)',
+                            boxShadow: '0 12px 40px rgba(244, 67, 54, 0.4)',
+                          },
+                          '&:active': {
+                            transform: 'translateY(0px)',
+                          },
+                          '&:disabled': {
+                            background: 'rgba(244, 67, 54, 0.3)',
+                            color: 'rgba(255, 255, 255, 0.5)',
+                          }
+                        }}
+                      >
+                        {isProcessing ? "Traitement..." : "Rejeter"}
+                      </Button>
+                    </>
+                  )}
+                  <Button
+                    variant="contained"
+                    onClick={handleSaveAdminNote}
+                    disabled={isSavingNote}
+                    sx={{ 
+                      minWidth: 180,
+                      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                      backdropFilter: 'blur(20px)',
+                      border: '1px solid rgba(102, 126, 234, 0.3)',
+                      borderRadius: 3,
+                      boxShadow: '0 8px 32px rgba(102, 126, 234, 0.3)',
+                      color: 'white',
+                      fontWeight: 600,
+                      textTransform: 'none',
+                      fontSize: '0.95rem',
+                      py: 1.5,
+                      transition: 'all 0.3s ease-in-out',
+                      '&:hover': {
+                        background: 'linear-gradient(135deg, #7986cb 0%, #8e24aa 100%)',
+                        transform: 'translateY(-2px)',
+                        boxShadow: '0 12px 40px rgba(102, 126, 234, 0.4)',
+                      },
+                      '&:active': {
+                        transform: 'translateY(0px)',
+                      },
+                      '&:disabled': {
+                        background: 'rgba(102, 126, 234, 0.3)',
+                        color: 'rgba(255, 255, 255, 0.5)',
+                      }
+                    }}
+                  >
+                    {isSavingNote ? "Enregistrement..." : "Enregistrer la note"}
+                  </Button>
+                  <Button
+                    variant="outlined"
+                    onClick={() => setSelectedRequest(null)}
+                    sx={(theme) => ({ 
+                      minWidth: 120,
+                      background: theme.palette.mode === 'dark'
+                        ? 'rgba(31, 41, 55, 0.8)'
+                        : 'rgba(255, 255, 255, 0.1)',
+                      backdropFilter: 'blur(20px)',
+                      border: theme.palette.mode === 'dark'
+                        ? '1px solid rgba(255, 255, 255, 0.1)'
+                        : '1px solid rgba(255, 255, 255, 0.2)',
+                      borderRadius: 3,
+                      color: 'text.primary',
+                      fontWeight: 600,
+                      textTransform: 'none',
+                      fontSize: '0.95rem',
+                      py: 1.5,
+                      transition: 'all 0.3s ease-in-out',
+                      '&:hover': {
+                        background: theme.palette.mode === 'dark'
+                          ? 'rgba(31, 41, 55, 0.9)'
+                          : 'rgba(255, 255, 255, 0.2)',
+                        border: theme.palette.mode === 'dark'
+                          ? '1px solid rgba(255, 255, 255, 0.2)'
+                          : '1px solid rgba(255, 255, 255, 0.3)',
+                        transform: 'translateY(-2px)',
+                        boxShadow: '0 8px 24px rgba(0, 0, 0, 0.1)',
+                      },
+                      '&:active': {
+                        transform: 'translateY(0px)',
+                      }
+                    })}
+                  >
+                    Fermer
+                  </Button>
+                </Box>
+              </DialogActions>
+            </Box>
+          </>
+        )}
+      </Dialog>
       {/* Toast Container */}
       <ToastContainer
         position="top-right"

@@ -177,14 +177,6 @@ class JetonEsengoController extends Controller
      */
     public function getCadeaux()
     {
-        // Vérifier que l'utilisateur est administrateur
-        if (!Auth::user()->is_admin) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Accès non autorisé'
-            ], 403);
-        }
-        
         $cadeaux = Cadeau::with('pack')->orderBy('nom')->get();
 
         return response()->json([
@@ -204,7 +196,7 @@ class JetonEsengoController extends Controller
     {
         try {
             \Log::info($request->all());
-            // Vérifier que l'utilisateur est administrateur
+            
             if (!Auth::user()->is_admin) {
                 return response()->json([
                     'success' => false,
@@ -212,15 +204,26 @@ class JetonEsengoController extends Controller
                 ], 403);
             }
             
-            $validator = Validator::make($request->all(), [
-                'pack_id' => 'required|exists:packs,id',
-                'nom' => 'required|string|max:255',
-                'description' => 'nullable|string',
-                'image_url' => 'nullable|image|max:1024', // 1MB max, optionnel
-                'valeur' => 'required|numeric|min:0',
-                'probabilite' => 'required|numeric|min:0|max:100',
-                'stock' => 'required|integer|min:0',
-            ]);
+            if ($id) {
+                $validator = Validator::make($request->all(), [
+                    'pack_id' => 'required|exists:packs,id',
+                    'nom' => 'required|string|max:255',
+                    'description' => 'nullable|string',
+                    'valeur' => 'required|numeric|min:0',
+                    'probabilite' => 'required|numeric|min:0|max:100',
+                    'stock' => 'required|integer|min:0',
+                ]);
+            } else {
+                $validator = Validator::make($request->all(), [
+                    'pack_id' => 'required|exists:packs,id',
+                    'nom' => 'required|string|max:255',
+                    'description' => 'nullable|string',
+                    'image_url' => 'nullable|image|max:1024', // 1MB max, optionnel
+                    'valeur' => 'required|numeric|min:0',
+                    'probabilite' => 'required|numeric|min:0|max:100',
+                    'stock' => 'required|integer|min:0',
+                ]);
+            }
 
             \Log::info($validator->errors());
             
@@ -677,13 +680,13 @@ class JetonEsengoController extends Controller
     }
 
     /**
-     * Récupère l'historique des tickets consommés
-     * Cette méthode est réservée aux administrateurs
+     * Récupère l'historique des tickets gagnés
+     * Cette méthode est réservée aux administrateurs avec la permission manage-gifts-history
      *
      * @param Request $request
      * @return \Illuminate\Http\JsonResponse
      */
-    public function getHistoriqueTicketsConsommes(Request $request)
+    public function getHistoriqueTicketsGagnants(Request $request)
     {
         try {
             // Récupérer les tickets consommés avec pagination
@@ -748,8 +751,8 @@ class JetonEsengoController extends Controller
                         'name' => $ticket->user->name,
                         'email' => $ticket->user->email
                     ],
-                    'date_consommation' => $ticket->date_consommation->format('Y-m-d H:i:s'),
-                    'date_expiration' => $ticket->date_expiration->format('Y-m-d H:i:s'),
+                    'date_consommation' => $ticket->date_consommation?->format('Y-m-d H:i:s'),
+                    'date_expiration' => $ticket->date_expiration?->format('Y-m-d H:i:s'),
                     'consomme' => $ticket->consomme
                 ];
             });
@@ -759,6 +762,99 @@ class JetonEsengoController extends Controller
                 'data' => $tickets
             ]);
 
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Une erreur est survenue lors de la récupération de l\'historique des tickets',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Récupère l'historique des tickets gagnants attribués par l'administrateur connecté
+     *
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function getMyHistoriqueTickets(Request $request)
+    {
+        try {
+            // Récupérer les tickets consommés avec pagination
+            $perPage = $request->input('per_page', 10);
+            
+            // Construire la requête avec les filtres
+            $query = TicketGagnant::with('user', 'cadeau')
+                ->where('admin_id', auth()->id());
+            
+            // Filtre par statut de consommation
+            if ($request->has('consomme') && $request->input('consomme') !== '') {
+                $consomme = filter_var($request->input('consomme'), FILTER_VALIDATE_BOOLEAN);
+                $query->where('consomme', $consomme);
+            }
+            
+            // Filtre par recherche textuelle
+            if ($request->has('search') && !empty($request->input('search'))) {
+                $search = $request->input('search');
+                $query->where(function($q) use ($search) {
+                    // Recherche dans le code de vérification
+                    $q->where('code_verification', 'like', "%{$search}%")
+                    // Recherche dans le nom du cadeau
+                    ->orWhereHas('cadeau', function($query) use ($search) {
+                        $query->where('nom', 'like', "%{$search}%");
+                    })
+                    // Recherche dans le nom ou email de l'utilisateur
+                    ->orWhereHas('user', function($query) use ($search) {
+                        $query->where('name', 'like', "%{$search}%")
+                              ->orWhere('email', 'like', "%{$search}%");
+                    });
+                });
+            }
+            
+            // Filtre par date de début
+            if ($request->has('date_debut') && !empty($request->input('date_debut'))) {
+                $dateDebut = $request->input('date_debut');
+                $query->whereDate('date_consommation', '>=', $dateDebut);
+            }
+            
+            // Filtre par date de fin
+            if ($request->has('date_fin') && !empty($request->input('date_fin'))) {
+                $dateFin = $request->input('date_fin');
+                $query->whereDate('date_consommation', '<=', $dateFin);
+            }
+            
+            // Exécuter la requête avec tri et pagination
+            $tickets = $query->orderBy('date_consommation', 'desc')
+                             ->paginate($perPage);
+
+            // Formater les données pour l'affichage
+            $tickets->getCollection()->transform(function ($ticket) {
+                return [
+                    'id' => $ticket->id,
+                    'code_verification' => $ticket->code_verification,
+                    'cadeau' => [
+                        'id' => $ticket->cadeau->id,
+                        'nom' => $ticket->cadeau->nom,
+                        'image_url' => $ticket->cadeau->image_url,
+                        'valeur' => $ticket->cadeau->valeur
+                    ],
+                    'user' => [
+                        'id' => $ticket->user->id,
+                        'name' => $ticket->user->name,
+                        'email' => $ticket->user->email
+                    ],
+                    'date_consommation' => $ticket->date_consommation?->format('Y-m-d H:i:s'),
+                    'date_expiration' => $ticket->date_expiration?->format('Y-m-d H:i:s'),
+                    'consomme' => $ticket->consomme
+                ];
+            });
+            
+            // Retourner les tickets
+            return response()->json([
+                'success' => true,
+                'data' => $tickets
+            ]);
+            
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,

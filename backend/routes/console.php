@@ -21,11 +21,11 @@ Schedule::command('publications:update-status')
     ->appendOutputTo(storage_path('logs/publications-status.log'))
     ->description('Met à jour le statut des publications expirées tous les jours à 00h30');
 
-Schedule::command('transaction-fees:update')
-    ->daily()
-    ->at('01:00')
-    ->appendOutputTo(storage_path('logs/transaction-fees.log'))
-    ->description('Met à jour les frais de transaction depuis l\'API externe tous les jours à 1h du matin');
+// Schedule::command('transaction-fees:update')
+//     ->daily()
+//     ->at('01:00')
+//     ->appendOutputTo(storage_path('logs/transaction-fees.log'))
+//     ->description('Met à jour les frais de transaction depuis l\'API externe tous les jours à 1h du matin');
 
 Schedule::command('app:delete-expired-social-events')
     ->hourly()
@@ -38,28 +38,11 @@ Schedule::command('exchange:update')
     ->appendOutputTo(storage_path('logs/exchange-rates.log'))
     ->description('Met à jour les taux de change des devises depuis une API externe tous les jours à 1h30 du matin');
 
-// Planification de l'attribution des points bonus pour chaque type
-// Bonus sur délais (hebdomadaire - chaque lundi à 00:30)
-Schedule::command('solifin:process-bonus-points weekly')
-    ->weeklyOn(1, '00:30') // 1 = Lundi
-    ->appendOutputTo(storage_path('logs/bonus-points-delais.log'))
-    ->description('Attribue les bonus sur délais (hebdomadaires) aux utilisateurs');
-
 // Jetons Esengo (mensuel - le premier jour de chaque mois à 00:45)
 Schedule::command('solifin:process-bonus-points monthly')
     ->monthlyOn(1, '00:45')
     ->appendOutputTo(storage_path('logs/bonus-points-esengo.log'))
     ->description('Attribue les jetons Esengo (mensuels) aux utilisateurs');
-
-// Enregistrement de la commande d'initialisation des cadeaux
-Artisan::command('solifin:seed-cadeaux', function () {
-    $this->call('solifin:seed-cadeaux');
-})->purpose('Initialise la table des cadeaux avec des données par défaut');
-
-// Enregistrement de la commande d'initialisation des jetons Esengo
-Artisan::command('solifin:seed-jetons-esengo', function () {
-    $this->call('solifin:seed-jetons-esengo');
-})->purpose('Initialise des jetons Esengo de test pour les utilisateurs existants');
 
 // Vérification des jetons Esengo expirés (tous les jours à 01:15)
 Schedule::command('solifin:check-expired-jetons-esengo')

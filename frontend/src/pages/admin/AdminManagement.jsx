@@ -230,15 +230,6 @@ const AdminManagement = () => {
 
   return (
     <div className="p-4">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
-          Gestion des Administrateurs
-        </h1>
-        <p className="text-gray-600 dark:text-gray-400">
-          Gérez les comptes administrateurs.
-        </p>
-      </div>
-
       {/* Composant de création d'administrateurs */}
       <AdminCreation onAdminCreated={fetchAdmins} />
 

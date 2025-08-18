@@ -555,7 +555,7 @@ const Commissions = () => {
           bgcolor: isDarkMode ? "#1D2637" : "background.paper",
         }}
       >
-        <Typography variant="h4" sx={{ mb: 3, fontWeight: 600 }}>
+        <Typography variant="h6" sx={{ mb: 3, fontWeight: 600 }}>
           Gestion des commissions
         </Typography>
 

@@ -130,6 +130,20 @@ return new class extends Migration
                 'created_at' => now(),
                 'updated_at' => now(),
             ],
+            [
+                'key' => 'jeton_expiration_months',
+                'value' => '1',
+                'description' => 'Durée d\'expiration des jetons Esengo en mois',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
+                'key' => 'ticket_expiration_months',
+                'value' => '1',
+                'description' => 'Durée d\'expiration des tickets gagnants en mois',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
         ]);
     }
 
