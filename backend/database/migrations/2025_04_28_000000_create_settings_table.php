@@ -144,6 +144,13 @@ return new class extends Migration
                 'created_at' => now(),
                 'updated_at' => now(),
             ],
+            [
+                'key' => 'essai_duration_days',
+                'value' => '10',
+                'description' => 'Durée de l\'essai en jours pour les nouveaux utilisateurs',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
         ]);
     }
 

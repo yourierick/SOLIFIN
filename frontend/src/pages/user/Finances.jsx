@@ -95,8 +95,6 @@ const Finances = () => {
   // États pour les onglets
   const [activeTab, setActiveTab] = useState(0);
 
-  // États pour les données
-  const [transactions, setTransactions] = useState([]);
   const [summary, setSummary] = useState(null);
   const [transactionStats, setTransactionStats] = useState([]);
   const [walletBalance, setWalletBalance] = useState({
@@ -124,14 +122,12 @@ const Finances = () => {
 
   // États pour le chargement et les erreurs
   const [loading, setLoading] = useState({
-    transactions: false,
     summary: false,
     wallet: false,
     transactionStats: false,
   });
 
   const [error, setError] = useState({
-    transactions: null,
     summary: null,
     wallet: null,
     transactionStats: null,
@@ -217,14 +213,6 @@ const Finances = () => {
     }
   }, [isSmallScreen, activeTab]);
 
-  // Gestionnaire de changement de page pour les transactions
-  const handleTransactionPageChange = (event, newPage) => {
-    setTransactionPagination((prev) => ({
-      ...prev,
-      page: newPage,
-    }));
-  };
-
   // Gestionnaire de changement de filtre
   const handleFilterChange = useCallback((name, value) => {
     setFilters((prev) => ({
@@ -244,89 +232,6 @@ const Finances = () => {
       search: "",
     });
   }, []);
-  // Fonction pour récupérer les transactions
-  const fetchTransactions = useCallback(async () => {
-    try {
-      setLoading((prev) => ({ ...prev, transactions: true }));
-      setError((prev) => ({ ...prev, transactions: null }));
-
-      const params = {
-        page: transactionPagination.page + 1,
-        ...filters,
-      };
-
-      const response = await axios.get("/api/user/finances/transactions", {
-        params,
-      });
-
-      if (!response.data || !response.data.success) {
-        throw new Error(
-          response.data?.message ||
-            "Erreur lors de la récupération des transactions"
-        );
-      }
-
-      // Accéder aux données de transactions et au portefeuille
-      const transactionsData = response.data.data;
-      const walletData = response.data.wallet || {};
-
-      // S'assurer que transactions est toujours un tableau
-      const transactionsArray = Array.isArray(transactionsData.data)
-        ? transactionsData.data
-        : [];
-      setTransactions(transactionsArray);
-
-      // Extraire les packs distincts des transactions
-      const distinctPacks = [];
-      transactionsArray.forEach((transaction) => {
-        if (transaction.pack && transaction.pack.id && transaction.pack.name) {
-          const packExists = distinctPacks.some(
-            (pack) => pack.id === transaction.pack.id
-          );
-          if (!packExists) {
-            distinctPacks.push({
-              id: transaction.pack.id,
-              name: transaction.pack.name,
-            });
-          }
-        }
-      });
-      setPackOptions(distinctPacks);
-
-      // Mettre à jour le solde du portefeuille si disponible
-      if (walletData.balance !== undefined) {
-        setWalletBalance((prev) => ({
-          ...prev,
-          balance: parseFloat(walletData.balance) || 0,
-          totalEarned: parseFloat(walletData.total_earned) || 0,
-          totalWithdrawn: parseFloat(walletData.total_withdrawn) || 0,
-        }));
-      }
-
-      // S'assurer que les valeurs de pagination sont des nombres valides
-      const currentPage = parseInt(transactionsData.current_page, 10);
-      const perPage = parseInt(transactionsData.per_page, 10);
-      const totalItems = parseInt(transactionsData.total, 10);
-      const lastPage = parseInt(transactionsData.last_page, 10);
-
-      setTransactionPagination({
-        page: !isNaN(currentPage) ? currentPage - 1 : 0,
-        totalPages: !isNaN(lastPage) ? lastPage : 0,
-        totalItems: !isNaN(totalItems) ? totalItems : 0,
-        perPage: !isNaN(perPage) ? perPage : 10,
-      });
-    } catch (err) {
-      console.error("Erreur lors de la récupération des transactions:", err);
-      setError((prev) => ({
-        ...prev,
-        transactions:
-          err.message ||
-          "Impossible de récupérer les transactions. Veuillez réessayer.",
-      }));
-    } finally {
-      setLoading((prev) => ({ ...prev, transactions: false }));
-    }
-  }, [filters, transactionPagination.page]);
 
   // Fonction pour récupérer le résumé financier
   const fetchSummary = useCallback(async () => {
@@ -463,28 +368,12 @@ const Finances = () => {
     fetchTransactionStatsByType();
   }, [fetchSummary, fetchWalletBalance, fetchTransactionStatsByType]);
 
-  // Effet pour charger les transactions lorsque les filtres ou la pagination changent
-  useEffect(() => {
-    if (activeTab === 0) {
-      fetchTransactions();
-    }
-  }, [activeTab, fetchTransactions]);
-
   // Effet pour charger les statistiques lorsque les filtres changent
   useEffect(() => {
     if (activeTab === 2) {
       fetchTransactionStatsByType();
     }
   }, [activeTab, statsFilters, fetchTransactionStatsByType]);
-
-  // Effet pour charger les points bonus lorsque les filtres ou la pagination changent
-  // useEffect(() => {
-  //   if (activeTab === 1) {
-  //     fetchBonusPoints();
-  //   } else if (activeTab === 2) {
-  //     fetchTransactionStatsByType();
-  //   }
-  // }, [activeTab, fetchBonusPoints, fetchTransactionStatsByType]);
 
   // Données pour le graphique des transactions
   const transactionChartData = useMemo(() => {
@@ -804,235 +693,6 @@ const Finances = () => {
           </Button>
         </DialogActions>
       </Dialog>
-    );
-  };
-
-  // Composant pour afficher le tableau des transactions
-  const TransactionsTable = () => {
-    // Fonction pour extraire et formater les métadonnées
-    const formatMetadata = (metadata) => {
-      if (!metadata) return "-";
-      try {
-        // Si les métadonnées sont une chaîne JSON, les convertir en objet
-        const metaObj =
-          typeof metadata === "string" ? JSON.parse(metadata) : metadata;
-
-        // Prendre les deux premières clés si elles existent
-        const keys = Object.keys(metaObj).slice(0, 2);
-        if (keys.length === 0) return "-";
-
-        return keys.map((key) => `${key}: ${metaObj[key]}`).join(", ");
-      } catch (error) {
-        console.error("Erreur lors du traitement des métadonnées:", error);
-        return "-";
-      }
-    };
-
-    return (
-      <TableContainer
-        component={Paper}
-        sx={{
-          mb: 3,
-          borderRadius: 3,
-          overflow: "hidden",
-          border: `1px solid ${isDarkMode ? "#374151" : "#e5e7eb"}`,
-          boxShadow: "none",
-          bgcolor: isDarkMode ? "#1f2937" : "#e5e7eb",
-          "&:hover": {
-            boxShadow: isDarkMode
-              ? "0 8px 20px rgba(0, 0, 0, 0.3)"
-              : "0 8px 20px rgba(0, 0, 0, 0.1)",
-          },
-          transition: "all 0.3s ease",
-        }}
-      >
-        <Table
-          size="small"
-          sx={{
-            bgcolor: isDarkMode
-              ? "rgba(31, 41, 55, 0.5)"
-              : "rgba(249, 250, 251, 0.8)",
-          }}
-        >
-          <TableHead>
-            <TableRow
-              sx={{
-                bgcolor: isDarkMode
-                  ? "rgba(17, 24, 39, 0.7)"
-                  : "rgba(243, 244, 246, 0.7)",
-              }}
-            >
-              <TableCell sx={{ fontWeight: 600, py: 1.5 }}>ID</TableCell>
-              <TableCell sx={{ fontWeight: 600, py: 1.5 }}>Type</TableCell>
-              <TableCell sx={{ fontWeight: 600, py: 1.5 }}>Montant</TableCell>
-              <TableCell sx={{ fontWeight: 600, py: 1.5 }}>Statut</TableCell>
-              <TableCell sx={{ fontWeight: 600, py: 1.5 }}>Date</TableCell>
-              <TableCell sx={{ fontWeight: 600, py: 1.5 }}>
-                Description
-              </TableCell>
-              <TableCell sx={{ fontWeight: 600, py: 1.5 }}>Actions</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {loading.transactions ? (
-              Array.from(new Array(5)).map((_, index) => (
-                <TableRow key={index}>
-                  <TableCell colSpan={7}>
-                    <Skeleton animation="wave" height={30} />
-                  </TableCell>
-                </TableRow>
-              ))
-            ) : !Array.isArray(transactions) || transactions.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={7} align="center">
-                  Aucune transaction trouvée
-                </TableCell>
-              </TableRow>
-            ) : (
-              transactions.map((transaction) => (
-                <TableRow key={transaction.id} hover>
-                  <TableCell>{transaction.id}</TableCell>
-                  <TableCell>
-                    <Chip
-                      size="small"
-                      label={
-                        transaction.type === "withdrawal"
-                          ? "Retrait"
-                          : transaction.type === "purchase"
-                          ? "Achat"
-                          : transaction.type === "virtual_purchase"
-                          ? "Virtuels"
-                          : transaction.type === "sale"
-                          ? "Vente"
-                          : transaction.type === "transfer"
-                          ? "Transfert des fonds"
-                          : transaction.type === "reception"
-                          ? "Réception des fonds"
-                          : transaction.type
-                      }
-                      color={
-                        transaction.type === "reception" ||
-                        transaction.type === "sale" ||
-                        transaction.type === "commission de parrainage" ||
-                        transaction.type === "commission de retrait" ||
-                        transaction.type === "commission de transfert" ||
-                        transaction.type === "virtual_purchase"
-                          ? "success"
-                          : transaction.type === "withdrawal" ||
-                            transaction.type === "transfer" ||
-                            transaction.type === "purchase"
-                          ? "warning"
-                          : "primary"
-                      }
-                      icon={
-                        transaction.type === "sale" ||
-                        transaction.type === "commission de parrainage" ||
-                        transaction.type === "commission de transfert" ||
-                        transaction.type === "virtual_purchase" ? (
-                          <ArrowDownwardIcon fontSize="small" />
-                        ) : transaction.type === "withdrawal" ||
-                          transaction.type === "purchase" ||
-                          transaction.type === "transfer" ? (
-                          <ArrowUpwardIcon fontSize="small" />
-                        ) : (
-                          <ReceiptIcon fontSize="small" />
-                        )
-                      }
-                      sx={{ fontWeight: 500 }}
-                    />
-                  </TableCell>
-                  <TableCell
-                    sx={{
-                      color:
-                        transaction.type === "reception" ||
-                        transaction.type === "sale" ||
-                        transaction.type === "commission de parrainage" ||
-                        transaction.type === "commission de retrait" ||
-                        transaction.type === "commission de transfert" ||
-                        transaction.type === "virtual_purchase"
-                          ? "success.main"
-                          : transaction.type === "withdrawal" ||
-                            transaction.type === "transfer" ||
-                            transaction.type === "purchase"
-                          ? "error.main"
-                          : "text.primary",
-                      fontWeight: 500,
-                    }}
-                  >
-                    {transaction.type === "reception" ||
-                    transaction.type === "sale" ||
-                    transaction.type === "commission de parrainage" ||
-                    transaction.type === "commission de retrait" ||
-                    transaction.type === "commission de transfert" ||
-                    transaction.type === "virtual_purchase"
-                      ? `+${formatAmount(transaction.amount)}`
-                      : transaction.type === "withdrawal" ||
-                        transaction.type === "purchase" ||
-                        transaction.type === "transfer"
-                      ? `-${formatAmount(transaction.amount)}`
-                      : formatAmount(transaction.amount)}
-                  </TableCell>
-                  <TableCell>
-                    <Chip
-                      size="small"
-                      label={
-                        transaction.status === "completed"
-                          ? "complété"
-                          : transaction.status === "pending"
-                          ? "en attente"
-                          : transaction.status === "cancelled"
-                          ? "annulé"
-                          : transaction.status === "failed"
-                          ? "échoué"
-                          : transaction.status
-                      }
-                      color={
-                        transaction.status === "completed"
-                          ? "success"
-                          : transaction.status === "pending"
-                          ? "primary"
-                          : transaction.status === "cancelled"
-                          ? "warning"
-                          : transaction.status === "failed"
-                          ? "error"
-                          : "error"
-                      }
-                      variant="outlined"
-                    />
-                  </TableCell>
-                  <TableCell>{formatDate(transaction.created_at)}</TableCell>
-                  <TableCell>{formatMetadata(transaction.metadata)}</TableCell>
-                  <TableCell>
-                    <IconButton
-                      size="small"
-                      color="primary"
-                      onClick={() => handleOpenModal(transaction)}
-                      title="Voir les détails"
-                    >
-                      <InfoIcon fontSize="small" />
-                    </IconButton>
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-        <TablePagination
-          component="div"
-          count={transactionPagination.totalItems || 0}
-          page={
-            Number.isNaN(transactionPagination.page)
-              ? 0
-              : transactionPagination.page
-          }
-          onPageChange={handleTransactionPageChange}
-          rowsPerPage={transactionPagination.perPage || 10}
-          rowsPerPageOptions={[10, 25, 50]}
-          labelDisplayedRows={({ from, to, count }) =>
-            `${from}-${to} sur ${count !== -1 ? count : `plus de ${to}`}`
-          }
-        />
-      </TableContainer>
     );
   };
 
@@ -1880,12 +1540,6 @@ const Finances = () => {
               sx={{ fontWeight: 600, textTransform: "none" }}
             />
             <Tab
-              label="Transactions"
-              icon={<ReceiptIcon />}
-              iconPosition="start"
-              sx={{ fontWeight: 600, textTransform: "none" }}
-            />
-            <Tab
               label="Statistiques"
               icon={<InfoIcon />}
               iconPosition="start"
@@ -1912,21 +1566,8 @@ const Finances = () => {
         {/* Onglet Portefeuille */}
         {activeTab === 0 && <Wallets />}
 
-        {/* Onglet Transactions */}
-        {activeTab === 1 && (
-          <>
-            <TransactionFilters />
-            {error.transactions && (
-              <Alert severity="error" sx={{ mb: 3 }}>
-                {error.transactions}
-              </Alert>
-            )}
-            <TransactionsTable />
-          </>
-        )}
-
         {/* Onglet Statistiques */}
-        {activeTab === 2 && (
+        {activeTab === 1 && (
           <>
             {/* Filtres pour les statistiques */}
             <Paper
@@ -2380,10 +2021,10 @@ const Finances = () => {
         )}
 
         {/* Onglet Jetons Esengo */}
-        {activeTab === 3 && <JetonsEsengo />}
+        {activeTab === 2 && <JetonsEsengo />}
 
         {/* Onglet Demandes de retrait */}
-        {activeTab === 4 && <WithdrawalRequests />}
+        {activeTab === 3 && <WithdrawalRequests />}
       </Box>
     </Container>
   );

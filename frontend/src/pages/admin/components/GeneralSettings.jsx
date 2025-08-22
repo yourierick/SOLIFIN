@@ -11,6 +11,8 @@ import "react-toastify/dist/ReactToastify.css";
 import { useTheme } from "../../../contexts/ThemeContext";
 import ReactMarkdown from "react-markdown";
 import rehypeSanitize from "rehype-sanitize";
+import * as framerMotion from "framer-motion";
+const { motion } = framerMotion;
 
 // Définition des paramètres figés
 const FIXED_SETTINGS = [
@@ -68,6 +70,32 @@ const FIXED_SETTINGS = [
     placeholder: "1.5%",
     category: "finance",
     isNumber: true,
+  },
+  {
+    key: "jeton_expiration_months",
+    label: "Durée d'expiration des jetons Esengo",
+    description:
+      "Durée d'expiration des jetons Esengo en mois pour les nouveaux utilisateurs",
+    placeholder: "10",
+    category: "period",
+    isNumber: false,
+  },
+  {
+    key: "ticket_expiration_months",
+    label: "Durée d'expiration des tickets gagnants",
+    description:
+      "Durée d'expiration des tickets gagnants en mois pour les nouveaux utilisateurs",
+    placeholder: "10",
+    category: "period",
+    isNumber: false,
+  },
+  {
+    key: "essai_duration_days",
+    label: "Durée de l'essai",
+    description: "Durée de l'essai en jours pour les nouveaux utilisateurs",
+    placeholder: "10",
+    category: "period",
+    isNumber: false,
   },
   // Réseaux sociaux
   {
@@ -156,6 +184,7 @@ const GeneralSettings = () => {
     { id: "social", label: "Réseaux sociaux" },
     { id: "legal", label: "Documents légaux" },
     { id: "about", label: "À propos" },
+    { id: "period", label: "Période et validité" },
   ];
 
   // Fonction pour filtrer les paramètres par catégorie
@@ -238,38 +267,38 @@ const GeneralSettings = () => {
   // Fonction pour gérer les changements dans le formulaire
   const handleChange = (e) => {
     const { name, value, files } = e.target;
-    
+
     // Si c'est un téléchargement de fichier
     if (name === "file" && files && files.length > 0) {
       const file = files[0];
-      
+
       // Vérifier le type de fichier
       if (!file.type.match("image/(jpeg|jpg|png)")) {
         setErrors((prev) => ({
           ...prev,
-          file: "Format de fichier non supporté. Utilisez JPG ou PNG."
+          file: "Format de fichier non supporté. Utilisez JPG ou PNG.",
         }));
         return;
       }
-      
+
       // Vérifier la taille du fichier (max 2MB)
       if (file.size > 2 * 1024 * 1024) {
         setErrors((prev) => ({
           ...prev,
-          file: "L'image est trop volumineuse. Maximum 2MB."
+          file: "L'image est trop volumineuse. Maximum 2MB.",
         }));
         return;
       }
-      
+
       setSelectedFile(file);
-      
+
       // Créer une URL pour la prévisualisation
       const fileReader = new FileReader();
       fileReader.onload = (e) => {
         setPreviewUrl(e.target.result);
       };
       fileReader.readAsDataURL(file);
-      
+
       // Effacer l'erreur pour ce champ
       if (errors.file) {
         setErrors((prev) => ({
@@ -351,25 +380,25 @@ const GeneralSettings = () => {
 
     try {
       setSubmitting(true);
-      
+
       // Vérifier si nous avons un fichier à télécharger pour la photo du fondateur
       if (selectedFile && currentSetting && currentSetting.isUploadable) {
         // Créer un FormData pour envoyer le fichier
         const formDataWithFile = new FormData();
-        formDataWithFile.append('file', selectedFile);
-        formDataWithFile.append('description', formData.description);
-        
+        formDataWithFile.append("file", selectedFile);
+        formDataWithFile.append("description", formData.description);
+
         // Envoyer le fichier au serveur
         const uploadResponse = await axios.post(
           `/api/admin/settings/upload/${formData.key}`,
           formDataWithFile,
           {
             headers: {
-              'Content-Type': 'multipart/form-data'
-            }
+              "Content-Type": "multipart/form-data",
+            },
           }
         );
-        
+
         if (uploadResponse.data.success) {
           toast.success(uploadResponse.data.message);
           setRefreshKey((prev) => prev + 1); // Déclencher une actualisation
@@ -422,20 +451,29 @@ const GeneralSettings = () => {
       ) : (
         <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
           {/* Onglets de catégories */}
-          <div className="flex space-x-2 mb-6 overflow-x-auto pb-2">
-            {categories.map((category) => (
-              <button
-                key={category.id}
-                onClick={() => setActiveTab(category.id)}
-                className={`px-4 py-2 rounded-lg transition-colors ${
-                  activeTab === category.id
-                    ? "bg-primary-600 text-white"
-                    : "bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600"
-                }`}
-              >
-                {category.label}
-              </button>
-            ))}
+          <div className="relative mb-8">
+            <div className="flex space-x-1 overflow-x-auto pb-2 border-b border-gray-200 dark:border-gray-700">
+              {categories.map((category) => (
+                <button
+                  key={category.id}
+                  onClick={() => setActiveTab(category.id)}
+                  className={`px-5 py-2.5 rounded-t-lg font-medium text-sm transition-all duration-200 relative ${activeTab === category.id 
+                    ? "text-primary-600 dark:text-primary-400" 
+                    : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"}`}
+                >
+                  <span className="relative z-10">{category.label}</span>
+                  {activeTab === category.id && (
+                    <motion.div 
+                      className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary-600 dark:bg-primary-400 transform -translate-y-0"
+                      layoutId="activeTab"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ duration: 0.3 }}
+                    />
+                  )}
+                </button>
+              ))}
+            </div>
           </div>
           {/* Affichage des paramètres par catégorie */}
           <div className="overflow-x-auto">
@@ -466,31 +504,112 @@ const GeneralSettings = () => {
                           <PencilIcon className="h-5 w-5" />
                         </button>
                       </div>
-                      
+
                       {setting && setting.value ? (
                         <div className="bg-white dark:bg-gray-800 p-5 rounded">
                           <div className="prose dark:prose-invert max-w-none prose-sm overflow-y-auto max-h-96 legal-document">
-                            <ReactMarkdown 
+                            <ReactMarkdown
                               rehypePlugins={[rehypeSanitize]}
                               components={{
-                                p: ({node, ...props}) => <p className="mb-4 text-base leading-relaxed" {...props} />,
-                                h1: ({node, ...props}) => <h1 className="text-2xl font-bold mb-4 mt-6 border-b pb-2 border-gray-200 dark:border-gray-700" {...props} />,
-                                h2: ({node, ...props}) => <h2 className="text-xl font-bold mb-3 mt-5" {...props} />,
-                                h3: ({node, ...props}) => <h3 className="text-lg font-bold mb-2 mt-4" {...props} />,
-                                h4: ({node, ...props}) => <h4 className="text-base font-bold mb-2 mt-3" {...props} />,
-                                ul: ({node, ...props}) => <ul className="list-disc pl-5 mb-4 space-y-2" {...props} />,
-                                ol: ({node, ...props}) => <ol className="list-decimal pl-5 mb-4 space-y-2" {...props} />,
-                                li: ({node, ...props}) => <li className="mb-1" {...props} />,
-                                a: ({node, ...props}) => <a className="text-blue-600 hover:underline" {...props} />,
-                                blockquote: ({node, ...props}) => <blockquote className="border-l-4 border-gray-300 dark:border-gray-600 pl-4 italic my-4" {...props} />,
-                                code: ({node, inline, ...props}) => 
-                                  inline ? <code className="bg-gray-100 dark:bg-gray-800 px-1 py-0.5 rounded text-sm" {...props} /> : 
-                                  <code className="block bg-gray-100 dark:bg-gray-800 p-2 rounded text-sm overflow-x-auto my-4" {...props} />,
-                                pre: ({node, ...props}) => <pre className="bg-gray-100 dark:bg-gray-800 p-4 rounded overflow-x-auto my-4" {...props} />,
-                                hr: ({node, ...props}) => <hr className="my-6 border-t border-gray-300 dark:border-gray-600" {...props} />,
-                                table: ({node, ...props}) => <table className="min-w-full divide-y divide-gray-300 dark:divide-gray-600 my-4" {...props} />,
-                                th: ({node, ...props}) => <th className="px-3 py-2 text-left font-semibold bg-gray-100 dark:bg-gray-700" {...props} />,
-                                td: ({node, ...props}) => <td className="px-3 py-2 border-t border-gray-200 dark:border-gray-700" {...props} />
+                                p: ({ node, ...props }) => (
+                                  <p
+                                    className="mb-4 text-base leading-relaxed"
+                                    {...props}
+                                  />
+                                ),
+                                h1: ({ node, ...props }) => (
+                                  <h1
+                                    className="text-2xl font-bold mb-4 mt-6 border-b pb-2 border-gray-200 dark:border-gray-700"
+                                    {...props}
+                                  />
+                                ),
+                                h2: ({ node, ...props }) => (
+                                  <h2
+                                    className="text-xl font-bold mb-3 mt-5"
+                                    {...props}
+                                  />
+                                ),
+                                h3: ({ node, ...props }) => (
+                                  <h3
+                                    className="text-lg font-bold mb-2 mt-4"
+                                    {...props}
+                                  />
+                                ),
+                                h4: ({ node, ...props }) => (
+                                  <h4
+                                    className="text-base font-bold mb-2 mt-3"
+                                    {...props}
+                                  />
+                                ),
+                                ul: ({ node, ...props }) => (
+                                  <ul
+                                    className="list-disc pl-5 mb-4 space-y-2"
+                                    {...props}
+                                  />
+                                ),
+                                ol: ({ node, ...props }) => (
+                                  <ol
+                                    className="list-decimal pl-5 mb-4 space-y-2"
+                                    {...props}
+                                  />
+                                ),
+                                li: ({ node, ...props }) => (
+                                  <li className="mb-1" {...props} />
+                                ),
+                                a: ({ node, ...props }) => (
+                                  <a
+                                    className="text-blue-600 hover:underline"
+                                    {...props}
+                                  />
+                                ),
+                                blockquote: ({ node, ...props }) => (
+                                  <blockquote
+                                    className="border-l-4 border-gray-300 dark:border-gray-600 pl-4 italic my-4"
+                                    {...props}
+                                  />
+                                ),
+                                code: ({ node, inline, ...props }) =>
+                                  inline ? (
+                                    <code
+                                      className="bg-gray-100 dark:bg-gray-800 px-1 py-0.5 rounded text-sm"
+                                      {...props}
+                                    />
+                                  ) : (
+                                    <code
+                                      className="block bg-gray-100 dark:bg-gray-800 p-2 rounded text-sm overflow-x-auto my-4"
+                                      {...props}
+                                    />
+                                  ),
+                                pre: ({ node, ...props }) => (
+                                  <pre
+                                    className="bg-gray-100 dark:bg-gray-800 p-4 rounded overflow-x-auto my-4"
+                                    {...props}
+                                  />
+                                ),
+                                hr: ({ node, ...props }) => (
+                                  <hr
+                                    className="my-6 border-t border-gray-300 dark:border-gray-600"
+                                    {...props}
+                                  />
+                                ),
+                                table: ({ node, ...props }) => (
+                                  <table
+                                    className="min-w-full divide-y divide-gray-300 dark:divide-gray-600 my-4"
+                                    {...props}
+                                  />
+                                ),
+                                th: ({ node, ...props }) => (
+                                  <th
+                                    className="px-3 py-2 text-left font-semibold bg-gray-100 dark:bg-gray-700"
+                                    {...props}
+                                  />
+                                ),
+                                td: ({ node, ...props }) => (
+                                  <td
+                                    className="px-3 py-2 border-t border-gray-200 dark:border-gray-700"
+                                    {...props}
+                                  />
+                                ),
                               }}
                             >
                               {setting.value}
@@ -638,159 +757,313 @@ const GeneralSettings = () => {
             </button>
           </div>
           <div className="overflow-y-auto flex-1">
-          <form onSubmit={handleSubmit} className="p-4">
-            <div className="space-y-4">
-              <div>
-                <label
-                  htmlFor="key"
-                  className="block text-sm font-medium text-gray-700 dark:text-gray-300"
-                >
-                  Clé
-                </label>
-                <input
-                  type="text"
-                  id="key"
-                  name="key"
-                  value={formData.key}
-                  readOnly
-                  className="mt-1 block w-full px-3 py-2 bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-primary-500 focus:border-primary-500"
-                />
-              </div>
+            <form onSubmit={handleSubmit} className="p-4">
+              <div className="space-y-4">
+                <div>
+                  <label
+                    htmlFor="key"
+                    className="block text-sm font-medium text-gray-700 dark:text-gray-300"
+                  >
+                    Clé
+                  </label>
+                  <input
+                    type="text"
+                    id="key"
+                    name="key"
+                    value={formData.key}
+                    readOnly
+                    className="mt-1 block w-full px-3 py-2 bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-primary-500 focus:border-primary-500"
+                  />
+                </div>
 
-              {/* Champ de valeur dynamique selon le type de paramètre */}
-              <div>
-                <label
-                  htmlFor="value"
-                  className="block text-sm font-medium text-gray-700 dark:text-gray-300"
-                >
-                  Valeur {currentSetting && currentSetting.category === "legal" && "(Supporte le format Markdown)"}
-                </label>
-                
-                {/* Guide Markdown pour les documents légaux */}
-                {currentSetting && currentSetting.category === "legal" && (
-                  <div className="mb-2 p-2 bg-gray-50 dark:bg-gray-800 rounded text-xs text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700">
-                    <p className="font-medium mb-1">Formatage Markdown :</p>
-                    <ul className="list-disc pl-4 space-y-1">
-                      <li><code># Titre</code> pour les grands titres</li>
-                      <li><code>## Sous-titre</code> pour les sous-titres</li>
-                      <li><code>**texte**</code> pour du <strong>texte en gras</strong></li>
-                      <li><code>*texte*</code> pour du <em>texte en italique</em></li>
-                      <li><code>- élément</code> pour des listes à puces</li>
-                      <li><code>[texte](url)</code> pour des liens</li>
-                    </ul>
-                  </div>
-                )}
-                
-                {/* Champ texte long avec prévisualisation Markdown */}
-                {currentSetting && currentSetting.isLongText && (
-                  <div>
-                    <textarea
-                      id="value"
-                      name="value"
-                      rows={8}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:text-white"
-                      value={formData.value}
-                      onChange={handleChange}
-                    />
-                    {errors.value && (
-                      <p className="mt-1 text-sm text-red-600 dark:text-red-400">
-                        {errors.value}
-                      </p>
-                    )}
-                    
-                    {/* Prévisualisation Markdown pour les documents légaux */}
-                    {currentSetting.category === "legal" && formData.value && (
-                      <div className="mt-4">
-                        <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Prévisualisation</h4>
-                        <div className="border border-gray-300 dark:border-gray-600 rounded-md p-4 bg-white dark:bg-gray-800 prose dark:prose-invert prose-sm max-h-60 overflow-y-auto">
-                          <ReactMarkdown 
-                            rehypePlugins={[rehypeSanitize]}
-                            components={{
-                              p: ({node, ...props}) => <p className="mb-4 text-base leading-relaxed" {...props} />,
-                              h1: ({node, ...props}) => <h1 className="text-2xl font-bold mb-4 mt-6 border-b pb-2 border-gray-200 dark:border-gray-700" {...props} />,
-                              h2: ({node, ...props}) => <h2 className="text-xl font-bold mb-3 mt-5" {...props} />,
-                              h3: ({node, ...props}) => <h3 className="text-lg font-bold mb-2 mt-4" {...props} />,
-                              h4: ({node, ...props}) => <h4 className="text-base font-bold mb-2 mt-3" {...props} />,
-                              ul: ({node, ...props}) => <ul className="list-disc pl-5 mb-4 space-y-2" {...props} />,
-                              ol: ({node, ...props}) => <ol className="list-decimal pl-5 mb-4 space-y-2" {...props} />,
-                              li: ({node, ...props}) => <li className="mb-1" {...props} />,
-                              a: ({node, ...props}) => <a className="text-blue-600 hover:underline" {...props} />,
-                              blockquote: ({node, ...props}) => <blockquote className="border-l-4 border-gray-300 dark:border-gray-600 pl-4 italic my-4" {...props} />,
-                              code: ({node, inline, ...props}) => 
-                                inline ? <code className="bg-gray-100 dark:bg-gray-800 px-1 py-0.5 rounded text-sm" {...props} /> : 
-                                <code className="block bg-gray-100 dark:bg-gray-800 p-2 rounded text-sm overflow-x-auto my-4" {...props} />,
-                              pre: ({node, ...props}) => <pre className="bg-gray-100 dark:bg-gray-800 p-4 rounded overflow-x-auto my-4" {...props} />,
-                              hr: ({node, ...props}) => <hr className="my-6 border-t border-gray-300 dark:border-gray-600" {...props} />,
-                              table: ({node, ...props}) => <table className="min-w-full divide-y divide-gray-300 dark:divide-gray-600 my-4" {...props} />,
-                              th: ({node, ...props}) => <th className="px-3 py-2 text-left font-semibold bg-gray-100 dark:bg-gray-700" {...props} />,
-                              td: ({node, ...props}) => <td className="px-3 py-2 border-t border-gray-200 dark:border-gray-700" {...props} />
-                            }}
-                          >
-                            {formData.value}
-                          </ReactMarkdown>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-                
-                {/* Champ pour les images avec prévisualisation */}
-                {currentSetting && currentSetting.isImage && (
-                  <div className="space-y-4">
-                    {/* Option de téléchargement pour la photo du fondateur */}
-                    {currentSetting.isUploadable && (
-                      <div className="space-y-2">
-                        <label htmlFor="file" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                          Télécharger une image
-                        </label>
-                        <div className="flex items-center space-x-2">
-                          <input
-                            type="file"
-                            id="file"
-                            name="file"
-                            accept="image/jpeg,image/jpg,image/png"
-                            onChange={handleChange}
-                            className={`block w-full text-sm text-gray-700 dark:text-gray-300 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-primary-50 file:text-primary-700 dark:file:bg-primary-900 dark:file:text-primary-300 hover:file:bg-primary-100 dark:hover:file:bg-primary-800 ${errors.file ? "border-red-500" : ""}`}
-                          />
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setSelectedFile(null);
-                              setPreviewUrl("");
-                            }}
-                            className="px-2 py-1 text-xs text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"
-                          >
-                            Effacer
-                          </button>
-                        </div>
-                        {errors.file && (
-                          <p className="mt-1 text-sm text-red-600 dark:text-red-400">
-                            {errors.file}
-                          </p>
-                        )}
-                        <p className="text-xs text-gray-500 dark:text-gray-400">
-                          Formats acceptés: JPG, PNG. Taille max: 2MB
+                {/* Champ de valeur dynamique selon le type de paramètre */}
+                <div>
+                  <label
+                    htmlFor="value"
+                    className="block text-sm font-medium text-gray-700 dark:text-gray-300"
+                  >
+                    Valeur{" "}
+                    {currentSetting &&
+                      currentSetting.category === "legal" &&
+                      "(Supporte le format Markdown)"}
+                  </label>
+
+                  {/* Guide Markdown pour les documents légaux */}
+                  {currentSetting && currentSetting.category === "legal" && (
+                    <div className="mb-2 p-2 bg-gray-50 dark:bg-gray-800 rounded text-xs text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700">
+                      <p className="font-medium mb-1">Formatage Markdown :</p>
+                      <ul className="list-disc pl-4 space-y-1">
+                        <li>
+                          <code># Titre</code> pour les grands titres
+                        </li>
+                        <li>
+                          <code>## Sous-titre</code> pour les sous-titres
+                        </li>
+                        <li>
+                          <code>**texte**</code> pour du{" "}
+                          <strong>texte en gras</strong>
+                        </li>
+                        <li>
+                          <code>*texte*</code> pour du{" "}
+                          <em>texte en italique</em>
+                        </li>
+                        <li>
+                          <code>- élément</code> pour des listes à puces
+                        </li>
+                        <li>
+                          <code>[texte](url)</code> pour des liens
+                        </li>
+                      </ul>
+                    </div>
+                  )}
+
+                  {/* Champ texte long avec prévisualisation Markdown */}
+                  {currentSetting && currentSetting.isLongText && (
+                    <div>
+                      <textarea
+                        id="value"
+                        name="value"
+                        rows={8}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:text-white"
+                        value={formData.value}
+                        onChange={handleChange}
+                      />
+                      {errors.value && (
+                        <p className="mt-1 text-sm text-red-600 dark:text-red-400">
+                          {errors.value}
                         </p>
-                        {previewUrl && (
-                          <div className="mt-2 border dark:border-gray-600 rounded-md p-2">
-                            <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
-                              Aperçu du fichier téléchargé:
-                            </p>
-                            <img
-                              src={previewUrl}
-                              alt="Aperçu"
-                              className="max-h-40 mx-auto object-contain"
-                            />
+                      )}
+
+                      {/* Prévisualisation Markdown pour les documents légaux */}
+                      {currentSetting.category === "legal" &&
+                        formData.value && (
+                          <div className="mt-4">
+                            <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                              Prévisualisation
+                            </h4>
+                            <div className="border border-gray-300 dark:border-gray-600 rounded-md p-4 bg-white dark:bg-gray-800 prose dark:prose-invert prose-sm max-h-60 overflow-y-auto">
+                              <ReactMarkdown
+                                rehypePlugins={[rehypeSanitize]}
+                                components={{
+                                  p: ({ node, ...props }) => (
+                                    <p
+                                      className="mb-4 text-base leading-relaxed"
+                                      {...props}
+                                    />
+                                  ),
+                                  h1: ({ node, ...props }) => (
+                                    <h1
+                                      className="text-2xl font-bold mb-4 mt-6 border-b pb-2 border-gray-200 dark:border-gray-700"
+                                      {...props}
+                                    />
+                                  ),
+                                  h2: ({ node, ...props }) => (
+                                    <h2
+                                      className="text-xl font-bold mb-3 mt-5"
+                                      {...props}
+                                    />
+                                  ),
+                                  h3: ({ node, ...props }) => (
+                                    <h3
+                                      className="text-lg font-bold mb-2 mt-4"
+                                      {...props}
+                                    />
+                                  ),
+                                  h4: ({ node, ...props }) => (
+                                    <h4
+                                      className="text-base font-bold mb-2 mt-3"
+                                      {...props}
+                                    />
+                                  ),
+                                  ul: ({ node, ...props }) => (
+                                    <ul
+                                      className="list-disc pl-5 mb-4 space-y-2"
+                                      {...props}
+                                    />
+                                  ),
+                                  ol: ({ node, ...props }) => (
+                                    <ol
+                                      className="list-decimal pl-5 mb-4 space-y-2"
+                                      {...props}
+                                    />
+                                  ),
+                                  li: ({ node, ...props }) => (
+                                    <li className="mb-1" {...props} />
+                                  ),
+                                  a: ({ node, ...props }) => (
+                                    <a
+                                      className="text-blue-600 hover:underline"
+                                      {...props}
+                                    />
+                                  ),
+                                  blockquote: ({ node, ...props }) => (
+                                    <blockquote
+                                      className="border-l-4 border-gray-300 dark:border-gray-600 pl-4 italic my-4"
+                                      {...props}
+                                    />
+                                  ),
+                                  code: ({ node, inline, ...props }) =>
+                                    inline ? (
+                                      <code
+                                        className="bg-gray-100 dark:bg-gray-800 px-1 py-0.5 rounded text-sm"
+                                        {...props}
+                                      />
+                                    ) : (
+                                      <code
+                                        className="block bg-gray-100 dark:bg-gray-800 p-2 rounded text-sm overflow-x-auto my-4"
+                                        {...props}
+                                      />
+                                    ),
+                                  pre: ({ node, ...props }) => (
+                                    <pre
+                                      className="bg-gray-100 dark:bg-gray-800 p-4 rounded overflow-x-auto my-4"
+                                      {...props}
+                                    />
+                                  ),
+                                  hr: ({ node, ...props }) => (
+                                    <hr
+                                      className="my-6 border-t border-gray-300 dark:border-gray-600"
+                                      {...props}
+                                    />
+                                  ),
+                                  table: ({ node, ...props }) => (
+                                    <table
+                                      className="min-w-full divide-y divide-gray-300 dark:divide-gray-600 my-4"
+                                      {...props}
+                                    />
+                                  ),
+                                  th: ({ node, ...props }) => (
+                                    <th
+                                      className="px-3 py-2 text-left font-semibold bg-gray-100 dark:bg-gray-700"
+                                      {...props}
+                                    />
+                                  ),
+                                  td: ({ node, ...props }) => (
+                                    <td
+                                      className="px-3 py-2 border-t border-gray-200 dark:border-gray-700"
+                                      {...props}
+                                    />
+                                  ),
+                                }}
+                              >
+                                {formData.value}
+                              </ReactMarkdown>
+                            </div>
                           </div>
                         )}
+                    </div>
+                  )}
+
+                  {/* Champ pour les images avec prévisualisation */}
+                  {currentSetting && currentSetting.isImage && (
+                    <div className="space-y-4">
+                      {/* Option de téléchargement pour la photo du fondateur */}
+                      {currentSetting.isUploadable && (
+                        <div className="space-y-2">
+                          <label
+                            htmlFor="file"
+                            className="block text-sm font-medium text-gray-700 dark:text-gray-300"
+                          >
+                            Télécharger une image
+                          </label>
+                          <div className="flex items-center space-x-2">
+                            <input
+                              type="file"
+                              id="file"
+                              name="file"
+                              accept="image/jpeg,image/jpg,image/png"
+                              onChange={handleChange}
+                              className={`block w-full text-sm text-gray-700 dark:text-gray-300 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-primary-50 file:text-primary-700 dark:file:bg-primary-900 dark:file:text-primary-300 hover:file:bg-primary-100 dark:hover:file:bg-primary-800 ${
+                                errors.file ? "border-red-500" : ""
+                              }`}
+                            />
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setSelectedFile(null);
+                                setPreviewUrl("");
+                              }}
+                              className="px-2 py-1 text-xs text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"
+                            >
+                              Effacer
+                            </button>
+                          </div>
+                          {errors.file && (
+                            <p className="mt-1 text-sm text-red-600 dark:text-red-400">
+                              {errors.file}
+                            </p>
+                          )}
+                          <p className="text-xs text-gray-500 dark:text-gray-400">
+                            Formats acceptés: JPG, PNG. Taille max: 2MB
+                          </p>
+                          {previewUrl && (
+                            <div className="mt-2 border dark:border-gray-600 rounded-md p-2">
+                              <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
+                                Aperçu du fichier téléchargé:
+                              </p>
+                              <img
+                                src={previewUrl}
+                                alt="Aperçu"
+                                className="max-h-40 mx-auto object-contain"
+                              />
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Champ URL pour toutes les images */}
+                      <div className="space-y-2">
+                        <label
+                          htmlFor="value"
+                          className="block text-sm font-medium text-gray-700 dark:text-gray-300"
+                        >
+                          {currentSetting.isUploadable
+                            ? "Ou entrez une URL d'image"
+                            : "URL de l'image"}
+                        </label>
+                        <input
+                          type="text"
+                          id="value"
+                          name="value"
+                          value={formData.value}
+                          onChange={handleChange}
+                          className={`mt-1 block w-full px-3 py-2 bg-white dark:bg-gray-800 border ${
+                            errors.value
+                              ? "border-red-500"
+                              : "border-gray-300 dark:border-gray-600"
+                          } rounded-md shadow-sm text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-primary-500 focus:border-primary-500`}
+                          placeholder="URL de l'image"
+                        />
+                        {errors.value && (
+                          <p className="mt-1 text-sm text-red-600 dark:text-red-400">
+                            {errors.value}
+                          </p>
+                        )}
+                        {formData.value &&
+                          formData.value.startsWith("http") && (
+                            <div className="mt-2 border dark:border-gray-600 rounded-md p-2">
+                              <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
+                                Aperçu:
+                              </p>
+                              <img
+                                src={formData.value}
+                                alt="Aperçu"
+                                className="max-h-40 mx-auto object-contain"
+                                onError={(e) => {
+                                  e.target.onerror = null;
+                                  e.target.src =
+                                    "https://via.placeholder.com/150?text=Image+non+disponible";
+                                }}
+                              />
+                            </div>
+                          )}
                       </div>
-                    )}
-                    
-                    {/* Champ URL pour toutes les images */}
-                    <div className="space-y-2">
-                      <label htmlFor="value" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                        {currentSetting.isUploadable ? "Ou entrez une URL d'image" : "URL de l'image"}
-                      </label>
+                    </div>
+                  )}
+
+                  {/* Champ texte simple */}
+                  {currentSetting && currentSetting.isText && (
+                    <div>
                       <input
                         type="text"
                         id="value"
@@ -802,160 +1075,118 @@ const GeneralSettings = () => {
                             ? "border-red-500"
                             : "border-gray-300 dark:border-gray-600"
                         } rounded-md shadow-sm text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-primary-500 focus:border-primary-500`}
-                        placeholder="URL de l'image"
+                        placeholder={currentSetting.placeholder || ""}
                       />
                       {errors.value && (
                         <p className="mt-1 text-sm text-red-600 dark:text-red-400">
                           {errors.value}
                         </p>
                       )}
-                      {formData.value && formData.value.startsWith("http") && (
-                        <div className="mt-2 border dark:border-gray-600 rounded-md p-2">
-                          <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
-                            Aperçu:
-                          </p>
-                          <img
-                            src={formData.value}
-                            alt="Aperçu"
-                            className="max-h-40 mx-auto object-contain"
-                            onError={(e) => {
-                              e.target.onerror = null;
-                              e.target.src =
-                                "https://via.placeholder.com/150?text=Image+non+disponible";
-                            }}
-                          />
-                        </div>
+                    </div>
+                  )}
+
+                  {/* Champ nombre */}
+                  {currentSetting && currentSetting.isNumber && (
+                    <div>
+                      <input
+                        type="number"
+                        id="value"
+                        name="value"
+                        value={formData.value}
+                        onChange={handleChange}
+                        className={`mt-1 block w-full px-3 py-2 bg-white dark:bg-gray-800 border ${
+                          errors.value
+                            ? "border-red-500"
+                            : "border-gray-300 dark:border-gray-600"
+                        } rounded-md shadow-sm text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-primary-500 focus:border-primary-500`}
+                        placeholder={currentSetting.placeholder || ""}
+                      />
+                      {errors.value && (
+                        <p className="mt-1 text-sm text-red-600 dark:text-red-400">
+                          {errors.value}
+                        </p>
                       )}
                     </div>
-                  </div>
-                )}
-                
-                {/* Champ texte simple */}
-                {currentSetting && currentSetting.isText && (
-                  <div>
-                    <input
-                      type="text"
-                      id="value"
-                      name="value"
-                      value={formData.value}
-                      onChange={handleChange}
-                      className={`mt-1 block w-full px-3 py-2 bg-white dark:bg-gray-800 border ${
-                        errors.value
-                          ? "border-red-500"
-                          : "border-gray-300 dark:border-gray-600"
-                      } rounded-md shadow-sm text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-primary-500 focus:border-primary-500`}
-                      placeholder={currentSetting.placeholder || ""}
-                    />
-                    {errors.value && (
-                      <p className="mt-1 text-sm text-red-600 dark:text-red-400">
-                        {errors.value}
-                      </p>
-                    )}
-                  </div>
-                )}
-                
-                {/* Champ nombre */}
-                {currentSetting && currentSetting.isNumber && (
-                  <div>
-                    <input
-                      type="number"
-                      id="value"
-                      name="value"
-                      value={formData.value}
-                      onChange={handleChange}
-                      className={`mt-1 block w-full px-3 py-2 bg-white dark:bg-gray-800 border ${
-                        errors.value
-                          ? "border-red-500"
-                          : "border-gray-300 dark:border-gray-600"
-                      } rounded-md shadow-sm text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-primary-500 focus:border-primary-500`}
-                      placeholder={currentSetting.placeholder || ""}
-                    />
-                    {errors.value && (
-                      <p className="mt-1 text-sm text-red-600 dark:text-red-400">
-                        {errors.value}
-                      </p>
-                    )}
-                  </div>
-                )}
-                
-                {/* Fallback pour tout autre type de champ */}
-                {!currentSetting && (
-                  <div>
-                    <input
-                      type="text"
-                      id="value"
-                      name="value"
-                      value={formData.value}
-                      onChange={handleChange}
-                      className={`mt-1 block w-full px-3 py-2 bg-white dark:bg-gray-800 border ${
-                        errors.value
-                          ? "border-red-500"
-                          : "border-gray-300 dark:border-gray-600"
-                      } rounded-md shadow-sm text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-primary-500 focus:border-primary-500`}
-                    />
-                    {errors.value && (
-                      <p className="mt-1 text-sm text-red-600 dark:text-red-400">
-                        {errors.value}
-                      </p>
-                    )}
-                  </div>
-                )}
-              </div>
-              <div>
-                <label
-                  htmlFor="description"
-                  className="block text-sm font-medium text-gray-700 dark:text-gray-300"
-                >
-                  Description
-                </label>
-                <textarea
-                  id="description"
-                  name="description"
-                  value={formData.description}
-                  onChange={handleChange}
-                  rows={3}
-                  className={`mt-1 block w-full px-3 py-2 bg-white dark:bg-gray-800 border ${
-                    errors.description
-                      ? "border-red-500"
-                      : "border-gray-300 dark:border-gray-600"
-                  } rounded-md shadow-sm text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-primary-500 focus:border-primary-500`}
-                />
-                {errors.description && (
-                  <p className="mt-1 text-sm text-red-500">
-                    {errors.description}
-                  </p>
-                )}
-              </div>
-            </div>
+                  )}
 
-            <div className="mt-6 flex justify-end space-x-3">
-              <button
-                type="button"
-                onClick={handleCloseModal}
-                className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
-              >
-                Annuler
-              </button>
-              <button
-                type="submit"
-                disabled={submitting}
-                className={`px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 ${
-                  submitting ? "opacity-70 cursor-not-allowed" : ""
-                }`}
-              >
-                {submitting ? (
-                  <span className="flex items-center">
-                    <span className="animate-spin h-4 w-4 mr-2 border-t-2 border-b-2 border-white rounded-full"></span>
-                    Traitement...
-                  </span>
-                ) : currentSetting ? (
-                  "Mettre à jour"
-                ) : (
-                  "Ajouter"
-                )}
-              </button>
-            </div>
-          </form>
+                  {/* Fallback pour tout autre type de champ */}
+                  {!currentSetting && (
+                    <div>
+                      <input
+                        type="text"
+                        id="value"
+                        name="value"
+                        value={formData.value}
+                        onChange={handleChange}
+                        className={`mt-1 block w-full px-3 py-2 bg-white dark:bg-gray-800 border ${
+                          errors.value
+                            ? "border-red-500"
+                            : "border-gray-300 dark:border-gray-600"
+                        } rounded-md shadow-sm text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-primary-500 focus:border-primary-500`}
+                      />
+                      {errors.value && (
+                        <p className="mt-1 text-sm text-red-600 dark:text-red-400">
+                          {errors.value}
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </div>
+                <div>
+                  <label
+                    htmlFor="description"
+                    className="block text-sm font-medium text-gray-700 dark:text-gray-300"
+                  >
+                    Description
+                  </label>
+                  <textarea
+                    id="description"
+                    name="description"
+                    value={formData.description}
+                    onChange={handleChange}
+                    rows={3}
+                    className={`mt-1 block w-full px-3 py-2 bg-white dark:bg-gray-800 border ${
+                      errors.description
+                        ? "border-red-500"
+                        : "border-gray-300 dark:border-gray-600"
+                    } rounded-md shadow-sm text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-primary-500 focus:border-primary-500`}
+                  />
+                  {errors.description && (
+                    <p className="mt-1 text-sm text-red-500">
+                      {errors.description}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              <div className="mt-6 flex justify-end space-x-3">
+                <button
+                  type="button"
+                  onClick={handleCloseModal}
+                  className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+                >
+                  Annuler
+                </button>
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  className={`px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 ${
+                    submitting ? "opacity-70 cursor-not-allowed" : ""
+                  }`}
+                >
+                  {submitting ? (
+                    <span className="flex items-center">
+                      <span className="animate-spin h-4 w-4 mr-2 border-t-2 border-b-2 border-white rounded-full"></span>
+                      Traitement...
+                    </span>
+                  ) : currentSetting ? (
+                    "Mettre à jour"
+                  ) : (
+                    "Ajouter"
+                  )}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       </ModalPortal>

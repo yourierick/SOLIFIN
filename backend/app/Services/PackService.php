@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Pack;
 use App\Models\User;
 use App\Models\UserPack;
+use App\Services\RegistrationService;
 use App\Models\WalletSystem;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
@@ -89,6 +90,12 @@ class PackService
 
         // Créer l'association utilisateur-pack
         $userPack = $this->createUserPack($user, $pack, $durationMonths, $referralData, $sponsorId);
+
+        //Si l'utilisateur avait un compte en essai, l'activer maintenant
+        if ($user->status === RegistrationService::STATUS_TRIAL) {
+            $user->status = RegistrationService::STATUS_ACTIVE;
+            $user->save();
+        }
 
         // Distribuer les commissions
         $this->commissionService->distributeCommissions($userPack, $durationMonths);

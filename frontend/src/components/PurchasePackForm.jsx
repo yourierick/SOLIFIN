@@ -1122,6 +1122,7 @@ export default function PurchasePackForm({
       const paymentData = {
         payment_method: specificPaymentMethod, // Méthode spécifique (visa, mastercard, m-pesa, etc.)
         payment_type: paymentMethod, // Type générique (wallet, credit-card, mobile-money)
+        transaction_type: "purchase_pack",
         payment_details: paymentDetails,
         duration_months: months,
         referralCode: noSponsorCode ? "ADMIN" : referralCode, // Code parrain spécifique à l'achat ou "ADMIN" si pas de code
@@ -1131,7 +1132,6 @@ export default function PurchasePackForm({
           paymentMethod === PAYMENT_TYPES.WALLET ? "USD" : selectedCurrency,
         fees: transactionFees || 0,
         packId: pack?.id,
-        transaction_type: "purchase_pack",
       };
 
       // Appel à l'API pour acheter le pack
@@ -1149,7 +1149,7 @@ export default function PurchasePackForm({
           Notification.success(
             "Paiement initié avec succès! Vous recevrez une notification dès que le paiement sera confirmé."
           );
-          
+
           // Fermer le modal après 3 secondes pour permettre à l'utilisateur de continuer sa navigation
           setTimeout(() => {
             if (typeof onPurchaseSuccess === "function") onPurchaseSuccess();
@@ -1157,7 +1157,10 @@ export default function PurchasePackForm({
           }, 3000);
         }
       } else {
-        setError(response.data.message || "Une erreur est survenue lors de l'achat du pack");
+        setError(
+          response.data.message ||
+            "Une erreur est survenue lors de l'achat du pack"
+        );
       }
     } catch (error) {
       console.error("Erreur lors de l'achat du pack:", error);

@@ -7,7 +7,6 @@ use App\Services\SerdiPayService;
 use Illuminate\Support\Facades\Auth;
 use App\Models\Wallet;
 use App\Models\User;
-use App\Models\RegistrationTemp;
 use App\Models\Pack;
 use App\Models\TransactionFee;
 use App\Models\ExchangeRates;
@@ -15,6 +14,7 @@ use App\Models\Setting;
 use App\Models\WalletTransaction;
 use App\Models\WalletSystemTransaction;
 use App\Models\SerdiPayTransaction;
+use App\Models\UserPack;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\DB;
@@ -30,6 +30,7 @@ class SerdiPayController extends Controller
     const STATUS_PENDING = 'pending';
     const STATUS_FAILED = 'failed';
     const STATUS_COMPLETED = 'completed';
+    const STATUS_INITIATED = 'initiated';
 
     public function __construct(SerdiPayService $serdiPayService)
     {
@@ -145,6 +146,7 @@ class SerdiPayController extends Controller
 
             $withdrawal->session_id = $result['session_id'];
             $withdrawal->transaction_id = $result['transaction_id'];
+            $withdrawal->status = self::STATUS_INITIATED;
             $withdrawal->save();
                 
             // Enregistrer la transaction dans le wallet system
@@ -431,499 +433,6 @@ class SerdiPayController extends Controller
     }
 
     /**
-     * Initie un paiement via SerdiPay pour un utilisateur non authentifié (inscription)
-     *
-     * @param Request $request
-     * @return \Illuminate\Http\JsonResponse
-     */
-    public function initiateGuestPayment(Request $request)
-    {
-        // Valider les données de la requête
-        // Inclure toutes les validations critiques qui pourraient bloquer l'inscription
-        $registrationData = json_decode($request->registration_data, true) ?: [];
-        
-        // Fusionner les données d'inscription avec les données de la requête pour la validation
-        $dataToValidate = array_merge($registrationData, $request->all());
-        
-        $validator = Validator::make($dataToValidate, [
-            // Données de paiement
-            'amount' => 'required|numeric|min:0',
-            'currency' => 'required|string|max:3',
-            'phone_number' => 'required|string',
-            'payment_method' => 'required|string',
-            'payment_type' => 'required|string|in:mobile-money,credit-card',
-            'payment_details' => 'required|array',
-            
-            // Données utilisateur critiques
-            'email' => 'required|email|unique:users',
-            'name' => 'required|string|max:255',
-            'password' => 'required|string|min:8|confirmed',
-            'address' => 'required|string',
-            'phone' => 'required|string',
-            'whatsapp' => 'nullable|string',
-            'gender' => 'required|string',
-            'country' => 'required|string',
-            'province' => 'required|string',
-            'city' => 'required|string',
-            
-            // Données d'inscription
-            'registration_data' => 'required|json',
-            'pack_id' => 'required|integer|exists:packs,id',
-            'duration_months' => 'required|integer|min:1',
-            'sponsor_code' => 'required|exists:user_packs,referral_code',
-            'invitation_code' => 'nullable|string',
-            'acquisition_source' => 'nullable|string',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Données invalides',
-                'errors' => $validator->errors()
-            ], 400);
-        }
-
-        // Démarrer une transaction DB pour assurer l'intégrité des données
-        DB::beginTransaction();
-
-        try {
-            // Récupérer le pack
-            $pack = Pack::find($request->pack_id);
-            if (!$pack) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Pack non trouvé'
-                ], 404);
-            }
-
-            // Récupérer les informations de paiement
-            $paymentMethod = $request->payment_method;
-            $paymentType = $request->payment_type;
-            $paymentAmount = $request->amount;
-            $paymentCurrency = $request->currency;
-            $paymentDetails = $request->payment_details;
-            
-            // Calculer les frais de transaction (globaux et spécifiques à l'API)
-            $feesResult = $this->calculateFees($paymentMethod, $paymentAmount, $paymentCurrency);
-            
-            if (!$feesResult['transactionFeeModel']) {
-                DB::rollBack();
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Cette méthode de paiement n\'est pas encore disponible'
-                ], 400);
-            }
-            
-            $frais_de_transaction = $feesResult['globalFees']; // Frais globaux
-            $frais_api = $feesResult['specificFees']; // Frais spécifiques à l'API
-            $transactionFee = $feesResult['transactionFeeModel'];
-            
-            // Log des frais calculés
-            \Log::info('Frais calculés pour inscription invité', [
-                'montant' => $paymentAmount,
-                'frais_de_transaction' => $frais_de_transaction,
-                'frais_api' => $frais_api
-            ]);
-            
-            // Montant total incluant les frais globaux
-            $totalAmount = $paymentAmount + $frais_de_transaction;
-            
-            // Convertir les montants en USD si nécessaire
-            $amountsToConvert = [
-                'totalAmount' => $totalAmount,
-                'frais_de_transaction' => $frais_de_transaction,
-                'frais_api' => $frais_api
-            ];
-            
-            $conversionResult = $this->convertAmountsToUSD($amountsToConvert, $paymentCurrency);
-            
-            if (!$conversionResult['success']) {
-                DB::rollBack();
-                return response()->json([
-                    'success' => false,
-                    'message' => $conversionResult['message']
-                ], 400);
-            }
-            
-            $amountInUSD = $conversionResult['convertedAmounts']['totalAmount'];
-            $frais_de_transaction_in_usd = $conversionResult['convertedAmounts']['frais_de_transaction'];
-            $frais_api_in_usd = $conversionResult['convertedAmounts']['frais_api'];
-            $taux_de_change = $conversionResult['exchangeRate'];
-            
-            // Calcul des montants nets (sans les frais)
-            $montantusd_sans_frais_api = round($amountInUSD - $frais_api_in_usd, 2);
-            $montantusd_sans_frais = round($amountInUSD - $frais_de_transaction_in_usd, 2);
-            
-            // Log des montants nets calculés
-            \Log::info('Montants nets calculés pour inscription invité', [
-                'montant_total_usd' => $amountInUSD,
-                'montant_sans_frais_api' => $montantusd_sans_frais_api,
-                'montant_sans_frais' => $montantusd_sans_frais
-            ]);
-            
-            // Vérifier que le montant net est suffisant pour couvrir le coût du pack
-            $paymentVerification = $this->verifyPackPayment($montantusd_sans_frais, $pack, $request->duration_months);
-            
-            if (!$paymentVerification['success']) {
-                DB::rollBack();
-                return response()->json([
-                    'success' => false,
-                    'message' => $paymentVerification['message'],
-                    'details' => [
-                        'montant_sans_frais' => $montantusd_sans_frais,
-                        'cout_pack' => $paymentVerification['packCost'],
-                        'difference' => $paymentVerification['packCost'] - $montantusd_sans_frais
-                    ]
-                ], 400);
-            }
-            
-            $packCost = $paymentVerification['packCost'];
-            $step = $paymentVerification['step'];
-            $periods = $paymentVerification['periods'];
-
-            // Stocker temporairement les données d'inscription
-            $registrationData = json_decode($request->registration_data, true);
-            $tempRegistrationId = uniqid('reg_');
-            
-            // Enrichir les données d'inscription avec les calculs effectués
-            $registrationData['amount'] = $paymentAmount;
-            $registrationData['fees'] = $frais_de_transaction;
-            $registrationData['frais_api'] = $frais_api;
-            $registrationData['currency'] = $paymentCurrency;
-            $registrationData['amountInUSD'] = $amountInUSD;
-            $registrationData['frais_de_transaction_in_usd'] = $frais_de_transaction_in_usd;
-            $registrationData['frais_api_in_usd'] = $frais_api_in_usd;
-            $registrationData['montantusd_sans_frais_api'] = $montantusd_sans_frais_api;
-            $registrationData['montantusd_sans_frais'] = $montantusd_sans_frais;
-            $registrationData['taux_de_change'] = $taux_de_change;
-            $registrationData['packCost'] = $packCost;
-            
-            // Préparer les données calculées pour les stocker
-            $calculatedData = [
-                'amountInUSD' => $amountInUSD,
-                'frais_de_transaction_in_usd' => $frais_de_transaction_in_usd,
-                'frais_api_in_usd' => $frais_api_in_usd,
-                'montantusd_sans_frais_api' => $montantusd_sans_frais_api,
-                'montantusd_sans_frais' => $montantusd_sans_frais,
-                'packCost' => $packCost,
-                'frais_api' => $frais_api,
-                'taux_de_change' => $taux_de_change
-            ];
-            
-            // Stocker les données d'inscription temporairement
-            $id = DB::table('registration_temp')->insertGetId([
-                'temp_id' => $tempRegistrationId,
-                'session_id' => null,
-                'email' => $request->email,
-                'pack_id' => $request->pack_id,
-                'registration_data' => json_encode($registrationData),
-                'calculated_data' => json_encode($calculatedData),
-                'created_at' => now(),
-                'status' => 'pending'
-            ]);
-
-            // Préparer les données pour l'appel à l'API SerdiPay
-            $paymentData = [
-                'payment_method' => $request->payment_method,
-                'payment_type' => $request->payment_type,
-                'amount' => $request->amount,
-                'fees' => $frais_de_transaction, // frais globaux
-                'currency' => $request->currency,
-                'phoneNumber' => $request->payment_details['fullPhoneNumber'],
-                'email' => $request->email,
-                'payment_details' => $request->payment_type === 'credit-card' ? $request->payment_details : null
-            ];
-            
-            // Préparer les paramètres pour l'API SerdiPay
-            $serdiPayParams = $this->prepareSerdiPayParams($paymentData, $tempRegistrationId, 'Inscription et achat de pack');
-            
-            // Initier le paiement via SerdiPay
-            $result = $this->serdiPayService->initiatePayment(
-                $serdiPayParams['phoneNumber'],
-                $serdiPayParams['amount'],
-                $serdiPayParams['currency'],
-                $serdiPayParams['paymentMethod'],
-                null, // user_id (null car utilisateur non authentifié)
-                null, // wallet_id (null car utilisateur non authentifié)
-                $serdiPayParams['email'],
-                $serdiPayParams['description'],
-                $serdiPayParams['tempId'],
-                $serdiPayParams['cardDetails']
-            );
-
-            // Si l'initiation du paiement a réussi, mettre à jour la table temporaire
-            if (isset($result['success']) && $result['success']) {
-                DB::table('registration_temp')
-                    ->where('temp_id', $tempRegistrationId)
-                    ->update([
-                        'session_id' => $result['session_id'],
-                        'transaction_id' => $result['transaction_id'] ?? null
-                    ]);
-                
-                DB::commit();
-                
-                return response()->json([
-                    'success' => true,
-                    'message' => 'Paiement initié avec succès',
-                    'data' => [
-                        'session_id' => $result['session_id'],
-                        'temp_registration_id' => $tempRegistrationId,
-                        'payment_type' => $request->payment_type
-                    ]
-                ]);
-            } else {
-                DB::rollBack();
-                return response()->json([
-                    'success' => false,
-                    'message' => $result['message'] ?? 'Erreur lors de l\'initiation du paiement'
-                ], $result['status_code'] ?? 500);
-            }
-        } catch (\Exception $e) {
-            DB::rollBack();
-            Log::error('Erreur lors de l\'initiation du paiement invité: ' . $e->getMessage());
-            return response()->json([
-                'success' => false,
-                'message' => 'Une erreur est survenue lors du traitement de votre demande'
-            ], 500);
-        }
-    }
-
-    /**
-     * Vérifie le statut d'une transaction SerdiPay pour l'achat d'un pack pour une inscription
-     *
-     * @param string $transactionId
-     * @return \Illuminate\Http\JsonResponse
-     * @deprecated Utiliser checkTransactionStatus avec le paramètre type='registration' à la place
-     */
-    public function checkGuestStatus($transactionId)
-    {
-        return $this->checkTransactionStatus($transactionId, 'registration');
-    }
-
-    /**
-     * Finalise l'inscription après confirmation du paiement
-     *
-     * @param object $tempRegistration
-     * @return void
-     */
-    private function finalizeRegistration($tempRegistration)
-    {
-        try {
-            DB::beginTransaction();
-
-            // Récupérer les données d'inscription
-            $registrationData = json_decode($tempRegistration->registration_data, true);
-            $packId = $tempRegistration->pack_id;
-
-            // Vérifier si les données nécessaires sont présentes
-            if (!isset($registrationData['name']) || !isset($registrationData['email']) || 
-                !isset($registrationData['password']) || !isset($registrationData['password_confirmation'])) {
-                throw new \Exception('Données d\'inscription incomplètes');
-            }
-
-            // Marquer le paiement comme confirmé (même si l'inscription échoue, le paiement est validé)
-            DB::table('registration_temp')
-                ->where('temp_id', $tempRegistration->temp_id)
-                ->update([
-                    'payment_confirmed' => true,
-                    'payment_confirmed_at' => now()
-                ]);
-            
-            // Créer la requête avec toutes les données
-            $request = new Request($registrationData);
-            
-            // Appeler le RegisterController pour finaliser l'inscription
-            // Nous passons les données pré-validées et pré-calculées
-            $registerController = app(\App\Http\Controllers\Auth\RegisterController::class);
-            $result = $registerController->register($request, $packId);
-            
-            // Vérifier si l'inscription a réussi
-            $resultData = json_decode($result->getContent(), true);
-            
-            if (isset($resultData['success']) && $resultData['success']) {
-                // Marquer l'inscription comme complétée
-                DB::table('registration_temp')
-                    ->where('temp_id', $tempRegistration->temp_id)
-                    ->update([
-                        'completed_at' => now(),
-                        'status' => 'completed',
-                        'error_message' => null,
-                        'retry_token' => null // Effacer le token de reprise s'il existait
-                    ]);
-                
-                Log::info('Inscription finalisée avec succès', [
-                    'temp_id' => $tempRegistration->temp_id,
-                    'email' => $tempRegistration->email
-                ]);
-            } else {
-                // Générer un token de reprise unique pour permettre à l'utilisateur de réessayer sans payer
-                $retryToken = \Illuminate\Support\Str::random(32);
-                
-                // Marquer l'inscription comme échouée mais avec un token de reprise
-                DB::table('registration_temp')
-                    ->where('temp_id', $tempRegistration->temp_id)
-                    ->update([
-                        'status' => 'failed',
-                        'error_message' => $resultData['message'] ?? 'Erreur inconnue lors de l\'inscription',
-                        'retry_token' => $retryToken,
-                        'retry_count' => DB::raw('COALESCE(retry_count, 0) + 1'),
-                        'last_retry_at' => now()
-                    ]);
-                
-                Log::error('Erreur lors de la finalisation de l\'inscription, token de reprise généré', [
-                    'temp_id' => $tempRegistration->temp_id,
-                    'email' => $tempRegistration->email,
-                    'error' => $resultData['message'] ?? 'Erreur inconnue',
-                    'retry_token' => $retryToken
-                ]);
-            }
-            
-            DB::commit();
-        } catch (\Exception $e) {
-            DB::rollBack();
-            
-            // Générer un token de reprise unique en cas d'exception
-            $retryToken = \Illuminate\Support\Str::random(32);
-            
-            // Marquer l'inscription comme échouée mais avec un token de reprise
-            DB::table('registration_temp')
-                ->where('temp_id', $tempRegistration->temp_id)
-                ->update([
-                    'status' => 'failed',
-                    'error_message' => $e->getMessage(),
-                    'retry_token' => $retryToken,
-                    'retry_count' => DB::raw('COALESCE(retry_count, 0) + 1'),
-                    'last_retry_at' => now(),
-                    'payment_confirmed' => true, // Le paiement est confirmé même si l'inscription a échoué
-                    'payment_confirmed_at' => now()
-                ]);
-            
-            Log::error('Exception lors de la finalisation de l\'inscription, token de reprise généré: ' . $e->getMessage(), [
-                'temp_id' => $tempRegistration->temp_id,
-                'email' => $tempRegistration->email,
-                'trace' => $e->getTraceAsString(),
-                'retry_token' => $retryToken
-            ]);
-        }
-    }
-
-    /**
-     * Permet à l'utilisateur de réessayer son inscription après un échec
-     * en utilisant un token de reprise (sans avoir à payer à nouveau)
-     *
-     * @param Request $request
-     * @return \Illuminate\Http\JsonResponse
-     */
-    public function retryRegistration(Request $request)
-    {
-        try {
-            // Valider les données de la requête
-            $validator = Validator::make($request->all(), [
-                'retry_token' => 'required|string|size:32',
-                'email' => 'required|email',
-                'registration_data' => 'required|json'
-            ]);
-
-            if ($validator->fails()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Données invalides',
-                    'errors' => $validator->errors()
-                ], 400);
-            }
-
-            // Récupérer l'enregistrement temporaire correspondant au token de reprise
-            $tempRegistration = DB::table('registration_temp')
-                ->where('retry_token', $request->retry_token)
-                ->where('email', $request->email)
-                ->where('payment_confirmed', true)
-                ->where('status', 'failed')
-                ->first();
-
-            if (!$tempRegistration) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Token de reprise invalide ou expiré'
-                ], 404);
-            }
-
-            // Vérifier si l'inscription n'a pas déjà été complétée entre-temps
-            if ($tempRegistration->completed_at) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Cette inscription a déjà été complétée'
-                ], 400);
-            }
-
-            // Mettre à jour les données d'inscription avec les nouvelles données fournies
-            $newRegistrationData = json_decode($request->registration_data, true);
-            $oldRegistrationData = json_decode($tempRegistration->registration_data, true);
-            $calculatedData = json_decode($tempRegistration->calculated_data ?? '{}', true) ?: [];
-
-            // Conserver les données de paiement et les montants calculés
-            $preservedData = [
-                'amount', 'amountInUSD', 'currency', 'fees', 'globalFeesInUSD', 'packCost',
-                'payment_method', 'payment_type', 'payment_details', 'phoneNumber'
-            ];
-
-            // Fusionner les nouvelles données tout en préservant les données de paiement
-            foreach ($preservedData as $key) {
-                if (isset($oldRegistrationData[$key])) {
-                    $newRegistrationData[$key] = $oldRegistrationData[$key];
-                }
-            }
-
-            // Mettre à jour les données d'inscription
-            DB::table('registration_temp')
-                ->where('temp_id', $tempRegistration->temp_id)
-                ->update([
-                    'registration_data' => json_encode($newRegistrationData),
-                    'retry_count' => DB::raw('retry_count + 1'),
-                    'last_retry_at' => now()
-                ]);
-
-            // Récupérer l'enregistrement mis à jour
-            $updatedRegistration = DB::table('registration_temp')
-                ->where('temp_id', $tempRegistration->temp_id)
-                ->first();
-
-            // Finaliser l'inscription avec les nouvelles données
-            $this->finalizeRegistration($updatedRegistration);
-
-            // Vérifier si l'inscription a réussi après la nouvelle tentative
-            $updatedStatus = DB::table('registration_temp')
-                ->where('temp_id', $tempRegistration->temp_id)
-                ->first();
-
-            if ($updatedStatus->status === 'completed') {
-                return response()->json([
-                    'success' => true,
-                    'message' => 'Inscription finalisée avec succès',
-                    'user_id' => $updatedStatus->user_id
-                ]);
-            } else {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'L\'inscription a échoué à nouveau',
-                    'error' => $updatedStatus->error_message,
-                    'retry_token' => $updatedStatus->retry_token
-                ], 400);
-            }
-
-        } catch (\Exception $e) {
-            Log::error('Erreur lors de la tentative de reprise d\'inscription: ' . $e->getMessage(), [
-                'trace' => $e->getTraceAsString()
-            ]);
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Une erreur est survenue lors de la tentative de reprise d\'inscription',
-                'error' => $e->getMessage()
-            ], 500);
-        }
-    }
-
-    /**
      * Initie un paiement pour l'achat d'un pack par un utilisateur authentifié
      * Gère à la fois les paiements via solifin-wallet (traitement direct) et les autres méthodes (via SerdiPay)
      *
@@ -933,20 +442,57 @@ class SerdiPayController extends Controller
     public function initiatePayment(Request $request)
     {
         try {
-            // Valider les données de la requête
-            $validated = $request->validate([
-                'transaction_type' => 'required|string:in(purchase_pack,renew_pack,purchase_virtual)',
-                'packId' => 'required_if:transaction_type,purchase_pack,renew_pack|exists:packs,id',
+            $validator = Validator::make($request->all(), [
+                'transaction_type' => 'required|string',
+                'packId' => 'required|exists:packs,id',
                 'payment_method' => 'required|string',
                 'payment_type' => 'required|string',
-                'payment_details'=> ['required_if:payment_type,credit-card,mobile-money', 'array'],
-                'phoneNumber' => 'required_if:payment_type,mobile-money|string',
-                'referralCode' => 'required_if:transaction_type,purchase_pack|exists:user_packs,referral_code', //code du sponsor
-                'duration_months' => 'required_if:transaction_type,purchase_pack,renew_pack|integer|min:1',
+                'payment_details'=> 'nullable|array',
+                'referralCode' => 'nullable|string', // Rendre le code de parrainage optionnel
+                'duration_months' => 'nullable|integer|min:1',
                 'amount' => 'required|numeric|min:0',
                 'fees' => 'required|numeric|min:0',
                 'currency' => 'required|string',
             ]);
+            
+            // Ajouter des validations conditionnelles manuellement
+            if ($request->input('payment_type') === 'mobile-money') {
+                if (empty($request->input('payment_details.phoneNumber'))) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Le numéro de téléphone est requis pour le paiement par mobile money'
+                    ], 422);
+                }
+            }
+            
+            if (in_array($request->input('transaction_type'), ['purchase_pack', 'renew_pack'])) {
+                if (empty($request->input('duration_months'))) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'La durée en mois est requise pour l\'achat ou le renouvellement d\'un pack'
+                    ], 422);
+                }
+            }
+            
+            if (in_array($request->input('payment_type'), ['credit-card', 'mobile-money'])) {
+                if (empty($request->input('payment_details'))) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Les détails de paiement sont requis pour ce mode de paiement'
+                    ], 422);
+                }
+            }
+            
+            // Exécuter la validation et récupérer les données validées
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validation échouée',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+            
+            $validated = $validator->validated();
             
             // Vérifier que l'utilisateur est authentifié
             $user = Auth::user();
@@ -956,17 +502,40 @@ class SerdiPayController extends Controller
                     'message' => 'Utilisateur non authentifié'
                 ], 401);
             }
+            
+            // Vérifier le code de parrainage seulement s'il est fourni
+            if (!empty($validated['referralCode']) && $validated['referralCode'] !== 'ADMIN') {
+                // Vérifier que le code existe
+                $request->validate([
+                    'referralCode' => 'exists:user_packs,referral_code',
+                ]);
+                
+                // Vérifier que l'utilisateur ne s'auto-parraine pas
+                $sponsorPack = UserPack::where('referral_code', $validated['referralCode'])->first();
+                if ($sponsorPack && $sponsorPack->user_id === $user->id) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Vous ne pouvez pas utiliser votre propre code de parrainage'
+                    ], 422);
+                }
+            }
 
             $transaction_type = $validated['transaction_type'];
             switch ($transaction_type) {
                 case 'purchase_pack':
                     // Vérifier que le pack existe
-                    $pack = Pack::where('id', $validated['packId'])->where('status', 'active')->first();
-                    
+                    $pack = Pack::find($validated['packId']);
                     if (!$pack) {
                         return response()->json([
                             'success' => false,
-                            'message' => 'Pack non trouvé ou non actif'
+                            'message' => 'Pack non trouvé'
+                        ]);
+                    }
+
+                    if (!$pack->status) {
+                        return response()->json([
+                            'success' => false,
+                            'message' => 'Pack non actif'
                         ]);
                     }
 
@@ -985,12 +554,19 @@ class SerdiPayController extends Controller
                     break;
                 case 'renew_pack':
                     // Vérifier que le pack existe
-                    $pack = Pack::where('id', $validated['packId'])->where('status', 'active')->first();
+                    $pack = Pack::find($validated['packId']);
                     
                     if (!$pack) {
                         return response()->json([
                             'success' => false,
-                            'message' => 'Pack non trouvé ou non actif'
+                            'message' => 'Pack non trouvé'
+                        ], 404);
+                    }
+
+                    if (!$pack->status) {
+                        return response()->json([
+                            'success' => false,
+                            'message' => 'Pack non actif'
                         ], 404);
                     }
 
@@ -1124,7 +700,6 @@ class SerdiPayController extends Controller
                 'user_id' => $user->id,
                 'pack_id' => $pack->id,
                 'duration_months' => $validated['duration_months'],
-                'days' => $validated['days'],
                 'referral_code' => $validated['referralCode'],
                 'amount' => $validated['amount'],
                 'fees' => $validated['fees'], // frais globaux définis dans les settings('purchase_fees')
@@ -1133,7 +708,7 @@ class SerdiPayController extends Controller
                 'payment_method' => $validated['payment_method'],
                 'payment_type' => $validated['payment_type'],
                 'payment_details' => $validated['payment_details'],
-                'phoneNumber' => $validated['phoneNumber'],
+                'phoneNumber' => $validated['payment_details']['phoneNumber'],
                 'amountInUSD' => $amountInUSD,
                 'montantusd_sans_frais_api' => $montantusd_sans_frais_api,
                 'montantusd_sans_frais' => $montantusd_sans_frais,
@@ -1168,7 +743,7 @@ class SerdiPayController extends Controller
                 $paymentDetails = [];
                 if ($validated['payment_type'] === 'mobile-money') {
                     // Pour mobile money, extraire le numéro de téléphone
-                    if (empty($validated['phoneNumber'])) {
+                    if (empty($validated['payment_details']['phoneNumber'])) {
                         return response()->json([
                             'success' => false,
                             'message' => 'Numéro de téléphone requis pour le paiement mobile'
@@ -1176,7 +751,7 @@ class SerdiPayController extends Controller
                     }
                     
                     // Nettoyer le numéro de téléphone (enlever espaces, tirets, etc.)
-                    $phoneNumber = preg_replace('/\D/', '', $validated['phoneNumber']);
+                    $phoneNumber = preg_replace('/\D/', '', $validated['payment_details']['phoneNumber']);
                     
                     // Vérifier le format du numéro (243 suivi de 9 chiffres)
                     if (!preg_match('/^243\d{9}$/', $phoneNumber)) {
@@ -1216,7 +791,7 @@ class SerdiPayController extends Controller
                     'payment_method' => $validated['payment_method'],
                     'payment_type' => $validated['payment_type'],
                     'payment_details' => $validated['payment_details'],
-                    'phoneNumber' => $validated['phoneNumber'],
+                    'phoneNumber' => $validated['payment_details']['phoneNumber'],
                     'email' => $user->email,
                     'wallet_id' => $user->wallet->id,
                     'amountInUSD' => $amountInUSD,
@@ -1518,58 +1093,48 @@ class SerdiPayController extends Controller
                 $this->sendPaymentStatusNotification($status, $paymentStatus, $sessionId);   
             }
 
-            // Si le paiement est réussi, finaliser l'inscription si c'est un paiement d'inscription
+            // Si le paiement est réussi, finaliser l'achat
             if ($status === 'success' && $paymentStatus === 'success') {    
                 if ($type === 'payment') {
-                    // Vérifier s'il s'agit d'une inscription
-                    $tempRegistration = DB::table('registration_temp')
+                    $tempPurchase = DB::table('purchase_temp')
                         ->where('session_id', $sessionId)
                         ->first();
 
-                    if ($tempRegistration && empty($tempRegistration->completed_at)) {
-                        // Finaliser l'inscription
-                        $this->finalizeRegistration($tempRegistration);
-                    } else{
-                        $tempPurchase = DB::table('purchase_temp')
-                        ->where('session_id', $sessionId)
-                        ->first();
-
-                        if ($tempPurchase && empty($tempPurchase->completed_at)) {
-                            $success = false;
-                            
-                            if ($tempPurchase->transaction_type === "purchase_pack") {
-                                // Finaliser l'achat de pack et capturer le résultat
-                                $response = $this->finalizePurchase($tempPurchase, 'purchase_pack');
-                                $success = $this->processFinalizationResult($response, $tempPurchase);
-                            } elseif ($tempPurchase->transaction_type === "renew_pack") {
-                                // Finaliser le renouvellement de pack et capturer le résultat
-                                $response = $this->finalizePurchase($tempPurchase, 'renew_pack');
-                                $success = $this->processFinalizationResult($response, $tempPurchase);
-                            }elseif ($tempPurchase->transaction_type === "purchase_virtual") {
-                                // Finaliser l'achat des virtuels
-                                $response = $this->finalizePurchase($tempPurchase, 'purchase_virtual');
-                                $success = $this->processFinalizationResult($response, $tempPurchase);
-                            }
-                            
-                            // Mettre à jour l'enregistrement temporaire en fonction du résultat
-                            if ($success) {
-                                DB::table('purchase_temp')
-                                    ->where('id', $tempPurchase->id)
-                                    ->update([
-                                        'completed_at' => now(),
-                                        'status' => 'completed'
-                                    ]);
-                            }                           
-                            // Envoyer notification de transaction (réussie ou échouée)
-                            $this->sendTransactionNotification($tempPurchase, $success);
+                    if ($tempPurchase && empty($tempPurchase->completed_at)) {
+                        $success = false;
+                        
+                        if ($tempPurchase->transaction_type === "purchase_pack") {
+                            // Finaliser l'achat de pack et capturer le résultat
+                            $response = $this->finalizePurchase($tempPurchase, 'purchase_pack');
+                            $success = $this->processFinalizationResult($response, $tempPurchase);
+                        } elseif ($tempPurchase->transaction_type === "renew_pack") {
+                            // Finaliser le renouvellement de pack et capturer le résultat
+                            $response = $this->finalizePurchase($tempPurchase, 'renew_pack');
+                            $success = $this->processFinalizationResult($response, $tempPurchase);
+                        }elseif ($tempPurchase->transaction_type === "purchase_virtual") {
+                            // Finaliser l'achat des virtuels
+                            $response = $this->finalizePurchase($tempPurchase, 'purchase_virtual');
+                            $success = $this->processFinalizationResult($response, $tempPurchase);
                         }
+                        
+                        // Mettre à jour l'enregistrement temporaire en fonction du résultat
+                        if ($success) {
+                            DB::table('purchase_temp')
+                                ->where('id', $tempPurchase->id)
+                                ->update([
+                                    'completed_at' => now(),
+                                    'status' => 'completed'
+                                ]);
+                        }                           
+                        // Envoyer notification de transaction (réussie ou échouée)
+                        $this->sendTransactionNotification($tempPurchase, $success);
                     }
                 }else {
                     $withdrawal = WithdrawalRequest::where('session_id', $sessionId)->whereNull('paid_at')->first();
                     if ($withdrawal) {
                         $withdrawal->update([
                             'paid_at' => now(),
-                            'payment_status' => 'completed'
+                            'payment_status' => 'paid'
                         ]);
                     }
 
@@ -1619,30 +1184,6 @@ class SerdiPayController extends Controller
     private function sendPaymentStatusNotification($status, $paymentStatus, $sessionId)
     {
         try {
-            // Récupérer les données de transaction temporaire
-            $tempRegistration = DB::table('registration_temp')
-                ->where('session_id', $sessionId)
-                ->first();
-                
-            if ($tempRegistration) {
-                // Pour une inscription, envoyer un email à l'adresse fournie
-                if (!empty($tempRegistration->email)) {
-                    $amount = $tempRegistration->amount ?? 0;
-                    $currency = $tempRegistration->currency ?? 'USD';
-                    
-                    // Utiliser la méthode route pour envoyer une notification par email
-                    \Illuminate\Support\Facades\Notification::route('mail', $tempRegistration->email)
-                        ->notify(new PaymentStatusNotification(
-                            $amount,
-                            $currency,
-                            $sessionId,
-                            $status === 'success' && $paymentStatus === 'success' ? 'success' : 'failed'
-                        ));
-                }
-                return;
-            }
-            
-            // Si ce n'est pas une inscription, vérifier si c'est un achat
             $tempPurchase = DB::table('purchase_temp')
                 ->where('session_id', $sessionId)
                 ->first();

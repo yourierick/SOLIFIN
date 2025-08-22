@@ -1602,67 +1602,81 @@ const Finances = () => {
         PaperProps={{
           sx: {
             borderRadius: 3,
-            maxHeight: '90vh',
-            boxShadow: isDarkMode 
-              ? '0 25px 50px -12px rgba(0, 0, 0, 0.6)' 
-              : '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
-            backdropFilter: 'blur(20px)',
+            maxHeight: "90vh",
+            boxShadow: isDarkMode
+              ? "0 25px 50px -12px rgba(0, 0, 0, 0.6)"
+              : "0 25px 50px -12px rgba(0, 0, 0, 0.25)",
+            backdropFilter: "blur(20px)",
             background: isDarkMode
-              ? 'linear-gradient(135deg, rgba(31, 41, 55, 0.95) 0%, rgba(31, 41, 55, 0.9) 100%)'
-              : 'linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0.9) 100%)',
+              ? "linear-gradient(135deg, rgba(31, 41, 55, 0.95) 0%, rgba(31, 41, 55, 0.9) 100%)"
+              : "linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0.9) 100%)",
             border: isDarkMode
-              ? '1px solid rgba(255, 255, 255, 0.1)'
-              : '1px solid rgba(255, 255, 255, 0.2)',
-            overflow: 'hidden'
-          }
+              ? "1px solid rgba(255, 255, 255, 0.1)"
+              : "1px solid rgba(255, 255, 255, 0.2)",
+            overflow: "hidden",
+          },
         }}
         BackdropProps={{
           sx: {
-            backdropFilter: 'blur(8px)',
-            backgroundColor: isDarkMode 
-              ? 'rgba(0, 0, 0, 0.7)' 
-              : 'rgba(0, 0, 0, 0.4)',
-          }
+            backdropFilter: "blur(8px)",
+            backgroundColor: isDarkMode
+              ? "rgba(0, 0, 0, 0.7)"
+              : "rgba(0, 0, 0, 0.4)",
+          },
         }}
       >
         <DialogTitle
           sx={{
-            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-            color: 'white',
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
+            background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+            color: "white",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
             p: 3,
-            position: 'relative',
-            '&::before': {
+            position: "relative",
+            "&::before": {
               content: '""',
-              position: 'absolute',
+              position: "absolute",
               top: 0,
               left: 0,
               right: 0,
               bottom: 0,
-              background: 'linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.05) 100%)',
-              backdropFilter: 'blur(10px)',
-            }
+              background:
+                "linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.05) 100%)",
+              backdropFilter: "blur(10px)",
+            },
           }}
         >
-          <Box sx={{ display: 'flex', alignItems: 'center', position: 'relative', zIndex: 1 }}>
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              position: "relative",
+              zIndex: 1,
+            }}
+          >
             <Box
               sx={{
-                background: 'linear-gradient(135deg, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0.1) 100%)',
-                borderRadius: '50%',
+                background:
+                  "linear-gradient(135deg, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0.1) 100%)",
+                borderRadius: "50%",
                 p: 1.5,
                 mr: 3,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                backdropFilter: 'blur(10px)',
-                border: '1px solid rgba(255,255,255,0.2)',
-                boxShadow: '0 8px 32px rgba(0,0,0,0.1)'
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                backdropFilter: "blur(10px)",
+                border: "1px solid rgba(255,255,255,0.2)",
+                boxShadow: "0 8px 32px rgba(0,0,0,0.1)",
               }}
             >
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+              <svg
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="currentColor"
+              >
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
               </svg>
             </Box>
             <Box>
@@ -1674,75 +1688,77 @@ const Finances = () => {
               </Typography>
             </Box>
           </Box>
-          <IconButton 
-            onClick={handleCloseTransactionModal} 
+          <IconButton
+            onClick={handleCloseTransactionModal}
             sx={{
-              position: 'relative',
+              position: "relative",
               zIndex: 1,
-              color: 'white',
-              background: 'rgba(255,255,255,0.1)',
-              backdropFilter: 'blur(10px)',
-              border: '1px solid rgba(255,255,255,0.2)',
-              transition: 'all 0.3s ease-in-out',
-              '&:hover': {
-                background: 'rgba(255,255,255,0.2)',
-                transform: 'rotate(90deg)',
-              }
+              color: "white",
+              background: "rgba(255,255,255,0.1)",
+              backdropFilter: "blur(10px)",
+              border: "1px solid rgba(255,255,255,0.2)",
+              transition: "all 0.3s ease-in-out",
+              "&:hover": {
+                background: "rgba(255,255,255,0.2)",
+                transform: "rotate(90deg)",
+              },
             }}
           >
             <CloseIcon />
           </IconButton>
         </DialogTitle>
-        <DialogContent sx={{ p: 4, background: 'transparent' }}>
+        <DialogContent sx={{ p: 4, background: "transparent" }}>
           {selectedTransaction && (
             <Grid container spacing={3}>
               <Grid item xs={12} md={6}>
                 <Paper
                   sx={{
                     background: isDarkMode
-                      ? 'linear-gradient(135deg, rgba(31, 41, 55, 0.8) 0%, rgba(31, 41, 55, 0.6) 100%)'
-                      : 'linear-gradient(135deg, rgba(76, 175, 80, 0.1) 0%, rgba(139, 195, 74, 0.05) 100%)',
-                    backdropFilter: 'blur(20px)',
+                      ? "linear-gradient(135deg, rgba(31, 41, 55, 0.8) 0%, rgba(31, 41, 55, 0.6) 100%)"
+                      : "linear-gradient(135deg, rgba(76, 175, 80, 0.1) 0%, rgba(139, 195, 74, 0.05) 100%)",
+                    backdropFilter: "blur(20px)",
                     border: isDarkMode
-                      ? '1px solid rgba(76, 175, 80, 0.3)'
-                      : '1px solid rgba(76, 175, 80, 0.2)',
+                      ? "1px solid rgba(76, 175, 80, 0.3)"
+                      : "1px solid rgba(76, 175, 80, 0.2)",
                     borderRadius: 3,
                     boxShadow: isDarkMode
-                      ? '0 8px 32px rgba(0, 0, 0, 0.3)'
-                      : '0 8px 32px rgba(76, 175, 80, 0.1)',
+                      ? "0 8px 32px rgba(0, 0, 0, 0.3)"
+                      : "0 8px 32px rgba(76, 175, 80, 0.1)",
                     p: 3,
-                    transition: 'all 0.3s ease-in-out',
-                    '&:hover': {
-                      transform: 'translateY(-2px)',
+                    transition: "all 0.3s ease-in-out",
+                    "&:hover": {
+                      transform: "translateY(-2px)",
                       boxShadow: isDarkMode
-                        ? '0 12px 40px rgba(0, 0, 0, 0.4)'
-                        : '0 12px 40px rgba(76, 175, 80, 0.15)',
-                    }
+                        ? "0 12px 40px rgba(0, 0, 0, 0.4)"
+                        : "0 12px 40px rgba(76, 175, 80, 0.15)",
+                    },
                   }}
                 >
-                  <Typography 
-                    variant="h6" 
-                    gutterBottom 
-                    sx={{ 
-                      display: 'flex', 
-                      alignItems: 'center', 
+                  <Typography
+                    variant="h6"
+                    gutterBottom
+                    sx={{
+                      display: "flex",
+                      alignItems: "center",
                       mb: 3,
                       fontWeight: 700,
-                      background: 'linear-gradient(135deg, #4caf50 0%, #8bc34a 100%)',
-                      backgroundClip: 'text',
-                      WebkitBackgroundClip: 'text',
-                      WebkitTextFillColor: 'transparent'
+                      background:
+                        "linear-gradient(135deg, #4caf50 0%, #8bc34a 100%)",
+                      backgroundClip: "text",
+                      WebkitBackgroundClip: "text",
+                      WebkitTextFillColor: "transparent",
                     }}
                   >
-                    <Box 
-                      sx={{ 
-                        width: 4, 
-                        height: 24, 
-                        background: 'linear-gradient(135deg, #4caf50 0%, #8bc34a 100%)', 
-                        borderRadius: 2, 
+                    <Box
+                      sx={{
+                        width: 4,
+                        height: 24,
+                        background:
+                          "linear-gradient(135deg, #4caf50 0%, #8bc34a 100%)",
+                        borderRadius: 2,
                         mr: 2,
-                        boxShadow: '0 4px 12px rgba(76, 175, 80, 0.3)'
-                      }} 
+                        boxShadow: "0 4px 12px rgba(76, 175, 80, 0.3)",
+                      }}
                     />
                     Informations générales
                   </Typography>
@@ -1876,50 +1892,52 @@ const Finances = () => {
                 <Paper
                   sx={{
                     background: isDarkMode
-                      ? 'linear-gradient(135deg, rgba(31, 41, 55, 0.8) 0%, rgba(31, 41, 55, 0.6) 100%)'
-                      : 'linear-gradient(135deg, rgba(33, 150, 243, 0.1) 0%, rgba(3, 169, 244, 0.05) 100%)',
-                    backdropFilter: 'blur(20px)',
+                      ? "linear-gradient(135deg, rgba(31, 41, 55, 0.8) 0%, rgba(31, 41, 55, 0.6) 100%)"
+                      : "linear-gradient(135deg, rgba(33, 150, 243, 0.1) 0%, rgba(3, 169, 244, 0.05) 100%)",
+                    backdropFilter: "blur(20px)",
                     border: isDarkMode
-                      ? '1px solid rgba(33, 150, 243, 0.3)'
-                      : '1px solid rgba(33, 150, 243, 0.2)',
+                      ? "1px solid rgba(33, 150, 243, 0.3)"
+                      : "1px solid rgba(33, 150, 243, 0.2)",
                     borderRadius: 3,
                     boxShadow: isDarkMode
-                      ? '0 8px 32px rgba(0, 0, 0, 0.3)'
-                      : '0 8px 32px rgba(33, 150, 243, 0.1)',
+                      ? "0 8px 32px rgba(0, 0, 0, 0.3)"
+                      : "0 8px 32px rgba(33, 150, 243, 0.1)",
                     p: 3,
-                    height: '100%',
-                    transition: 'all 0.3s ease-in-out',
-                    '&:hover': {
-                      transform: 'translateY(-2px)',
+                    height: "100%",
+                    transition: "all 0.3s ease-in-out",
+                    "&:hover": {
+                      transform: "translateY(-2px)",
                       boxShadow: isDarkMode
-                        ? '0 12px 40px rgba(0, 0, 0, 0.4)'
-                        : '0 12px 40px rgba(33, 150, 243, 0.15)',
-                    }
+                        ? "0 12px 40px rgba(0, 0, 0, 0.4)"
+                        : "0 12px 40px rgba(33, 150, 243, 0.15)",
+                    },
                   }}
                 >
-                  <Typography 
-                    variant="h6" 
-                    gutterBottom 
-                    sx={{ 
-                      display: 'flex', 
-                      alignItems: 'center', 
+                  <Typography
+                    variant="h6"
+                    gutterBottom
+                    sx={{
+                      display: "flex",
+                      alignItems: "center",
                       mb: 3,
                       fontWeight: 700,
-                      background: 'linear-gradient(135deg, #2196f3 0%, #03a9f4 100%)',
-                      backgroundClip: 'text',
-                      WebkitBackgroundClip: 'text',
-                      WebkitTextFillColor: 'transparent'
+                      background:
+                        "linear-gradient(135deg, #2196f3 0%, #03a9f4 100%)",
+                      backgroundClip: "text",
+                      WebkitBackgroundClip: "text",
+                      WebkitTextFillColor: "transparent",
                     }}
                   >
-                    <Box 
-                      sx={{ 
-                        width: 4, 
-                        height: 24, 
-                        background: 'linear-gradient(135deg, #2196f3 0%, #03a9f4 100%)', 
-                        borderRadius: 2, 
+                    <Box
+                      sx={{
+                        width: 4,
+                        height: 24,
+                        background:
+                          "linear-gradient(135deg, #2196f3 0%, #03a9f4 100%)",
+                        borderRadius: 2,
                         mr: 2,
-                        boxShadow: '0 4px 12px rgba(33, 150, 243, 0.3)'
-                      }} 
+                        boxShadow: "0 4px 12px rgba(33, 150, 243, 0.3)",
+                      }}
                     />
                     Métadonnées
                   </Typography>
@@ -1962,12 +1980,12 @@ const Finances = () => {
         <Box
           sx={{
             background: isDarkMode
-              ? 'linear-gradient(135deg, rgba(31, 41, 55, 0.8) 0%, rgba(31, 41, 55, 0.6) 100%)'
-              : 'linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.05) 100%)',
-            backdropFilter: 'blur(20px)',
+              ? "linear-gradient(135deg, rgba(31, 41, 55, 0.8) 0%, rgba(31, 41, 55, 0.6) 100%)"
+              : "linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.05) 100%)",
+            backdropFilter: "blur(20px)",
             borderTop: isDarkMode
-              ? '1px solid rgba(255,255,255,0.05)'
-              : '1px solid rgba(255,255,255,0.1)',
+              ? "1px solid rgba(255,255,255,0.05)"
+              : "1px solid rgba(255,255,255,0.1)",
           }}
         >
           <DialogActions sx={{ p: 3 }}>
@@ -1975,35 +1993,35 @@ const Finances = () => {
               onClick={handleCloseTransactionModal}
               variant="outlined"
               startIcon={<CloseIcon />}
-              sx={{ 
+              sx={{
                 minWidth: 120,
                 background: isDarkMode
-                  ? 'rgba(31, 41, 55, 0.8)'
-                  : 'rgba(255, 255, 255, 0.1)',
-                backdropFilter: 'blur(20px)',
+                  ? "rgba(31, 41, 55, 0.8)"
+                  : "rgba(255, 255, 255, 0.1)",
+                backdropFilter: "blur(20px)",
                 border: isDarkMode
-                  ? '1px solid rgba(255, 255, 255, 0.1)'
-                  : '1px solid rgba(255, 255, 255, 0.2)',
+                  ? "1px solid rgba(255, 255, 255, 0.1)"
+                  : "1px solid rgba(255, 255, 255, 0.2)",
                 borderRadius: 3,
-                color: 'text.primary',
+                color: "text.primary",
                 fontWeight: 600,
-                textTransform: 'none',
-                fontSize: '0.95rem',
+                textTransform: "none",
+                fontSize: "0.95rem",
                 py: 1.5,
-                transition: 'all 0.3s ease-in-out',
-                '&:hover': {
+                transition: "all 0.3s ease-in-out",
+                "&:hover": {
                   background: isDarkMode
-                    ? 'rgba(31, 41, 55, 0.9)'
-                    : 'rgba(255, 255, 255, 0.2)',
+                    ? "rgba(31, 41, 55, 0.9)"
+                    : "rgba(255, 255, 255, 0.2)",
                   border: isDarkMode
-                    ? '1px solid rgba(255, 255, 255, 0.2)'
-                    : '1px solid rgba(255, 255, 255, 0.3)',
-                  transform: 'translateY(-2px)',
-                  boxShadow: '0 8px 24px rgba(0, 0, 0, 0.1)',
+                    ? "1px solid rgba(255, 255, 255, 0.2)"
+                    : "1px solid rgba(255, 255, 255, 0.3)",
+                  transform: "translateY(-2px)",
+                  boxShadow: "0 8px 24px rgba(0, 0, 0, 0.1)",
                 },
-                '&:active': {
-                  transform: 'translateY(0px)',
-                }
+                "&:active": {
+                  transform: "translateY(0px)",
+                },
               }}
             >
               Fermer

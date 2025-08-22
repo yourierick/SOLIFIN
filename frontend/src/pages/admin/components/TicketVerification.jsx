@@ -266,7 +266,7 @@ const TicketVerification = () => {
 
   // Formater une date
   const formatDate = (dateString) => {
-    if (!dateString) return "N/A";
+    if (!dateString) return "Non défini";
     return format(new Date(dateString), "dd MMMM yyyy à HH:mm", {
       locale: fr,
     });
@@ -746,7 +746,7 @@ const TicketVerification = () => {
                         }}
                       >
                         <CheckCircleIcon className="h-5 w-5 mr-2" />
-                        Ticket validé avec succès ! Le cadeau peut être remis.
+                        Le traitement du ticket a été effectué avec succès.
                       </Box>
                     )}
                   </Box>
@@ -893,9 +893,7 @@ const TicketVerification = () => {
       {activeTab === "historique" && (
         <div>
           <div className="flex justify-between items-center mb-4">
-            <h3 className="text-lg font-medium">
-              Historique des cadeaux remis
-            </h3>
+            <h3 className="text-lg font-medium">Historique des cadeaux</h3>
             <div className="flex space-x-2">
               <button
                 onClick={() => setShowFilters(!showFilters)}
@@ -1101,7 +1099,19 @@ const TicketVerification = () => {
                         scope="col"
                         className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
                       >
+                        Consommation
+                      </th>
+                      <th
+                        scope="col"
+                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+                      >
                         Date de consommation
+                      </th>
+                      <th
+                        scope="col"
+                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+                      >
+                        Date d'expiration
                       </th>
                       <th
                         scope="col"
@@ -1147,12 +1157,38 @@ const TicketVerification = () => {
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm">
+                          {ticket.consomme === "consommé" ? (
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                              <CheckCircleIcon className="h-4 w-4 mr-1" />
+                              Consommé
+                            </span>
+                          ) : ticket.consomme === "programmé" ? (
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">
+                              <ClockIcon className="h-4 w-4 mr-1" />
+                              Programmé
+                            </span>
+                          ) : ticket.consomme === "expiré" ? (
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200">
+                              <ClockIcon className="h-4 w-4 mr-1" />
+                              Expiré
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">
+                              <ClockIcon className="h-4 w-4 mr-1" />
+                              Non consommé
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm">
                           {formatDate(ticket.date_consommation)}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm">
+                          {formatDate(ticket.date_expiration)}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm">
                           {ticket.cadeau?.valeur
                             ? `${ticket.cadeau.valeur} $`
-                            : "N/A"}
+                            : "Non défini"}
                         </td>
                       </tr>
                     ))}

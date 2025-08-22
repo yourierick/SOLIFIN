@@ -281,6 +281,120 @@ export default function MyPage() {
     setShowBoostModal(false);
   };
 
+  // Gestionnaire pour la soumission du formulaire (création ou modification)
+  const handleFormSubmit = async (data, customConfig = null) => {
+    const isCreating = !isEditMode;
+    const apiPath = getPublicationTypeApiPath(currentFormType);
+    const url = isCreating
+      ? `/api/${apiPath}`
+      : `/api/${apiPath}/${currentPublication.id}`;
+
+    try {
+      // Utiliser la configuration personnalisée si elle est fournie, sinon utiliser la configuration par défaut
+      const config = customConfig || {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      };
+
+      // Vérifier si l'objet data est bien un FormData
+      if (!(data instanceof FormData)) {
+        throw new Error("Format de données incorrect");
+      }
+
+      // Pour les mises à jour, utiliser POST avec _method=PUT au lieu de PUT directement
+      // car PHP ne traite pas correctement les données multipart/form-data avec PUT
+      if (!isCreating) {
+        data.append("_method", "PUT");
+      }
+
+      // Vérification pour le fichier PDF
+      let hasPdfFile = false;
+
+      // Créer une copie des entrées pour l'inspection
+      const entries = Array.from(data.entries());
+
+      // Parcourir toutes les entrées pour vérifier offer_file
+      for (let pair of entries) {
+        const [key, value] = pair;
+
+        if (key === "offer_file") {
+          hasPdfFile = true;
+        }
+      }
+
+      for (let pair of data.entries()) {
+        // Si c'est conditions_livraison, s'assurer que c'est un tableau
+        if (pair[0] === "conditions_livraison") {
+          // Convertir en tableau si ce n'est pas déjà fait
+          let conditions = pair[1];
+          if (typeof conditions === "string") {
+            try {
+              conditions = JSON.parse(conditions);
+            } catch (e) {
+              conditions = [];
+            }
+          }
+          if (!Array.isArray(conditions)) {
+            conditions = [];
+          }
+          // Remplacer la valeur dans le FormData
+          data.delete("conditions_livraison");
+          data.append("conditions_livraison", JSON.stringify(conditions));
+        }
+      }
+
+      // Toujours utiliser POST, avec _method=PUT pour les mises à jour
+      const response = await axios.post(url, data, config);
+
+      // Recharger toutes les données après une création ou modification
+      // pour s'assurer que nous avons les données les plus à jour
+      const pageResponse = await axios.get(`/api/my-page`);
+
+      // Mettre à jour toutes les publications avec les données fraîches de l'API
+      setPublications({
+        advertisements: pageResponse.data.page.publicites || [],
+        jobOffers: pageResponse.data.page.offres_emploi || [],
+        businessOpportunities:
+          pageResponse.data.page.opportunites_affaires || [],
+      });
+
+      // Mettre à jour les statistiques de la page
+      setSubscribersCount(pageResponse.data.page.nombre_abonnes);
+      setLikesCount(pageResponse.data.page.nombre_likes);
+
+      // Afficher une notification de succès
+      toast.success(
+        isCreating
+          ? "Publication créée avec succès"
+          : "Publication mise à jour avec succès"
+      );
+
+      // Fermer le formulaire
+      handleFormClose();
+
+      // Retourner true pour indiquer le succès
+      return true;
+    } catch (error) {
+      console.error("Erreur lors de la soumission:", error);
+
+      // Afficher une notification d'erreur
+      let errorMessage = "Une erreur est survenue lors de la soumission";
+      if (
+        error.response &&
+        error.response.data &&
+        error.response.data.message
+      ) {
+        errorMessage = error.response.data.message;
+      }
+
+      toast.error(errorMessage);
+
+      // Propager l'erreur au composant PublicationForm pour qu'il puisse réinitialiser isSubmitting
+      throw error;
+    }
+  };
+
   // Fonction pour récupérer les livreurs d'une page
   const fetchLivreurs = async () => {
     if (!pageData?.id) return;
@@ -980,8 +1094,17 @@ export default function MyPage() {
                       {subscribersCount} abonnés
                     </span>
                     <span className="flex items-center">
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1 text-red-500 dark:text-red-400" viewBox="0 0 20 20" fill="currentColor">
-                        <path fillRule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clipRule="evenodd" />
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="h-4 w-4 mr-1 text-red-500 dark:text-red-400"
+                        viewBox="0 0 20 20"
+                        fill="currentColor"
+                      >
+                        <path
+                          fillRule="evenodd"
+                          d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z"
+                          clipRule="evenodd"
+                        />
                       </svg>
                       {likesCount} mentions j'aime
                     </span>
@@ -1032,7 +1155,12 @@ export default function MyPage() {
                       )
                     }
                   >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-4 w-4"
+                      viewBox="0 0 20 20"
+                      fill="currentColor"
+                    >
                       <path d="M5 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H5zM5 11a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2H5zM11 5a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V5zM11 13a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
                     </svg>
                     Publicités
@@ -1048,8 +1176,17 @@ export default function MyPage() {
                       )
                     }
                   >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                      <path fillRule="evenodd" d="M6 6V5a3 3 0 013-3h2a3 3 0 013 3v1h2a2 2 0 012 2v3.57A22.952 22.952 0 0110 13a22.95 22.95 0 01-8-1.43V8a2 2 0 012-2h2zm2-1a1 1 0 011-1h2a1 1 0 011 1v1H8V5zm1 5a1 1 0 011-1h.01a1 1 0 110 2H10a1 1 0 01-1-1z" clipRule="evenodd" />
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-4 w-4"
+                      viewBox="0 0 20 20"
+                      fill="currentColor"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M6 6V5a3 3 0 013-3h2a3 3 0 013 3v1h2a2 2 0 012 2v3.57A22.952 22.952 0 0110 13a22.95 22.95 0 01-8-1.43V8a2 2 0 012-2h2zm2-1a1 1 0 011-1h2a1 1 0 011 1v1H8V5zm1 5a1 1 0 011-1h.01a1 1 0 110 2H10a1 1 0 01-1-1z"
+                        clipRule="evenodd"
+                      />
                       <path d="M2 13.692V16a2 2 0 002 2h12a2 2 0 002-2v-2.308A24.974 24.974 0 0110 15c-2.796 0-5.487-.46-8-1.308z" />
                     </svg>
                     Offres d'emploi
@@ -1065,8 +1202,17 @@ export default function MyPage() {
                       )
                     }
                   >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                      <path fillRule="evenodd" d="M6.672 1.911a1 1 0 10-1.932.518l.259.966a1 1 0 001.932-.518l-.26-.966zM2.429 4.74a1 1 0 10-.517 1.932l.966.259a1 1 0 00.517-1.932l-.966-.26zm8.814-.569a1 1 0 00-1.415-1.414l-.707.707a1 1 0 101.415 1.415l.707-.708zm-7.071 7.072l.707-.707A1 1 0 003.465 9.12l-.708.707a1 1 0 001.415 1.415l.707-.708zm3.2-5.171a1 1 0 00-1.3 1.3l4 10a1 1 0 001.823.075l1.38-2.759 3.018 3.02a1 1 0 001.414-1.415l-3.019-3.02 2.76-1.379a1 1 0 00-.076-1.822l-10-4z" clipRule="evenodd" />
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-4 w-4"
+                      viewBox="0 0 20 20"
+                      fill="currentColor"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M6.672 1.911a1 1 0 10-1.932.518l.259.966a1 1 0 001.932-.518l-.26-.966zM2.429 4.74a1 1 0 10-.517 1.932l.966.259a1 1 0 00.517-1.932l-.966-.26zm8.814-.569a1 1 0 00-1.415-1.414l-.707.707a1 1 0 101.415 1.415l.707-.708zm-7.071 7.072l.707-.707A1 1 0 003.465 9.12l-.708.707a1 1 0 001.415 1.415l.707-.708zm3.2-5.171a1 1 0 00-1.3 1.3l4 10a1 1 0 001.823.075l1.38-2.759 3.018 3.02a1 1 0 001.414-1.415l-3.019-3.02 2.76-1.379a1 1 0 00-.076-1.822l-10-4z"
+                        clipRule="evenodd"
+                      />
                     </svg>
                     Opportunités
                   </Tab>
@@ -1081,7 +1227,12 @@ export default function MyPage() {
                       )
                     }
                   >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-4 w-4"
+                      viewBox="0 0 20 20"
+                      fill="currentColor"
+                    >
                       <path d="M8 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM15 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0z" />
                       <path d="M3 4a1 1 0 00-1 1v10a1 1 0 001 1h1.05a2.5 2.5 0 014.9 0H10a1 1 0 001-1V5a1 1 0 00-1-1H3zM14 7a1 1 0 00-1 1v6.05A2.5 2.5 0 0115.95 16H17a1 1 0 001-1v-5a1 1 0 00-.293-.707l-2-2A1 1 0 0015 7h-1z" />
                     </svg>

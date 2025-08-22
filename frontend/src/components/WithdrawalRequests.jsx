@@ -1598,71 +1598,88 @@ const WithdrawalRequests = () => {
         PaperProps={{
           sx: (theme) => ({
             borderRadius: 3,
-            maxHeight: '90vh',
-            boxShadow: theme.palette.mode === 'dark' 
-              ? '0 25px 50px -12px rgba(0, 0, 0, 0.6)' 
-              : '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
-            backdropFilter: 'blur(20px)',
-            background: theme.palette.mode === 'dark'
-              ? 'linear-gradient(135deg, rgba(31, 41, 55, 0.95) 0%, rgba(31, 41, 55, 0.9) 100%)'
-              : 'linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0.9) 100%)',
-            border: theme.palette.mode === 'dark'
-              ? '1px solid rgba(255, 255, 255, 0.1)'
-              : '1px solid rgba(255, 255, 255, 0.2)',
-            overflow: 'hidden'
-          })
+            maxHeight: "90vh",
+            boxShadow:
+              theme.palette.mode === "dark"
+                ? "0 25px 50px -12px rgba(0, 0, 0, 0.6)"
+                : "0 25px 50px -12px rgba(0, 0, 0, 0.25)",
+            backdropFilter: "blur(20px)",
+            background:
+              theme.palette.mode === "dark"
+                ? "linear-gradient(135deg, rgba(31, 41, 55, 0.95) 0%, rgba(31, 41, 55, 0.9) 100%)"
+                : "linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0.9) 100%)",
+            border:
+              theme.palette.mode === "dark"
+                ? "1px solid rgba(255, 255, 255, 0.1)"
+                : "1px solid rgba(255, 255, 255, 0.2)",
+            overflow: "hidden",
+          }),
         }}
         BackdropProps={{
           sx: (theme) => ({
-            backdropFilter: 'blur(8px)',
-            backgroundColor: theme.palette.mode === 'dark' 
-              ? 'rgba(0, 0, 0, 0.7)' 
-              : 'rgba(0, 0, 0, 0.4)',
-          })
+            backdropFilter: "blur(8px)",
+            backgroundColor:
+              theme.palette.mode === "dark"
+                ? "rgba(0, 0, 0, 0.7)"
+                : "rgba(0, 0, 0, 0.4)",
+          }),
         }}
       >
         {selectedRequest && (
           <>
             <DialogTitle
               sx={{
-                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                color: 'white',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
+                background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+                color: "white",
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
                 p: 3,
-                position: 'relative',
-                '&::before': {
+                position: "relative",
+                "&::before": {
                   content: '""',
-                  position: 'absolute',
+                  position: "absolute",
                   top: 0,
                   left: 0,
                   right: 0,
                   bottom: 0,
-                  background: 'linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.05) 100%)',
-                  backdropFilter: 'blur(10px)',
-                }
+                  background:
+                    "linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.05) 100%)",
+                  backdropFilter: "blur(10px)",
+                },
               }}
             >
-              <Box sx={{ display: 'flex', alignItems: 'center', position: 'relative', zIndex: 1 }}>
+              <Box
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  position: "relative",
+                  zIndex: 1,
+                }}
+              >
                 <Box
                   sx={{
-                    background: 'linear-gradient(135deg, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0.1) 100%)',
-                    borderRadius: '50%',
+                    background:
+                      "linear-gradient(135deg, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0.1) 100%)",
+                    borderRadius: "50%",
                     p: 1.5,
                     mr: 3,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    backdropFilter: 'blur(10px)',
-                    border: '1px solid rgba(255,255,255,0.2)',
-                    boxShadow: '0 8px 32px rgba(0,0,0,0.1)'
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    backdropFilter: "blur(10px)",
+                    border: "1px solid rgba(255,255,255,0.2)",
+                    boxShadow: "0 8px 32px rgba(0,0,0,0.1)",
                   }}
                 >
-                  <EyeIcon style={{ width: 24, height: 24, color: 'white' }} />
+                  <EyeIcon style={{ width: 24, height: 24, color: "white" }} />
                 </Box>
                 <Box>
-                  <Typography variant="h5" component="div" sx={{ fontWeight: 600, mb: 0.5 }}>
+                  <Typography
+                    variant="h5"
+                    component="div"
+                    sx={{ fontWeight: 600, mb: 0.5 }}
+                  >
                     Demande #{selectedRequest.id}
                   </Typography>
                   <Typography variant="body2" sx={{ opacity: 0.9 }}>
@@ -1673,88 +1690,115 @@ const WithdrawalRequests = () => {
               <IconButton
                 onClick={() => setSelectedRequest(null)}
                 size="large"
-                sx={{ 
-                  color: 'white',
-                  position: 'relative',
+                sx={{
+                  color: "white",
+                  position: "relative",
                   zIndex: 1,
-                  background: 'rgba(255,255,255,0.1)',
-                  backdropFilter: 'blur(10px)',
-                  border: '1px solid rgba(255,255,255,0.2)',
-                  '&:hover': {
-                    background: 'rgba(255,255,255,0.2)',
-                    transform: 'scale(1.05)'
+                  background: "rgba(255,255,255,0.1)",
+                  backdropFilter: "blur(10px)",
+                  border: "1px solid rgba(255,255,255,0.2)",
+                  "&:hover": {
+                    background: "rgba(255,255,255,0.2)",
+                    transform: "scale(1.05)",
                   },
-                  transition: 'all 0.2s ease-in-out'
+                  transition: "all 0.2s ease-in-out",
                 }}
               >
                 <XMarkIcon style={{ width: 24, height: 24 }} />
               </IconButton>
             </DialogTitle>
 
-            <DialogContent sx={{ p: 4, background: 'linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.05) 100%)' }}>
+            <DialogContent
+              sx={{
+                p: 4,
+                background:
+                  "linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.05) 100%)",
+              }}
+            >
               {/* Section des statuts */}
               <Box sx={{ mb: 5 }}>
                 <Grid container spacing={3}>
                   <Grid item xs={12} md={6}>
                     <Card
                       sx={(theme) => ({
-                        background: theme.palette.mode === 'dark'
-                          ? 'linear-gradient(135deg, rgba(76, 175, 80, 0.15) 0%, rgba(139, 195, 74, 0.08) 100%)'
-                          : 'linear-gradient(135deg, rgba(76, 175, 80, 0.1) 0%, rgba(139, 195, 74, 0.05) 100%)',
-                        backdropFilter: 'blur(20px)',
-                        border: theme.palette.mode === 'dark'
-                          ? '1px solid rgba(76, 175, 80, 0.3)'
-                          : '1px solid rgba(76, 175, 80, 0.2)',
+                        background:
+                          theme.palette.mode === "dark"
+                            ? "linear-gradient(135deg, rgba(76, 175, 80, 0.15) 0%, rgba(139, 195, 74, 0.08) 100%)"
+                            : "linear-gradient(135deg, rgba(76, 175, 80, 0.1) 0%, rgba(139, 195, 74, 0.05) 100%)",
+                        backdropFilter: "blur(20px)",
+                        border:
+                          theme.palette.mode === "dark"
+                            ? "1px solid rgba(76, 175, 80, 0.3)"
+                            : "1px solid rgba(76, 175, 80, 0.2)",
                         borderRadius: 3,
-                        boxShadow: theme.palette.mode === 'dark'
-                          ? '0 8px 32px rgba(0, 0, 0, 0.3)'
-                          : '0 8px 32px rgba(76, 175, 80, 0.1)',
-                        transition: 'all 0.3s ease-in-out',
-                        '&:hover': {
-                          transform: 'translateY(-4px)',
-                          boxShadow: theme.palette.mode === 'dark'
-                            ? '0 12px 40px rgba(0, 0, 0, 0.4)'
-                            : '0 12px 40px rgba(76, 175, 80, 0.15)',
-                        }
+                        boxShadow:
+                          theme.palette.mode === "dark"
+                            ? "0 8px 32px rgba(0, 0, 0, 0.3)"
+                            : "0 8px 32px rgba(76, 175, 80, 0.1)",
+                        transition: "all 0.3s ease-in-out",
+                        "&:hover": {
+                          transform: "translateY(-4px)",
+                          boxShadow:
+                            theme.palette.mode === "dark"
+                              ? "0 12px 40px rgba(0, 0, 0, 0.4)"
+                              : "0 12px 40px rgba(76, 175, 80, 0.15)",
+                        },
                       })}
                     >
                       <CardContent sx={{ p: 3 }}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                        <Box
+                          sx={{ display: "flex", alignItems: "center", mb: 2 }}
+                        >
                           <Box
                             sx={{
                               width: 4,
                               height: 40,
-                              background: 'linear-gradient(135deg, #4caf50 0%, #8bc34a 100%)',
+                              background:
+                                "linear-gradient(135deg, #4caf50 0%, #8bc34a 100%)",
                               borderRadius: 2,
-                              mr: 2
+                              mr: 2,
                             }}
                           />
-                          <Typography variant="h6" sx={{ fontWeight: 600, color: 'text.primary' }}>
+                          <Typography
+                            variant="h6"
+                            sx={{ fontWeight: 600, color: "text.primary" }}
+                          >
                             Statut de traitement
                           </Typography>
                         </Box>
                         <Chip
                           icon={getStatusIcon(selectedRequest.status)}
                           label={
-                            selectedRequest.status === "pending" ? "En attente" :
-                            selectedRequest.status === "approved" ? "Approuvé" :
-                            selectedRequest.status === "rejected" ? "Rejeté" :
-                            selectedRequest.status === "cancelled" ? "Annulé" :
-                            selectedRequest.status === "failed" ? "Échoué" : selectedRequest.status
+                            selectedRequest.status === "pending"
+                              ? "En attente"
+                              : selectedRequest.status === "approved"
+                              ? "Approuvé"
+                              : selectedRequest.status === "rejected"
+                              ? "Rejeté"
+                              : selectedRequest.status === "cancelled"
+                              ? "Annulé"
+                              : selectedRequest.status === "failed"
+                              ? "Échoué"
+                              : selectedRequest.status
                           }
                           color={
-                            selectedRequest.status === "approved" ? "success" :
-                            selectedRequest.status === "rejected" || selectedRequest.status === "failed" ? "error" :
-                            selectedRequest.status === "cancelled" ? "warning" : "default"
+                            selectedRequest.status === "approved"
+                              ? "success"
+                              : selectedRequest.status === "rejected" ||
+                                selectedRequest.status === "failed"
+                              ? "error"
+                              : selectedRequest.status === "cancelled"
+                              ? "warning"
+                              : "default"
                           }
                           variant="filled"
                           sx={{
-                            fontSize: '0.875rem',
+                            fontSize: "0.875rem",
                             fontWeight: 600,
                             px: 2,
                             py: 1,
                             borderRadius: 2,
-                            boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+                            boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
                           }}
                         />
                       </CardContent>
@@ -1763,60 +1807,81 @@ const WithdrawalRequests = () => {
                   <Grid item xs={12} md={6}>
                     <Card
                       sx={(theme) => ({
-                        background: theme.palette.mode === 'dark'
-                          ? 'linear-gradient(135deg, rgba(33, 150, 243, 0.15) 0%, rgba(3, 169, 244, 0.08) 100%)'
-                          : 'linear-gradient(135deg, rgba(33, 150, 243, 0.1) 0%, rgba(3, 169, 244, 0.05) 100%)',
-                        backdropFilter: 'blur(20px)',
-                        border: theme.palette.mode === 'dark'
-                          ? '1px solid rgba(33, 150, 243, 0.3)'
-                          : '1px solid rgba(33, 150, 243, 0.2)',
+                        background:
+                          theme.palette.mode === "dark"
+                            ? "linear-gradient(135deg, rgba(33, 150, 243, 0.15) 0%, rgba(3, 169, 244, 0.08) 100%)"
+                            : "linear-gradient(135deg, rgba(33, 150, 243, 0.1) 0%, rgba(3, 169, 244, 0.05) 100%)",
+                        backdropFilter: "blur(20px)",
+                        border:
+                          theme.palette.mode === "dark"
+                            ? "1px solid rgba(33, 150, 243, 0.3)"
+                            : "1px solid rgba(33, 150, 243, 0.2)",
                         borderRadius: 3,
-                        boxShadow: theme.palette.mode === 'dark'
-                          ? '0 8px 32px rgba(0, 0, 0, 0.3)'
-                          : '0 8px 32px rgba(33, 150, 243, 0.1)',
-                        transition: 'all 0.3s ease-in-out',
-                        '&:hover': {
-                          transform: 'translateY(-4px)',
-                          boxShadow: theme.palette.mode === 'dark'
-                            ? '0 12px 40px rgba(0, 0, 0, 0.4)'
-                            : '0 12px 40px rgba(33, 150, 243, 0.15)',
-                        }
+                        boxShadow:
+                          theme.palette.mode === "dark"
+                            ? "0 8px 32px rgba(0, 0, 0, 0.3)"
+                            : "0 8px 32px rgba(33, 150, 243, 0.1)",
+                        transition: "all 0.3s ease-in-out",
+                        "&:hover": {
+                          transform: "translateY(-4px)",
+                          boxShadow:
+                            theme.palette.mode === "dark"
+                              ? "0 12px 40px rgba(0, 0, 0, 0.4)"
+                              : "0 12px 40px rgba(33, 150, 243, 0.15)",
+                        },
                       })}
                     >
                       <CardContent sx={{ p: 3 }}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                        <Box
+                          sx={{ display: "flex", alignItems: "center", mb: 2 }}
+                        >
                           <Box
                             sx={{
                               width: 4,
                               height: 40,
-                              background: 'linear-gradient(135deg, #2196f3 0%, #03a9f4 100%)',
+                              background:
+                                "linear-gradient(135deg, #2196f3 0%, #03a9f4 100%)",
                               borderRadius: 2,
-                              mr: 2
+                              mr: 2,
                             }}
                           />
-                          <Typography variant="h6" sx={{ fontWeight: 600, color: 'text.primary' }}>
+                          <Typography
+                            variant="h6"
+                            sx={{ fontWeight: 600, color: "text.primary" }}
+                          >
                             Statut de paiement
                           </Typography>
                         </Box>
                         <Chip
                           icon={getStatusIcon(selectedRequest.payment_status)}
                           label={
-                            selectedRequest.payment_status === "pending" ? "En attente" :
-                            selectedRequest.payment_status === "paid" ? "Payé" :
-                            selectedRequest.payment_status === "failed" ? "Échoué" : selectedRequest.payment_status
+                            selectedRequest.payment_status === "pending"
+                              ? "En attente"
+                              : selectedRequest.payment_status === "paid"
+                              ? "Payé"
+                              : selectedRequest.payment_status === "failed"
+                              ? "Échoué"
+                              : selectedRequest.payment_status === "initiated"
+                              ? "Initialisé"
+                              : selectedRequest.payment_status
                           }
                           color={
-                            selectedRequest.payment_status === "paid" ? "success" :
-                            selectedRequest.payment_status === "failed" ? "error" : "default"
+                            selectedRequest.payment_status === "paid"
+                              ? "success"
+                              : selectedRequest.payment_status === "failed"
+                              ? "error"
+                              : selectedRequest.payment_status === "initiated"
+                              ? "warning"
+                              : "default"
                           }
                           variant="filled"
                           sx={{
-                            fontSize: '0.875rem',
+                            fontSize: "0.875rem",
                             fontWeight: 600,
                             px: 2,
                             py: 1,
                             borderRadius: 2,
-                            boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+                            boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
                           }}
                         />
                       </CardContent>
@@ -1827,73 +1892,125 @@ const WithdrawalRequests = () => {
 
               {/* Section des informations principales */}
               <Box sx={{ mb: 5 }}>
-                <Typography 
-                  variant="h5" 
-                  gutterBottom 
-                  sx={{ 
-                    display: 'flex', 
-                    alignItems: 'center', 
+                <Typography
+                  variant="h5"
+                  gutterBottom
+                  sx={{
+                    display: "flex",
+                    alignItems: "center",
                     mb: 3,
                     fontWeight: 700,
-                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                    backgroundClip: 'text',
-                    WebkitBackgroundClip: 'text',
-                    WebkitTextFillColor: 'transparent'
+                    background:
+                      "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+                    backgroundClip: "text",
+                    WebkitBackgroundClip: "text",
+                    WebkitTextFillColor: "transparent",
                   }}
                 >
-                  <Box 
-                    sx={{ 
-                      width: 6, 
-                      height: 30, 
-                      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', 
-                      borderRadius: 3, 
+                  <Box
+                    sx={{
+                      width: 6,
+                      height: 30,
+                      background:
+                        "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+                      borderRadius: 3,
                       mr: 2,
-                      boxShadow: '0 4px 12px rgba(102, 126, 234, 0.3)'
-                    }} 
+                      boxShadow: "0 4px 12px rgba(102, 126, 234, 0.3)",
+                    }}
                   />
                   Informations générales
                 </Typography>
                 <Paper
-                sx={(theme) => ({
-                  background: theme.palette.mode === 'dark'
-                    ? 'linear-gradient(135deg, rgba(31, 41, 55, 0.8) 0%, rgba(31, 41, 55, 0.6) 100%)'
-                    : 'linear-gradient(135deg, rgba(255,255,255,0.25) 0%, rgba(255,255,255,0.1) 100%)',
-                  backdropFilter: 'blur(20px)',
-                  border: theme.palette.mode === 'dark'
-                    ? '1px solid rgba(255,255,255,0.1)'
-                    : '1px solid rgba(255,255,255,0.2)',
-                  borderRadius: 3,
-                  boxShadow: theme.palette.mode === 'dark'
-                    ? '0 8px 32px rgba(0,0,0,0.4)'
-                    : '0 8px 32px rgba(0,0,0,0.1)',
-                  p: 4,
-                  mb: 4
-                })}>
+                  sx={(theme) => ({
+                    background:
+                      theme.palette.mode === "dark"
+                        ? "linear-gradient(135deg, rgba(31, 41, 55, 0.8) 0%, rgba(31, 41, 55, 0.6) 100%)"
+                        : "linear-gradient(135deg, rgba(255,255,255,0.25) 0%, rgba(255,255,255,0.1) 100%)",
+                    backdropFilter: "blur(20px)",
+                    border:
+                      theme.palette.mode === "dark"
+                        ? "1px solid rgba(255,255,255,0.1)"
+                        : "1px solid rgba(255,255,255,0.2)",
+                    borderRadius: 3,
+                    boxShadow:
+                      theme.palette.mode === "dark"
+                        ? "0 8px 32px rgba(0,0,0,0.4)"
+                        : "0 8px 32px rgba(0,0,0,0.1)",
+                    p: 4,
+                    mb: 4,
+                  })}
+                >
                   <Grid container>
-                    <Grid item xs={12} md={6} sx={{ borderRight: { md: 1 }, borderColor: 'rgba(255,255,255,0.1)' }}>
+                    <Grid
+                      item
+                      xs={12}
+                      md={6}
+                      sx={{
+                        borderRight: { md: 1 },
+                        borderColor: "rgba(255,255,255,0.1)",
+                      }}
+                    >
                       <Box sx={{ p: 4 }}>
                         <Box sx={{ mb: 4 }}>
-                          <Typography variant="body2" sx={{ color: 'text.secondary', mb: 1, fontWeight: 500 }}>
+                          <Typography
+                            variant="body2"
+                            sx={{
+                              color: "text.secondary",
+                              mb: 1,
+                              fontWeight: 500,
+                            }}
+                          >
                             ID de la demande
                           </Typography>
-                          <Typography variant="h6" sx={{ fontWeight: 600, color: 'text.primary' }}>
+                          <Typography
+                            variant="h6"
+                            sx={{ fontWeight: 600, color: "text.primary" }}
+                          >
                             #{selectedRequest.id}
                           </Typography>
                         </Box>
                         <Box sx={{ mb: 4 }}>
-                          <Typography variant="body2" sx={{ color: 'text.secondary', mb: 1, fontWeight: 500 }}>
+                          <Typography
+                            variant="body2"
+                            sx={{
+                              color: "text.secondary",
+                              mb: 1,
+                              fontWeight: 500,
+                            }}
+                          >
                             Utilisateur
                           </Typography>
-                          <Typography variant="body1" sx={{ fontWeight: 600, color: 'text.primary' }}>
-                            {selectedRequest.user ? selectedRequest.user.name : "Utilisateur inconnu"}
+                          <Typography
+                            variant="body1"
+                            sx={{ fontWeight: 600, color: "text.primary" }}
+                          >
+                            {selectedRequest.user
+                              ? selectedRequest.user.name
+                              : "Utilisateur inconnu"}
                           </Typography>
                         </Box>
                         <Box>
-                          <Typography variant="body2" sx={{ color: 'text.secondary', mb: 1, fontWeight: 500 }}>
+                          <Typography
+                            variant="body2"
+                            sx={{
+                              color: "text.secondary",
+                              mb: 1,
+                              fontWeight: 500,
+                            }}
+                          >
                             Adresse email
                           </Typography>
-                          <Typography variant="body1" sx={{ fontWeight: 600, color: 'text.primary', wordBreak: 'break-word' }}>
-                            {selectedRequest.user ? selectedRequest.user.email : "Email inconnu"}
+                          <Typography
+                            variant="body1"
+                            sx={{
+                              fontWeight: 600,
+                              color: "text.primary",
+                              wordBreak: "break-word",
+                            }}
+                          >
+                            {selectedRequest.user
+                              ? selectedRequest.user.email
+                              : "Email inconnu"}
                           </Typography>
                         </Box>
                       </Box>
@@ -1901,17 +2018,25 @@ const WithdrawalRequests = () => {
                     <Grid item xs={12} md={6}>
                       <Box sx={{ p: 4 }}>
                         <Box sx={{ mb: 4 }}>
-                          <Typography variant="body2" sx={{ color: 'text.secondary', mb: 1, fontWeight: 500 }}>
+                          <Typography
+                            variant="body2"
+                            sx={{
+                              color: "text.secondary",
+                              mb: 1,
+                              fontWeight: 500,
+                            }}
+                          >
                             Montant demandé
                           </Typography>
-                          <Typography 
-                            variant="h6" 
-                            sx={{ 
-                              fontWeight: 700, 
-                              background: 'linear-gradient(135deg, #4caf50 0%, #8bc34a 100%)',
-                              backgroundClip: 'text',
-                              WebkitBackgroundClip: 'text',
-                              WebkitTextFillColor: 'transparent'
+                          <Typography
+                            variant="h6"
+                            sx={{
+                              fontWeight: 700,
+                              background:
+                                "linear-gradient(135deg, #4caf50 0%, #8bc34a 100%)",
+                              backgroundClip: "text",
+                              WebkitBackgroundClip: "text",
+                              WebkitTextFillColor: "transparent",
                             }}
                           >
                             {new Intl.NumberFormat("fr-FR", {
@@ -1921,30 +2046,66 @@ const WithdrawalRequests = () => {
                           </Typography>
                         </Box>
                         <Box sx={{ mb: 4 }}>
-                          <Typography variant="body2" sx={{ color: 'text.secondary', mb: 1, fontWeight: 500 }}>
+                          <Typography
+                            variant="body2"
+                            sx={{
+                              color: "text.secondary",
+                              mb: 1,
+                              fontWeight: 500,
+                            }}
+                          >
                             Méthode de paiement
                           </Typography>
-                          <Typography variant="body1" sx={{ fontWeight: 600, color: 'text.primary' }}>
+                          <Typography
+                            variant="body1"
+                            sx={{ fontWeight: 600, color: "text.primary" }}
+                          >
                             {selectedRequest.payment_method}
                           </Typography>
                         </Box>
                         <Box sx={{ mb: 4 }}>
-                          <Typography variant="body2" sx={{ color: 'text.secondary', mb: 1, fontWeight: 500 }}>
+                          <Typography
+                            variant="body2"
+                            sx={{
+                              color: "text.secondary",
+                              mb: 1,
+                              fontWeight: 500,
+                            }}
+                          >
                             Date de création
                           </Typography>
-                          <Typography variant="body1" sx={{ fontWeight: 600, color: 'text.primary' }}>
+                          <Typography
+                            variant="body1"
+                            sx={{ fontWeight: 600, color: "text.primary" }}
+                          >
                             {selectedRequest.created_at
-                              ? format(new Date(selectedRequest.created_at), "dd/MM/yyyy HH:mm")
+                              ? format(
+                                  new Date(selectedRequest.created_at),
+                                  "dd/MM/yyyy HH:mm"
+                                )
                               : "Date non disponible"}
                           </Typography>
                         </Box>
                         <Box>
-                          <Typography variant="body2" sx={{ color: 'text.secondary', mb: 1, fontWeight: 500 }}>
+                          <Typography
+                            variant="body2"
+                            sx={{
+                              color: "text.secondary",
+                              mb: 1,
+                              fontWeight: 500,
+                            }}
+                          >
                             Dernière mise à jour
                           </Typography>
-                          <Typography variant="body1" sx={{ fontWeight: 600, color: 'text.primary' }}>
+                          <Typography
+                            variant="body1"
+                            sx={{ fontWeight: 600, color: "text.primary" }}
+                          >
                             {selectedRequest.updated_at
-                              ? format(new Date(selectedRequest.updated_at), "dd/MM/yyyy HH:mm")
+                              ? format(
+                                  new Date(selectedRequest.updated_at),
+                                  "dd/MM/yyyy HH:mm"
+                                )
                               : "Date non disponible"}
                           </Typography>
                         </Box>
@@ -1956,59 +2117,66 @@ const WithdrawalRequests = () => {
 
               {/* Section des détails de paiement */}
               <Box sx={{ mb: 5 }}>
-                <Typography 
-                  variant="h5" 
-                  gutterBottom 
-                  sx={{ 
-                    display: 'flex', 
-                    alignItems: 'center', 
+                <Typography
+                  variant="h5"
+                  gutterBottom
+                  sx={{
+                    display: "flex",
+                    alignItems: "center",
                     mb: 3,
                     fontWeight: 700,
-                    background: 'linear-gradient(135deg, #2196f3 0%, #03a9f4 100%)',
-                    backgroundClip: 'text',
-                    WebkitBackgroundClip: 'text',
-                    WebkitTextFillColor: 'transparent'
+                    background:
+                      "linear-gradient(135deg, #2196f3 0%, #03a9f4 100%)",
+                    backgroundClip: "text",
+                    WebkitBackgroundClip: "text",
+                    WebkitTextFillColor: "transparent",
                   }}
                 >
-                  <Box 
-                    sx={{ 
-                      width: 6, 
-                      height: 30, 
-                      background: 'linear-gradient(135deg, #2196f3 0%, #03a9f4 100%)', 
-                      borderRadius: 3, 
+                  <Box
+                    sx={{
+                      width: 6,
+                      height: 30,
+                      background:
+                        "linear-gradient(135deg, #2196f3 0%, #03a9f4 100%)",
+                      borderRadius: 3,
                       mr: 2,
-                      boxShadow: '0 4px 12px rgba(33, 150, 243, 0.3)'
-                    }} 
+                      boxShadow: "0 4px 12px rgba(33, 150, 243, 0.3)",
+                    }}
                   />
                   Détails du paiement
                 </Typography>
                 <Paper
                   sx={(theme) => ({
-                    background: theme.palette.mode === 'dark'
-                      ? 'linear-gradient(135deg, rgba(31, 41, 55, 0.8) 0%, rgba(31, 41, 55, 0.6) 100%)'
-                      : 'linear-gradient(135deg, rgba(33, 150, 243, 0.1) 0%, rgba(3, 169, 244, 0.05) 100%)',
-                    backdropFilter: 'blur(20px)',
-                    border: theme.palette.mode === 'dark'
-                      ? '1px solid rgba(33, 150, 243, 0.3)'
-                      : '1px solid rgba(33, 150, 243, 0.2)',
+                    background:
+                      theme.palette.mode === "dark"
+                        ? "linear-gradient(135deg, rgba(31, 41, 55, 0.8) 0%, rgba(31, 41, 55, 0.6) 100%)"
+                        : "linear-gradient(135deg, rgba(33, 150, 243, 0.1) 0%, rgba(3, 169, 244, 0.05) 100%)",
+                    backdropFilter: "blur(20px)",
+                    border:
+                      theme.palette.mode === "dark"
+                        ? "1px solid rgba(33, 150, 243, 0.3)"
+                        : "1px solid rgba(33, 150, 243, 0.2)",
                     borderRadius: 3,
-                    boxShadow: theme.palette.mode === 'dark'
-                      ? '0 8px 32px rgba(0, 0, 0, 0.4)'
-                      : '0 8px 32px rgba(33, 150, 243, 0.1)',
+                    boxShadow:
+                      theme.palette.mode === "dark"
+                        ? "0 8px 32px rgba(0, 0, 0, 0.4)"
+                        : "0 8px 32px rgba(33, 150, 243, 0.1)",
                     p: 3,
                     maxHeight: 250,
-                    overflow: 'auto',
-                    '&::-webkit-scrollbar': {
+                    overflow: "auto",
+                    "&::-webkit-scrollbar": {
                       width: 8,
                     },
-                    '&::-webkit-scrollbar-track': {
-                      background: theme.palette.mode === 'dark'
-                        ? 'rgba(255,255,255,0.05)'
-                        : 'rgba(255,255,255,0.1)',
+                    "&::-webkit-scrollbar-track": {
+                      background:
+                        theme.palette.mode === "dark"
+                          ? "rgba(255,255,255,0.05)"
+                          : "rgba(255,255,255,0.1)",
                       borderRadius: 4,
                     },
-                    '&::-webkit-scrollbar-thumb': {
-                      background: 'linear-gradient(135deg, #2196f3 0%, #03a9f4 100%)',
+                    "&::-webkit-scrollbar-thumb": {
+                      background:
+                        "linear-gradient(135deg, #2196f3 0%, #03a9f4 100%)",
                       borderRadius: 4,
                     },
                   })}
@@ -2017,47 +2185,50 @@ const WithdrawalRequests = () => {
                     component="pre"
                     variant="body2"
                     sx={{
-                      fontFamily: 'JetBrains Mono, Consolas, Monaco, monospace',
-                      whiteSpace: 'pre-wrap',
-                      wordBreak: 'break-word',
+                      fontFamily: "JetBrains Mono, Consolas, Monaco, monospace",
+                      whiteSpace: "pre-wrap",
+                      wordBreak: "break-word",
                       m: 0,
-                      color: 'text.primary',
+                      color: "text.primary",
                       lineHeight: 1.6,
-                      fontSize: '0.875rem'
+                      fontSize: "0.875rem",
                     }}
                   >
                     {typeof selectedRequest.payment_details === "object"
                       ? JSON.stringify(selectedRequest.payment_details, null, 2)
-                      : selectedRequest.payment_details || "Aucun détail fourni"}
+                      : selectedRequest.payment_details ||
+                        "Aucun détail fourni"}
                   </Typography>
                 </Paper>
               </Box>
 
               {/* Section de la note administrative */}
               <Box>
-                <Typography 
-                  variant="h5" 
-                  gutterBottom 
-                  sx={{ 
-                    display: 'flex', 
-                    alignItems: 'center', 
+                <Typography
+                  variant="h5"
+                  gutterBottom
+                  sx={{
+                    display: "flex",
+                    alignItems: "center",
                     mb: 3,
                     fontWeight: 700,
-                    background: 'linear-gradient(135deg, #4caf50 0%, #8bc34a 100%)',
-                    backgroundClip: 'text',
-                    WebkitBackgroundClip: 'text',
-                    WebkitTextFillColor: 'transparent'
+                    background:
+                      "linear-gradient(135deg, #4caf50 0%, #8bc34a 100%)",
+                    backgroundClip: "text",
+                    WebkitBackgroundClip: "text",
+                    WebkitTextFillColor: "transparent",
                   }}
                 >
-                  <Box 
-                    sx={{ 
-                      width: 6, 
-                      height: 30, 
-                      background: 'linear-gradient(135deg, #4caf50 0%, #8bc34a 100%)', 
-                      borderRadius: 3, 
+                  <Box
+                    sx={{
+                      width: 6,
+                      height: 30,
+                      background:
+                        "linear-gradient(135deg, #4caf50 0%, #8bc34a 100%)",
+                      borderRadius: 3,
                       mr: 2,
-                      boxShadow: '0 4px 12px rgba(76, 175, 80, 0.3)'
-                    }} 
+                      boxShadow: "0 4px 12px rgba(76, 175, 80, 0.3)",
+                    }}
                   />
                   Note administrative
                 </Typography>
@@ -2069,37 +2240,40 @@ const WithdrawalRequests = () => {
                   onChange={(e) => setAdminNote(e.target.value)}
                   placeholder="Ajouter une note administrative..."
                   variant="outlined"
-                  sx={(theme) => ({ 
+                  sx={(theme) => ({
                     mb: 2,
-                    '& .MuiOutlinedInput-root': {
-                      background: theme.palette.mode === 'dark'
-                        ? 'linear-gradient(135deg, rgba(31, 41, 55, 0.8) 0%, rgba(31, 41, 55, 0.6) 100%)'
-                        : 'linear-gradient(135deg, rgba(255,255,255,0.25) 0%, rgba(255,255,255,0.1) 100%)',
-                      backdropFilter: 'blur(20px)',
+                    "& .MuiOutlinedInput-root": {
+                      background:
+                        theme.palette.mode === "dark"
+                          ? "linear-gradient(135deg, rgba(31, 41, 55, 0.8) 0%, rgba(31, 41, 55, 0.6) 100%)"
+                          : "linear-gradient(135deg, rgba(255,255,255,0.25) 0%, rgba(255,255,255,0.1) 100%)",
+                      backdropFilter: "blur(20px)",
                       borderRadius: 3,
-                      '& fieldset': {
-                        border: theme.palette.mode === 'dark'
-                          ? '1px solid rgba(76, 175, 80, 0.3)'
-                          : '1px solid rgba(76, 175, 80, 0.2)',
+                      "& fieldset": {
+                        border:
+                          theme.palette.mode === "dark"
+                            ? "1px solid rgba(76, 175, 80, 0.3)"
+                            : "1px solid rgba(76, 175, 80, 0.2)",
                       },
-                      '&:hover fieldset': {
-                        border: theme.palette.mode === 'dark'
-                          ? '1px solid rgba(76, 175, 80, 0.5)'
-                          : '1px solid rgba(76, 175, 80, 0.4)',
+                      "&:hover fieldset": {
+                        border:
+                          theme.palette.mode === "dark"
+                            ? "1px solid rgba(76, 175, 80, 0.5)"
+                            : "1px solid rgba(76, 175, 80, 0.4)",
                       },
-                      '&.Mui-focused fieldset': {
-                        border: '2px solid rgba(76, 175, 80, 0.6)',
-                        boxShadow: '0 0 0 3px rgba(76, 175, 80, 0.1)',
+                      "&.Mui-focused fieldset": {
+                        border: "2px solid rgba(76, 175, 80, 0.6)",
+                        boxShadow: "0 0 0 3px rgba(76, 175, 80, 0.1)",
                       },
                     },
-                    '& .MuiInputBase-input': {
-                      color: 'text.primary',
+                    "& .MuiInputBase-input": {
+                      color: "text.primary",
                       fontWeight: 500,
                     },
-                    '& .MuiInputBase-input::placeholder': {
-                      color: 'text.secondary',
+                    "& .MuiInputBase-input::placeholder": {
+                      color: "text.secondary",
                       opacity: 0.7,
-                    }
+                    },
                   })}
                 />
               </Box>
@@ -2107,83 +2281,101 @@ const WithdrawalRequests = () => {
 
             <Box
               sx={(theme) => ({
-                background: theme.palette.mode === 'dark'
-                  ? 'linear-gradient(135deg, rgba(31, 41, 55, 0.8) 0%, rgba(31, 41, 55, 0.6) 100%)'
-                  : 'linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.05) 100%)',
-                backdropFilter: 'blur(20px)',
-                borderTop: theme.palette.mode === 'dark'
-                  ? '1px solid rgba(255,255,255,0.05)'
-                  : '1px solid rgba(255,255,255,0.1)',
+                background:
+                  theme.palette.mode === "dark"
+                    ? "linear-gradient(135deg, rgba(31, 41, 55, 0.8) 0%, rgba(31, 41, 55, 0.6) 100%)"
+                    : "linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.05) 100%)",
+                backdropFilter: "blur(20px)",
+                borderTop:
+                  theme.palette.mode === "dark"
+                    ? "1px solid rgba(255,255,255,0.05)"
+                    : "1px solid rgba(255,255,255,0.1)",
               })}
             >
               <DialogActions sx={{ p: 4 }}>
-                <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', justifyContent: 'flex-end', width: '100%' }}>
+                <Box
+                  sx={{
+                    display: "flex",
+                    gap: 2,
+                    flexWrap: "wrap",
+                    justifyContent: "flex-end",
+                    width: "100%",
+                  }}
+                >
                   {selectedRequest.status === "pending" && (
                     <>
                       <Button
                         variant="contained"
-                        startIcon={<CheckIcon style={{ width: 20, height: 20 }} />}
+                        startIcon={
+                          <CheckIcon style={{ width: 20, height: 20 }} />
+                        }
                         onClick={() => handleApproveRequest(selectedRequest.id)}
                         disabled={isProcessing}
-                        sx={{ 
+                        sx={{
                           minWidth: 140,
-                          background: 'linear-gradient(135deg, #4caf50 0%, #8bc34a 100%)',
-                          backdropFilter: 'blur(20px)',
-                          border: '1px solid rgba(76, 175, 80, 0.3)',
+                          background:
+                            "linear-gradient(135deg, #4caf50 0%, #8bc34a 100%)",
+                          backdropFilter: "blur(20px)",
+                          border: "1px solid rgba(76, 175, 80, 0.3)",
                           borderRadius: 3,
-                          boxShadow: '0 8px 32px rgba(76, 175, 80, 0.3)',
-                          color: 'white',
+                          boxShadow: "0 8px 32px rgba(76, 175, 80, 0.3)",
+                          color: "white",
                           fontWeight: 600,
-                          textTransform: 'none',
-                          fontSize: '0.95rem',
+                          textTransform: "none",
+                          fontSize: "0.95rem",
                           py: 1.5,
-                          transition: 'all 0.3s ease-in-out',
-                          '&:hover': {
-                            background: 'linear-gradient(135deg, #66bb6a 0%, #9ccc65 100%)',
-                            transform: 'translateY(-2px)',
-                            boxShadow: '0 12px 40px rgba(76, 175, 80, 0.4)',
+                          transition: "all 0.3s ease-in-out",
+                          "&:hover": {
+                            background:
+                              "linear-gradient(135deg, #66bb6a 0%, #9ccc65 100%)",
+                            transform: "translateY(-2px)",
+                            boxShadow: "0 12px 40px rgba(76, 175, 80, 0.4)",
                           },
-                          '&:active': {
-                            transform: 'translateY(0px)',
+                          "&:active": {
+                            transform: "translateY(0px)",
                           },
-                          '&:disabled': {
-                            background: 'rgba(76, 175, 80, 0.3)',
-                            color: 'rgba(255, 255, 255, 0.5)',
-                          }
+                          "&:disabled": {
+                            background: "rgba(76, 175, 80, 0.3)",
+                            color: "rgba(255, 255, 255, 0.5)",
+                          },
                         }}
                       >
                         {isProcessing ? "Traitement..." : "Approuver"}
                       </Button>
                       <Button
                         variant="contained"
-                        startIcon={<XMarkIcon style={{ width: 20, height: 20 }} />}
+                        startIcon={
+                          <XMarkIcon style={{ width: 20, height: 20 }} />
+                        }
                         onClick={() => handleRejectRequest(selectedRequest.id)}
                         disabled={isProcessing}
-                        sx={{ 
+                        sx={{
                           minWidth: 140,
-                          background: 'linear-gradient(135deg, #f44336 0%, #e57373 100%)',
-                          backdropFilter: 'blur(20px)',
-                          border: '1px solid rgba(244, 67, 54, 0.3)',
+                          background:
+                            "linear-gradient(135deg, #f44336 0%, #e57373 100%)",
+                          backdropFilter: "blur(20px)",
+                          border: "1px solid rgba(244, 67, 54, 0.3)",
                           borderRadius: 3,
-                          boxShadow: '0 8px 32px rgba(244, 67, 54, 0.3)',
-                          color: 'white',
+                          boxShadow: "0 8px 32px rgba(244, 67, 54, 0.3)",
+                          color: "white",
                           fontWeight: 600,
-                          textTransform: 'none',
-                          fontSize: '0.95rem',
+                          textTransform: "none",
+                          fontSize: "0.95rem",
                           py: 1.5,
-                          transition: 'all 0.3s ease-in-out',
-                          '&:hover': {
-                            background: 'linear-gradient(135deg, #ef5350 0%, #ef9a9a 100%)',
-                            transform: 'translateY(-2px)',
-                            boxShadow: '0 12px 40px rgba(244, 67, 54, 0.4)',
+                          transition: "all 0.3s ease-in-out",
+                          "&:hover": {
+                            background:
+                              "linear-gradient(135deg, #ef5350 0%, #ef9a9a 100%)",
+                            transform: "translateY(-2px)",
+                            boxShadow: "0 12px 40px rgba(244, 67, 54, 0.4)",
                           },
-                          '&:active': {
-                            transform: 'translateY(0px)',
+                          "&:active": {
+                            transform: "translateY(0px)",
                           },
-                          '&:disabled': {
-                            background: 'rgba(244, 67, 54, 0.3)',
-                            color: 'rgba(255, 255, 255, 0.5)',
-                          }
+                          "&:disabled": {
+                            background: "rgba(244, 67, 54, 0.3)",
+                            color: "rgba(255, 255, 255, 0.5)",
+                          },
                         }}
                       >
                         {isProcessing ? "Traitement..." : "Rejeter"}
@@ -2194,31 +2386,33 @@ const WithdrawalRequests = () => {
                     variant="contained"
                     onClick={handleSaveAdminNote}
                     disabled={isSavingNote}
-                    sx={{ 
+                    sx={{
                       minWidth: 180,
-                      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                      backdropFilter: 'blur(20px)',
-                      border: '1px solid rgba(102, 126, 234, 0.3)',
+                      background:
+                        "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+                      backdropFilter: "blur(20px)",
+                      border: "1px solid rgba(102, 126, 234, 0.3)",
                       borderRadius: 3,
-                      boxShadow: '0 8px 32px rgba(102, 126, 234, 0.3)',
-                      color: 'white',
+                      boxShadow: "0 8px 32px rgba(102, 126, 234, 0.3)",
+                      color: "white",
                       fontWeight: 600,
-                      textTransform: 'none',
-                      fontSize: '0.95rem',
+                      textTransform: "none",
+                      fontSize: "0.95rem",
                       py: 1.5,
-                      transition: 'all 0.3s ease-in-out',
-                      '&:hover': {
-                        background: 'linear-gradient(135deg, #7986cb 0%, #8e24aa 100%)',
-                        transform: 'translateY(-2px)',
-                        boxShadow: '0 12px 40px rgba(102, 126, 234, 0.4)',
+                      transition: "all 0.3s ease-in-out",
+                      "&:hover": {
+                        background:
+                          "linear-gradient(135deg, #7986cb 0%, #8e24aa 100%)",
+                        transform: "translateY(-2px)",
+                        boxShadow: "0 12px 40px rgba(102, 126, 234, 0.4)",
                       },
-                      '&:active': {
-                        transform: 'translateY(0px)',
+                      "&:active": {
+                        transform: "translateY(0px)",
                       },
-                      '&:disabled': {
-                        background: 'rgba(102, 126, 234, 0.3)',
-                        color: 'rgba(255, 255, 255, 0.5)',
-                      }
+                      "&:disabled": {
+                        background: "rgba(102, 126, 234, 0.3)",
+                        color: "rgba(255, 255, 255, 0.5)",
+                      },
                     }}
                   >
                     {isSavingNote ? "Enregistrement..." : "Enregistrer la note"}
@@ -2226,35 +2420,39 @@ const WithdrawalRequests = () => {
                   <Button
                     variant="outlined"
                     onClick={() => setSelectedRequest(null)}
-                    sx={(theme) => ({ 
+                    sx={(theme) => ({
                       minWidth: 120,
-                      background: theme.palette.mode === 'dark'
-                        ? 'rgba(31, 41, 55, 0.8)'
-                        : 'rgba(255, 255, 255, 0.1)',
-                      backdropFilter: 'blur(20px)',
-                      border: theme.palette.mode === 'dark'
-                        ? '1px solid rgba(255, 255, 255, 0.1)'
-                        : '1px solid rgba(255, 255, 255, 0.2)',
+                      background:
+                        theme.palette.mode === "dark"
+                          ? "rgba(31, 41, 55, 0.8)"
+                          : "rgba(255, 255, 255, 0.1)",
+                      backdropFilter: "blur(20px)",
+                      border:
+                        theme.palette.mode === "dark"
+                          ? "1px solid rgba(255, 255, 255, 0.1)"
+                          : "1px solid rgba(255, 255, 255, 0.2)",
                       borderRadius: 3,
-                      color: 'text.primary',
+                      color: "text.primary",
                       fontWeight: 600,
-                      textTransform: 'none',
-                      fontSize: '0.95rem',
+                      textTransform: "none",
+                      fontSize: "0.95rem",
                       py: 1.5,
-                      transition: 'all 0.3s ease-in-out',
-                      '&:hover': {
-                        background: theme.palette.mode === 'dark'
-                          ? 'rgba(31, 41, 55, 0.9)'
-                          : 'rgba(255, 255, 255, 0.2)',
-                        border: theme.palette.mode === 'dark'
-                          ? '1px solid rgba(255, 255, 255, 0.2)'
-                          : '1px solid rgba(255, 255, 255, 0.3)',
-                        transform: 'translateY(-2px)',
-                        boxShadow: '0 8px 24px rgba(0, 0, 0, 0.1)',
+                      transition: "all 0.3s ease-in-out",
+                      "&:hover": {
+                        background:
+                          theme.palette.mode === "dark"
+                            ? "rgba(31, 41, 55, 0.9)"
+                            : "rgba(255, 255, 255, 0.2)",
+                        border:
+                          theme.palette.mode === "dark"
+                            ? "1px solid rgba(255, 255, 255, 0.2)"
+                            : "1px solid rgba(255, 255, 255, 0.3)",
+                        transform: "translateY(-2px)",
+                        boxShadow: "0 8px 24px rgba(0, 0, 0, 0.1)",
                       },
-                      '&:active': {
-                        transform: 'translateY(0px)',
-                      }
+                      "&:active": {
+                        transform: "translateY(0px)",
+                      },
                     })}
                   >
                     Fermer

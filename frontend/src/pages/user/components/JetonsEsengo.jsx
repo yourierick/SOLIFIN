@@ -636,18 +636,22 @@ const JetonsEsengo = () => {
                       <td className={`px-4 py-3 ${themeColors.border} border`}>
                         <span
                           className={`px-2 py-1 rounded-full text-xs ${
-                            ticket.consomme
+                            ticket.consomme === "consommé"
                               ? "bg-green-100 text-green-800"
                               : isExpired(ticket)
                               ? "bg-red-100 text-red-800"
+                              : ticket.consomme === "programmé"
+                              ? "bg-yellow-100 text-yellow-800"
                               : "bg-yellow-100 text-yellow-800"
                           }`}
                         >
                           {ticket.consomme
-                            ? "Utilisé"
+                            ? "Consommé"
                             : isExpired(ticket)
                             ? "Expiré"
-                            : "Valide"}
+                            : ticket.consomme === "programmé"
+                            ? "Programmé"
+                            : "Non consommé"}
                         </span>
                       </td>
                       <td className={`px-4 py-3 ${themeColors.border} border`}>
@@ -862,7 +866,7 @@ const JetonsEsengo = () => {
           </div>
         </div>
       )}
-      
+
       {/* Modal de détails du ticket gagnant */}
       {ticketModalOpen && selectedTicket && (
         <TicketGagnantModal

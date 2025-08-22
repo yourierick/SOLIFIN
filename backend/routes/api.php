@@ -45,18 +45,11 @@ Route::get('/stats/home', [App\Http\Controllers\StatsController::class, 'getHome
 
 // Routes publiques pour SerdiPay (paiements sans authentification)
 Route::prefix('serdipay')->group(function () {
-    // Endpoint pour initier un paiement sans authentification (achat de pack)
-    Route::post('/guest/payment', [App\Http\Controllers\SerdiPayController::class, 'initiateGuestPayment']);
-    // Endpoint pour vérifier le statut d'une transaction sans authentification
-    Route::get('/guest/status/{transactionId}', [App\Http\Controllers\SerdiPayController::class, 'checkGuestStatus']);
-    
     // Endpoints pour les paiements authentifiés
     Route::middleware(['auth:sanctum'])->group(function () {
         // Initier un paiement pour l'achat d'un pack
         Route::post('/payment', [App\Http\Controllers\SerdiPayController::class, 'initiatePayment']);
     });
-    // Endpoint pour réessayer une inscription après un échec (sans payer à nouveau)
-    Route::post('/retry-registration', [App\Http\Controllers\SerdiPayController::class, 'retryRegistration']);
 });
 
 // Endpoint pour recevoir les callbacks de SerdiPay
@@ -85,7 +78,7 @@ Route::middleware('throttle:api')->group(function () {
     // Routes d'authentification
     Route::middleware('guest')->group(function () {
         Route::post('/login', [LoginController::class, 'login']);
-        Route::post('/register/{packId}', [RegisterController::class, 'register']);
+        Route::post('/register', [RegisterController::class, 'register']);
     });
 
     // Routes de réinitialisation de mot de passe

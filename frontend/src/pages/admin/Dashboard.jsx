@@ -38,69 +38,6 @@ import {
   EnvelopeIcon,
 } from "@heroicons/react/24/outline";
 import Notification from "../../components/Notification";
-import InvitationStats from "../../components/admin/InvitationStats";
-
-const stats = [
-  {
-    name: "Utilisateurs totaux",
-    value: "2,451",
-    icon: UsersIcon,
-    change: "+12%",
-    changeType: "positive",
-  },
-  {
-    name: "Transactions du mois",
-    value: "€45,241",
-    icon: CurrencyEuroIcon,
-    change: "+23.1%",
-    changeType: "positive",
-  },
-  {
-    name: "Nouveaux parrainages",
-    value: "156",
-    icon: UserGroupIcon,
-    change: "+8.2%",
-    changeType: "positive",
-  },
-  {
-    name: "Taux de conversion",
-    value: "24.5%",
-    icon: ArrowTrendingUpIcon,
-    change: "+2.3%",
-    changeType: "positive",
-  },
-];
-
-const recentTransactions = [
-  {
-    id: 1,
-    user: "Jean Dupont",
-    amount: "€1,200",
-    status: "completed",
-    date: "2024-02-19",
-  },
-  {
-    id: 2,
-    user: "Marie Martin",
-    amount: "€850",
-    status: "pending",
-    date: "2024-02-19",
-  },
-  {
-    id: 3,
-    user: "Pierre Durand",
-    amount: "€2,000",
-    status: "completed",
-    date: "2024-02-18",
-  },
-  {
-    id: 4,
-    user: "Sophie Bernard",
-    amount: "€1,500",
-    status: "failed",
-    date: "2024-02-18",
-  },
-];
 
 const getStatusColor = (status, isDarkMode) => {
   switch (status) {
@@ -286,7 +223,7 @@ export default function Dashboard() {
   if (!interfaceReady) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900 transition-all duration-300">
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
@@ -327,9 +264,9 @@ export default function Dashboard() {
               </svg>
             </motion.div>
           </div>
-          
+
           <div className="text-center space-y-3">
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.3, duration: 0.5 }}
@@ -337,7 +274,7 @@ export default function Dashboard() {
             >
               Chargement...
             </motion.div>
-            <motion.p 
+            <motion.p
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.5, duration: 0.5 }}
@@ -346,16 +283,16 @@ export default function Dashboard() {
               Vérification des accès
             </motion.p>
           </div>
-          
+
           {/* Indicateur de progression */}
-          <motion.div 
+          <motion.div
             initial={{ width: 0 }}
             animate={{ width: "100%" }}
             transition={{ delay: 0.7, duration: 3, repeat: Infinity }}
             className="h-1 bg-gradient-to-r from-primary-400 to-primary-600 rounded-full w-full mt-4"
           />
-          
-          <motion.p 
+
+          <motion.p
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.7, duration: 0.5 }}
@@ -1314,9 +1251,6 @@ export default function Dashboard() {
           </div>
         </div>
       )}
-
-      {/* Section des statistiques d'invitation */}
-      {!loading && <InvitationStats data={dashboardData} loading={loading} />}
 
       {/* Section des statistiques par pack */}
       {!loading && (

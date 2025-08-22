@@ -8,6 +8,9 @@ use Illuminate\Support\Facades\Auth;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
+use App\Services\RegistrationService;
+use App\Models\Setting;
+use Carbon\Carbon;
 
 class LoginController extends Controller
 {
@@ -34,8 +37,8 @@ class LoginController extends Controller
             ]);
         }
         
-        // Vérifier si le compte est actif
-        if ($user->status !== 'active') {
+        // Vérifier si le compte est actif ou en essai
+        if ($user->status !== 'active' && $user->status !== RegistrationService::STATUS_TRIAL) {
             // throw ValidationException::withMessages([
             //     'login' => ['Ce compte a été désactivé, veuillez contacter l\'équipe SOLIFIN pour sa réactivation.'],
             // ]);
@@ -53,9 +56,25 @@ class LoginController extends Controller
         
         $user->picture = $user->getProfilePictureUrlAttribute();
         
-        return response()->json([
-            'user' => $user
-        ]);
+        $response = ['user' => $user];
+        
+        // Si l'utilisateur est en période d'essai, ajouter les informations sur la date d'expiration
+        if ($user->status === RegistrationService::STATUS_TRIAL) {
+            $trialDurationDays = (int) Setting::getValue('essai_duration_days', 10);
+            $createdAt = Carbon::parse($user->created_at);
+            $trialEndDate = $createdAt->copy()->addDays($trialDurationDays);
+            
+            $response['trial'] = [
+                'isTrialUser' => true,
+                'trialEndDate' => $trialEndDate->format('Y-m-d'),
+                'daysRemaining' => now()->diffInDays($trialEndDate, false),
+                'message' => 'Votre période d\'essai se termine le ' . $trialEndDate->format('d/m/Y') . '. Veuillez souscrire à un pack à partir de l\'onglet Mes Packs pour conserver votre compte.'
+            ];
+        } else {
+            $response['trial'] = ['isTrialUser' => false];
+        }
+        
+        return response()->json($response);
     }
 
     public function logout(Request $request)

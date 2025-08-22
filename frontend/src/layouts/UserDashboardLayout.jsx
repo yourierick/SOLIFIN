@@ -81,11 +81,6 @@ const navigation = [
   // { name: "Portefeuille", href: "/dashboard/wallet", icon: WalletIcon },
   { name: "Mes finances", href: "/dashboard/finances", icon: BanknotesIcon },
   { name: "Mes packs", href: "/dashboard/packs/:id", icon: CubeIcon },
-  {
-    name: "Mes invitations",
-    href: "/dashboard/invitations",
-    icon: UserPlusIcon,
-  },
   // { name: "Jetons Esengo", href: "/dashboard/jetons-esengo", icon: GiftIcon },
   { name: "Mes statistiques", href: "/dashboard/stats", icon: ChartBarIcon },
   // {

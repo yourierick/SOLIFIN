@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useTheme } from "../../contexts/ThemeContext";
+import { useAuth } from "../../contexts/AuthContext";
 import DashboardCarousel from "../../components/DashboardCarousel";
+import TrialAlert from "../../components/TrialAlert";
 import {
   BanknotesIcon,
   UsersIcon,
@@ -44,13 +46,49 @@ const getStatusText = (status) => {
 
 export default function UserDashboard() {
   const { isDarkMode } = useTheme();
+  const { user } = useAuth();
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [trialAlert, setTrialAlert] = useState(null);
 
   useEffect(() => {
     fetchStats();
+    checkTrialStatus();
   }, []);
+  
+  // Vérifier si l'utilisateur est en période d'essai en utilisant localStorage
+  const checkTrialStatus = () => {
+    try {
+      const trialInfoStr = localStorage.getItem('trialInfo');
+      if (trialInfoStr) {
+        const trialInfo = JSON.parse(trialInfoStr);
+        
+        if (trialInfo && trialInfo.isTrialUser) {
+          const { daysRemaining } = trialInfo;
+          
+          // Déterminer le type d'alerte en fonction des jours restants
+          let alertType = "info";
+          if (daysRemaining <= 3) {
+            alertType = "error";
+          } else if (daysRemaining <= 7) {
+            alertType = "warning";
+          }
+          
+          // Configurer l'alerte de période d'essai
+          setTrialAlert({
+            type: alertType,
+            message: trialInfo.message,
+          });
+          
+          // Supprimer l'info du localStorage pour ne l'afficher qu'une fois
+          localStorage.removeItem('trialInfo');
+        }
+      }
+    } catch (error) {
+      console.error("Erreur lors de la vérification du statut d'essai:", error);
+    }
+  };
 
   const fetchStats = async () => {
     try {
@@ -70,6 +108,13 @@ export default function UserDashboard() {
     <div
       className={`space-y-8 ${isDarkMode ? "text-gray-100" : "text-gray-900"}`}
     >
+      {trialAlert && (
+        <TrialAlert
+          type={trialAlert.type}
+          message={trialAlert.message}
+          onClose={() => setTrialAlert(null)}
+        />
+      )}
       <div>
         <p
           className={`mt-2 text-sm ${

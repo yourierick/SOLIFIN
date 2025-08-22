@@ -15,7 +15,7 @@ return new class extends Migration
             $table->string('transaction_id')->nullable();
             $table->decimal('amount', 10, 2);
             $table->enum('status', ['pending', 'approved', 'rejected', 'cancelled', 'failed'])->default('pending'); // pending, email_verification, submitted, approved, rejected, paid
-            $table->enum('payment_status', ['pending', 'failed', 'paid']);
+            $table->enum('payment_status', ['pending', 'failed', 'paid', 'initiated']);
             $table->string('payment_method');
             $table->json('payment_details');
             $table->text('admin_note')->nullable();

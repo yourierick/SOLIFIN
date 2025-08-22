@@ -746,32 +746,32 @@ export default function Packs() {
 
           {/* Table des packs */}
           {getAvailableTabs()[activeTab] === "gestion" && (
-            <div className="mt-8 flex flex-col">
-              <div className="-my-2 -mx-4 overflow-x-auto sm:-mx-6 lg:-mx-8">
-                <div className="inline-block min-w-full py-2 align-middle md:px-6 lg:px-8">
-                  <div className="overflow-hidden shadow ring-1 ring-black ring-opacity-5 dark:ring-white dark:ring-opacity-10 md:rounded-lg">
-                    <table className="min-w-full divide-y divide-gray-300 dark:divide-gray-600">
+            <div className="mt-8 flex flex-col w-full">
+              <div className="overflow-x-auto">
+                <div className="w-full py-2 align-middle">
+                  <div className="overflow-hidden shadow ring-1 ring-black ring-opacity-5 dark:ring-white dark:ring-opacity-10 rounded-lg">
+                    <table className="min-w-full divide-y divide-gray-300 dark:divide-gray-600 table-fixed">
                       <thead className="bg-gray-50 dark:bg-gray-700">
                         <tr>
-                          <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900 dark:text-gray-200">
+                          <th className="w-12 px-3 py-3.5 text-left text-sm font-semibold text-gray-900 dark:text-gray-200">
                             N°
                           </th>
-                          <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900 dark:text-gray-200">
+                          <th className="w-1/6 px-3 py-3.5 text-left text-sm font-semibold text-gray-900 dark:text-gray-200">
                             Catégorie
                           </th>
-                          <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900 dark:text-gray-200">
+                          <th className="w-1/5 px-3 py-3.5 text-left text-sm font-semibold text-gray-900 dark:text-gray-200">
                             Nom
                           </th>
-                          <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900 dark:text-gray-200">
+                          <th className="w-1/5 px-3 py-3.5 text-left text-sm font-semibold text-gray-900 dark:text-gray-200">
                             Type d'abonnement
                           </th>
-                          <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900 dark:text-gray-200">
+                          <th className="w-1/8 px-3 py-3.5 text-left text-sm font-semibold text-gray-900 dark:text-gray-200">
                             Prix
                           </th>
-                          <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900 dark:text-gray-200">
+                          <th className="w-1/8 px-3 py-3.5 text-left text-sm font-semibold text-gray-900 dark:text-gray-200">
                             Status
                           </th>
-                          <th className="px-3 py-3.5 text-center text-sm font-semibold text-gray-900 dark:text-gray-200">
+                          <th className="w-1/6 px-3 py-3.5 text-center text-sm font-semibold text-gray-900 dark:text-gray-200">
                             Actions
                           </th>
                         </tr>
@@ -782,22 +782,22 @@ export default function Packs() {
                             key={pack.id}
                             className="hover:bg-gray-50 dark:hover:bg-gray-700"
                           >
-                            <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-900 dark:text-gray-200">
+                            <td className="px-3 py-4 text-sm text-gray-900 dark:text-gray-200">
                               {filteredPacks.indexOf(pack) + 1}
                             </td>
-                            <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-900 dark:text-gray-200">
+                            <td className="px-3 py-4 text-sm text-gray-900 dark:text-gray-200 truncate">
                               {pack.categorie}
                             </td>
-                            <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-900 dark:text-gray-200">
+                            <td className="px-3 py-4 text-sm text-gray-900 dark:text-gray-200 truncate">
                               {pack.name}
                             </td>
-                            <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-900 dark:text-gray-200">
+                            <td className="px-3 py-4 text-sm text-gray-900 dark:text-gray-200 truncate">
                               {pack.abonnement}
                             </td>
-                            <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-900 dark:text-gray-200">
+                            <td className="px-3 py-4 text-sm text-gray-900 dark:text-gray-200">
                               {pack.price} $
                             </td>
-                            <td className="whitespace-nowrap px-3 py-4 text-sm">
+                            <td className="px-3 py-4 text-sm">
                               <button
                                 onClick={() => togglePackStatus(pack.id)}
                                 className={`px-2 py-1 rounded-full text-xs font-medium ${
@@ -809,19 +809,19 @@ export default function Packs() {
                                 {pack.status ? "Actif" : "Inactif"}
                               </button>
                             </td>
-                            <td className="whitespace-nowrap px-3 py-4 text-sm text-center">
+                            <td className="px-3 py-4 text-sm text-center">
                               <div className="flex items-center justify-center">
-                                <div className="flex space-x-1">
+                                <div className="flex space-x-2">
                                   <button
                                     onClick={() => showCommissionModal(pack.id)}
-                                    className="p-1 rounded-md text-primary-600 dark:text-primary-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200"
+                                    className="p-1.5 rounded-md text-primary-600 dark:text-primary-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200"
                                     title="Gérer les commissions"
                                   >
                                     <CurrencyDollarIcon className="h-4 w-4" />
                                   </button>
                                   <Link
                                     to={`/admin/packs/edit/${pack.id}`}
-                                    className="p-1 rounded-md text-primary-600 dark:text-primary-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200"
+                                    className="p-1.5 rounded-md text-primary-600 dark:text-primary-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200"
                                     title="Modifier ce pack"
                                   >
                                     <PencilIcon className="h-4 w-4" />
@@ -830,7 +830,7 @@ export default function Packs() {
                                     onClick={() =>
                                       showBonusModal(pack.id, pack.name)
                                     }
-                                    className="p-1 rounded-md text-green-600 dark:text-green-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200"
+                                    className="p-1.5 rounded-md text-green-600 dark:text-green-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200"
                                     title="Configurer les bonus"
                                   >
                                     <GiftIcon className="h-4 w-4" />
@@ -839,7 +839,7 @@ export default function Packs() {
                                     onClick={() =>
                                       showDeleteModal(pack.id, pack.name)
                                     }
-                                    className="p-1 rounded-md text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200"
+                                    className="p-1.5 rounded-md text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200"
                                     title="Supprimer ce pack"
                                   >
                                     <TrashIcon className="h-4 w-4" />

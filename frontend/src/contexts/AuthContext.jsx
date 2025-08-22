@@ -48,7 +48,7 @@ import React, {
 import axios from "../utils/axios";
 import { useNavigate } from "react-router-dom";
 import { sessionEvents } from "../utils/axios";
-import { toast } from "react-toastify";
+import { useToast } from "./ToastContext";
 
 const AuthContext = createContext(null);
 
@@ -80,7 +80,7 @@ const isPublicRoute = (path) => {
 };
 
 // Durée d'inactivité avant expiration de session (en millisecondes)
-const SESSION_TIMEOUT = 10 * 60 * 1000; // 10 minutes
+const SESSION_TIMEOUT = 30 * 60 * 1000; // 30 minutes
 
 // Hook personnalisé pour utiliser le contexte d'authentification
 const useAuth = () => {
@@ -99,6 +99,7 @@ export const AuthProvider = ({ children }) => {
   const [lastVisitedUrl, setLastVisitedUrl] = useState(null);
   const [lastActivity, setLastActivity] = useState(Date.now());
   const navigate = useNavigate();
+  const { showToast } = useToast();
 
   // Utiliser useRef pour stocker les intervalles et éviter les problèmes de dépendance
   const authCheckIntervalRef = useRef(null);
@@ -195,14 +196,7 @@ export const AuthProvider = ({ children }) => {
         }
 
         // Afficher un message à l'utilisateur
-        toast.error("Votre session a expiré. Veuillez vous reconnecter.", {
-          position: "top-center",
-          autoClose: 5000,
-          hideProgressBar: false,
-          closeOnClick: true,
-          pauseOnHover: true,
-          draggable: true,
-        });
+        showToast("Votre session a expiré. Veuillez vous reconnecter.", "error");
       }
     };
 
@@ -282,14 +276,7 @@ export const AuthProvider = ({ children }) => {
           logoutDueToInactivity();
 
           // Afficher un message
-          toast.info("Vous avez été déconnecté en raison d'inactivité.", {
-            position: "top-center",
-            autoClose: 5000,
-            hideProgressBar: false,
-            closeOnClick: true,
-            pauseOnHover: true,
-            draggable: true,
-          });
+          showToast("Vous avez été déconnecté en raison d'inactivité.", "info");
 
           // Rediriger vers la page de connexion
           navigate("/login", { replace: true });
@@ -355,6 +342,9 @@ export const AuthProvider = ({ children }) => {
       await axios.get("/sanctum/csrf-cookie");
 
       const response = await axios.post("/api/login", { login, password });
+      
+      // Log de la réponse complète pour débogage
+      console.log("Réponse de login:", response.data);
 
       if (response.data.user) {
         setUser(response.data.user);
@@ -368,10 +358,14 @@ export const AuthProvider = ({ children }) => {
         if (lastUrl) {
           setLastVisitedUrl(lastUrl);
         }
+        
+        // Les notifications pour les utilisateurs en période d'essai sont maintenant gérées dans LoginForm.jsx
+        
         return {
           success: true,
           user: response.data.user,
           lastVisitedUrl,
+          trial: response.data.trial,
         };
       }
       return { success: false, message: response.data.message };

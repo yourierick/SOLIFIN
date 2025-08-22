@@ -53,7 +53,6 @@ import Profile from "./pages/Profile";
 import AdminProfile from "./pages/admin/AdminProfile";
 import DashboardLayout from "./layouts/DashboardLayout";
 import { PublicationPackProvider } from "./contexts/PublicationPackContext";
-import PurchasePack from "./pages/PurchasePack";
 import VerificationSuccess from "./pages/VerificationSuccess";
 import VerificationError from "./pages/VerificationError";
 import BuyPack from "./pages/user/Packs";
@@ -61,7 +60,6 @@ import Stats from "./pages/user/Stats";
 import WithdrawalRequests from "./components/WithdrawalRequests";
 import Settings from "./pages/admin/Settings";
 import Page from "./pages/user/Page";
-import ReferralInvitations from "./pages/user/ReferralInvitations";
 import Commissions from "./pages/admin/Commissions";
 import AdminFinances from "./pages/admin/Finances";
 import UserFinances from "./pages/user/Finances";
@@ -158,14 +156,6 @@ function App() {
               </PublicRoute>
             }
           />
-          <Route
-            path="/purchase-pack/:sponsor_code"
-            element={
-              <PublicRoute>
-                <PurchasePack />
-              </PublicRoute>
-            }
-          />
 
           {/* Routes protégées */}
           <Route
@@ -222,7 +212,6 @@ function App() {
             {/* <Route path="news-feed" element={<NewsFeed />} /> */}
             <Route path="my-page" element={<MyPage />} />
             {/* <Route path="social" element={<Social />} /> */}
-            <Route path="invitations" element={<ReferralInvitations />} />
             {/* <Route path="jetons-esengo" element={<JetonsEsengo />} /> */}
             <Route path="faq" element={<UserFaq />} />
             {/* <Route path="formations" element={<Formations />} /> */}

@@ -48,7 +48,7 @@ class CheckExpiredTicketsGagnants extends Command
         
         try {
             // Récupérer les tickets non consommés et expirés
-            TicketGagnant::where('consomme', false)
+            TicketGagnant::where('consomme', '!=', 'consommé')
                 ->where('date_expiration', '<', now())
                 ->chunk($this->chunkSize, function ($tickets) use (&$totalExpired, &$totalNotified, &$totalErrors) {
                     $this->info("Traitement d'un lot de " . $tickets->count() . " tickets expirés...");
@@ -98,9 +98,9 @@ class CheckExpiredTicketsGagnants extends Command
                                 }
                             }
                             
-                            // Marquer le ticket comme expiré (on utilise consomme=true pour indiquer qu'il n'est plus utilisable)
-                            $ticket->consomme = true;
-                            $ticket->date_consommation = now(); // Date de "consommation" = date d'expiration effective
+                            // Marquer le ticket comme expiré
+                            $ticket->consomme = "expiré";
+                            $ticket->date_expiration = now();
                             $ticket->save();
                             
                             // Journaliser l'expiration

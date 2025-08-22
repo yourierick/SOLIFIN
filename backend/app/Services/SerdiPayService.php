@@ -125,7 +125,7 @@ class SerdiPayService
         if (!$token) {
             return [
                 'success' => false,
-                'message' => 'Échec d\'authentification avec SerdiPay',
+                'message' => 'Une erreur est survenue lors du traitement',
                 'code' => 'auth_failed'
             ];
         }
@@ -296,7 +296,7 @@ class SerdiPayService
             
             return [
                 'success' => false,
-                'message' => 'Erreur lors du traitement du paiement: ' . $e->getMessage(),
+                'message' => 'Erreur lors du traitement du paiement',
                 'code' => 'system_error'
             ];
         }
@@ -315,7 +315,7 @@ class SerdiPayService
         if (!$token) {
             return [
                 'status' => 'error',
-                'message' => 'Échec d\'authentification avec SerdiPay',
+                'message' => 'Une erreur est survenue lors du traitement',
                 'code' => 'auth_failed'
             ];
         }
@@ -607,7 +607,7 @@ class SerdiPayService
         if (!$token) {
             return [
                 'success' => false,
-                'message' => 'Échec d\'authentification avec SerdiPay',
+                'message' => 'Une erreur est survenue lors du traitement',
                 'code' => 'auth_failed'
             ];
         }

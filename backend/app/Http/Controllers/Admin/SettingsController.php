@@ -35,6 +35,15 @@ class SettingsController extends Controller
         
         // Photo du fondateur
         'founder_photo',
+
+        // Durée d'expiration des jetons Esengo
+        'jeton_expiration_months',
+
+        // Durée d'expiration des tickets gagnants
+        'ticket_expiration_months',
+
+        // Durée de l'essai
+        'essai_duration_days',
     ];
 
     /**
@@ -106,6 +115,7 @@ class SettingsController extends Controller
             'transfer_fee_percentage',
             'purchase_fee_percentage',
             'purchase_commission_system',
+            'essai_duration_days',
         ])) {
             $value = floatval($request->value);
             if ($value < 0 || $value > 100) {

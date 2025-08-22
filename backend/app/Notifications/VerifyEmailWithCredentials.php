@@ -9,25 +9,17 @@ use Illuminate\Support\Facades\URL;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Bus\Queueable;
 use App\Models\Pack;
+use App\Models\Setting;
 
 class VerifyEmailWithCredentials extends VerifyEmailFrench implements ShouldQueue
 {
     use Queueable;
-
-    protected $userData;
-    protected $packId;
-    protected $durationMonths;
+    
     protected $password;
-    protected $referralCode;
-    protected $referralLink;
 
-    public function __construct($packId, $durationMonths, $password, $referralCode, $referralLink)
+    public function __construct($password)
     {
-        $this->packId = $packId;
-        $this->durationMonths = $durationMonths;
         $this->password = $password;
-        $this->referralCode = $referralCode;
-        $this->referralLink = $referralLink;
     }
     
     /**
@@ -44,7 +36,8 @@ class VerifyEmailWithCredentials extends VerifyEmailFrench implements ShouldQueu
     public function toMail($notifiable)
     {
         $verificationUrl = $this->verificationUrl($notifiable);
-        $pack = Pack::find($this->packId);
+
+        $trialDurationDays = (int) Setting::getValue('essai_duration_days', 10);
 
         return (new MailMessage)
             ->subject('Confirmation de votre adresse e-mail')
@@ -53,14 +46,12 @@ class VerifyEmailWithCredentials extends VerifyEmailFrench implements ShouldQueu
             ->line('Voici vos coordonnées de connexion :')
             ->line('- ID de votre compte: ' . $notifiable->account_id)
             ->line('- Mot de passe: ' . $this->password)
-            ->line('- Pack de souscription: ' . $pack->name)
             ->line('- Email: ' . $notifiable->email)
-            ->line('- Période de validité du pack: ' . $this->durationMonths . ' mois')
-            ->line('- Votre code de parrainage pour ce pack: ' . $this->referralCode)
-            ->line('- Votre lien de parrainage: '. $this->referralLink)
             ->line('Veuillez avant de vous connecter, cliquer sur ce lien ci-dessous pour vérifier votre adresse email.')
             ->action('Vérifier l\'adresse e-mail', $verificationUrl)
+            ->line('Vous avez une période d\'essai de ' . $trialDurationDays . ' jours pour tester les fonctionnalités basiques, veuillez souscrire à un pack pour accéder aux fonctionnalités premium.')
+            ->line('Si vous ne souscrivez pas à un pack avant la fin de votre période d\'essai, votre compte sera supprimé')
             ->line('Si vous n\'avez pas créé de compte, aucune action supplémentaire n\'est requise.')
-            ->salutation('Cordialement,<br>L\'équipe SOLIFIN');
+            ->salutation('Cordialement, L\'équipe SOLIFIN');
     }
 }

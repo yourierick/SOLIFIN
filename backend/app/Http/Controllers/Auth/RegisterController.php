@@ -4,13 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
-use App\Models\UserPack;
-use App\Models\Wallet;
-use App\Models\WalletSystem;
-use App\Models\Pack;
-use App\Models\Page;
-use App\Models\Role;
-use App\Models\ReferralInvitation;
+use App\Services\RegistrationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
@@ -19,28 +13,62 @@ use App\Services\ReferralCodeService;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
-use App\Services\CommissionService;
 use App\Models\ExchangeRates;
-use App\Notifications\VerifyEmailWithCredentials;
-use App\Notifications\ReferralInvitationConverted;
 use Carbon\Carbon;
-use App\Models\Setting;
 
 
 class RegisterController extends Controller
 {
-    public function register(Request $request, $pack_id)
+    public function register(Request $request)
     {
         try {
-            // Dans le cas d'un paiement SerdiPay, toutes les validations ont déjà été faites
-            // Cette fonction ne sert plus qu'à créer l'utilisateur et ses données associées
-            $validated = $request->all();
+            // Messages d'erreur personnalisés en français
+            $messages = [
+                'email.required' => "L'adresse email est obligatoire",
+                'email.email' => "Veuillez saisir une adresse email valide",
+                'email.unique' => "Cette adresse email a déjà été utilisée",
+                'name.required' => "Le nom est obligatoire",
+                'name.max' => "Le nom ne doit pas dépasser 255 caractères",
+                'password.required' => "Le mot de passe est obligatoire",
+                'password.min' => "Le mot de passe doit contenir au moins 8 caractères",
+                'password.confirmed' => "Les mots de passe ne correspondent pas",
+                'address.required' => "L'adresse est obligatoire",
+                'phone.required' => "Le numéro de téléphone est obligatoire",
+                'phone.unique' => "Ce numéro de téléphone a déjà été utilisé",
+                'whatsapp.unique' => "Ce numéro WhatsApp a déjà été utilisé",
+                'gender.required' => "Le sexe est obligatoire",
+                'country.required' => "Le pays est obligatoire",
+                'province.required' => "La province est obligatoire",
+                'city.required' => "La ville est obligatoire",
+            ];
+
+            $validator = Validator::make($request->all(), [
+                'email' => 'required|email|unique:users',
+                'name' => 'required|string|max:255',
+                'password' => 'required|string|min:8|confirmed',
+                'address' => 'required|string',
+                'phone' => 'required|string|unique:users',
+                'whatsapp' => 'nullable|string|unique:users',
+                'gender' => 'required|string',
+                'country' => 'required|string',
+                'province' => 'required|string',
+                'city' => 'required|string',
+                'acquisition_source' => 'nullable|string',
+            ], $messages);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => $validator->errors()->first(),
+                    'errors' => $validator->errors()
+                ]);
+            }
 
             DB::beginTransaction();
 
             // Utiliser le service d'inscription pour créer l'utilisateur et toutes les données associées
             $registrationService = app(RegistrationService::class);
-            $user = $registrationService->registerUserWithPack($validated, $pack_id);
+            $user = $registrationService->registerUser($validator->validated());
             
             DB::commit();
 

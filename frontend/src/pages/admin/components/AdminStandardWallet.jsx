@@ -841,175 +841,191 @@ export default function AdminStandardWallet() {
               animate={{ opacity: 1 }}
               transition={{ duration: 0.4 }}
               className="rounded-lg shadow-md border border-gray-200 dark:border-gray-700 overflow-hidden table-container"
-              style={{ 
-                boxShadow: isDarkMode ? '0 4px 6px -1px rgba(0, 0, 0, 0.3)' : '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-                transition: 'all 0.2s ease-in-out'
+              style={{
+                boxShadow: isDarkMode
+                  ? "0 4px 6px -1px rgba(0, 0, 0, 0.3)"
+                  : "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
+                transition: "all 0.2s ease-in-out",
               }}
             >
-              <div className="overflow-x-auto" style={{ width: '100%', overflowX: 'auto', display: 'block' }}>
+              <div
+                className="overflow-x-auto"
+                style={{ width: "100%", overflowX: "auto", display: "block" }}
+              >
                 <div className="force-overflow">
-                  <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700 table-auto responsive-table" style={{ minWidth: '800px' }}>
-                <thead
-                  className={`${isDarkMode ? "bg-gray-700/80" : "bg-gray-50"}`}
-                >
-                  <tr>
-                    <th
-                      scope="col"
-                      className={`px-3 sm:px-4 md:px-6 py-2 sm:py-3 md:py-4 text-left text-xs font-semibold ${
-                        isDarkMode
-                          ? "text-gray-200 uppercase tracking-wider"
-                          : "text-gray-600 uppercase tracking-wider"
-                      }`}
-                    >
-                      <div className="flex items-center space-x-1">
-                        <CalendarIcon className="h-4 w-4" />
-                        <span>Date</span>
-                      </div>
-                    </th>
-                    <th
-                      scope="col"
-                      className={`px-3 sm:px-4 md:px-6 py-2 sm:py-3 md:py-4 text-left text-xs font-semibold ${
-                        isDarkMode
-                          ? "text-gray-200 uppercase tracking-wider"
-                          : "text-gray-600 uppercase tracking-wider"
-                      }`}
-                    >
-                      <div className="flex items-center space-x-1">
-                        <TagIcon className="h-4 w-4" />
-                        <span>Type</span>
-                      </div>
-                    </th>
-                    <th
-                      scope="col"
-                      className={`px-3 sm:px-4 md:px-6 py-2 sm:py-3 md:py-4 text-left text-xs font-semibold ${
-                        isDarkMode
-                          ? "text-gray-200 uppercase tracking-wider"
-                          : "text-gray-600 uppercase tracking-wider"
-                      }`}
-                    >
-                      <div className="flex items-center space-x-1">
-                        <CurrencyDollarIcon className="h-4 w-4" />
-                        <span>Montant</span>
-                      </div>
-                    </th>
-                    <th
-                      scope="col"
-                      className={`px-3 sm:px-4 md:px-6 py-2 sm:py-3 md:py-4 text-left text-xs font-semibold ${
-                        isDarkMode
-                          ? "text-gray-200 uppercase tracking-wider"
-                          : "text-gray-600 uppercase tracking-wider"
-                      }`}
-                    >
-                      <div className="flex items-center space-x-1">
-                        <CheckBadgeIcon className="h-4 w-4" />
-                        <span>Statut</span>
-                      </div>
-                    </th>
-                    <th
-                      scope="col"
-                      className={`px-3 sm:px-4 md:px-6 py-2 sm:py-3 md:py-4 text-left text-xs font-semibold ${
-                        isDarkMode
-                          ? "text-gray-200 uppercase tracking-wider"
-                          : "text-gray-600 uppercase tracking-wider"
-                      }`}
-                    >
-                      <div className="flex items-center space-x-1">
-                        <Cog6ToothIcon className="h-4 w-4" />
-                        <span>Actions</span>
-                      </div>
-                    </th>
-                  </tr>
-                </thead>
-                <tbody
-                  className={`${
-                    isDarkMode
-                      ? "bg-gray-800 divide-y divide-gray-700"
-                      : "bg-white divide-y divide-gray-200"
-                  }`}
-                >
-                  {currentTransactions.map((transaction, index) => (
-                    <motion.tr
-                      key={transaction.id}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.3, delay: index * 0.05 }}
+                  <table
+                    className="min-w-full divide-y divide-gray-200 dark:divide-gray-700 table-auto responsive-table"
+                    style={{ minWidth: "800px" }}
+                  >
+                    <thead
                       className={`${
-                        isDarkMode ? "hover:bg-gray-700" : "hover:bg-gray-50"
-                      } transition-colors duration-150`}
+                        isDarkMode ? "bg-gray-700/80" : "bg-gray-50"
+                      }`}
                     >
-                      <td
-                        className={`px-3 sm:px-4 md:px-6 py-2 sm:py-3 md:py-4 whitespace-nowrap ${
-                          isDarkMode ? "text-gray-300" : "text-gray-900"
-                        }`}
-                      >
-                        <div className="flex flex-col">
-                          <span className="font-medium">
-                            {formatDate(transaction.created_at)}
-                          </span>
-                          <span
-                            className={`text-xs ${
-                              isDarkMode ? "text-gray-400" : "text-gray-500"
-                            }`}
-                          >
-                            {formatTime(transaction.created_at)}
-                          </span>
-                        </div>
-                      </td>
-                      <td
-                        className={`px-3 sm:px-4 md:px-6 py-2 sm:py-3 md:py-4 whitespace-nowrap ${
-                          isDarkMode ? "text-gray-300" : "text-gray-900"
-                        }`}
-                      >
-                        <span className="capitalize">{transaction.type}</span>
-                      </td>
-                      <td
-                        className={`px-3 sm:px-4 md:px-6 py-2 sm:py-3 md:py-4 whitespace-nowrap font-medium ${
-                          transaction.type === "withdrawal" ||
-                          transaction.type === "purchase" ||
-                          transaction.type === "virtual_purchase" ||
-                          transaction.type === "transfer"
-                            ? isDarkMode
-                              ? "text-red-400"
-                              : "text-red-600"
-                            : isDarkMode
-                            ? "text-green-400"
-                            : "text-green-600"
-                        }`}
-                      >
-                        {transaction.type === "withdrawal" ||
-                        transaction.type === "purchase" ||
-                        transaction.type === "virtual_purchase" ||
-                        transaction.type === "transfer"
-                          ? `- ${transaction.amount} $`
-                          : `+ ${transaction.amount} $`}
-                      </td>
-                      <td className="px-3 sm:px-4 md:px-6 py-2 sm:py-3 md:py-4 whitespace-nowrap">
-                        <span
-                          className={`px-2.5 py-1 text-xs font-medium rounded-full ${getTransactionStatusColor(
-                            transaction.status
-                          )}`}
-                        >
-                          {transaction.status}
-                        </span>
-                      </td>
-                      <td className="px-3 sm:px-4 md:px-6 py-2 sm:py-3 md:py-4 whitespace-nowrap">
-                        <motion.button
-                          whileHover={{ scale: 1.05 }}
-                          whileTap={{ scale: 0.95 }}
-                          onClick={() => handleTransactionClick(transaction)}
-                          className={`inline-flex items-center px-1.5 sm:px-2 md:px-3 py-1 sm:py-1.5 border rounded-md text-xs sm:text-sm font-medium ${
+                      <tr>
+                        <th
+                          scope="col"
+                          className={`px-3 sm:px-4 md:px-6 py-2 sm:py-3 md:py-4 text-left text-xs font-semibold ${
                             isDarkMode
-                              ? "border-gray-600 bg-gray-700 hover:bg-gray-600 text-gray-200"
-                              : "border-gray-300 bg-white hover:bg-gray-50 text-gray-700"
+                              ? "text-gray-200 uppercase tracking-wider"
+                              : "text-gray-600 uppercase tracking-wider"
                           }`}
                         >
-                          <EyeIcon className="h-4 w-4 mr-1" />
-                          Détails
-                        </motion.button>
-                      </td>
-                    </motion.tr>
-                  ))}
-                </tbody>
+                          <div className="flex items-center space-x-1">
+                            <CalendarIcon className="h-4 w-4" />
+                            <span>Date</span>
+                          </div>
+                        </th>
+                        <th
+                          scope="col"
+                          className={`px-3 sm:px-4 md:px-6 py-2 sm:py-3 md:py-4 text-left text-xs font-semibold ${
+                            isDarkMode
+                              ? "text-gray-200 uppercase tracking-wider"
+                              : "text-gray-600 uppercase tracking-wider"
+                          }`}
+                        >
+                          <div className="flex items-center space-x-1">
+                            <TagIcon className="h-4 w-4" />
+                            <span>Type</span>
+                          </div>
+                        </th>
+                        <th
+                          scope="col"
+                          className={`px-3 sm:px-4 md:px-6 py-2 sm:py-3 md:py-4 text-left text-xs font-semibold ${
+                            isDarkMode
+                              ? "text-gray-200 uppercase tracking-wider"
+                              : "text-gray-600 uppercase tracking-wider"
+                          }`}
+                        >
+                          <div className="flex items-center space-x-1">
+                            <CurrencyDollarIcon className="h-4 w-4" />
+                            <span>Montant</span>
+                          </div>
+                        </th>
+                        <th
+                          scope="col"
+                          className={`px-3 sm:px-4 md:px-6 py-2 sm:py-3 md:py-4 text-left text-xs font-semibold ${
+                            isDarkMode
+                              ? "text-gray-200 uppercase tracking-wider"
+                              : "text-gray-600 uppercase tracking-wider"
+                          }`}
+                        >
+                          <div className="flex items-center space-x-1">
+                            <CheckBadgeIcon className="h-4 w-4" />
+                            <span>Statut</span>
+                          </div>
+                        </th>
+                        <th
+                          scope="col"
+                          className={`px-3 sm:px-4 md:px-6 py-2 sm:py-3 md:py-4 text-left text-xs font-semibold ${
+                            isDarkMode
+                              ? "text-gray-200 uppercase tracking-wider"
+                              : "text-gray-600 uppercase tracking-wider"
+                          }`}
+                        >
+                          <div className="flex items-center space-x-1">
+                            <Cog6ToothIcon className="h-4 w-4" />
+                            <span>Actions</span>
+                          </div>
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody
+                      className={`${
+                        isDarkMode
+                          ? "bg-gray-800 divide-y divide-gray-700"
+                          : "bg-white divide-y divide-gray-200"
+                      }`}
+                    >
+                      {currentTransactions.map((transaction, index) => (
+                        <motion.tr
+                          key={transaction.id}
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ duration: 0.3, delay: index * 0.05 }}
+                          className={`${
+                            isDarkMode
+                              ? "hover:bg-gray-700"
+                              : "hover:bg-gray-50"
+                          } transition-colors duration-150`}
+                        >
+                          <td
+                            className={`px-3 sm:px-4 md:px-6 py-2 sm:py-3 md:py-4 whitespace-nowrap ${
+                              isDarkMode ? "text-gray-300" : "text-gray-900"
+                            }`}
+                          >
+                            <div className="flex flex-col">
+                              <span className="font-medium">
+                                {formatDate(transaction.created_at)}
+                              </span>
+                              <span
+                                className={`text-xs ${
+                                  isDarkMode ? "text-gray-400" : "text-gray-500"
+                                }`}
+                              >
+                                {formatTime(transaction.created_at)}
+                              </span>
+                            </div>
+                          </td>
+                          <td
+                            className={`px-3 sm:px-4 md:px-6 py-2 sm:py-3 md:py-4 whitespace-nowrap ${
+                              isDarkMode ? "text-gray-300" : "text-gray-900"
+                            }`}
+                          >
+                            <span className="capitalize">
+                              {transaction.type}
+                            </span>
+                          </td>
+                          <td
+                            className={`px-3 sm:px-4 md:px-6 py-2 sm:py-3 md:py-4 whitespace-nowrap font-medium ${
+                              transaction.type === "withdrawal" ||
+                              transaction.type === "purchase" ||
+                              transaction.type === "virtual_purchase" ||
+                              transaction.type === "transfer"
+                                ? isDarkMode
+                                  ? "text-red-400"
+                                  : "text-red-600"
+                                : isDarkMode
+                                ? "text-green-400"
+                                : "text-green-600"
+                            }`}
+                          >
+                            {transaction.type === "withdrawal" ||
+                            transaction.type === "purchase" ||
+                            transaction.type === "virtual_purchase" ||
+                            transaction.type === "transfer"
+                              ? `- ${transaction.amount}`
+                              : `+ ${transaction.amount}`}
+                          </td>
+                          <td className="px-3 sm:px-4 md:px-6 py-2 sm:py-3 md:py-4 whitespace-nowrap">
+                            <span
+                              className={`px-2.5 py-1 text-xs font-medium rounded-full ${getTransactionStatusColor(
+                                transaction.status
+                              )}`}
+                            >
+                              {transaction.status}
+                            </span>
+                          </td>
+                          <td className="px-3 sm:px-4 md:px-6 py-2 sm:py-3 md:py-4 whitespace-nowrap">
+                            <motion.button
+                              whileHover={{ scale: 1.05 }}
+                              whileTap={{ scale: 0.95 }}
+                              onClick={() =>
+                                handleTransactionClick(transaction)
+                              }
+                              className={`inline-flex items-center px-1.5 sm:px-2 md:px-3 py-1 sm:py-1.5 border rounded-md text-xs sm:text-sm font-medium ${
+                                isDarkMode
+                                  ? "border-gray-600 bg-gray-700 hover:bg-gray-600 text-gray-200"
+                                  : "border-gray-300 bg-white hover:bg-gray-50 text-gray-700"
+                              }`}
+                            >
+                              <EyeIcon className="h-4 w-4 mr-1" />
+                              Détails
+                            </motion.button>
+                          </td>
+                        </motion.tr>
+                      ))}
+                    </tbody>
                   </table>
                 </div>
               </div>

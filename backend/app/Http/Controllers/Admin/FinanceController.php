@@ -44,7 +44,7 @@ class FinanceController extends Controller
                 $query->where('status', $request->status);
             }
 
-            $transactions = $query->paginate(20);
+            $transactions = $query->paginate(10);
 
             return response()->json([
                 'success' => true,

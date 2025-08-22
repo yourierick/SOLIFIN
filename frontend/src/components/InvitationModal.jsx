@@ -85,13 +85,13 @@ export default function InvitationModal({ isOpen, onClose }) {
         <Transition.Child
           as={Fragment}
           enter="ease-out duration-300"
-          enterFrom="opacity-0"
-          enterTo="opacity-100"
+          enterFrom="opacity-0 backdrop-blur-0"
+          enterTo="opacity-100 backdrop-blur-md"
           leave="ease-in duration-200"
-          leaveFrom="opacity-100"
-          leaveTo="opacity-0"
+          leaveFrom="opacity-100 backdrop-blur-md"
+          leaveTo="opacity-0 backdrop-blur-0"
         >
-          <div className="fixed inset-0 bg-black bg-opacity-25" />
+          <div className="fixed inset-0 bg-black bg-opacity-30 backdrop-blur-md transition-all duration-300" />
         </Transition.Child>
 
         <div className="fixed inset-0 overflow-y-auto">
@@ -105,9 +105,9 @@ export default function InvitationModal({ isOpen, onClose }) {
               leaveFrom="opacity-100 scale-100"
               leaveTo="opacity-0 scale-95"
             >
-              <Dialog.Panel className={`w-full max-w-md transform overflow-hidden rounded-2xl p-6 text-left align-middle shadow-xl transition-all ${
-                isDarkMode ? 'bg-gray-800 text-white' : 'bg-white text-gray-900'
-              }`}>
+              <Dialog.Panel className={`w-full max-w-md transform overflow-hidden rounded-2xl p-6 text-left align-middle shadow-xl transition-all border ${
+                isDarkMode ? 'bg-gray-800/95 text-white border-gray-700 ring-1 ring-gray-700/50' : 'bg-white/95 text-gray-900 border-gray-200 ring-1 ring-gray-200/50'
+              } backdrop-filter`}>
                 <div className="flex items-center justify-between mb-4">
                   <Dialog.Title
                     as="h3"

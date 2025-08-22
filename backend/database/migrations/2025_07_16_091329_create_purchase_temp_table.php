@@ -16,8 +16,8 @@ return new class extends Migration
             $table->string('temp_id')->unique()->comment('Identifiant temporaire unique pour cette transaction');
             $table->unsignedBigInteger('user_id')->comment('ID de l\'utilisateur qui effectue l\'achat');
             $table->unsignedBigInteger('pack_id')->nullable()->comment('ID du pack acheté');
-            $table->enum('transaction_type', ['purchase_pack', 'renew_pack', 'boost_publication', 'purchase_virtual'])->default('purchase_pack')->comment('Type de transaction: achat_pack, 
-                            renouvellement_pack, boost_publication, achat_virtuel');
+            $table->enum('transaction_type', ['purchase_pack', 'renew_pack', 'purchase_virtual'])->default('purchase_pack')->comment('Type de transaction: achat_pack, 
+                            renouvellement_pack, achat_virtuel');
             $table->json('purchase_data')->comment('Données complètes de l\'achat au format JSON');
             $table->string('session_id')->nullable()->comment('ID de session SerdiPay');
             $table->string('transaction_id')->nullable()->comment('ID de transaction SerdiPay');

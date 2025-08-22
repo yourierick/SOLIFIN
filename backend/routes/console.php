@@ -27,6 +27,12 @@ Schedule::command('publications:update-status')
 //     ->appendOutputTo(storage_path('logs/transaction-fees.log'))
 //     ->description('Met à jour les frais de transaction depuis l\'API externe tous les jours à 1h du matin');
 
+Schedule::command('users:delete-expired-trials')
+    ->daily()
+    ->at('01:00')
+    ->appendOutputTo(storage_path('logs/expired-trial-accounts.log'))
+    ->description('Supprime les comptes utilisateurs en période d\'essai expirée tous les jours à 1h du matin');
+
 Schedule::command('app:delete-expired-social-events')
     ->hourly()
     ->appendOutputTo(storage_path('logs/expired-social-events.log'))

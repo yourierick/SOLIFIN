@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Carbon\Carbon;
 
 class JetonEsengoController extends Controller
 {
@@ -617,7 +618,7 @@ class JetonEsengoController extends Controller
      * @param int $id ID du ticket à programmer
      * @return \Illuminate\Http\JsonResponse
      */
-    public function programmerTicket($id)
+    public function programmerTicket($id, Request $request)
     {
         try {
             // Recherche du ticket par son ID

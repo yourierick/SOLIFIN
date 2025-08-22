@@ -56,7 +56,6 @@ export default function Register() {
   const { isDarkMode } = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
-  const selectedPackId = location.state?.selectedPackId;
 
   const [loading, setLoading] = useState(false);
   const [countries, setCountries] = useState([]);
@@ -77,19 +76,10 @@ export default function Register() {
     country: "",
     province: "",
     city: "",
-    sponsor_code: "",
-    invitation_code: "", // Code d'invitation
     acquisition_source: "", // Comment l'utilisateur a connu SOLIFIN
     acceptTerms: false,
-    noSponsorCode: false, // Nouvel état pour la case à cocher "Je n'ai pas de code sponsor"
   });
   const [formErrors, setFormErrors] = useState({});
-
-  // États pour la fenêtre modale des packs administrateurs
-  const [isPacksModalOpen, setIsPacksModalOpen] = useState(false);
-  const [adminPacks, setAdminPacks] = useState([]);
-  const [loadingPacks, setLoadingPacks] = useState(false);
-  const [copiedCode, setCopiedCode] = useState(null);
 
   // Fonction pour obtenir l'emoji du drapeau à partir du code pays
   const getFlagEmoji = (countryCode) => {
@@ -119,101 +109,7 @@ export default function Register() {
     } finally {
       setLoadingCountries(false);
     }
-
-    // Extract referral code from URL if present
-    const queryParams = new URLSearchParams(location.search);
-    const referralCode = queryParams.get("referral_code");
-    if (referralCode) {
-      setFormData((prev) => ({ ...prev, sponsor_code: referralCode }));
-    }
-
-    // Extract invitation code from URL if present
-    const invitationCode = queryParams.get("invitation");
-    if (invitationCode) {
-      setFormData((prev) => ({ ...prev, invitation_code: invitationCode }));
-      // Vérifier le code d'invitation
-      checkInvitationCode(invitationCode);
-    }
-  }, [selectedPackId, location.search]);
-
-  // Fonction pour vérifier le code d'invitation
-  const checkInvitationCode = async (code) => {
-    try {
-      const response = await axios.post("/api/check-invitation", {
-        invitation_code: code,
-      });
-      if (response.data.success) {
-        const invitationData = response.data.data;
-        // Pré-remplir le code de parrainage avec celui du sponsor de l'invitation
-        setFormData((prev) => ({
-          ...prev,
-          sponsor_code: invitationData.referral_code,
-          noSponsorCode: false, // Désactiver la case à cocher si un code de parrainage est trouvé
-          // Pré-remplir d'autres champs si nécessaire
-        }));
-      }
-    } catch (error) {
-      console.error(
-        "Erreur lors de la vérification du code d'invitation:",
-        error
-      );
-      // Ne pas afficher d'erreur à l'utilisateur, car le code est optionnel
-    }
-  };
-
-  // Fonction pour récupérer les packs administrateurs
-  const fetchAdminPacks = async () => {
-    try {
-      setLoadingPacks(true);
-      const response = await axios.get("/api/admin-packs");
-      if (response.data.success) {
-        setAdminPacks(response.data.packs);
-      } else {
-        Notification.error(
-          "Erreur lors du chargement des packs administrateurs"
-        );
-      }
-    } catch (error) {
-      console.error(
-        "Erreur lors du chargement des packs administrateurs",
-        error
-      );
-      Notification.error("Erreur lors du chargement des packs administrateurs");
-    } finally {
-      setLoadingPacks(false);
-    }
-  };
-
-  // Fonction pour copier un code de parrainage dans le presse-papiers
-  const copyToClipboard = (code) => {
-    navigator.clipboard
-      .writeText(code)
-      .then(() => {
-        setCopiedCode(code);
-        setTimeout(() => setCopiedCode(null), 2000);
-        Notification.success("Code copié dans le presse-papiers");
-      })
-      .catch((err) => {
-        console.error("Erreur lors de la copie dans le presse-papiers", err);
-        Notification.error("Erreur lors de la copie du code");
-      });
-  };
-
-  // Fonction pour gérer l'ouverture de la fenêtre modale des packs
-  const handleOpenPacksModal = () => {
-    fetchAdminPacks();
-    setIsPacksModalOpen(true);
-  };
-
-  // Fonction pour sélectionner un code de parrainage depuis la fenêtre modale
-  const selectSponsorCode = (code) => {
-    setFormData((prev) => ({
-      ...prev,
-      sponsor_code: code,
-      noSponsorCode: false,
-    }));
-    setIsPacksModalOpen(false);
-  };
+  }, [location.search]);
 
   const validateForm = () => {
     const errors = {};
@@ -254,9 +150,6 @@ export default function Register() {
         "La confirmation du mot de passe est obligatoire";
     if (formData.password !== formData.password_confirmation)
       errors.password_confirmation = "Les mots de passe ne correspondent pas";
-    // Vérifier le code sponsor seulement si la case "Je n'ai pas de code sponsor" n'est pas cochée
-    if (!formData.sponsor_code.trim() && !formData.noSponsorCode)
-      errors.sponsor_code = "Le code parrain est obligatoire";
     if (!formData.acceptTerms)
       errors.acceptTerms = "Vous devez accepter les conditions d'utilisation";
 
@@ -269,8 +162,9 @@ export default function Register() {
     setLoading(true);
 
     try {
-      // Valider les données
+      // Valider les données côté client
       if (!validateForm()) {
+        setLoading(false);
         return;
       }
 
@@ -283,18 +177,64 @@ export default function Register() {
           : "",
       };
 
-      // Stocker les données d'inscription dans le localStorage ou sessionStorage
-      sessionStorage.setItem("registrationData", JSON.stringify(dataToSubmit));
-
-      // Rediriger vers la page d'achat du pack
-      navigate(`/purchase-pack/${formData.sponsor_code}`, {
-        state: {
-          fromRegistration: true,
-          registrationData: dataToSubmit, // Passer les données avec les numéros de téléphone complets
-        },
-      });
+      const response = await axios.post("/api/register", dataToSubmit);
+      
+      if (response.data.success) {
+        Notification.success(
+          "Inscription réussie, vous pouvez maintenant vous connecter"
+        );
+        // Rediriger vers la page de connexion
+        navigate("/login");
+      } else {
+        // Afficher le message d'erreur général si disponible
+        if (response.data.message) {
+          Notification.error(response.data.message);
+        }
+      }
     } catch (error) {
-      Notification.error("Erreur lors de l'inscription");
+      console.error("Erreur d'inscription:", error);
+      
+      // Traiter les erreurs de validation du backend
+      if (error.response && error.response.data) {
+        const { data } = error.response;
+        const backendErrors = {};
+        
+        // Afficher le message d'erreur principal
+        if (data.message) {
+          Notification.error(data.message);
+        } else {
+          Notification.error("Erreur lors de l'inscription. Veuillez vérifier vos informations.");
+        }
+        
+        // Format d'erreur Laravel standard avec 'errors' comme objet
+        if (data.errors) {
+          // Parcourir toutes les erreurs de validation
+          Object.keys(data.errors).forEach(field => {
+            let errorMsg = "";
+            // Gérer les erreurs sous forme de tableau ou de chaîne
+            if (Array.isArray(data.errors[field])) {
+              errorMsg = data.errors[field][0];
+            } else {
+              errorMsg = data.errors[field];
+            }
+            
+            // Mapper les erreurs aux champs du formulaire
+            if (field === 'phone') {
+              backendErrors['phoneNumber'] = errorMsg;
+            } else if (field === 'whatsapp') {
+              backendErrors['whatsappNumber'] = errorMsg;
+            } else {
+              backendErrors[field] = errorMsg;
+            }
+          });
+          
+          // Mettre à jour l'état des erreurs de formulaire
+          setFormErrors(prev => ({ ...prev, ...backendErrors }));
+        }
+      } else {
+        // Erreur réseau ou autre erreur non liée à la validation
+        Notification.error("Erreur de connexion. Veuillez réessayer plus tard.");
+      }
     } finally {
       setLoading(false);
     }
@@ -320,27 +260,6 @@ export default function Register() {
         }));
       }
       // Ne rien faire si la valeur ne correspond pas aux critères (ignorer l'entrée)
-    } else if (name === "noSponsorCode" && type === "checkbox") {
-      // Gestion spéciale pour la case à cocher "Je n'ai pas de code sponsor"
-      if (checked) {
-        // Si la case est cochée, ouvrir la fenêtre modale des packs
-        handleOpenPacksModal();
-      }
-
-      setFormData((prev) => ({
-        ...prev,
-        [name]: checked,
-        // Si la case est cochée, effacer le code sponsor, sinon le laisser tel quel
-        sponsor_code: checked ? "" : prev.sponsor_code,
-      }));
-
-      // Réinitialiser l'erreur pour le code sponsor si la case est cochée
-      if (checked && formErrors.sponsor_code) {
-        setFormErrors({
-          ...formErrors,
-          sponsor_code: "",
-        });
-      }
     } else {
       // Pour les autres champs, comportement normal
       setFormData((prev) => ({
@@ -713,84 +632,6 @@ export default function Register() {
                       }}
                     />
 
-                    {/* Champ Code parrain déplacé plus bas avec la case à cocher */}
-
-                    <div className="space-y-2">
-                      <TextField
-                        fullWidth
-                        label="Code parrain"
-                        name="sponsor_code"
-                        value={formData.sponsor_code}
-                        onChange={handleChange}
-                        required
-                        disabled={formData.noSponsorCode}
-                        error={!!formErrors.sponsor_code}
-                        helperText={
-                          formErrors.sponsor_code || "Code parrain obligatoire"
-                        }
-                        sx={{
-                          "& .MuiOutlinedInput-root": {
-                            "&.Mui-focused fieldset": {
-                              borderColor: "#2E7D32",
-                            },
-                          },
-                          "& .MuiInputLabel-root.Mui-focused": {
-                            color: "#2E7D32",
-                          },
-                        }}
-                      />
-
-                      <FormControlLabel
-                        control={
-                          <Checkbox
-                            name="noSponsorCode"
-                            checked={formData.noSponsorCode}
-                            onChange={handleChange}
-                            sx={{
-                              color: "#2E7D32",
-                              "&.Mui-checked": {
-                                color: "#2E7D32",
-                              },
-                            }}
-                          />
-                        }
-                        label={
-                          <span
-                            className={`text-sm ${
-                              isDarkMode ? "text-gray-300" : "text-gray-700"
-                            }`}
-                          >
-                            Je n'ai pas de code sponsor
-                          </span>
-                        }
-                      />
-                    </div>
-
-                    <TextField
-                      fullWidth
-                      name="invitation_code"
-                      label="Code d'invitation (optionnel)"
-                      value={formData.invitation_code}
-                      onChange={(e) => {
-                        handleChange(e);
-                        if (e.target.value) {
-                          checkInvitationCode(e.target.value);
-                        }
-                      }}
-                      error={!!formErrors.invitation_code}
-                      helperText={formErrors.invitation_code}
-                      sx={{
-                        "& .MuiOutlinedInput-root": {
-                          "&.Mui-focused fieldset": {
-                            borderColor: "#2E7D32",
-                          },
-                        },
-                        "& .MuiInputLabel-root.Mui-focused": {
-                          color: "#2E7D32",
-                        },
-                      }}
-                    />
-
                     <FormControl fullWidth>
                       <InputLabel id="acquisition-source-label">
                         Comment avez-vous connu SOLIFIN ?
@@ -907,150 +748,6 @@ export default function Register() {
           </div>
         </div>
       </section>
-
-      {/* Fenêtre modale pour afficher les packs administrateurs */}
-      <Dialog
-        open={isPacksModalOpen}
-        onClose={() => setIsPacksModalOpen(false)}
-        maxWidth="md"
-        fullWidth
-        PaperProps={{
-          style: {
-            backgroundColor: isDarkMode ? "#1F2937" : "#FFFFFF",
-            color: isDarkMode ? "#F3F4F6" : "#111827",
-            borderRadius: "0.5rem",
-            boxShadow: "0 8px 32px rgba(0, 0, 0, 0.15)",
-          },
-        }}
-        BackdropProps={{
-          style: {
-            backgroundColor: "rgba(0, 0, 0, 0.5)",
-            backdropFilter: "blur(5px)",
-          },
-        }}
-      >
-        <DialogTitle className="flex justify-between items-center">
-          <span>Codes sponsors disponibles</span>
-          <IconButton
-            onClick={() => setIsPacksModalOpen(false)}
-            size="small"
-            sx={{ color: isDarkMode ? "#F3F4F6" : "#111827" }}
-          >
-            <XMarkIcon className="h-5 w-5" />
-          </IconButton>
-        </DialogTitle>
-
-        <DialogContent
-          dividers
-          sx={{ backgroundColor: isDarkMode ? "#1F2937" : "#FFFFFF" }}
-        >
-          {loadingPacks ? (
-            <div className="flex justify-center items-center py-8">
-              <CircularProgress size={40} style={{ color: "#2E7D32" }} />
-            </div>
-          ) : adminPacks.length > 0 ? (
-            <div className="space-y-4">
-              <p
-                className={`text-sm ${
-                  isDarkMode ? "text-gray-300" : "text-gray-600"
-                } mb-4`}
-              >
-                Sélectionnez un code sponsor parmi les packs administrateurs
-                disponibles :
-              </p>
-
-              {adminPacks.map((pack) => (
-                <div
-                  key={pack.id}
-                  className={`p-4 rounded-lg border ${
-                    isDarkMode
-                      ? "bg-gray-800 border-gray-700"
-                      : "bg-gray-50 border-gray-200"
-                  } flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3`}
-                >
-                  <div>
-                    <h3
-                      className={`font-medium ${
-                        isDarkMode ? "text-white" : "text-gray-900"
-                      }`}
-                    >
-                      {pack.name}
-                    </h3>
-                    <div className="flex items-center mt-1">
-                      <span
-                        className={`text-sm font-mono px-2 py-1 rounded ${
-                          isDarkMode
-                            ? "bg-gray-700 text-gray-300"
-                            : "bg-gray-200 text-gray-700"
-                        }`}
-                      >
-                        {pack.referral_code}
-                      </span>
-                      <Tooltip
-                        title={
-                          copiedCode === pack.referral_code
-                            ? "Copié !"
-                            : "Copier le code"
-                        }
-                      >
-                        <IconButton
-                          onClick={() => copyToClipboard(pack.referral_code)}
-                          size="small"
-                          sx={{
-                            ml: 1,
-                            color:
-                              copiedCode === pack.referral_code
-                                ? "#4CAF50"
-                                : isDarkMode
-                                ? "#F3F4F6"
-                                : "#111827",
-                          }}
-                        >
-                          <ClipboardDocumentIcon className="h-4 w-4" />
-                        </IconButton>
-                      </Tooltip>
-                    </div>
-                  </div>
-
-                  <Button
-                    variant="contained"
-                    size="small"
-                    onClick={() => selectSponsorCode(pack.referral_code)}
-                    sx={{
-                      bgcolor: "#2E7D32",
-                      "&:hover": { bgcolor: "#1B5E20" },
-                      fontSize: "0.75rem",
-                    }}
-                  >
-                    Sélectionner
-                  </Button>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="py-8 text-center">
-              <p
-                className={`text-sm ${
-                  isDarkMode ? "text-gray-400" : "text-gray-500"
-                }`}
-              >
-                Aucun pack administrateur disponible pour le moment.
-              </p>
-            </div>
-          )}
-        </DialogContent>
-
-        <DialogActions
-          sx={{ backgroundColor: isDarkMode ? "#1F2937" : "#FFFFFF" }}
-        >
-          <Button
-            onClick={() => setIsPacksModalOpen(false)}
-            sx={{ color: isDarkMode ? "#F3F4F6" : "#111827" }}
-          >
-            Fermer
-          </Button>
-        </DialogActions>
-      </Dialog>
     </>
   );
 }
