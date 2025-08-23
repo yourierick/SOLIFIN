@@ -154,10 +154,10 @@ export default function PublicationForm({
 
   // Mettre à jour le champ caché conditions_livraison lorsque l'état change
   useEffect(() => {
-    if (conditionsLivraison && conditionsLivraison.length > 0) {
-      // Filtrer les conditions vides
+    if (Array.isArray(conditionsLivraison) && conditionsLivraison.length > 0) {
+      // Filtrer les conditions vides et s'assurer que chaque élément est une chaîne
       const filteredConditions = conditionsLivraison.filter(
-        (condition) => condition.trim() !== ""
+        (condition) => typeof condition === 'string' && condition.trim() !== ""
       );
       setValue("conditions_livraison", JSON.stringify(filteredConditions));
     } else {
@@ -660,6 +660,13 @@ export default function PublicationForm({
       setValue("conditions_livraison", conditions);
     }
   }, [conditionsLivraison, setValue, type]);
+
+  // Initialiser conditionsLivraison comme un tableau vide si c'est null ou undefined
+  useEffect(() => {
+    if (!conditionsLivraison && type === "advertisement") {
+      setConditionsLivraison([]);
+    }
+  }, [conditionsLivraison, type]);
 
   // Précharger les données de la publication en mode édition
   useEffect(() => {
@@ -1703,28 +1710,28 @@ export default function PublicationForm({
                 field.name === "conditions_livraison" && (
                   <div className="mt-1">
                     {/* Liste des champs de conditions existants */}
-                    {conditionsLivraison.map((condition, index) => (
+                    {Array.isArray(conditionsLivraison) && conditionsLivraison.map((condition, index) => (
                       <div key={index} className="flex items-center mb-2">
                         <input
                           type="text"
-                          className="block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm dark:bg-gray-700 dark:text-white"
                           value={condition}
                           onChange={(e) => {
                             const newConditions = [...conditionsLivraison];
                             newConditions[index] = e.target.value;
                             setConditionsLivraison(newConditions);
                           }}
+                          className="flex-grow p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                         />
                         <button
                           type="button"
-                          className="ml-2 text-red-500 hover:text-red-700"
                           onClick={() => {
                             const newConditions = [...conditionsLivraison];
                             newConditions.splice(index, 1);
                             setConditionsLivraison(newConditions);
                           }}
+                          className="ml-2 p-2 bg-red-500 text-white rounded hover:bg-red-600"
                         >
-                          <XMarkIcon className="h-5 w-5" />
+                          <XMarkIcon className="h-4 w-4" />
                         </button>
                       </div>
                     ))}

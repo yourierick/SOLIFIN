@@ -401,10 +401,8 @@ const RoueDeLaChanceModal = ({ open, onClose, jeton, onResult }) => {
                     </span>
                   </p>
                   <p>
-                    Veuillez le montrer au personnel dans 30 jours à partir de
-                    la date d'aujourd'hui pour recevoir votre cadeau avant la
-                    date de son expiration le{" "}
-                    {formatDate(result.date_expiration)}
+                    Veuillez le montrer au personnel avant sa date de expiration
+                    le {formatDate(result.date_expiration)}
                   </p>
                 </div>
               )}

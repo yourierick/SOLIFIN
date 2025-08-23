@@ -107,18 +107,22 @@ const TicketGagnantModal = ({ open, onClose, ticket }) => {
             <div className="flex justify-center mb-4">
               <div
                 className={`${
-                  ticket.consomme
+                  ticket.consomme === "consommé"
                     ? "bg-green-100 text-green-800"
                     : isExpired(ticket)
                     ? "bg-red-100 text-red-800"
+                    : ticket.consomme === "programmé"
+                    ? "bg-yellow-100 text-yellow-800"
                     : "bg-yellow-100 text-yellow-800"
                 } px-4 py-2 rounded-full text-sm font-medium`}
               >
-                {ticket.consomme
+                {ticket.consomme === "consommé"
                   ? "Ticket utilisé"
                   : isExpired(ticket)
                   ? "Ticket expiré"
-                  : "Ticket valide"}
+                  : ticket.consomme === "programmé"
+                  ? "Ticket programmé"
+                  : ticket.consomme}
               </div>
             </div>
 
@@ -223,7 +227,7 @@ const TicketGagnantModal = ({ open, onClose, ticket }) => {
               </div>
             )}
 
-            {ticket.consomme && (
+            {ticket.consomme === "consommé" && (
               <div className="p-3 bg-green-100 text-green-800 rounded-md flex items-center">
                 <CheckCircleIcon className="h-5 w-5 mr-2" />
                 <div>
@@ -236,7 +240,7 @@ const TicketGagnantModal = ({ open, onClose, ticket }) => {
               </div>
             )}
 
-            {!ticket.consomme && isExpired(ticket) && (
+            {ticket.consomme === "expiré" && (
               <div className="p-3 bg-red-100 text-red-800 rounded-md flex items-center">
                 <ExclamationCircleIcon className="h-5 w-5 mr-2" />
                 <div>
@@ -250,18 +254,18 @@ const TicketGagnantModal = ({ open, onClose, ticket }) => {
           </div>
 
           <div className="px-6 py-4 bg-gray-50 dark:bg-gray-800">
-            {!ticket.consomme && !isExpired(ticket) && (
+            {!ticket.consomme === "non consommé" && !isExpired(ticket) && (
               <div className="text-sm text-gray-600 dark:text-gray-300">
                 <p className="mb-2 font-medium">Comment utiliser ce ticket :</p>
                 <ol className="list-decimal ml-5">
                   <li className="mb-1">
-                    Présentez ce ticket (code ou QR code) à un administrateur.
+                    Présentez ce ticket (code ou QR code) à un gestionnaire ou
+                    un distributeur SOLIFIN agréé.
                   </li>
-                  <li className="mb-1">
-                    Lorsqu'on vous le demande, fournissez votre code de
-                    vérification personnel.
+                  <li>
+                    Suivez ensuite les instructions de celui-ci pour rétirer
+                    votre cadeau !
                   </li>
-                  <li>Recevez votre cadeau !</li>
                 </ol>
               </div>
             )}

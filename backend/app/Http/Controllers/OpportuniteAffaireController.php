@@ -257,8 +257,8 @@ class OpportuniteAffaireController extends Controller
 
         $data = $request->except(['image', 'opportunity_file']);
         
-        // Si l'utilisateur n'est pas admin, l'opportunité revient en attente si certains champs sont modifiés
-        if (!$user->is_admin && $request->has(['titre', 'description'])) {
+        // Si l'utilisateur n'est pas admin, l'opportunité revient en attente
+        if (!$user->is_admin) {
             $data['statut'] = 'en_attente';
         }
 

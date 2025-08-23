@@ -70,10 +70,9 @@ class TestimonialPromptService
             $this->checkEarningsTrigger($user),
             $this->checkReferralsTrigger($user),
             $this->checkPackUpgradeTrigger($user),
-            $this->checkBonusReceivedTrigger($user),
             $this->checkMembershipDurationTrigger($user),
         ];
-        
+
         // Retourner le premier déclencheur non-null trouvé
         foreach ($triggers as $trigger) {
             if ($trigger !== null) {
@@ -141,7 +140,7 @@ class TestimonialPromptService
         // Vérifier si l'utilisateur a gagné un montant significatif
         if ($user->wallet->total_earned >= self::MIN_EARNINGS_THRESHOLD) {
             // Vérifier si l'utilisateur a atteint un palier significatif
-            $significantThresholds = [100, 500, 1000, 5000, 10000];
+            $significantThresholds = [100, 500, 1000, 5000, 10000, 100000, 1000000];
             $currentEarnings = $user->wallet->total_earned;
             
             foreach ($significantThresholds as $threshold) {
@@ -175,7 +174,7 @@ class TestimonialPromptService
         
         if ($referrals >= self::MIN_REFERRALS_THRESHOLD) {
             // Vérifier si l'utilisateur a atteint un palier significatif
-            $significantThresholds = [20, 50, 100, 200, 500, 1000];
+            $significantThresholds = [20, 50, 100, 200, 500, 1000, 10000, 100000];
             
             foreach ($significantThresholds as $threshold) {
                 // Si le nombre de filleuls est exactement égal à un seuil
@@ -230,40 +229,6 @@ class TestimonialPromptService
                     ],
                 ];
             }
-        }
-        
-        return null;
-    }
-    
-    /**
-     * Vérifie si l'utilisateur a reçu un bonus récemment.
-     *
-     * @param User $user L'utilisateur à vérifier
-     * @return array|null Le déclencheur ou null
-     */
-    private function checkBonusReceivedTrigger(User $user): ?array
-    {
-        // Vérifier si l'utilisateur a un wallet
-        if (!$user->wallet) {
-            return null;
-        }
-        
-        // Vérifier si l'utilisateur a reçu un bonus récemment (dans les 7 derniers jours)
-        $recentBonus = $user->wallet->transactions()
-            ->where('type', 'bonus')
-            ->where('created_at', '>=', now()->subDays(7))
-            ->orderBy('created_at', 'desc')
-            ->first();
-            
-        if ($recentBonus) {
-            return [
-                'type' => TestimonialPrompt::TRIGGER_BONUS,
-                'data' => [
-                    'bonus_type' => $recentBonus->description ?? 'parrainage',
-                    'amount' => $recentBonus->amount,
-                    'date' => $recentBonus->created_at->toDateString(),
-                ],
-            ];
         }
         
         return null;

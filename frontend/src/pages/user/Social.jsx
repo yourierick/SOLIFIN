@@ -281,9 +281,6 @@ export default function Social() {
         },
       });
 
-      toast.success(
-        "Statut social créé avec succès et en attente de validation"
-      );
       resetForm();
       fetchMyStatuses();
       setIsCreating(false);

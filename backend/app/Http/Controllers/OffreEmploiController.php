@@ -257,8 +257,8 @@ class OffreEmploiController extends Controller
 
         $data = $request->all();
         
-        // Si l'utilisateur n'est pas admin, l'offre revient en attente si certains champs sont modifiés
-        if (!$user->is_admin && $request->has(['titre', 'description', 'competences_requises'])) {
+        // Si l'utilisateur n'est pas admin, l'offre revient en attente
+        if (!$user->is_admin) {
             $data['statut'] = 'en_attente';
         }
         

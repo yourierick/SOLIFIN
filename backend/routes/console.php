@@ -60,14 +60,14 @@ Schedule::command('solifin:check-expired-jetons-esengo')
 // Vérification des tickets gagnants expirés (tous les jours à 01:45)
 Schedule::command('solifin:check-expired-tickets-gagnants --notify')
     ->daily()
-    ->at('01:45')
+    ->at('01:30')
     ->appendOutputTo(storage_path('logs/expired-tickets-gagnants.log'))
     ->description('Vérifie et marque les tickets gagnants expirés');
 
 // Planification du traitement des invitations à témoigner
 // Vérification quotidienne des utilisateurs éligibles (tous les jours à 02:00)
 Schedule::command('testimonials:process-prompts --expire')
-    ->dailyAt('00:15')
+    ->everyMinute()
     ->appendOutputTo(storage_path('logs/testimonial-prompts.log'))
     ->description('Vérifie les utilisateurs éligibles et crée des invitations à témoigner');
 

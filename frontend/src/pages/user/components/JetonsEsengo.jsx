@@ -645,7 +645,7 @@ const JetonsEsengo = () => {
                               : "bg-yellow-100 text-yellow-800"
                           }`}
                         >
-                          {ticket.consomme
+                          {ticket.consomme === "consommé"
                             ? "Consommé"
                             : isExpired(ticket)
                             ? "Expiré"

@@ -68,11 +68,10 @@ class UpdatePublicationStatus extends Command
         $stats = $this->processPublications(
             Publicite::class,
             'publicités',
-            ['statut' => 'approuvé', 'etat' => 'disponible']
+            ['statut' => 'approuvé']
         );
         
         $this->info("{$stats['expired']} publicités ont expirées.");
-        $this->info("{$stats['updated']} publicités ont eu leur durée d'affichage mise à jour.");
     }
 
     /**
@@ -85,12 +84,10 @@ class UpdatePublicationStatus extends Command
         $stats = $this->processPublications(
             OffreEmploi::class,
             'offres d\'emploi',
-            ['statut' => 'approuvé', 'etat' => 'disponible']
+            ['statut' => 'approuvé']
         );
         
-        $this->info("{$stats['expired_date_limite']} offres d'emploi ont expiré (date limite).");
         $this->info("{$stats['expired_duree']} offres d'emploi ont expiré (durée d'affichage).");
-        $this->info("{$stats['updated']} offres d'emploi ont eu leur durée d'affichage mise à jour.");
     }
 
     /**
@@ -103,12 +100,10 @@ class UpdatePublicationStatus extends Command
         $stats = $this->processPublications(
             OpportuniteAffaire::class,
             'opportunités d\'affaires',
-            ['statut' => 'approuvé', 'etat' => 'disponible']
+            ['statut' => 'approuvé']
         );
         
-        $this->info("{$stats['expired_date_limite']} opportunités d'affaires ont expiré (date limite).");
         $this->info("{$stats['expired_duree']} opportunités d'affaires ont expiré (durée d'affichage).");
-        $this->info("{$stats['updated']} opportunités d'affaires ont eu leur durée d'affichage mise à jour.");
     }
     
     /**
@@ -150,13 +145,6 @@ class UpdatePublicationStatus extends Command
                 foreach ($publications as $publication) {
                     $isExpired = false;
                     $stats['processed']++;
-                    
-                    // Vérifier si la date limite est dépassée (pour les offres d'emploi et opportunités d'affaires)
-                    if (property_exists($publication, 'date_limite') && $publication->date_limite && Carbon::parse($publication->date_limite)->lt($now)) {
-                        $isExpired = true;
-                        $stats['expired']++;
-                        $stats['expired_date_limite']++;
-                    }
                     
                     // Vérifier si la durée d'affichage est dépassée
                     if (!$isExpired && $publication->duree_affichage) {

@@ -99,7 +99,7 @@ class TicketGagnantNotification extends Notification implements ShouldQueue
             ->line('Détails de votre cadeau :')
             ->line('Nom : ' . $this->cadeau->nom)
             ->line('Description : ' . $this->cadeau->description)
-            ->line('Valeur : ' . $this->cadeau->valeur . ' €')
+            ->line('Valeur : ' . $this->cadeau->valeur . ' $')
             ->line('Code de vérification : ' . $this->ticket->code_verification)
             ->line('Date d\'expiration : ' . $expirationDate)
             ->line('Conservez précieusement ce code pour récupérer votre cadeau !')

@@ -348,8 +348,8 @@ class PubliciteController extends Controller
 
             $data = $request->except(['image', 'video']);
             
-            // Si l'utilisateur n'est pas admin, la publicité revient en attente si certains champs sont modifiés
-            if (!$user->is_admin && $request->has(['titre', 'description', 'prix_unitaire_vente'])) {
+            // Si l'utilisateur n'est pas admin, la publicité revient en attente
+            if (!$user->is_admin) {
                 $data['statut'] = 'en_attente';
             }
             

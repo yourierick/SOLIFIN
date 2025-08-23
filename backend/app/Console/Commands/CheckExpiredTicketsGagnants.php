@@ -76,28 +76,6 @@ class CheckExpiredTicketsGagnants extends Command
                                 'Date d\'expiration dépassée de' => now()->diffForHumans($ticket->date_expiration, true)
                             ];
                             
-                            // Notifier l'utilisateur si l'option est activée
-                            if ($this->option('notify') && $user) {
-                                try {
-                                    $user->notify(new \App\Notifications\TicketExpireNotification(
-                                        'Ticket expiré',
-                                        "Votre ticket pour {$cadeau->nom} a expiré le {$ticket->date_expiration->format('d/m/Y')}.",
-                                        $cadeau,
-                                        $ticket
-                                    ));
-                                    
-                                    $totalNotified++;
-                                    $this->line("Notification envoyée à l'utilisateur ID: {$userId} pour le ticket ID: {$ticket->id}");
-                                } catch (\Exception $e) {
-                                    $this->error("Erreur lors de l'envoi de la notification pour le ticket ID: {$ticket->id} - {$e->getMessage()}");
-                                    Log::error("Erreur lors de l'envoi de la notification d'expiration de ticket: {$e->getMessage()}", [
-                                        'ticket_id' => $ticket->id,
-                                        'user_id' => $userId,
-                                        'exception' => $e->getTraceAsString()
-                                    ]);
-                                }
-                            }
-                            
                             // Marquer le ticket comme expiré
                             $ticket->consomme = "expiré";
                             $ticket->date_expiration = now();

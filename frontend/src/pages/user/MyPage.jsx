@@ -462,6 +462,79 @@ export default function MyPage() {
     }
   };
 
+  // Gestionnaire pour le changement d'état d'une publication (disponible/terminé)
+  const handleStateChange = (id, type, newState) => {
+    const apiPath = getPublicationTypeApiPath(type);
+
+    axios
+      .patch(`/api/${apiPath}/${id}/state`, { etat: newState })
+      .then((response) => {
+        // Mettre à jour l'état local en fonction du type de publication
+        switch (type) {
+          case "advertisement":
+            setPublications((prev) => ({
+              ...prev,
+              advertisements: prev.advertisements.map((ad) =>
+                ad.id === id ? { ...ad, etat: newState } : ad
+              ),
+            }));
+            break;
+          case "jobOffer":
+            setPublications((prev) => ({
+              ...prev,
+              jobOffers: prev.jobOffers.map((offer) =>
+                offer.id === id ? { ...offer, etat: newState } : offer
+              ),
+            }));
+            break;
+          case "businessOpportunity":
+            setPublications((prev) => ({
+              ...prev,
+              businessOpportunities: prev.businessOpportunities.map((opp) =>
+                opp.id === id ? { ...opp, etat: newState } : opp
+              ),
+            }));
+            break;
+          default:
+            break;
+        }
+
+        // Afficher une notification de succès
+        let statusText = "";
+        switch (newStatus) {
+          case "disponible":
+            statusText = "Disponible";
+            break;
+          case "terminé":
+            statusText = "Terminé";
+            break;
+          default:
+            statusText = newStatus;
+        }
+        toast.success(
+          `État de la publication modifié avec succès: ${statusText}`
+        );
+      })
+      .catch((error) => {
+        console.error("Erreur lors du changement d'état:", error);
+        toast.error("Erreur lors du changement d'état de la publication");
+      });
+  };
+
+  // Gestionnaire pour l'affichage des détails d'une publication
+  const handleViewDetails = (publication, type) => {
+    setCurrentPublication(publication);
+    setCurrentFormType(type);
+    setShowDetailsModal(true);
+  };
+
+  // Fermeture du modal de détails
+  const handleCloseDetailsModal = () => {
+    setShowDetailsModal(false);
+    setCurrentPublication(null);
+    setCurrentFormType(null);
+  };
+
   // Fonction pour gérer la soumission d'un produit numérique
   const handleDigitalProductSubmit = async (formData) => {
     try {

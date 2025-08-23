@@ -492,7 +492,7 @@ class User extends Authenticatable implements MustVerifyEmail
         if ($this->created_at->diffInDays(now()) < 30) {
             return false;
         }
-        
+
         // Vérifier si l'utilisateur a déjà soumis un témoignage récemment
         $hasRecentTestimonial = $this->testimonials()
             ->where('created_at', '>', now()->subDays(90))

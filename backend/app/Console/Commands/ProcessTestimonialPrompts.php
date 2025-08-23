@@ -64,6 +64,7 @@ class ProcessTestimonialPrompts extends Command
         $startTime = microtime(true);
         $stats = $this->testimonialPromptService->processEligibleUsers($batchSize);
         $duration = round(microtime(true) - $startTime, 2);
+        \Log::info($stats);
         
         // Afficher les statistiques
         $this->info('Traitement terminé en ' . $duration . ' secondes.');

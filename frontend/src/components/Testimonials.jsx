@@ -38,11 +38,6 @@ export default function Testimonials() {
     fetchTestimonials();
   }, []);
 
-  // Ne rien afficher s'il n'y a pas de témoignages
-  if (loading || error || testimonials.length === 0) {
-    return null;
-  }
-
   // Rotation automatique des témoignages
   useEffect(() => {
     if (!autoplay || testimonials.length === 0) return;
@@ -53,6 +48,11 @@ export default function Testimonials() {
 
     return () => clearInterval(timer);
   }, [autoplay, testimonials.length]);
+
+  // Ne rien afficher s'il n'y a pas de témoignages
+  if (loading || error || testimonials.length === 0) {
+    return null;
+  }
 
   return (
     <section
