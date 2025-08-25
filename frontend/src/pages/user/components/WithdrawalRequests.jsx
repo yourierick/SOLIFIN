@@ -144,8 +144,7 @@ const WithdrawalRequests = () => {
 
       if (!response.data || !response.data.success) {
         throw new Error(
-          response.data?.message ||
-            "Erreur lors de la récupération des demandes de retrait"
+          "Erreur lors de la récupération des demandes de retrait"
         );
       }
 
@@ -159,13 +158,9 @@ const WithdrawalRequests = () => {
         perPage: data.per_page || 10,
       });
     } catch (err) {
-      console.error(
-        "Erreur lors de la récupération des demandes de retrait:",
-        err
-      );
+      console.error("Erreur lors de la récupération des demandes de retrait");
       setError(
-        err.message ||
-          "Impossible de récupérer les demandes de retrait. Veuillez réessayer."
+        "Impossible de récupérer les demandes de retrait. Veuillez réessayer."
       );
     } finally {
       setLoading(false);
@@ -190,10 +185,8 @@ const WithdrawalRequests = () => {
       toast.success("Demande de retrait annulée avec succès");
       fetchWithdrawalRequests();
     } catch (err) {
-      console.error("Erreur lors de l'annulation de la demande:", err);
-      toast.error(
-        err.message || "Impossible d'annuler la demande. Veuillez réessayer."
-      );
+      console.error("Erreur lors de l'annulation de la demande");
+      toast.error("Impossible d'annuler la demande. Veuillez réessayer.");
     } finally {
       setLoading(false);
       setCancelDialogOpen(false);
@@ -211,19 +204,14 @@ const WithdrawalRequests = () => {
       );
 
       if (!response.data || !response.data.success) {
-        throw new Error(
-          response.data?.message ||
-            "Erreur lors de la suppression de la demande"
-        );
+        throw new Error("Erreur lors de la suppression de la demande");
       }
 
       toast.success("Demande de retrait supprimée avec succès");
       fetchWithdrawalRequests();
     } catch (err) {
-      console.error("Erreur lors de la suppression de la demande:", err);
-      toast.error(
-        err.message || "Impossible de supprimer la demande. Veuillez réessayer."
-      );
+      console.error("Erreur lors de la suppression de la demande");
+      toast.error("Impossible de supprimer la demande. Veuillez réessayer.");
     } finally {
       setLoading(false);
       setDeleteDialogOpen(false);

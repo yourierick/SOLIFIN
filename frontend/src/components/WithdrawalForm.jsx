@@ -313,10 +313,12 @@ export default function WithdrawalForm({ walletId, walletType, onClose }) {
   const [referralCommission, setReferralCommission] = useState(0);
   const [referralCommissionPercentage, setReferralCommissionPercentage] =
     useState(0);
+
   const [loading, setLoading] = useState(false);
   const [loadingFees, setLoadingFees] = useState(false);
   const [feesError, setFeesError] = useState(false);
   const [formIsValid, setFormIsValid] = useState(false);
+
   // Ces variables sont définies avec des valeurs par défaut pour l'authentification par mot de passe uniquement
   const [showOtpField, setShowOtpField] = useState(false);
   const [usePasswordInsteadOfOtp, setUsePasswordInsteadOfOtp] = useState(true);
@@ -785,13 +787,13 @@ export default function WithdrawalForm({ walletId, walletType, onClose }) {
                 setSelectedType(type);
                 setSelectedMethod(methodInfo);
                 setSelectedPaymentOption(null); // Réinitialiser l'option spécifique
-                
+
                 // Si le type est mobile-money, forcer le pays à CD (République démocratique du Congo)
                 if (type === PAYMENT_TYPES.MOBILE_MONEY) {
-                  setFormData(prevData => ({
+                  setFormData((prevData) => ({
                     ...prevData,
                     country: "CD",
-                    phoneCode: "+243"
+                    phoneCode: "+243",
                   }));
                 }
               }}

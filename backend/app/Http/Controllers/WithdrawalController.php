@@ -384,9 +384,9 @@ class WithdrawalController extends Controller
                     "montant_a_retirer" => $amount,
                     "montant_a_retirer_en_USD" => $amount,
                     "devise" => $request->currency,
-                    "pourcentage_frais_system" => $pourcentage_frais_system,
-                    "pourcentage_frais_api" => $pourcentage_frais_api,
-                    "pourcentage_frais_commission" => $pourcentage_frais_commission,
+                    "pourcentage_frais_system" => $pourcentage_frais_system . " %",
+                    "pourcentage_frais_api" => $pourcentage_frais_api . " %",
+                    "pourcentage_frais_commission" => $user->is_admin ? 0 . " %" : $pourcentage_frais_commission . " %",
                     "frais_de_retrait" => $frais_de_transaction,
                     "frais_api" => $frais_api,
                     "frais_de_commission" => $frais_de_commission,
@@ -441,11 +441,12 @@ class WithdrawalController extends Controller
     }
 
     /**
-     * Récupère toutes les demandes de retrait pour l'administration
+     * Récupère les demandes de retrait en attente pour l'administration avec pagination et filtres
      * 
+     * @param \Illuminate\Http\Request $request
      * @return \Illuminate\Http\JsonResponse
      */
-    public function getRequests()
+    public function getRequests(Request $request)
     {
         try {
             // Vérification que l'utilisateur est un administrateur
@@ -457,33 +458,68 @@ class WithdrawalController extends Controller
                 ], 403);
             }
             
-            $requests = WithdrawalRequest::with(['user', 'user.wallet'])
+            // Récupérer les paramètres de filtrage
+            $paymentMethod = $request->query('payment_method');
+            $startDate = $request->query('start_date');
+            $endDate = $request->query('end_date');
+            $search = $request->query('search');
+            
+            // Construire la requête de base
+            $query = WithdrawalRequest::with(['user', 'user.wallet'])
                 ->where('status', 'pending')
-                ->orderBy('created_at', 'desc')
-                ->get()
-                ->map(function ($request) {
-                    return [
-                        'id' => $request->id,
-                        'user_id' => $request->user_id,
-                        'user_name' => $request->user->name,
-                        'user' => $request->user,
-                        'wallet_balance' => $request->user->wallet->balance,
-                        'amount' => $request->amount,
-                        'status' => $request->status,
-                        'payment_status' => $request->payment_status,
-                        'payment_method' => $request->payment_method,
-                        'payment_details' => $request->payment_details,
-                        'admin_note' => $request->admin_note,
-                        'created_at' => $request->created_at,
-                        'processed_at' => $request->processed_at,
-                    ];
+                ->orderBy('created_at', 'desc');
+            
+            // Appliquer les filtres si présents
+            if ($paymentMethod) {
+                $query->where('payment_method', $paymentMethod);
+            }
+            
+            if ($startDate) {
+                $query->whereDate('created_at', '>=', $startDate);
+            }
+            
+            if ($endDate) {
+                $query->whereDate('created_at', '<=', $endDate);
+            }
+            
+            if ($search) {
+                $query->whereHas('user', function($q) use ($search) {
+                    $q->where('name', 'like', "%{$search}%")
+                      ->orWhere('email', 'like', "%{$search}%");
                 });
-
+            }
+            
+            // Paginer les résultats (15 par page par défaut)
+            $perPage = $request->query('per_page', 15);
+            $requests = $query->paginate($perPage);
+            
+            // Transformer les données pour inclure les informations du wallet
+            $transformedData = $requests->getCollection()->map(function ($request) {
+                return [
+                    'id' => $request->id,
+                    'user_id' => $request->user_id,
+                    'user_name' => $request->user->name,
+                    'user' => $request->user,
+                    'wallet_balance' => $request->user->wallet->balance,
+                    'amount' => $request->amount,
+                    'status' => $request->status,
+                    'payment_status' => $request->payment_status,
+                    'payment_method' => $request->payment_method,
+                    'payment_details' => $request->payment_details,
+                    'admin_note' => $request->admin_note,
+                    'created_at' => $request->created_at,
+                    'processed_at' => $request->processed_at,
+                ];
+            });
+            
+            // Remplacer la collection dans l'objet de pagination tout en préservant la structure
+            $requests->setCollection($transformedData);
+            
             $walletSystem = WalletSystem::first()->balance;
 
             return response()->json([
                 'success' => true,
-                'requests' => $requests,
+                'data' => $requests,
                 'wallet_system_balance' => $walletSystem
             ]);
         } catch (ModelNotFoundException $e) {

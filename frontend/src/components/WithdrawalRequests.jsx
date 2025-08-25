@@ -113,30 +113,97 @@ const WithdrawalRequests = () => {
   });
   // Effet pour charger les données initiales
   useEffect(() => {
+    // Réinitialiser la page courante lors du changement d'onglet
+    setCurrentPage(1);
+
     if (activeTab === "pending") {
-      fetchPendingRequests();
+      fetchPendingRequests(1);
     } else if (activeTab === "all") {
-      fetchAllRequests();
+      fetchAllRequests(1);
     }
   }, [activeTab]);
 
-  // Effet pour filtrer les demandes en attente
+  // Effet pour filtrer les demandes en attente ou recharger avec les filtres
   useEffect(() => {
-    if (requestsArray.length > 0) {
+    if (activeTab === "pending") {
+      // Si nous utilisons la pagination backend, refaire la requête avec les filtres
+      fetchPendingRequests(1);
+    } else if (requestsArray.length > 0) {
+      // Sinon, appliquer les filtres côté client
       applyPendingFilters();
     } else {
       setFilteredRequestsArray([]);
     }
-  }, [requestsArray, pendingFilters]);
+  }, [pendingFilters, activeTab]);
 
-  // Fonction pour récupérer les demandes en attente
-  const fetchPendingRequests = async () => {
+  // Fonction pour récupérer les demandes en attente avec pagination
+  const fetchPendingRequests = async (page = 1) => {
     try {
       setLoading(true);
-      const response = await axios.get("/api/admin/withdrawal/requests");
-      console.log(response.data);
+
+      // Construire l'URL avec les paramètres de pagination et filtrage
+      let url = `/api/admin/withdrawal/requests?page=${page}`;
+
+      if (pendingFilters.payment_method) {
+        url += `&payment_method=${pendingFilters.payment_method}`;
+      }
+
+      if (pendingFilters.start_date) {
+        url += `&start_date=${pendingFilters.start_date}`;
+      }
+
+      if (pendingFilters.end_date) {
+        url += `&end_date=${pendingFilters.end_date}`;
+      }
+
+      if (pendingFilters.search) {
+        url += `&search=${encodeURIComponent(pendingFilters.search)}`;
+      }
+
+      const response = await axios.get(url);
+
       if (response.data.success) {
-        setRequestsArray(response.data.requests || []);
+        // Vérifier si les données sont paginées
+        if (response.data.data) {
+          // Format paginé (nouvelle structure)
+          const requests = response.data.data.data || [];
+          setRequestsArray(requests);
+          setFilteredRequestsArray(requests); // Initialiser filteredRequestsArray avec les mêmes données
+          setAllRequestsMeta({
+            current_page: response.data.data.current_page || 1,
+            last_page: response.data.data.last_page || 1,
+            per_page: response.data.data.per_page || 10,
+            total: response.data.data.total || 0,
+            from: response.data.data.from || 0,
+            to: response.data.data.to || 0,
+          });
+        } else if (response.data.requests?.data) {
+          // Format paginé (ancienne structure pour compatibilité)
+          const requests = response.data.requests.data || [];
+          setRequestsArray(requests);
+          setFilteredRequestsArray(requests); // Initialiser filteredRequestsArray avec les mêmes données
+          setAllRequestsMeta({
+            current_page: response.data.requests.current_page || 1,
+            last_page: response.data.requests.last_page || 1,
+            per_page: response.data.requests.per_page || 10,
+            total: response.data.requests.total || 0,
+            from: response.data.requests.from || 0,
+            to: response.data.requests.to || 0,
+          });
+        } else {
+          // Format non paginé (pour compatibilité)
+          const requests = response.data.requests || [];
+          setRequestsArray(requests);
+          setFilteredRequestsArray(requests); // Initialiser filteredRequestsArray avec les mêmes données
+          setAllRequestsMeta(null);
+        }
+
+        // Mettre à jour la page courante
+        if (response.data.data) {
+          setCurrentPage(response.data.data.current_page || 1);
+        } else {
+          setCurrentPage(response.data.requests?.current_page || 1);
+        }
       } else {
         toast.error("Erreur lors de la récupération des demandes");
       }
@@ -150,45 +217,47 @@ const WithdrawalRequests = () => {
 
   // Fonction pour appliquer les filtres aux demandes en attente
   const applyPendingFilters = () => {
-    let filtered = [...requestsArray];
+    // Si nous utilisons la pagination backend, les filtres sont déjà appliqués via l'API
+    // Cette fonction est maintenant principalement utilisée comme fallback pour le filtrage côté client
+    if (activeTab !== "pending" || !allRequestsMeta) {
+      let filtered = [...requestsArray];
 
-    // Filtre par méthode de paiement
-    if (pendingFilters.payment_method) {
-      filtered = filtered.filter(
-        (request) => request.payment_method === pendingFilters.payment_method
-      );
+      if (pendingFilters.payment_method) {
+        filtered = filtered.filter(
+          (request) => request.payment_method === pendingFilters.payment_method
+        );
+      }
+
+      if (pendingFilters.start_date) {
+        const startDate = new Date(pendingFilters.start_date);
+        filtered = filtered.filter((request) => {
+          const requestDate = new Date(request.created_at);
+          return requestDate >= startDate;
+        });
+      }
+
+      if (pendingFilters.end_date) {
+        const endDate = new Date(pendingFilters.end_date);
+        filtered = filtered.filter((request) => {
+          const requestDate = new Date(request.created_at);
+          return requestDate <= endDate;
+        });
+      }
+
+      if (pendingFilters.search) {
+        const searchLower = pendingFilters.search.toLowerCase();
+        filtered = filtered.filter(
+          (request) =>
+            (request.user?.name &&
+              request.user.name.toLowerCase().includes(searchLower)) ||
+            (request.user?.email &&
+              request.user.email.toLowerCase().includes(searchLower))
+        );
+      }
+
+      setFilteredRequestsArray(filtered);
+      setCurrentPage(1); // Réinitialiser à la première page après filtrage
     }
-
-    // Filtre par date de début
-    if (pendingFilters.start_date) {
-      const startDate = new Date(pendingFilters.start_date);
-      filtered = filtered.filter((request) => {
-        const requestDate = new Date(request.created_at);
-        return requestDate >= startDate;
-      });
-    }
-
-    // Filtre par date de fin
-    if (pendingFilters.end_date) {
-      const endDate = new Date(pendingFilters.end_date);
-      endDate.setHours(23, 59, 59, 999); // Fin de journée
-      filtered = filtered.filter((request) => {
-        const requestDate = new Date(request.created_at);
-        return requestDate <= endDate;
-      });
-    }
-
-    // Filtre par recherche (ID, nom d'utilisateur)
-    if (pendingFilters.search) {
-      const searchTerm = pendingFilters.search.toLowerCase();
-      filtered = filtered.filter((request) => {
-        const userId = request.id.toString();
-        const userName = request.user ? request.user.name.toLowerCase() : "";
-        return userId.includes(searchTerm) || userName.includes(searchTerm);
-      });
-    }
-
-    setFilteredRequestsArray(filtered);
   };
 
   // Fonction pour réinitialiser les filtres des demandes en attente
@@ -199,6 +268,11 @@ const WithdrawalRequests = () => {
       end_date: "",
       search: "",
     });
+
+    // Réinitialiser la page courante et recharger les données
+    if (activeTab === "pending") {
+      fetchPendingRequests(1);
+    }
   };
 
   // Fonction pour récupérer toutes les demandes avec filtres
@@ -232,8 +306,23 @@ const WithdrawalRequests = () => {
       const response = await axios.get(url);
 
       if (response.data.success) {
-        setAllRequests(response.data.withdrawal_requests?.data || []);
-        setAllRequestsMeta(response.data.withdrawal_requests);
+        // Vérifier si les données sont paginées
+        if (response.data.withdrawal_requests) {
+          const requests = response.data.withdrawal_requests.data || [];
+          setAllRequests(requests);
+          setAllRequestsMeta({
+            current_page: response.data.withdrawal_requests.current_page || 1,
+            last_page: response.data.withdrawal_requests.last_page || 1,
+            per_page: response.data.withdrawal_requests.per_page || 10,
+            total: response.data.withdrawal_requests.total || 0,
+            from: response.data.withdrawal_requests.from || 0,
+            to: response.data.withdrawal_requests.to || 0,
+          });
+        } else {
+          // Format non paginé (pour compatibilité)
+          setAllRequests(response.data.withdrawal_requests || []);
+          setAllRequestsMeta(null);
+        }
 
         // Adapter les données pour correspondre à la structure attendue par le composant
         const statsData = response.data.stats || {};
@@ -417,9 +506,13 @@ const WithdrawalRequests = () => {
     fetchAllRequests(1);
   };
 
-  // Fonction pour gérer le changement de page dans l'onglet d'analyse
+  // Fonction pour gérer le changement de page dans les deux onglets
   const handlePageChange = (page) => {
-    fetchAllRequests(page);
+    if (activeTab === "pending") {
+      fetchPendingRequests(page);
+    } else if (activeTab === "all") {
+      fetchAllRequests(page);
+    }
   };
 
   // Fonctions utilitaires
@@ -470,18 +563,51 @@ const WithdrawalRequests = () => {
   };
 
   // Pagination pour l'onglet des demandes en attente
-  const indexOfLastRequest = currentPage * requestsPerPage;
-  const indexOfFirstRequest = indexOfLastRequest - requestsPerPage;
-  const currentRequests = filteredRequestsArray.slice(
-    indexOfFirstRequest,
-    indexOfLastRequest
-  );
-  const totalPages = Math.ceil(filteredRequestsArray.length / requestsPerPage);
+  // Si nous avons des métadonnées de pagination du backend, nous les utilisons
+  // Sinon, nous utilisons la pagination côté client comme fallback
+  let currentRequests = [];
+  let pendingTotalPages = 1;
 
-  const paginate = (pageNumber) => setCurrentPage(pageNumber);
-  const nextPage = () =>
-    setCurrentPage((prev) => Math.min(prev + 1, totalPages));
-  const prevPage = () => setCurrentPage((prev) => Math.max(prev - 1, 1));
+  if (allRequestsMeta && activeTab === "pending") {
+    // Utilisation de la pagination du backend
+    currentRequests = requestsArray;
+    pendingTotalPages = allRequestsMeta.last_page || 1;
+  } else {
+    // Fallback à la pagination côté client
+    const indexOfLastRequest = currentPage * requestsPerPage;
+    const indexOfFirstRequest = indexOfLastRequest - requestsPerPage;
+    currentRequests = filteredRequestsArray.slice(
+      indexOfFirstRequest,
+      indexOfLastRequest
+    );
+    pendingTotalPages = Math.max(
+      1,
+      Math.ceil(filteredRequestsArray.length / requestsPerPage)
+    );
+  }
+
+  // Fonctions de pagination
+  const handlePendingPageChange = (pageNumber) => {
+    handlePageChange(pageNumber);
+  };
+
+  const nextPendingPage = () => {
+    if (activeTab === "pending" && allRequestsMeta) {
+      handlePageChange(
+        Math.min(allRequestsMeta.current_page + 1, allRequestsMeta.last_page)
+      );
+    } else {
+      setCurrentPage((prev) => Math.min(prev + 1, pendingTotalPages));
+    }
+  };
+
+  const prevPendingPage = () => {
+    if (activeTab === "pending" && allRequestsMeta) {
+      handlePageChange(Math.max(allRequestsMeta.current_page - 1, 1));
+    } else {
+      setCurrentPage((prev) => Math.max(prev - 1, 1));
+    }
+  };
   // Rendu du composant
   return (
     <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-4 sm:p-6 xl:p-8">
@@ -827,47 +953,153 @@ const WithdrawalRequests = () => {
 
               {/* Pagination */}
               <div className="mt-4 text-sm text-gray-500 dark:text-gray-400">
-                Affichage de{" "}
-                {filteredRequestsArray.length > 0 ? indexOfFirstRequest + 1 : 0}{" "}
-                à {Math.min(indexOfLastRequest, filteredRequestsArray.length)}{" "}
-                sur {filteredRequestsArray.length} demandes
+                {allRequestsMeta ? (
+                  // Affichage des informations de pagination du backend
+                  <>
+                    Affichage de {allRequestsMeta.from || 0} à{" "}
+                    {allRequestsMeta.to || 0} sur {allRequestsMeta.total || 0}{" "}
+                    demandes
+                  </>
+                ) : (
+                  // Fallback à l'affichage client-side
+                  <>
+                    Affichage de{" "}
+                    {filteredRequestsArray.length > 0
+                      ? (currentPage - 1) * requestsPerPage + 1
+                      : 0}{" "}
+                    à{" "}
+                    {Math.min(
+                      currentPage * requestsPerPage,
+                      filteredRequestsArray.length
+                    )}{" "}
+                    sur {filteredRequestsArray.length} demandes
+                  </>
+                )}
               </div>
 
-              {totalPages > 1 && (
+              {(allRequestsMeta || filteredRequestsArray.length > 0) && (
                 <div className="flex justify-center mt-6">
                   <nav className="flex items-center">
                     <button
-                      onClick={prevPage}
-                      disabled={currentPage === 1}
+                      onClick={prevPendingPage}
+                      disabled={
+                        allRequestsMeta
+                          ? allRequestsMeta.current_page === 1
+                          : currentPage === 1
+                      }
                       className={`px-3 py-1 rounded-l-md ${
-                        currentPage === 1
+                        (
+                          allRequestsMeta
+                            ? allRequestsMeta.current_page === 1
+                            : currentPage === 1
+                        )
                           ? "bg-gray-100 text-gray-400 cursor-not-allowed dark:bg-gray-700 dark:text-gray-500"
                           : "bg-white text-gray-700 hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
                       }`}
                     >
                       <ChevronLeftIcon className="w-5 h-5" />
                     </button>
-                    {[...Array(totalPages)].map((_, index) => {
-                      const pageNumber = index + 1;
-                      return (
-                        <button
-                          key={pageNumber}
-                          onClick={() => paginate(pageNumber)}
-                          className={`px-3 py-1 ${
-                            pageNumber === currentPage
-                              ? "bg-primary-600 text-white dark:bg-primary-500"
-                              : "bg-white text-gray-700 hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
-                          }`}
-                        >
-                          {pageNumber}
-                        </button>
+
+                    {(() => {
+                      // Logique similaire à celle de l'onglet "all"
+                      const pages = [];
+                      const maxVisiblePages = 5;
+                      const totalPages = pendingTotalPages;
+                      const currentPageNumber = allRequestsMeta
+                        ? allRequestsMeta.current_page
+                        : currentPage;
+
+                      let startPage = Math.max(
+                        1,
+                        currentPageNumber - Math.floor(maxVisiblePages / 2)
                       );
-                    })}
+                      let endPage = Math.min(
+                        totalPages,
+                        startPage + maxVisiblePages - 1
+                      );
+
+                      if (endPage - startPage + 1 < maxVisiblePages) {
+                        startPage = Math.max(1, endPage - maxVisiblePages + 1);
+                      }
+
+                      if (startPage > 1) {
+                        pages.push(
+                          <button
+                            key="first"
+                            onClick={() => handlePendingPageChange(1)}
+                            className="px-3 py-1 bg-white text-gray-700 hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+                          >
+                            1
+                          </button>
+                        );
+                        if (startPage > 2) {
+                          pages.push(
+                            <span
+                              key="dots1"
+                              className="px-3 py-1 text-gray-500 dark:text-gray-400"
+                            >
+                              ...
+                            </span>
+                          );
+                        }
+                      }
+
+                      for (let i = startPage; i <= endPage; i++) {
+                        pages.push(
+                          <button
+                            key={i}
+                            onClick={() => handlePendingPageChange(i)}
+                            className={`px-3 py-1 ${
+                              i === currentPageNumber
+                                ? "bg-primary-600 text-white dark:bg-primary-500"
+                                : "bg-white text-gray-700 hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+                            }`}
+                          >
+                            {i}
+                          </button>
+                        );
+                      }
+
+                      if (endPage < totalPages) {
+                        if (endPage < totalPages - 1) {
+                          pages.push(
+                            <span
+                              key="dots2"
+                              className="px-3 py-1 text-gray-500 dark:text-gray-400"
+                            >
+                              ...
+                            </span>
+                          );
+                        }
+                        pages.push(
+                          <button
+                            key="last"
+                            onClick={() => handlePendingPageChange(totalPages)}
+                            className="px-3 py-1 bg-white text-gray-700 hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+                          >
+                            {totalPages}
+                          </button>
+                        );
+                      }
+
+                      return pages;
+                    })()}
+
                     <button
-                      onClick={nextPage}
-                      disabled={currentPage === totalPages}
+                      onClick={nextPendingPage}
+                      disabled={
+                        allRequestsMeta
+                          ? allRequestsMeta.current_page ===
+                            allRequestsMeta.last_page
+                          : currentPage === pendingTotalPages
+                      }
                       className={`px-3 py-1 rounded-r-md ${
-                        currentPage === totalPages
+                        (
+                          allRequestsMeta
+                            ? allRequestsMeta.current_page ===
+                              allRequestsMeta.last_page
+                            : currentPage === pendingTotalPages
+                        )
                           ? "bg-gray-100 text-gray-400 cursor-not-allowed dark:bg-gray-700 dark:text-gray-500"
                           : "bg-white text-gray-700 hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
                       }`}
@@ -1406,7 +1638,7 @@ const WithdrawalRequests = () => {
                   </div>
                 </div>
                 {/* Pagination pour les demandes filtrées */}
-                {allRequestsMeta && allRequestsMeta.last_page > 1 && (
+                {allRequestsMeta && (
                   <div className="flex justify-center mt-6">
                     <nav className="flex items-center">
                       <button

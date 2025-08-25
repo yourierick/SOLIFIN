@@ -44,12 +44,12 @@ export default function AdminProfile() {
   const fetchCountries = async () => {
     try {
       setLoadingCountries(true);
-      
+
       // Utiliser directement les données locales de countries.js
       try {
         // Importer les données de pays depuis le fichier local
         const { countries } = await import("../data/countries.js");
-        
+
         const sortedCountries = countries
           .map((pays) => ({
             code: pays.code,
@@ -473,7 +473,7 @@ export default function AdminProfile() {
                           clipRule="evenodd"
                         />
                       </svg>
-                      Informations administrateur
+                      Informations administratives
                     </h3>
                     <dl className="space-y-4">
                       <div>
@@ -481,7 +481,39 @@ export default function AdminProfile() {
                           Rôle
                         </dt>
                         <dd className="mt-1 text-base text-gray-900 dark:text-white">
-                          Administrateur
+                          {user.role}
+                        </dd>
+                      </div>
+                      <div>
+                        <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                          Dernière adresse IP
+                        </dt>
+                        <dd className="mt-1 text-base text-gray-900 dark:text-white">
+                          {user.last_ip_address || "-"}
+                        </dd>
+                      </div>
+                      <div>
+                        <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                          Navigateur
+                        </dt>
+                        <dd className="mt-1 text-base text-gray-900 dark:text-white">
+                          {user.browser || "-"}
+                        </dd>
+                      </div>
+                      <div>
+                        <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                          Système d'exploitation
+                        </dt>
+                        <dd className="mt-1 text-base text-gray-900 dark:text-white">
+                          {user.os || "-"}
+                        </dd>
+                      </div>
+                      <div>
+                        <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                          Type d'appareil
+                        </dt>
+                        <dd className="mt-1 text-base text-gray-900 dark:text-white">
+                          {user.device_type || "-"}
                         </dd>
                       </div>
                       <div>

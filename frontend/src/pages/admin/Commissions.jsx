@@ -156,13 +156,12 @@ const Commissions = () => {
   const fetchStatistics = async () => {
     try {
       const response = await axios.get("/api/admin/commissions/statistics");
-      console.log(response);
       if (response.data.success) {
         // Les données sont dans response.data.data
         setStatistics(response.data.data);
       }
     } catch (error) {
-      console.error("Erreur lors de la récupération des statistiques:", error);
+      console.error("Erreur lors de la récupération des statistiques", error);
     }
   };
 
@@ -179,8 +178,6 @@ const Commissions = () => {
           distinctPacks.push(commission.pack);
         }
       });
-
-      console.log("Packs distincts extraits des commissions:", distinctPacks);
       setPacks(distinctPacks);
     } catch (error) {
       console.error("Erreur lors de l'extraction des packs:", error);

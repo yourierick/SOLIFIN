@@ -127,7 +127,6 @@ export default function Dashboard() {
       }
 
       setIsSuperAdmin(isAdmin);
-      console.log("Est super admin:", isAdmin);
     } catch (error) {
       console.error("Erreur lors de la récupération des permissions:", error);
       setIsSuperAdmin(false);

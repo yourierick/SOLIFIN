@@ -28,6 +28,7 @@ export default function AdminProfile() {
     pays: "",
     province: "",
     ville: "",
+    apropos: "",
     picture: null,
     password: "",
     password_confirmation: "",
@@ -72,6 +73,7 @@ export default function AdminProfile() {
         pays: response.data.data.pays || "",
         province: response.data.data.province || "",
         ville: response.data.data.ville || "",
+        apropos: response.data.data.apropos || "",
         picture: null,
         password: "",
         password_confirmation: "",
@@ -464,7 +466,7 @@ export default function AdminProfile() {
                           clipRule="evenodd"
                         />
                       </svg>
-                      Informations administrateur
+                      Informations administratives
                     </h3>
                     <dl className="space-y-4">
                       <div>
@@ -472,22 +474,76 @@ export default function AdminProfile() {
                           Rôle
                         </dt>
                         <dd className="mt-1 text-base text-gray-900 dark:text-white">
-                          Administrateur
+                          {user.role}
                         </dd>
                       </div>
                       <div>
                         <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                          Dernière connexion
+                          Dernière adresse IP
                         </dt>
                         <dd className="mt-1 text-base text-gray-900 dark:text-white">
-                          {user.last_login_at
-                            ? new Date(user.last_login_at).toLocaleString()
-                            : "-"}
+                          {user.last_ip_address || "-"}
+                        </dd>
+                      </div>
+                      <div>
+                        <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                          Navigateur
+                        </dt>
+                        <dd className="mt-1 text-base text-gray-900 dark:text-white">
+                          {user.browser || "-"}
+                        </dd>
+                      </div>
+                      <div>
+                        <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                          Système d'exploitation
+                        </dt>
+                        <dd className="mt-1 text-base text-gray-900 dark:text-white">
+                          {user.os || "-"}
+                        </dd>
+                      </div>
+                      <div>
+                        <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                          Type d'appareil
+                        </dt>
+                        <dd className="mt-1 text-base text-gray-900 dark:text-white">
+                          {user.device_type || "-"}
                         </dd>
                       </div>
                     </dl>
                   </div>
                 </motion.div>
+                {/* Section À propos */}
+                {user.apropos && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.3, duration: 0.4 }}
+                    className="mt-8"
+                  >
+                    <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-6">
+                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          className="h-5 w-5 mr-2 text-primary-500"
+                          viewBox="0 0 20 20"
+                          fill="currentColor"
+                        >
+                          <path
+                            fillRule="evenodd"
+                            d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
+                            clipRule="evenodd"
+                          />
+                        </svg>
+                        À propos
+                      </h3>
+                      <div className="prose prose-sm dark:prose-invert max-w-none">
+                        <p className="text-gray-700 dark:text-gray-300 whitespace-pre-line">
+                          {user.apropos}
+                        </p>
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
               </motion.div>
             ) : (
               <motion.div
@@ -707,7 +763,27 @@ export default function AdminProfile() {
                       </div>
                     </div>
                   </div>
-
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      A propos
+                    </label>
+                    <textarea
+                      name="apropos"
+                      value={formData.apropos}
+                      onChange={handleInputChange}
+                      rows="3"
+                      className={`w-full px-4 py-2.5 rounded-lg border ${
+                        validationErrors.apropos
+                          ? "border-red-500"
+                          : "border-gray-300"
+                      } focus:ring-2 focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white transition-colors duration-200`}
+                    />
+                    {validationErrors.apropos && (
+                      <p className="mt-1 text-sm text-red-500">
+                        {validationErrors.apropos[0]}
+                      </p>
+                    )}
+                  </div>
                   <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 mt-8 border-t border-gray-200 dark:border-gray-700 pt-8">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">

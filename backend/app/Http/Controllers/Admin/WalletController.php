@@ -28,6 +28,7 @@ class WalletController extends Controller
                 $userWallet = $user->wallet;
             }
             $adminWallet = $userWallet ? [
+                'id' => $userWallet->id,
                 'balance' => number_format($userWallet->balance, 2),
                 'total_earned' => number_format($userWallet->total_earned, 2),
                 'total_withdrawn' => number_format($userWallet->total_withdrawn, 2),

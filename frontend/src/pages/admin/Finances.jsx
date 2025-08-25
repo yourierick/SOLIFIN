@@ -150,7 +150,7 @@ const Finances = () => {
           setUserPermissions(permissionSlugs);
         }
       } catch (error) {
-        console.error("Erreur lors de la récupération des permissions:", error);
+        console.error("Erreur lors de la récupération des permissions");
       }
     };
 
@@ -181,11 +181,7 @@ const Finances = () => {
         );
       }
     } catch (err) {
-      setError(
-        "Erreur lors du chargement des transactions: " +
-          (err.response?.data?.message || err.message)
-      );
-      console.error("Erreur lors du chargement des transactions:", err);
+      setError("Erreur lors du chargement des transactions");
     } finally {
       setLoading(false);
     }
@@ -200,10 +196,7 @@ const Finances = () => {
         setTransactionTypes(response.data.data);
       }
     } catch (err) {
-      console.error(
-        "Erreur lors du chargement des types de transactions:",
-        err
-      );
+      console.error("Erreur lors du chargement des types de transactions");
     }
   };
 
@@ -216,7 +209,7 @@ const Finances = () => {
         setSystemBalance(response.data.data);
       }
     } catch (err) {
-      console.error("Erreur lors du chargement du solde du système:", err);
+      console.error("Erreur lors du chargement du solde du système");
     }
   };
 
@@ -236,7 +229,7 @@ const Finances = () => {
         setSummary(response.data.data);
       }
     } catch (err) {
-      console.error("Erreur lors du chargement du résumé des finances:", err);
+      console.error("Erreur lors du chargement du résumé des finances");
     }
   };
 
@@ -256,10 +249,7 @@ const Finances = () => {
         setStatsByType(response.data.data.stats);
       }
     } catch (err) {
-      console.error(
-        "Erreur lors du chargement des statistiques par type:",
-        err
-      );
+      console.error("Erreur lors du chargement des statistiques par type");
     }
   };
 
@@ -282,10 +272,7 @@ const Finances = () => {
         setStatsByPeriod(response.data.data);
       }
     } catch (err) {
-      console.error(
-        "Erreur lors du chargement des statistiques par période:",
-        err
-      );
+      console.error("Erreur lors du chargement des statistiques par période");
     }
   };
 
