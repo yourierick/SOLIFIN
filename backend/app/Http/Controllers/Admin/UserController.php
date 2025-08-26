@@ -14,7 +14,6 @@ use Illuminate\Support\Facades\DB;
 use App\Models\Wallet;
 use App\Models\WalletTransaction;
 use App\Models\UserPack;
-use App\Models\UserBonusPoint;
 use App\Models\BonusRates;
 use App\Models\Commission;
 use App\Models\Role;
@@ -99,6 +98,7 @@ class UserController extends BaseController
      */
     public function show(Request $request, $id)
     {
+        \Log::info([$id]);
         try {
             $user = User::with(['packs', 'referrals'])
                 ->withCount('referrals')
@@ -112,45 +112,46 @@ class UserController extends BaseController
                 'total_withdrawn' => number_format($userWallet->total_withdrawn, 2) . ' $',
             ] : null;
 
-            // Récupérer les transactions du wallet avec pagination et filtres
-            $query = WalletTransaction::with('wallet')->where('wallet_id', $userWallet->id);
+            $transactions = [];
+            if ($userWallet) {
+                // Récupérer les transactions du wallet avec pagination et filtres
+                $query = WalletTransaction::with('wallet')->where('wallet_id', $userWallet->id);
+                
+                // Appliquer les filtres si présents dans la requête
+                if ($request->has('type')) {
+                    $query->where('type', $request->type);
+                }
+                
+                if ($request->has('status')) {
+                    $query->where('status', $request->status);
+                }
             
-            // Appliquer les filtres si présents dans la requête
-            if ($request->has('type')) {
-                $query->where('type', $request->type);
-            }
+                if ($request->has('date_from')) {
+                    $query->whereDate('created_at', '>=', $request->date_from);
+                }
             
-            if ($request->has('status')) {
-                $query->where('status', $request->status);
-            }
+                if ($request->has('date_to')) {
+                    $query->whereDate('created_at', '<=', $request->date_to);
+                }
             
-            if ($request->has('date_from')) {
-                $query->whereDate('created_at', '>=', $request->date_from);
-            }
+                if ($request->has('amount_min')) {
+                    $query->where('amount', '>=', $request->amount_min);
+                }
             
-            if ($request->has('date_to')) {
-                $query->whereDate('created_at', '<=', $request->date_to);
-            }
+                if ($request->has('amount_max')) {
+                    $query->where('amount', '<=', $request->amount_max);
+                }
             
-            if ($request->has('amount_min')) {
-                $query->where('amount', '>=', $request->amount_min);
-            }
-            
-            if ($request->has('amount_max')) {
-                $query->where('amount', '<=', $request->amount_max);
-            }
-            
-            if ($request->has('search')) {
-                $search = $request->search;
-                $query->where(function($q) use ($search) {
-                    $q->where('id', 'like', "%{$search}%")
-                      ->orWhere('type', 'like', "%{$search}%")
-                      ->orWhere('status', 'like', "%{$search}%")
-                      ->orWhere('metadata', 'like', "%{$search}%");
-                });
-            }
-            
-            // Pagination
+                if ($request->has('search')) {
+                    $search = $request->search;
+                    $query->where(function($q) use ($search) {
+                        $q->where('id', 'like', "%{$search}%")
+                          ->orWhere('type', 'like', "%{$search}%")
+                          ->orWhere('status', 'like', "%{$search}%")
+                          ->orWhere('metadata', 'like', "%{$search}%");
+                    });
+                }
+                // Pagination
             $perPage = $request->input('per_page', 10);
             $page = $request->input('page', 1);
             
@@ -183,14 +184,15 @@ class UserController extends BaseController
                     ];
                 });
                 
-            // Préparer la réponse paginée
-            $transactions = [
-                'data' => $transactionsData,
-                'total' => $totalTransactions,
-                'per_page' => $perPage,
-                'current_page' => $page,
-                'last_page' => ceil($totalTransactions / $perPage)
-            ];
+                // Préparer la réponse paginée
+                $transactions = [
+                    'data' => $transactionsData,
+                    'total' => $totalTransactions,
+                    'per_page' => $perPage,
+                    'current_page' => $page,
+                    'last_page' => ceil($totalTransactions / $perPage)
+                ];
+            }
             
             
             $userPacks = UserPack::with(['pack', 'sponsor'])
@@ -263,40 +265,6 @@ class UserController extends BaseController
                 ->wherePivot('status', 'active')
                 ->get();
 
-            $pointsByPack = [];
-            $totalPoints = 0;
-            $totalValue = 0;
-            $totalUsedPoints = 0;
-            
-            foreach ($user_packs as $pack) {
-                // Récupérer ou créer les points bonus pour ce pack
-                $userPoints = UserBonusPoint::getOrCreate($id, $pack->id);
-                
-                // Récupérer la valeur du point pour ce pack
-                $bonusRate = BonusRates::where('pack_id', $pack->id)
-                    ->where('frequence', 'weekly')
-                    ->first();
-                    
-                $valeurPoint = $bonusRate ? $bonusRate->valeur_point : 0;
-                $valeurTotale = $userPoints->points_disponibles * $valeurPoint;
-                
-                $pointsByPack[] = [
-                    'pack_id' => $pack->id,
-                    'pack_name' => $pack->name,
-                    'disponibles' => $userPoints->points_disponibles,
-                    'utilises' => $userPoints->points_utilises,
-                    'valeur_point' => $valeurPoint,
-                    'valeur_totale' => $valeurTotale
-                ];
-                
-                $totalPoints += $userPoints->points_disponibles;
-                $totalValue += $valeurTotale;
-                $totalUsedPoints += $userPoints->points_utilises;
-            }
-            
-            // Calculer la valeur moyenne d'un point (pour l'affichage global)
-            $averagePointValue = $totalPoints > 0 ? $totalValue / $totalPoints : 0;
-
             return response()->json([
                 'success' => true,
                 'data' => [
@@ -304,19 +272,12 @@ class UserController extends BaseController
                     'wallet' => $wallet,
                     'transactions' => $transactions,
                     'packs' => $userPacks,
-                    'points' => [
-                        'disponibles' => $totalPoints,
-                        'utilises' => $totalUsedPoints,
-                        'valeur_point' => round($averagePointValue, 2),
-                        'valeur_totale' => $totalValue,
-                        'points_par_pack' => $pointsByPack
-                    ]
                 ]
             ]);
 
         } catch (\Exception $e) {
             \Log::error('Erreur dans UserController@show: ' . $e->getMessage());
-            \Log::error('Erreur dans UserController@show: ' . $e->getLine());
+            \Log::error('Erreur dans UserController@show: ' . $e->getTraceAsString());
             return response()->json([
                 'success' => false,
                 'message' => 'Une erreur est survenue lors de la récupération des détails de l\'utilisateur'
@@ -928,8 +889,6 @@ class UserController extends BaseController
                 })
                 ->values()
                 ->toArray();
-
-            $bonus = UserBonusPoint::where('user_id', $userId)->where("pack_id", $pack->id)->first();
            
             $bonus_disponibles = 0;
             $bonus_utilises = 0;

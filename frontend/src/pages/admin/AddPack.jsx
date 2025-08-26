@@ -223,11 +223,12 @@ export default function AddPack() {
                 </label>
                 <select
                   name="categorie"
+                  value={formData.categorie}
                   onChange={handleInputChange}
                   required
                   className="block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
                 >
-                  <option disabled selected>
+                  <option value="" disabled>
                     Sélectionnez une catégorie
                   </option>
                   <option value="packs à 1 étoile">packs à 1 étoile</option>
