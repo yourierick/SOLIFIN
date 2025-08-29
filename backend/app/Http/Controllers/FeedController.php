@@ -202,7 +202,8 @@ class FeedController extends Controller
                         ->map(function($comment) use ($userId) {
                             return [
                                 'id' => $comment->id,
-                                'content' => $comment->contenu,
+                                'content' => $comment->content,
+                                'user_id' => $comment->user_id,
                                 'created_at' => $comment->created_at,
                                 'created_at_formatted' => $comment->created_at->diffForHumans(),
                                 'user' => [
@@ -242,7 +243,8 @@ class FeedController extends Controller
                         ->map(function($comment) use ($userId) {
                             return [
                                 'id' => $comment->id,
-                                'content' => $comment->contenu,
+                                'content' => $comment->content,
+                                'user_id' => $comment->user_id,
                                 'created_at' => $comment->created_at,
                                 'created_at_formatted' => $comment->created_at->diffForHumans(),
                                 'user' => [
@@ -280,7 +282,8 @@ class FeedController extends Controller
                         ->map(function($comment) use ($userId) {
                             return [
                                 'id' => $comment->id,
-                                'content' => $comment->contenu,
+                                'content' => $comment->content,
+                                'user_id' => $comment->user_id,
                                 'created_at' => $comment->created_at,
                                 'created_at_formatted' => $comment->created_at->diffForHumans(),
                                 'user' => [

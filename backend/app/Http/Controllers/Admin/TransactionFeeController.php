@@ -42,6 +42,7 @@ class TransactionFeeController extends Controller
         ]);
 
         \Log::info($request->all());
+        \Log::info($validator->errors());
 
         if ($validator->fails()) {
             return response()->json([

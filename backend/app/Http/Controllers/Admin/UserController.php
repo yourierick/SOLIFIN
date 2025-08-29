@@ -521,7 +521,7 @@ class UserController extends BaseController
             ]);
         } catch (\Exception $e) {
             Log::error('Erreur dans UserController@resetPassword: ' . $e->getMessage());
-            
+            \Log::error('Erreur dans UserController@resetPassword: '. $e->getTraceAsString());
             return response()->json([
                 'success' => false,
                 'message' => 'Erreur lors de la réinitialisation du mot de passe',
@@ -1197,7 +1197,7 @@ class UserController extends BaseController
     {
         try {
             // Récupérer tous les administrateurs
-            $admins = User::with('roleRelation')->where('is_admin', true)->where('role_id', Role::where("slug", "gestionnaire")->first()->id)->get();
+            $admins = User::with('roleRelation')->where('is_admin', true)->where('role_id', '!=', Role::where("slug", "super-admin")->first()->id)->get();
 
             foreach ($admins as $admin) {
                 $admin->picture = $admin->picture ? asset('storage/' . $admin->picture) : null;

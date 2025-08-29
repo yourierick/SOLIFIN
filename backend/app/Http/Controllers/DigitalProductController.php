@@ -78,68 +78,78 @@ class DigitalProductController extends Controller
      */
     public function store(Request $request)
     {
-        $validator = Validator::make($request->all(), [
-            'titre' => 'required|string|max:255',
-            'description' => 'required|string',
-            'type' => 'required|in:ebook,fichier_admin',
-            'prix' => 'required|numeric|min:0',
-            'devise' => 'required|string|max:10',
-            'image' => 'nullable|image|max:2048', // 2MB max
-            'fichier' => 'required|file|max:20480', // 20MB max
-        ]);
+        try {
+            $validator = Validator::make($request->all(), [
+                'titre' => 'required|string|max:255',
+                'description' => 'required|string',
+                'type' => 'required|in:ebook,fichier_admin',
+                'prix' => 'required|numeric|min:0',
+                'devise' => 'required|string|max:10',
+                'image' => 'nullable|image|max:2048', // 2MB max
+                'fichier' => 'required|file|max:20480', // 20MB max
+            ]);
 
-        if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
+            if ($validator->fails()) {
+                return response()->json(['errors' => $validator->errors()], 422);
+            }
+
+            $user = Auth::user();
+            $page = $user->page;
+
+            if (!$page) {
+                return response()->json(['message' => 'Page non trouvée'], 404);
+            }
+
+            // Traitement de l'image
+            $imagePath = null;
+            if ($request->hasFile('image')) {
+                $imagePath = $request->file('image')->store('produits_numeriques/images', 'public');
+            }
+
+            // Traitement du fichier
+            $fichierPath = $request->file('fichier')->store('produits_numeriques/fichiers', 'public');
+
+            DB::beginTransaction();
+            // Création du produit numérique
+            $product = DigitalProduct::create([
+                'page_id' => $page->id,
+                'titre' => $request->titre,
+                'description' => $request->description,
+                'type' => $request->type,
+                'prix' => $request->prix,
+                'devise' => $request->devise,
+                'image' => $imagePath,
+                'fichier' => $fichierPath,
+                'statut' => 'en_attente',
+                'etat' => 'disponible',
+                'nombre_ventes' => 0,
+            ]);
+
+            // Créer une notification pour l'administrateur
+            $admins = \App\Models\User::where('is_admin', true)->get();
+            foreach ($admins as $admin) {
+                $admin->notify(new \App\Notifications\PublicationSubmitted([
+                    'type' => 'Produit numérique',
+                    'id' => $product->id,
+                    'titre' => "Produit numérique, titre: " . $product->titre,
+                    'message' => 'est en attente d\'approbation.',
+                    'user_id' => $user->id,
+                    'user_name' => $user->name
+                ]));
+            }
+
+            DB::commit();
+            return response()->json([
+                'message' => 'Produit numérique créé avec succès',
+                'product' => $product
+            ], 201);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'message' => 'Erreur lors de la création du produit numérique',
+                'error' => $e->getMessage()
+            ], 500);
         }
-
-        $user = Auth::user();
-        $page = $user->page;
-
-        if (!$page) {
-            return response()->json(['message' => 'Page non trouvée'], 404);
-        }
-
-        // Traitement de l'image
-        $imagePath = null;
-        if ($request->hasFile('image')) {
-            $imagePath = $request->file('image')->store('produits_numeriques/images', 'public');
-        }
-
-        // Traitement du fichier
-        $fichierPath = $request->file('fichier')->store('produits_numeriques/fichiers', 'public');
-
-        // Création du produit numérique
-        $product = DigitalProduct::create([
-            'page_id' => $page->id,
-            'titre' => $request->titre,
-            'description' => $request->description,
-            'type' => $request->type,
-            'prix' => $request->prix,
-            'devise' => $request->devise,
-            'image' => $imagePath,
-            'fichier' => $fichierPath,
-            'statut' => 'en_attente',
-            'etat' => 'disponible',
-            'nombre_ventes' => 0,
-        ]);
-
-        // Créer une notification pour l'administrateur
-        $admins = \App\Models\User::where('is_admin', true)->get();
-        foreach ($admins as $admin) {
-            $admin->notify(new \App\Notifications\PublicationSubmitted([
-                'type' => 'Produit numérique',
-                'id' => $product->id,
-                'titre' => "Produit numérique, titre: " . $product->titre,
-                'message' => 'est en attente d\'approbation.',
-                'user_id' => $user->id,
-                'user_name' => $user->name
-            ]));
-        }
-
-        return response()->json([
-            'message' => 'Produit numérique créé avec succès',
-            'product' => $product
-        ], 201);
     }
 
     /**
@@ -175,59 +185,69 @@ class DigitalProductController extends Controller
      */
     public function update(Request $request, $id)
     {
-        $validator = Validator::make($request->all(), [
-            'titre' => 'required|string|max:255',
-            'description' => 'required|string',
-            'prix' => 'required|numeric|min:0',
-            'devise' => 'required|string|max:10',
-            'image' => 'nullable|image|max:2048', // 2MB max
-            'fichier' => 'nullable|file|max:20480', // 20MB max
-        ]);
+        try {
+            $validator = Validator::make($request->all(), [
+                'titre' => 'required|string|max:255',
+                'description' => 'required|string',
+                'prix' => 'required|numeric|min:0',
+                'devise' => 'required|string|max:10',
+                'image' => 'nullable|image|max:2048', // 2MB max
+                'fichier' => 'nullable|file|max:20480', // 20MB max
+            ]);
 
-        if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
-        }
-
-        $product = DigitalProduct::findOrFail($id);
-        
-        // Vérifier si l'utilisateur est le propriétaire
-        $user = Auth::user();
-        $page = $user->page;
-        
-        if (!$page || $product->page_id !== $page->id) {
-            return response()->json(['message' => 'Non autorisé'], 403);
-        }
-
-        // Traitement de l'image
-        if ($request->hasFile('image')) {
-            // Supprimer l'ancienne image si elle existe
-            if ($product->image) {
-                Storage::disk('public')->delete($product->image);
+            if ($validator->fails()) {
+                return response()->json(['errors' => $validator->errors()], 422);
             }
-            $imagePath = $request->file('image')->store('produits_numeriques/images', 'public');
-            $product->image = $imagePath;
+
+            $product = DigitalProduct::findOrFail($id);
+            
+            // Vérifier si l'utilisateur est le propriétaire
+            $user = Auth::user();
+            $page = $user->page;
+            
+            if (!$page || $product->page_id !== $page->id) {
+                return response()->json(['message' => 'Non autorisé'], 403);
+            }
+
+            DB::beginTransaction();
+            // Traitement de l'image
+            if ($request->hasFile('image')) {
+                // Supprimer l'ancienne image si elle existe
+                if ($product->image) {
+                    Storage::disk('public')->delete($product->image);
+                }
+                $imagePath = $request->file('image')->store('produits_numeriques/images', 'public');
+                $product->image = $imagePath;
+            }
+
+            // Traitement du fichier
+            if ($request->hasFile('fichier')) {
+                // Supprimer l'ancien fichier
+                Storage::disk('public')->delete($product->fichier);
+                $fichierPath = $request->file('fichier')->store('produits_numeriques/fichiers', 'public');
+                $product->fichier = $fichierPath;
+            }
+
+            // Mise à jour des autres champs
+            $product->titre = $request->titre;
+            $product->description = $request->description;
+            $product->prix = $request->prix;
+            $product->devise = $request->devise;
+            $product->statut = 'en_attente'; // Remettre en attente pour validation
+            $product->save();
+
+            DB::commit();
+            return response()->json([
+                'message' => 'Produit numérique mis à jour avec succès',
+                'product' => $product
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'message' => 'Erreur lors de la mise à jour du produit numérique',
+                'error' => $e->getMessage()
+            ], 500);
         }
-
-        // Traitement du fichier
-        if ($request->hasFile('fichier')) {
-            // Supprimer l'ancien fichier
-            Storage::disk('public')->delete($product->fichier);
-            $fichierPath = $request->file('fichier')->store('produits_numeriques/fichiers', 'public');
-            $product->fichier = $fichierPath;
-        }
-
-        // Mise à jour des autres champs
-        $product->titre = $request->titre;
-        $product->description = $request->description;
-        $product->prix = $request->prix;
-        $product->devise = $request->devise;
-        $product->statut = 'en_attente'; // Remettre en attente pour validation
-        $product->save();
-
-        return response()->json([
-            'message' => 'Produit numérique mis à jour avec succès',
-            'product' => $product
-        ]);
     }
 
     /**
@@ -238,25 +258,35 @@ class DigitalProductController extends Controller
      */
     public function destroy($id)
     {
-        $product = DigitalProduct::findOrFail($id);
-        
-        // Vérifier si l'utilisateur est le propriétaire
-        $user = Auth::user();
-        $page = $user->page;
-        
-        if (!$page || $product->page_id !== $page->id) {
-            return response()->json(['message' => 'Non autorisé'], 403);
+        try {
+            DB::beginTransaction();
+            $product = DigitalProduct::findOrFail($id);
+            
+            // Vérifier si l'utilisateur est le propriétaire
+            $user = Auth::user();
+            $page = $user->page;
+            
+            if (!$page || $product->page_id !== $page->id) {
+                return response()->json(['message' => 'Non autorisé'], 403);
+            }
+
+            // Supprimer les fichiers associés
+            if ($product->image) {
+                Storage::disk('public')->delete($product->image);
+            }
+            Storage::disk('public')->delete($product->fichier);
+
+            $product->delete();
+            DB::commit();
+
+            return response()->json(['message' => 'Produit numérique supprimé avec succès']);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'message' => 'Erreur lors de la suppression du produit numérique',
+                'error' => $e->getMessage()
+            ], 500);
         }
-
-        // Supprimer les fichiers associés
-        if ($product->image) {
-            Storage::disk('public')->delete($product->image);
-        }
-        Storage::disk('public')->delete($product->fichier);
-
-        $product->delete();
-
-        return response()->json(['message' => 'Produit numérique supprimé avec succès']);
     }
 
     /**
@@ -266,33 +296,33 @@ class DigitalProductController extends Controller
      * @param  int  $id
      * @return \Illuminate\Http\Response
      */
-    public function changeEtat(Request $request, $id)
+    public function changeEtat($id)
     {
-        $validator = Validator::make($request->all(), [
-            'etat' => 'required|in:disponible,termine',
-        ]);
+        try {
+            $product = DigitalProduct::findOrFail($id);
+            
+            // Vérifier si l'utilisateur est le propriétaire
+            $user = Auth::user();
+            $page = $user->page;
+            
+            if (!$page || $product->page_id !== $page->id) {
+                return response()->json(['message' => 'Non autorisé'], 403);
+            }
 
-        if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
+            $product->update([
+                'etat' => $product->etat == 'disponible' ? 'termine' : 'disponible',
+            ]);
+
+            return response()->json([
+                'message' => 'État du produit numérique modifié avec succès',
+                'product' => $product
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Erreur lors du changement de l\'état du produit numérique',
+                'error' => $e->getMessage()
+            ], 500);
         }
-
-        $product = DigitalProduct::findOrFail($id);
-        
-        // Vérifier si l'utilisateur est le propriétaire
-        $user = Auth::user();
-        $page = $user->page;
-        
-        if (!$page || $product->page_id !== $page->id) {
-            return response()->json(['message' => 'Non autorisé'], 403);
-        }
-
-        $product->etat = $request->etat;
-        $product->save();
-
-        return response()->json([
-            'message' => 'État du produit numérique modifié avec succès',
-            'product' => $product
-        ]);
     }
 
     /**

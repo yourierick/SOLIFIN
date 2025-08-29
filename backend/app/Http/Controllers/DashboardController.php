@@ -325,6 +325,37 @@ class DashboardController extends BaseController
                     'amount' => $amount
                 ];
             });
+            
+            // Récupération des demandes de retrait en attente
+            $pendingWithdrawals = \App\Models\WithdrawalRequest::where('user_id', $user->id)
+                ->where('status', 'pending')
+                ->orderBy('created_at', 'desc')
+                ->get()
+                ->map(function ($withdrawal) {
+                    return [
+                        'id' => $withdrawal->id,
+                        'amount' => $withdrawal->amount,
+                        'date' => $withdrawal->created_at->format('d/m/Y'),
+                        'status' => $withdrawal->status,
+                        'payment_method' => $withdrawal->payment_method,
+                        'payment_details' => $withdrawal->payment_details
+                    ];
+                });
+                
+            // Statistiques des retraits
+            $withdrawalStats = [
+                'total_withdrawn' => \App\Models\WithdrawalRequest::where('user_id', $user->id)
+                    ->where('status', 'completed')
+                    ->sum('amount'),
+                'pending_amount' => \App\Models\WithdrawalRequest::where('user_id', $user->id)
+                    ->where('status', 'pending')
+                    ->sum('amount'),
+                'pending_count' => $pendingWithdrawals->count(),
+                'last_withdrawal_date' => \App\Models\WithdrawalRequest::where('user_id', $user->id)
+                    ->where('status', 'completed')
+                    ->orderBy('updated_at', 'desc')
+                    ->first()?->updated_at?->format('d/m/Y') ?? null
+            ];
 
             return response()->json([
                 'success' => true,
@@ -352,6 +383,10 @@ class DashboardController extends BaseController
                     'visualizations' => [
                         'referrals_by_pack' => $referralsByPack,
                         'commissions_by_pack' => $commissionsByPack
+                    ],
+                    'withdrawals' => [
+                        'pending' => $pendingWithdrawals,
+                        'stats' => $withdrawalStats
                     ]
                 ]
             ]);
