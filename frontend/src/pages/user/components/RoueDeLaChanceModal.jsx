@@ -5,6 +5,13 @@ import {
   XMarkIcon,
   GiftIcon,
   ExclamationCircleIcon,
+  CheckCircleIcon,
+  ClockIcon,
+  ArrowPathIcon,
+  SparklesIcon,
+  TrophyIcon,
+  TicketIcon,
+  CalendarIcon,
 } from "@heroicons/react/24/outline";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -28,21 +35,6 @@ const RoueDeLaChanceModal = ({ open, onClose, jeton, onResult }) => {
   const wheelRef = useRef(null);
   const canvasRef = useRef(null);
   const animationRef = useRef(null);
-
-  // Couleurs pour le thème
-  const themeColors = {
-    bg: isDarkMode ? "bg-[#1f2937]" : "bg-white",
-    text: isDarkMode ? "text-white" : "text-gray-900",
-    border: isDarkMode ? "border-gray-700" : "border-gray-200",
-    hover: isDarkMode ? "hover:bg-gray-700" : "hover:bg-gray-100",
-    card: isDarkMode ? "bg-gray-800" : "bg-gray-50",
-    input: isDarkMode ? "bg-gray-700 text-white" : "bg-white text-gray-900",
-    button: "bg-primary-600 hover:bg-primary-700 text-white",
-    buttonSecondary: isDarkMode
-      ? "bg-gray-700 hover:bg-gray-600 text-white"
-      : "bg-gray-200 hover:bg-gray-300 text-gray-800",
-    overlay: isDarkMode ? "bg-gray-900/80" : "bg-gray-500/75",
-  };
 
   // Couleurs pour les segments de la roue
   const colors = [
@@ -147,18 +139,26 @@ const RoueDeLaChanceModal = ({ open, onClose, jeton, onResult }) => {
       ctx.save();
       ctx.rotate(angle + arc / 2);
       ctx.textAlign = "right";
-      ctx.fillStyle = "#FFFFFF";
-      ctx.font = "normal 12px Arial";
+      ctx.font = "normal 12px poppins";
 
       // Positionner le texte encore plus loin du centre (95% du rayon)
       const textRadius = radius * 0.95;
+
+      // Ajouter un contour noir au texte
+      ctx.strokeStyle = "#000000";
+      ctx.lineWidth = 3;
+      ctx.lineJoin = "round";
+      ctx.strokeText(cadeau.nom, textRadius, 5);
+
+      // Remplir le texte en blanc
+      ctx.fillStyle = "#FFFFFF";
+      ctx.fillText(cadeau.nom, textRadius, 5);
 
       // Ajouter une ombre au texte pour améliorer la lisibilité
       ctx.shadowColor = "rgba(0, 0, 0, 0.5)";
       ctx.shadowBlur = 3;
       ctx.shadowOffsetX = 1;
       ctx.shadowOffsetY = 1;
-      ctx.fillText(cadeau.nom, textRadius, 5);
       ctx.restore();
     });
 
@@ -320,117 +320,232 @@ const RoueDeLaChanceModal = ({ open, onClose, jeton, onResult }) => {
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       {/* Overlay avec effet de flou */}
       <div
-        className="fixed inset-0 bg-black bg-opacity-30 backdrop-blur-sm"
-        onClick={handleClose}
+        className="fixed inset-0 bg-black/60 backdrop-blur-sm transition-opacity duration-300"
+        onClick={!spinning ? handleClose : undefined}
       />
 
       {/* Conteneur du modal */}
       <div
-        className={`${themeColors.bg} rounded-lg shadow-xl w-full max-w-lg max-h-[90vh] flex flex-col z-10 m-4 overflow-hidden`}
+        className={`${
+          isDarkMode ? "bg-gray-800 text-white" : "bg-white text-gray-900"
+        } rounded-xl shadow-2xl w-full max-w-lg max-h-[90vh] flex flex-col z-10 m-4 overflow-hidden transition-all duration-300 transform`}
       >
-        <div className="flex justify-between items-center px-6 py-4 border-b border-gray-200">
-          <h3
-            className={`text-lg font-medium ${themeColors.text} flex items-center`}
-          >
-            <GiftIcon className="h-5 w-5 mr-2 text-primary-600" />
-            Roue de la Chance - Jetons Esengo
+        <div
+          className={`flex justify-between items-center px-6 py-5 border-b ${
+            isDarkMode ? "border-gray-700" : "border-gray-200"
+          } bg-gradient-to-r ${
+            isDarkMode ? "from-gray-800 to-gray-700" : "from-gray-50 to-white"
+          }`}
+        >
+          <h3 className="text-lg font-bold flex items-center">
+            <div className="bg-primary-100 dark:bg-primary-900/30 p-2 rounded-full mr-3">
+              <SparklesIcon className="h-5 w-5 text-primary-600 dark:text-primary-400" />
+            </div>
+            Roue de la Chance
           </h3>
           <button
-            onClick={handleClose}
-            className="text-gray-400 hover:text-gray-500"
+            onClick={!spinning ? handleClose : undefined}
+            className={`p-2 rounded-full ${
+              isDarkMode ? "hover:bg-gray-700" : "hover:bg-gray-100"
+            } transition-colors duration-150`}
             disabled={spinning}
+            aria-label="Fermer"
           >
-            <XMarkIcon className="h-6 w-6" />
+            <XMarkIcon className="h-5 w-5 text-gray-400 hover:text-gray-500 dark:text-gray-500 dark:hover:text-gray-400" />
           </button>
         </div>
 
         <div className="px-6 py-4 flex-1 overflow-y-auto">
           {loading ? (
-            <div className="flex justify-center items-center h-64">
-              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-600"></div>
+            <div className="flex flex-col justify-center items-center h-64">
+              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-600 mb-4"></div>
+              <p className="text-gray-500 dark:text-gray-400">
+                Chargement des cadeaux...
+              </p>
             </div>
           ) : error ? (
-            <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-md flex items-center">
-              <ExclamationCircleIcon className="h-5 w-5 mr-2" />
-              {error}
+            <div className="mb-4 p-4 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 rounded-lg flex items-center shadow-sm">
+              <div className="bg-red-200 dark:bg-red-800 p-2 rounded-full mr-3">
+                <ExclamationCircleIcon className="h-5 w-5 text-red-600 dark:text-red-400" />
+              </div>
+              <p>{error}</p>
             </div>
           ) : (
             <div className="overflow-y-auto">
               {jeton && (
-                <div className="mb-4">
-                  <p className="font-medium">
-                    Jeton:{" "}
-                    <span className="font-mono">{jeton.code_unique}</span>
-                  </p>
-                  <p className="text-sm mt-1">
-                    Cliquez sur "Tourner la roue" pour tenter votre chance et
-                    gagner un cadeau !
-                  </p>
+                <div
+                  className={`mb-6 p-4 rounded-lg ${
+                    isDarkMode ? "bg-gray-700/50" : "bg-gray-50"
+                  } border ${
+                    isDarkMode ? "border-gray-600" : "border-gray-200"
+                  }`}
+                >
+                  <div className="flex items-center mb-2">
+                    <GiftIcon className="h-5 w-5 mr-2 text-primary-600 dark:text-primary-400" />
+                    <h4 className="font-semibold">Informations du jeton</h4>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
+                    <div className="space-y-1">
+                      <p className="text-xs uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                        Code unique
+                      </p>
+                      <p className="font-mono font-medium text-sm bg-gray-100 dark:bg-gray-800 p-2 rounded border border-gray-200 dark:border-gray-600">
+                        {jeton.code_unique}
+                      </p>
+                    </div>
+
+                    {jeton.date_expiration && (
+                      <div className="space-y-1">
+                        <p className="text-xs uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                          Expire le
+                        </p>
+                        <p className="font-medium flex items-center">
+                          <ClockIcon className="h-4 w-4 mr-1 text-amber-500" />
+                          {formatDate(jeton.date_expiration)}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="mt-4 bg-primary-50 dark:bg-primary-900/20 p-3 rounded-lg border border-primary-100 dark:border-primary-900/30 flex items-center">
+                    <SparklesIcon className="h-5 w-5 text-primary-500 mr-2 flex-shrink-0" />
+                    <p className="text-sm text-primary-700 dark:text-primary-300">
+                      Cliquez sur "Tourner la roue" pour tenter votre chance et
+                      gagner un cadeau !
+                    </p>
+                  </div>
                 </div>
               )}
 
-              <div className="flex justify-center my-4" ref={wheelRef}>
-                <canvas
-                  ref={canvasRef}
-                  width="300"
-                  height="300"
-                  className="border rounded-full"
-                ></canvas>
+              <div className="flex justify-center my-6" ref={wheelRef}>
+                <div className="relative">
+                  <canvas
+                    ref={canvasRef}
+                    width="300"
+                    height="300"
+                    className={`border-4 ${
+                      isDarkMode ? "border-gray-700" : "border-gray-200"
+                    } rounded-full shadow-lg ${
+                      spinning ? "animate-pulse" : ""
+                    }`}
+                  ></canvas>
+
+                  {/* Indicateur de position */}
+                  <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+                    <div className="w-0 h-0 border-l-8 border-r-8 border-t-12 border-l-transparent border-r-transparent border-t-red-500"></div>
+                  </div>
+                </div>
               </div>
 
               {result && (
-                <div className="mt-4 p-4 bg-green-100 text-green-800 rounded-md text-center">
-                  <h4 className="font-bold text-lg mb-2">Félicitations !</h4>
-                  <p>
-                    Vous avez gagné:{" "}
-                    <span className="font-bold">{result.cadeau?.nom}</span>
-                  </p>
+                <div className="mt-6 p-5 bg-green-50 dark:bg-green-900/20 text-green-800 dark:text-green-200 rounded-lg shadow-sm border border-green-200 dark:border-green-900/30">
+                  <div className="flex items-center justify-center mb-4">
+                    <div className="bg-green-100 dark:bg-green-800/50 p-3 rounded-full">
+                      <TrophyIcon className="h-8 w-8 text-green-600 dark:text-green-400" />
+                    </div>
+                  </div>
+
+                  <h4 className="font-bold text-xl mb-3 text-center">
+                    Félicitations !
+                  </h4>
+
+                  <div className="text-center mb-4">
+                    <p className="text-lg mb-2">Vous avez gagné :</p>
+                    <p className="font-bold text-xl text-primary-700 dark:text-primary-400">
+                      {result.cadeau?.nom}
+                    </p>
+                  </div>
+
                   {result.cadeau?.image_url && (
-                    <div className="flex justify-center mt-2">
-                      <img
-                        src={result.cadeau.image_url}
-                        alt={result.cadeau.nom}
-                        className="h-16 w-16 object-cover rounded-md"
-                      />
+                    <div className="flex justify-center my-4">
+                      <div className="relative">
+                        <img
+                          src={result.cadeau.image_url}
+                          alt={result.cadeau.nom}
+                          className="h-24 w-24 object-cover rounded-lg shadow-md border-2 border-white dark:border-gray-700"
+                        />
+                        <div className="absolute -bottom-2 -right-2 bg-green-100 dark:bg-green-800 p-1 rounded-full border-2 border-white dark:border-gray-700">
+                          <CheckCircleIcon className="h-5 w-5 text-green-600 dark:text-green-400" />
+                        </div>
+                      </div>
                     </div>
                   )}
-                  <p>
-                    Votre code de vérification de ticket est:{" "}
-                    <span className="font-bold">
-                      {result.code_verification}
-                    </span>
-                  </p>
-                  <p>
-                    Veuillez le montrer au personnel avant sa date de expiration
-                    le {formatDate(result.date_expiration)}
-                  </p>
+
+                  <div className="bg-white dark:bg-gray-800 rounded-lg p-4 mt-4 border border-gray-200 dark:border-gray-700">
+                    <div className="space-y-3">
+                      <div>
+                        <p className="text-xs uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                          Code de vérification
+                        </p>
+                        <p className="font-mono font-bold text-lg bg-gray-50 dark:bg-gray-900 p-2 rounded border border-gray-200 dark:border-gray-700 text-center">
+                          {result.code_verification}
+                        </p>
+                      </div>
+
+                      <div>
+                        <p className="text-xs uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                          Date d'expiration
+                        </p>
+                        <p className="font-medium flex items-center justify-center">
+                          <CalendarIcon className="h-4 w-4 mr-1 text-red-500" />
+                          {formatDate(result.date_expiration)}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="mt-4 pt-3 border-t border-gray-200 dark:border-gray-700 text-center text-sm text-gray-600 dark:text-gray-400">
+                      <p>
+                        Veuillez présenter ce code au personnel avant sa date
+                        d'expiration
+                      </p>
+                    </div>
+                  </div>
                 </div>
               )}
             </div>
           )}
         </div>
 
-        <div className="px-6 py-4 bg-gray-50 dark:bg-gray-800 flex justify-center">
+        <div
+          className={`px-6 py-5 ${
+            isDarkMode ? "bg-gray-700" : "bg-gray-50"
+          } flex justify-center border-t ${
+            isDarkMode ? "border-gray-600" : "border-gray-200"
+          }`}
+        >
           <button
             onClick={spinWheel}
             disabled={spinning || loading || !jeton || result}
-            className={`${
-              themeColors.button
-            } px-4 py-2 rounded-md flex items-center ${
+            className={`px-5 py-2.5 rounded-lg flex items-center justify-center font-medium shadow-sm transition-all duration-200 ${
               spinning || loading || !jeton || result
                 ? "opacity-50 cursor-not-allowed"
-                : ""
+                : "hover:shadow transform hover:-translate-y-0.5"
+            } ${
+              isDarkMode
+                ? result
+                  ? "bg-green-600 text-white"
+                  : "bg-primary-600 hover:bg-primary-700 text-white"
+                : result
+                ? "bg-green-600 text-white"
+                : "bg-primary-600 hover:bg-primary-700 text-white"
             }`}
           >
             {spinning ? (
               <>
-                <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white mr-2"></div>
-                La roue tourne...
+                <div className="animate-spin rounded-full h-5 w-5 border-2 border-white mr-2"></div>
+                <span>La roue tourne...</span>
               </>
             ) : result ? (
-              "Cadeau gagné !"
+              <>
+                <CheckCircleIcon className="h-5 w-5 mr-2" />
+                <span>Cadeau gagné !</span>
+              </>
             ) : (
-              "Tourner la roue"
+              <>
+                <SparklesIcon className="h-5 w-5 mr-2" />
+                <span>Tourner la roue</span>
+              </>
             )}
           </button>
         </div>

@@ -257,7 +257,7 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
     Route::get('/publicites/{id}/details', [App\Http\Controllers\PubliciteController::class, 'details']);
     Route::put('/publicites/{id}', [App\Http\Controllers\PubliciteController::class, 'update']);
     Route::delete('/publicites/{id}', [App\Http\Controllers\PubliciteController::class, 'destroy']);
-    Route::put('/ad/{id}/etat', [App\Http\Controllers\PubliciteController::class, 'changeEtat']);
+    Route::put('/publicites/{id}/etat', [App\Http\Controllers\PubliciteController::class, 'changeEtat']);
     Route::put('/publicites/{id}/statut', [App\Http\Controllers\PubliciteController::class, 'changeStatut']);
     Route::post('/publicites/{id}/boost', [App\Http\Controllers\PubliciteController::class, 'boost']);
     Route::get('/admin/publicites/pending', [App\Http\Controllers\PubliciteController::class, 'getPendingAds']);

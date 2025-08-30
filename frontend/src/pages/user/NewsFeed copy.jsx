@@ -264,8 +264,8 @@ export default function NewsFeed({ initialActiveTab = 0, showTabs = true }) {
             limit: limit,
             search: searchQuery || undefined,
           },
-          // Augmenter le timeout pour permettre au serveur de répondre
-          timeout: 15000,
+          // Réduire le timeout pour éviter de surcharger le serveur
+          timeout: 5000,
         };
 
         // Ajouter les paramètres de filtre en fonction de l'onglet actif
@@ -308,22 +308,7 @@ export default function NewsFeed({ initialActiveTab = 0, showTabs = true }) {
           extractUniqueValues(newPosts);
         } else {
           setPosts((prevPosts) => {
-            // Filtrer les doublons en utilisant un Map pour garantir l'unicité des IDs
-            const postsMap = new Map();
-            
-            // Ajouter d'abord les posts existants au Map
-            prevPosts.forEach(post => {
-              postsMap.set(post.id, post);
-            });
-            
-            // Ajouter ensuite les nouveaux posts, en écrasant les anciens si même ID
-            newPosts.forEach(post => {
-              postsMap.set(post.id, post);
-            });
-            
-            // Convertir le Map en tableau
-            const combinedPosts = Array.from(postsMap.values());
-            
+            const combinedPosts = [...prevPosts, ...newPosts];
             // Extraire les valeurs uniques pour les filtres
             extractUniqueValues(combinedPosts);
             return combinedPosts;
@@ -339,19 +324,14 @@ export default function NewsFeed({ initialActiveTab = 0, showTabs = true }) {
       } catch (err) {
         console.error("Erreur lors du chargement des publications:", err);
 
-        // Vérifier si l'erreur est liée aux ressources insuffisantes ou au timeout
+        // Vérifier si l'erreur est liée aux ressources insuffisantes
         const isResourceError =
           err.message &&
           (err.message.includes("ERR_INSUFFICIENT_RESOURCES") ||
             err.message.includes("ERR_NETWORK"));
-            
-        const isTimeoutError = 
-          err.code === 'ECONNABORTED' || 
-          (err.message && err.message.includes('timeout'));
 
         // Mécanisme de retry limité (maximum 2 tentatives et pas de retry pour les erreurs de ressources)
-        // Pour les erreurs de timeout, on fait quand même une tentative mais avec un délai plus long
-        if (retryCount < 2 && (!isResourceError || isTimeoutError)) {
+        if (retryCount < 2 && !isResourceError) {
           console.log(`Tentative de rechargement ${retryCount + 1}/2...`);
           // Utiliser un délai plus long entre les tentatives
           setTimeout(() => {
@@ -365,11 +345,6 @@ export default function NewsFeed({ initialActiveTab = 0, showTabs = true }) {
           // Erreur de réponse du serveur (ex: 500)
           setError(
             `Erreur serveur (${err.response.status}). Veuillez réessayer plus tard.`
-          );
-        } else if (isTimeoutError) {
-          // Erreur spécifique au timeout
-          setError(
-            "Le temps de réponse du serveur est trop long. Veuillez réessayer dans quelques instants."
           );
         } else if (isResourceError) {
           // Erreur spécifique aux ressources insuffisantes
@@ -1289,16 +1264,13 @@ export default function NewsFeed({ initialActiveTab = 0, showTabs = true }) {
             <div className="space-y-6">
               {error && (
                 <div
-                  className={`p-6 rounded-lg text-center ${isDarkMode ? "bg-gray-800 text-red-300" : "bg-white text-red-500"}`}
+                  className={`p-4 rounded-lg ${
+                    isDarkMode
+                      ? "bg-red-900 text-red-200"
+                      : "bg-red-100 text-red-800"
+                  }`}
                 >
-                  <p className="text-lg font-medium">{error}</p>
-                  <button
-                    onClick={() => fetchPosts(true, 0)}
-                    className="mt-4 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
-                  >
-                    <ArrowPathIcon className="h-5 w-5 mr-2" />
-                    Réessayer
-                  </button>
+                  {error}
                 </div>
               )}
 

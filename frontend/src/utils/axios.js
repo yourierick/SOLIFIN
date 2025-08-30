@@ -54,6 +54,12 @@ instance.interceptors.response.use(
     async error => {
         // Gestion des erreurs 401 (non autorisé)
         if (error.response?.status === 401) {
+            // Ignorer les erreurs 401 pour les réinitialisations de mot de passe d'utilisateur par l'admin
+            if (error.config.url.includes('/admin/users/') && error.config.url.includes('/reset-password')) {
+                console.log('Erreur 401 ignorée pour la réinitialisation de mot de passe admin:', error.config.url);
+                return Promise.reject(error);
+            }
+            
             // Éviter les redirections multiples
             if (!redirectionInProgress) {
                 redirectionInProgress = true;

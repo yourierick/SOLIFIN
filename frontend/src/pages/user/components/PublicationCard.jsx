@@ -214,7 +214,7 @@ export default function PublicationCard({
   };
 
   const handleEtatChange = (newEtat) => {
-    onStateChange(publication.id, type, newEtat);
+    onStateChange(newEtat);
     setShowActionMenu(false);
   };
 

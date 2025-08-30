@@ -274,6 +274,7 @@ const PublicRoute = ({ children }) => {
 // Composant pour les routes protégées
 const PrivateRoute = ({ children }) => {
   const { user, loading } = useAuth();
+  const currentPath = window.location.pathname;
 
   // Afficher le loader pendant le chargement initial
   if (loading) {
@@ -287,6 +288,20 @@ const PrivateRoute = ({ children }) => {
   // Rediriger vers login uniquement si on n'est pas en train de charger et qu'il n'y a pas d'utilisateur
   if (!loading && !user) {
     return <Navigate to="/login" replace />;
+  }
+
+  // Vérifier si l'utilisateur est admin
+  const isAdmin = user.is_admin === 1 || user.is_admin === true || user.role === "admin";
+
+  // Vérifier les permissions d'accès selon le chemin
+  if (currentPath.startsWith("/admin") && !isAdmin) {
+    // Si l'utilisateur n'est pas admin et essaie d'accéder à une route admin
+    return <Navigate to="/dashboard" replace />;
+  } else if (currentPath.startsWith("/dashboard") && isAdmin) {
+    // Si l'utilisateur est admin et essaie d'accéder à une route utilisateur
+    // Optionnel: vous pouvez permettre aux admins d'accéder aux routes utilisateur
+    // en commentant ou supprimant cette condition
+    return <Navigate to="/admin" replace />;
   }
 
   return children;

@@ -77,6 +77,7 @@ const Users = () => {
     newPassword: "",
     adminPassword: "",
   });
+  const [resetPasswordError, setResetPasswordError] = useState("");
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showAdminPassword, setShowAdminPassword] = useState(false);
   const [resetPasswordLoading, setResetPasswordLoading] = useState(false);
@@ -187,6 +188,7 @@ const Users = () => {
       newPassword: "",
       adminPassword: "",
     });
+    setResetPasswordError(""); // Réinitialiser les erreurs
     setShowNewPassword(false);
     setShowAdminPassword(false);
   };
@@ -201,6 +203,8 @@ const Users = () => {
 
   const handleResetPasswordSubmit = async () => {
     try {
+      // Réinitialiser les erreurs précédentes
+      setResetPasswordError("");
       setResetPasswordLoading(true);
 
       // Validation basique
@@ -208,15 +212,13 @@ const Users = () => {
         !resetPasswordData.newPassword ||
         resetPasswordData.newPassword.length < 8
       ) {
-        toast.error(
-          "Le nouveau mot de passe doit contenir au moins 8 caractères"
-        );
+        setResetPasswordError("Le nouveau mot de passe doit contenir au moins 8 caractères");
         setResetPasswordLoading(false);
         return;
       }
 
       if (!resetPasswordData.adminPassword) {
-        toast.error("Veuillez entrer votre mot de passe administrateur");
+        setResetPasswordError("Veuillez entrer votre mot de passe administrateur");
         setResetPasswordLoading(false);
         return;
       }
@@ -242,10 +244,16 @@ const Users = () => {
       }
     } catch (err) {
       console.error("Error in handleResetPasswordSubmit:", err);
-      toast.error(
-        err.response?.data?.message ||
-          "Erreur lors de la réinitialisation du mot de passe"
-      );
+      
+      // Gérer les erreurs spécifiques
+      if (err.response?.status === 401) {
+        setResetPasswordError("Mot de passe administrateur incorrect");
+      } else if (err.response?.data?.message) {
+        setResetPasswordError(err.response.data.message);
+      } else {
+        setResetPasswordError("Erreur lors de la réinitialisation du mot de passe");
+        toast.error("Une erreur est survenue");
+      }
     } finally {
       setResetPasswordLoading(false);
     }
@@ -871,6 +879,11 @@ const Users = () => {
             </p>
           </div>
 
+          {resetPasswordError && (
+            <div className="mt-2 mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
+              <p className="font-medium">{resetPasswordError}</p>
+            </div>
+          )}
           <div className="space-y-4 mt-4">
             <div className="relative">
               <TextField

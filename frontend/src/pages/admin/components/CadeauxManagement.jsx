@@ -231,10 +231,9 @@ const CadeauxManagement = () => {
       if (response.data.success) {
         setCadeaux(response.data.cadeaux);
       } else {
-        setError("Erreur lors de la récupération des cadeaux");
+        console.error("Erreur lors de la récupération des cadeaux");
       }
     } catch (err) {
-      setError("Erreur de connexion au serveur");
       console.error("Erreur lors de la récupération des cadeaux:", err);
     } finally {
       setLoading(false);

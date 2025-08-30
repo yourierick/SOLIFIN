@@ -41,13 +41,13 @@ const TransactionFeeSettings = () => {
   const [currentFee, setCurrentFee] = useState({
     payment_type: "",
     payment_method: "",
-    transfer_fee_percentage: 0,
-    withdrawal_fee_percentage: 0,
-    fee_fixed: 0,
-    fee_cap: "",
+    transfer_fee_percentage: "",
+    withdrawal_fee_percentage: "",
     is_active: true,
   });
-  const [updatingFromApi, setUpdatingFromApi] = useState(false);
+  
+  const [validationErrors, setValidationErrors] = useState({});
+
   const [availablePaymentMethods, setAvailablePaymentMethods] = useState([]);
 
   // États pour la pagination
@@ -103,7 +103,6 @@ const TransactionFeeSettings = () => {
     if (mode === "edit" && fee) {
       setCurrentFee({
         ...fee,
-        fee_cap: fee.fee_cap || "",
       });
 
       // Assurez-vous que les méthodes de paiement sont chargées immédiatement
@@ -114,10 +113,8 @@ const TransactionFeeSettings = () => {
       setCurrentFee({
         payment_type: "",
         payment_method: "",
-        transfer_fee_percentage: 0,
-        withdrawal_fee_percentage: 0,
-        fee_fixed: 0,
-        fee_cap: "",
+        transfer_fee_percentage: "",
+        withdrawal_fee_percentage: "",
         is_active: true,
       });
       setAvailablePaymentMethods([]);
@@ -127,35 +124,19 @@ const TransactionFeeSettings = () => {
 
   const handleCloseDialog = () => {
     setOpenDialog(false);
-  };
-
-  const handleInputChange = (e) => {
-    const { name, value, type, checked } = e.target;
-
-    if (type === "checkbox") {
-      setCurrentFee({ ...currentFee, [name]: checked });
-    } else if (
-      [
-        "transfer_fee_percentage",
-        "withdrawal_fee_percentage",
-        "fee_fixed",
-        "fee_cap",
-      ].includes(name)
-    ) {
-      // Convertir en nombre ou laisser vide pour fee_cap
-      const numValue =
-        value === "" ? (name === "fee_cap" ? "" : 0) : parseFloat(value);
-      setCurrentFee({ ...currentFee, [name]: numValue });
-    } else {
-      setCurrentFee({ ...currentFee, [name]: value });
-    }
+    setValidationErrors({});
   };
 
   const handleSubmit = async () => {
     try {
+      // Réinitialiser les erreurs de validation
+      setValidationErrors({});
+      
       // Préparer les données à envoyer
       const dataToSend = {
         ...currentFee,
+        transfer_fee_percentage: currentFee.transfer_fee_percentage === "" ? 0 : parseFloat(currentFee.transfer_fee_percentage),
+        withdrawal_fee_percentage: currentFee.withdrawal_fee_percentage === "" ? 0 : parseFloat(currentFee.withdrawal_fee_percentage),
         fee_cap: currentFee.fee_cap === "" ? null : currentFee.fee_cap,
       };
 
@@ -188,9 +169,16 @@ const TransactionFeeSettings = () => {
         "Erreur lors de la soumission des frais de transaction:",
         error
       );
-      Notification.error(
-        error.response?.data?.message || "Une erreur est survenue"
-      );
+      
+      // Gestion des erreurs de validation
+      if (error.response?.status === 422 && error.response?.data?.errors) {
+        setValidationErrors(error.response.data.errors);
+        Notification.error("Veuillez corriger les erreurs de validation");
+      } else {
+        Notification.error(
+          error.response?.data?.message || "Une erreur est survenue"
+        );
+      }
     }
   };
 
@@ -262,36 +250,6 @@ const TransactionFeeSettings = () => {
     }
   };
 
-  const handleUpdateFromApi = async () => {
-    setUpdatingFromApi(true);
-    try {
-      const response = await axios.post(
-        "/app/admin/transaction-fees/update-from-api",
-        {},
-        {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-        }
-      );
-
-      if (response.data.status === "success") {
-        Notification.success(
-          "Frais de transaction mis à jour depuis l'API avec succès"
-        ),
-          fetchTransactionFees();
-      }
-    } catch (error) {
-      console.error("Erreur lors de la mise à jour depuis l'API:", error);
-      Notification.error(
-        error.response?.data?.message ||
-          "Une erreur est survenue lors de la mise à jour depuis l'API"
-      );
-    } finally {
-      setUpdatingFromApi(false);
-    }
-  };
-
   // Fonction pour obtenir le nom d'affichage d'une méthode de paiement
   const getPaymentMethodName = (type, methodId) => {
     if (!type || !methodId) return methodId;
@@ -308,14 +266,8 @@ const TransactionFeeSettings = () => {
         return "Mobile Money";
       case PAYMENT_TYPES.CREDIT_CARD:
         return "Carte de crédit";
-      case PAYMENT_TYPES.BANK_TRANSFER:
-        return "Transfert bancaire";
-      case PAYMENT_TYPES.CASH:
-        return "Espèces";
       case PAYMENT_TYPES.WALLET:
         return "Portefeuille";
-      case PAYMENT_TYPES.MONEY_TRANSFER:
-        return "Transfert d'argent";
       default:
         return type;
     }
@@ -328,13 +280,21 @@ const TransactionFeeSettings = () => {
           <InputLabel>Type de paiement</InputLabel>
           <Select
             value={currentFee.payment_type}
-            onChange={(e) =>
+            onChange={(e) => {
               setCurrentFee({
                 ...currentFee,
                 payment_type: e.target.value,
                 payment_method: "",
-              })
-            }
+              });
+              // Effacer l'erreur lorsque l'utilisateur modifie le champ
+              if (validationErrors.payment_type) {
+                setValidationErrors(prev => ({
+                  ...prev,
+                  payment_type: undefined
+                }));
+              }
+            }}
+            error={!!validationErrors.payment_type}
             label="Type de paiement"
             MenuProps={{
               PaperProps: {
@@ -365,9 +325,17 @@ const TransactionFeeSettings = () => {
           <InputLabel>Méthode de paiement</InputLabel>
           <Select
             value={currentFee.payment_method}
-            onChange={(e) =>
-              setCurrentFee({ ...currentFee, payment_method: e.target.value })
-            }
+            onChange={(e) => {
+              setCurrentFee({ ...currentFee, payment_method: e.target.value });
+              // Effacer l'erreur lorsque l'utilisateur modifie le champ
+              if (validationErrors.payment_method) {
+                setValidationErrors(prev => ({
+                  ...prev,
+                  payment_method: undefined
+                }));
+              }
+            }}
+            error={!!validationErrors.payment_method}
             label="Méthode de paiement"
             disabled={!currentFee.payment_type}
             MenuProps={{
@@ -400,14 +368,25 @@ const TransactionFeeSettings = () => {
           type="number"
           fullWidth
           value={currentFee.transfer_fee_percentage}
-          onChange={(e) =>
-            setCurrentFee({
-              ...currentFee,
-              transfer_fee_percentage: parseFloat(e.target.value),
-            })
-          }
-          inputProps={{ min: 0, max: 100, step: 0.01 }}
+          onChange={(e) => {
+            const { name, value } = e.target;
+            setCurrentFee((prev) => ({
+              ...prev,
+              transfer_fee_percentage: value,
+            }));
+            // Effacer l'erreur lorsque l'utilisateur modifie le champ
+            if (validationErrors.transfer_fee_percentage) {
+              setValidationErrors(prev => ({
+                ...prev,
+                transfer_fee_percentage: undefined
+              }));
+            }
+          }}
+          inputProps={{ min: "0", step: "0.01" }}
+          id="transfer-fee"
           required
+          error={!!validationErrors.transfer_fee_percentage}
+          helperText={validationErrors.transfer_fee_percentage ? validationErrors.transfer_fee_percentage[0] : ''}
         />
       </Grid>
       <Grid item xs={12} sm={6}>
@@ -416,14 +395,25 @@ const TransactionFeeSettings = () => {
           type="number"
           fullWidth
           value={currentFee.withdrawal_fee_percentage}
-          onChange={(e) =>
-            setCurrentFee({
-              ...currentFee,
-              withdrawal_fee_percentage: parseFloat(e.target.value),
-            })
-          }
-          inputProps={{ min: 0, max: 100, step: 0.01 }}
+          onChange={(e) => {
+            const { name, value } = e.target;
+            setCurrentFee((prev) => ({
+              ...prev,
+              withdrawal_fee_percentage: value,
+            }));
+            // Effacer l'erreur lorsque l'utilisateur modifie le champ
+            if (validationErrors.withdrawal_fee_percentage) {
+              setValidationErrors(prev => ({
+                ...prev,
+                withdrawal_fee_percentage: undefined
+              }));
+            }
+          }}
+          inputProps={{ min: "0", step: "0.01" }}
+          id="withdrawal-fee"
           required
+          error={!!validationErrors.withdrawal_fee_percentage}
+          helperText={validationErrors.withdrawal_fee_percentage ? validationErrors.withdrawal_fee_percentage[0] : ''}
         />
       </Grid>
       <Grid item xs={12}>
@@ -648,15 +638,6 @@ const TransactionFeeSettings = () => {
           >
             <PlusIcon className="h-5 w-5 mr-1" />
           </button>
-          <button
-            onClick={handleUpdateFromApi}
-            disabled={updatingFromApi}
-            className="flex items-center px-4 py-2 border border-green-500 text-green-500 hover:bg-green-50 dark:border-green-400 dark:text-green-400 dark:hover:bg-green-900/30 rounded-md font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <ArrowPathIcon className="h-5 w-5 mr-1" />
-            {updatingFromApi ? "Mise à jour..." : ""}
-            {updatingFromApi && <CircularProgress size={16} className="ml-2" />}
-          </button>
         </div>
       </div>
 
@@ -686,6 +667,12 @@ const TransactionFeeSettings = () => {
             boxShadow:
               "0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)",
             borderRadius: "0.5rem",
+          },
+        }}
+        BackdropProps={{
+          sx: {
+            backdropFilter: "blur(5px)",
+            backgroundColor: "rgba(0, 0, 0, 0.5)",
           },
         }}
       >

@@ -332,7 +332,7 @@ class OffreEmploiController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'État de l\'offre d\'emploi mis à jour avec succès.',
-            'offre' => $offre
+            'offre' => $offre,
         ]);
     }
 

@@ -465,9 +465,8 @@ export default function MyPage() {
   // Gestionnaire pour le changement d'état d'une publication (disponible/terminé)
   const handleStateChange = (id, type, newState) => {
     const apiPath = getPublicationTypeApiPath(type);
-
     axios
-      .patch(`/api/${apiPath}/${id}/state`, { etat: newState })
+      .put(`/api/${apiPath}/${id}/etat`, { etat: newState })
       .then((response) => {
         // Mettre à jour l'état local en fonction du type de publication
         switch (type) {
@@ -501,7 +500,7 @@ export default function MyPage() {
 
         // Afficher une notification de succès
         let statusText = "";
-        switch (newStatus) {
+        switch (newState) {
           case "disponible":
             statusText = "Disponible";
             break;
@@ -849,8 +848,8 @@ export default function MyPage() {
     }
   };
 
-  // Fonction pour obtenir l'URL de l'API en fonction du type de publication
-  const getApiUrl = (type) => {
+  // Fonction pour obtenir le chemin API en fonction du type de publication
+  const getPublicationTypeApiPath = (type) => {
     switch (type) {
       case "advertisement":
         return "publicites";
@@ -858,8 +857,6 @@ export default function MyPage() {
         return "offres-emploi";
       case "businessOpportunity":
         return "opportunites-affaires";
-      case "digitalProduct":
-        return "produits-numeriques";
       default:
         return "";
     }
@@ -1158,7 +1155,14 @@ export default function MyPage() {
             <div className="mt-4 sm:mt-0 sm:ml-6 flex-1">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between">
                 <div>
-                  <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+                  <h1
+                    className="text-2xl font-bold text-gray-900 dark:text-white"
+                    style={{
+                      textShadow: isDarkMode
+                        ? "-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000"
+                        : "-1px -1px 0 #fff, 1px -1px 0 #fff, -1px 1px 0 #fff, 1px 1px 0 #fff",
+                    }}
+                  >
                     {user?.name}
                   </h1>
                   <p className="text-sm font-medium text-gray-600 dark:text-gray-300 flex items-center space-x-3 mt-1">
@@ -1908,7 +1912,7 @@ export default function MyPage() {
                           <div className="flex justify-center items-center py-8">
                             <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-600"></div>
                           </div>
-                        ) : publications.digitalProducts.length > 0 ? (
+                        ) : publications?.digitalProducts?.length > 0 ? (
                           <>
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                               {getFilteredPublications("digitalProduct", true)
@@ -2065,11 +2069,11 @@ export default function MyPage() {
 
                         {/* Pagination */}
                         {!isLoading &&
-                          publications.digitalProducts.length > 0 && (
+                          publications?.digitalProducts?.length > 0 && (
                             <div className="mt-4">
                               <Pagination
                                 currentPage={
-                                  pagination.digitalProducts.currentPage
+                                  pagination?.digitalProducts?.currentPage
                                 }
                                 totalPages={getTotalPages("digitalProduct")}
                                 onPageChange={(page) =>
@@ -2168,10 +2172,10 @@ export default function MyPage() {
                             <div className="flex justify-center items-center py-8">
                               <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-600"></div>
                             </div>
-                          ) : catalogProducts.length > 0 ? (
+                          ) : catalogProducts?.length > 0 ? (
                             <>
                               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                {catalogProducts.map((product) => (
+                                {catalogProducts?.map((product) => (
                                   <div key={product.id} className="mb-4">
                                     <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden transition-all duration-300 ease-in-out hover:shadow-lg hover:translate-y-[-4px] glassmorphism">
                                       {product.image_url ? (

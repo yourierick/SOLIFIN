@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
+import EmojiPicker from "emoji-picker-react";
 import { Dialog, Transition } from "@headlessui/react";
 import { Fragment } from "react";
 import { format } from "date-fns";
@@ -28,6 +29,7 @@ import {
   DocumentArrowDownIcon,
   TagIcon,
   StarIcon,
+  FaceSmileIcon,
   TruckIcon,
   ShoppingBagIcon,
   HomeIcon,
@@ -38,6 +40,7 @@ import {
 } from "@heroicons/react/24/outline";
 import { HeartIcon as HeartIconSolid } from "@heroicons/react/24/solid";
 import { useAuth } from "../../../contexts/AuthContext";
+import { motion, AnimatePresence } from "framer-motion";
 
 export default function PostDetailModal({
   isOpen,
@@ -57,12 +60,21 @@ export default function PostDetailModal({
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [currentMediaIndex, setCurrentMediaIndex] = useState(0);
   const [mediaItems, setMediaItems] = useState([]);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const commentInputRef = useRef(null);
 
   // Formatage de la date
   const formatDate = (dateString) => {
     const date = new Date(dateString);
     return format(date, "dd MMMM yyyy à HH:mm", { locale: fr });
+  };
+
+  // Gérer l'ajout d'un emoji au commentaire
+  const handleEmojiClick = (emojiData) => {
+    setComment((prev) => prev + emojiData.emoji);
+    if (commentInputRef.current) {
+      commentInputRef.current.focus();
+    }
   };
 
   // Gérer la soumission d'un commentaire
@@ -74,6 +86,7 @@ export default function PostDetailModal({
       setIsSubmitting(true);
       await onComment(post.id, comment, post.type);
       setComment("");
+      setShowEmojiPicker(false);
     } catch (err) {
       console.error("Erreur lors de l'envoi du commentaire:", err);
     } finally {
@@ -1558,27 +1571,85 @@ export default function PostDetailModal({
                             value={comment}
                             onChange={(e) => setComment(e.target.value)}
                             placeholder="Écrire un commentaire..."
-                            className={`w-full py-2 px-3 pr-10 rounded-full ${
+                            className={`w-full py-2 px-3 pr-20 rounded-full ${
                               isDarkMode
                                 ? "bg-gray-700 text-white placeholder-gray-400 border-gray-600"
                                 : "bg-gray-100 text-gray-900 placeholder-gray-500 border-gray-200"
                             } border focus:outline-none focus:ring-2 focus:ring-primary-500`}
                           />
-                          <button
-                            type="submit"
-                            disabled={!comment.trim() || isSubmitting}
-                            className={`absolute right-2 top-1/2 transform -translate-y-1/2 p-1 rounded-full ${
-                              comment.trim() && !isSubmitting
-                                ? isDarkMode
-                                  ? "text-primary-400 hover:bg-gray-600"
-                                  : "text-primary-600 hover:bg-gray-200"
-                                : isDarkMode
-                                ? "text-gray-500"
-                                : "text-gray-400"
-                            }`}
-                          >
-                            <PaperAirplaneIcon className="h-5 w-5 rotate-90" />
-                          </button>
+                          
+                          <div className="absolute right-2 top-1/2 transform -translate-y-1/2 flex items-center space-x-1">
+                            <button
+                              type="button"
+                              onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                              className={`p-1.5 rounded-full ${
+                                isDarkMode
+                                  ? "text-gray-300 hover:bg-gray-600 hover:text-yellow-300"
+                                  : "text-gray-500 hover:bg-gray-200 hover:text-yellow-500"
+                                } transition-colors`}
+                              aria-label="Ajouter un emoji"
+                            >
+                              <FaceSmileIcon className="h-5 w-5" />
+                            </button>
+                            
+                            <button
+                              type="submit"
+                              disabled={!comment.trim() || isSubmitting}
+                              className={`p-1.5 rounded-full ${
+                                comment.trim() && !isSubmitting
+                                  ? isDarkMode
+                                    ? "text-primary-400 hover:bg-gray-600"
+                                    : "text-primary-600 hover:bg-gray-200"
+                                  : isDarkMode
+                                  ? "text-gray-500"
+                                  : "text-gray-400"
+                              }`}
+                              aria-label="Envoyer le commentaire"
+                            >
+                              <PaperAirplaneIcon className="h-5 w-5 rotate-90" />
+                            </button>
+                          </div>
+                          
+                          {/* Emoji picker avec animation */}
+                          <AnimatePresence>
+                            {showEmojiPicker && (
+                              <motion.div
+                                initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                                animate={{ opacity: 1, y: 0, scale: 1 }}
+                                exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                                transition={{ duration: 0.2 }}
+                                className="absolute bottom-full right-0 mb-2 z-50"
+                              >
+                                <div
+                                  className={`p-2 rounded-lg shadow-xl border backdrop-blur-sm ${
+                                    isDarkMode ? 'bg-gray-800/95 border-gray-700' : 'bg-white/95 border-gray-200'
+                                  }`}
+                                >
+                                  <motion.button
+                                    onClick={() => setShowEmojiPicker(false)}
+                                    whileHover={{ scale: 1.1 }}
+                                    whileTap={{ scale: 0.9 }}
+                                    className={`absolute top-2 right-2 p-1 rounded-full ${
+                                      isDarkMode
+                                        ? 'bg-gray-700 text-gray-300 hover:bg-gray-600 hover:text-white'
+                                        : 'bg-gray-100 text-gray-500 hover:bg-gray-200 hover:text-gray-700'
+                                    }`}
+                                    aria-label="Fermer le sélecteur d'emoji"
+                                  >
+                                    <XMarkIcon className="h-4 w-4" />
+                                  </motion.button>
+                                  <EmojiPicker
+                                    onEmojiClick={handleEmojiClick}
+                                    lazyLoadEmojis={true}
+                                    theme={isDarkMode ? 'dark' : 'light'}
+                                    width={300}
+                                    height={350}
+                                    searchPlaceHolder="Rechercher un emoji..."
+                                  />
+                                </div>
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
                         </div>
                       </form>
                     </div>

@@ -15,7 +15,15 @@ import { useTheme } from "../contexts/ThemeContext";
 import { formatDistanceToNow } from "date-fns";
 import { fr } from "date-fns/locale";
 
-const DigitalProductCard = ({ product, onEdit, onDelete, onChangeStatus }) => {
+const DigitalProductCard = ({
+  product,
+  onEdit,
+  onDelete,
+  onChangeStatus,
+  isAdmin = false,
+  onApprove,
+  onReject,
+}) => {
   const { isDarkMode } = useTheme();
 
   // Image par défaut si aucune image n'est fournie
@@ -223,64 +231,125 @@ const DigitalProductCard = ({ product, onEdit, onDelete, onChangeStatus }) => {
         )}
 
         <div className="mt-4 border-t border-gray-200 dark:border-gray-700 pt-3 flex justify-between">
-          <div className="flex space-x-3">
-            {onEdit && (
+          {isAdmin ? (
+            <div className="flex space-x-2">
               <div className="group relative">
                 <button
-                  onClick={() => onEdit(product.id)}
-                  className={`p-2 rounded-full shadow-sm ${
-                    isDarkMode
-                      ? "bg-gray-700 hover:bg-gray-600 text-gray-200"
-                      : "bg-gray-100 hover:bg-gray-200 text-gray-600"
-                  } transition-colors duration-200`}
-                  aria-label="Modifier"
+                  onClick={() => onApprove(product.id)}
+                  disabled={product.statut === "approuve"}
+                  className={`p-2 rounded-full shadow-sm text-white ${
+                    product.statut === "approuve"
+                      ? "bg-gray-400 cursor-not-allowed"
+                      : "bg-green-600 hover:bg-green-700"
+                  }`}
+                  aria-label="Approuver"
                 >
-                  <PencilIcon className="h-5 w-5" />
+                  <CheckCircleIcon className="h-5 w-5" />
                 </button>
                 <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap pointer-events-none">
-                  Modifier
+                  Approuver
                 </div>
               </div>
-            )}
 
-            {onDelete && (
               <div className="group relative">
                 <button
-                  onClick={() => onDelete(product.id)}
-                  className={`p-2 rounded-full shadow-sm ${
-                    isDarkMode
-                      ? "bg-red-600 hover:bg-red-700 text-white"
-                      : "bg-red-100 hover:bg-red-200 text-red-600"
-                  } transition-colors duration-200`}
-                  aria-label="Supprimer"
+                  onClick={() => onReject(product.id)}
+                  disabled={product.statut === "rejete"}
+                  className={`p-2 rounded-full shadow-sm text-white ${
+                    product.statut === "rejete"
+                      ? "bg-gray-400 cursor-not-allowed"
+                      : "bg-red-600 hover:bg-red-700"
+                  }`}
+                  aria-label="Rejeter"
                 >
-                  <TrashIcon className="h-5 w-5" />
+                  <XCircleIcon className="h-5 w-5" />
                 </button>
                 <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap pointer-events-none">
-                  Supprimer
+                  Rejeter
                 </div>
               </div>
-            )}
+            </div>
+          ) : (
+            <div className="flex space-x-3">
+              {product.fichier && (
+                <div className="group relative">
+                  <button
+                    onClick={() =>
+                      window.open(`/storage/${product.fichier}`, "_blank")
+                    }
+                    className={`p-2 rounded-full shadow-sm ${
+                      isDarkMode
+                        ? "bg-blue-600 hover:bg-blue-700 text-white"
+                        : "bg-blue-100 hover:bg-blue-200 text-blue-600"
+                    } transition-colors duration-200`}
+                    aria-label="Voir fichier"
+                  >
+                    <EyeIcon className="h-5 w-5" />
+                  </button>
+                  <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap pointer-events-none">
+                    Voir fichier
+                  </div>
+                </div>
+              )}
 
-            {onChangeStatus && product.statut === "approuve" && (
-              <div className="group relative">
-                <button
-                  onClick={() => onChangeStatus(product.id)}
-                  className={`p-2 rounded-full shadow-sm ${
-                    isDarkMode
-                      ? "bg-blue-600 hover:bg-blue-700 text-white"
-                      : "bg-blue-100 hover:bg-blue-200 text-blue-600"
-                  } transition-colors duration-200`}
-                  aria-label="Changer le statut"
-                >
-                  <ArrowPathIcon className="h-5 w-5" />
-                </button>
-                <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap pointer-events-none">
-                  Changer le statut
+              {onEdit && (
+                <div className="group relative">
+                  <button
+                    onClick={() => onEdit(product.id)}
+                    className={`p-2 rounded-full shadow-sm ${
+                      isDarkMode
+                        ? "bg-gray-700 hover:bg-gray-600 text-gray-200"
+                        : "bg-gray-100 hover:bg-gray-200 text-gray-600"
+                    } transition-colors duration-200`}
+                    aria-label="Modifier"
+                  >
+                    <PencilIcon className="h-5 w-5" />
+                  </button>
+                  <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap pointer-events-none">
+                    Modifier
+                  </div>
                 </div>
-              </div>
-            )}
-          </div>
+              )}
+
+              {onDelete && (
+                <div className="group relative">
+                  <button
+                    onClick={() => onDelete(product.id)}
+                    className={`p-2 rounded-full shadow-sm ${
+                      isDarkMode
+                        ? "bg-red-600 hover:bg-red-700 text-white"
+                        : "bg-red-100 hover:bg-red-200 text-red-600"
+                    } transition-colors duration-200`}
+                    aria-label="Supprimer"
+                  >
+                    <TrashIcon className="h-5 w-5" />
+                  </button>
+                  <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap pointer-events-none">
+                    Supprimer
+                  </div>
+                </div>
+              )}
+
+              {onChangeStatus && product.statut === "approuve" && (
+                <div className="group relative">
+                  <button
+                    onClick={() => onChangeStatus(product.id)}
+                    className={`p-2 rounded-full shadow-sm ${
+                      isDarkMode
+                        ? "bg-blue-600 hover:bg-blue-700 text-white"
+                        : "bg-blue-100 hover:bg-blue-200 text-blue-600"
+                    } transition-colors duration-200`}
+                    aria-label="Changer le statut"
+                  >
+                    <ArrowPathIcon className="h-5 w-5" />
+                  </button>
+                  <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap pointer-events-none">
+                    Changer le statut
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
           {product.nombre_ventes > 0 && (
             <div className="text-sm text-gray-600">
               {product.nombre_ventes} vente

@@ -55,8 +55,6 @@ export default function AddPack() {
     boost_percentage: "",
     status: true,
   });
-  const [dragActive, setDragActive] = useState(false);
-  const { showToast } = useToast();
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -64,16 +62,6 @@ export default function AddPack() {
       ...prev,
       [name]: type === "checkbox" ? checked : value,
     }));
-  };
-
-  const handleDrag = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (e.type === "dragenter" || e.type === "dragover") {
-      setDragActive(true);
-    } else if (e.type === "dragleave") {
-      setDragActive(false);
-    }
   };
 
   const handleAvantageChange = (index, value) => {

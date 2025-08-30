@@ -133,8 +133,11 @@ export default function DashboardCarousel() {
 
   if (loading) {
     return (
-      <div className="w-full h-48 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-500"></div>
+      <div className="w-full h-56 flex items-center justify-center">
+        <div className="relative">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-500"></div>
+          <div className="animate-ping absolute inset-0 rounded-full h-12 w-12 border border-primary-300 opacity-20"></div>
+        </div>
       </div>
     );
   }
@@ -145,18 +148,20 @@ export default function DashboardCarousel() {
   }
 
   return (
-    <div className="w-full">
+    <div className="w-full overflow-hidden rounded-xl">
       <Swiper
         modules={[Navigation, Pagination, Autoplay]}
         spaceBetween={20}
         slidesPerView={1}
         navigation
-        pagination={{ clickable: true }}
+        pagination={{ clickable: true, dynamicBullets: true }}
         autoplay={{
           delay: 5000,
           disableOnInteraction: false,
         }}
         loop={carouselItems.length > 3}
+        effect="fade"
+        speed={800}
         breakpoints={{
           640: {
             slidesPerView: 2,
@@ -172,23 +177,27 @@ export default function DashboardCarousel() {
         {carouselItems.map((item, index) => (
           <SwiperSlide key={index}>
             <div 
-              className={`relative h-52 rounded-xl overflow-hidden ${
+              className={`relative h-56 rounded-xl overflow-hidden ${
                 isDarkMode ? 'bg-gray-800' : 'bg-white'
-              } shadow-lg group hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1`}
+              } shadow-lg group hover:shadow-xl transition-all duration-500 transform hover:-translate-y-2 border ${isDarkMode ? 'border-gray-700' : 'border-gray-100'}`}
             >
               {/* Fond avec dégradé */}
-              <div className={`absolute inset-0 bg-gradient-to-br ${item.color} opacity-10 group-hover:opacity-15 transition-opacity`} />
+              <div className={`absolute inset-0 bg-gradient-to-br ${item.color} opacity-10 group-hover:opacity-20 transition-opacity duration-500`} />
+              
+              {/* Élément décoratif */}
+              <div className={`absolute -right-12 -top-12 w-40 h-40 rounded-full bg-gradient-to-br ${item.color} opacity-20 group-hover:opacity-30 transition-all duration-500 group-hover:scale-110 blur-md`}></div>
+              <div className={`absolute -left-12 -bottom-12 w-32 h-32 rounded-full bg-gradient-to-tl ${item.color} opacity-10 group-hover:opacity-20 transition-all duration-500 group-hover:scale-110 blur-md`}></div>
               
               {/* Image de fond si disponible */}
               {item.image && (
-                <div className="absolute inset-0 opacity-10 bg-cover bg-center" style={{ backgroundImage: `url(${item.image})` }}></div>
+                <div className="absolute inset-0 opacity-10 group-hover:opacity-15 bg-cover bg-center transition-opacity duration-500" style={{ backgroundImage: `url(${item.image})` }}></div>
               )}
               
               {/* Contenu */}
-              <div className="relative h-full p-4 flex flex-col">
+              <div className="relative h-full p-5 flex flex-col">
                 <div className="flex items-center gap-2 mb-2">
-                  <div className={`p-1.5 rounded-lg bg-gradient-to-br ${item.color} transform group-hover:scale-110 transition-transform`}>
-                    <item.icon className="h-5 w-5 text-white" />
+                  <div className={`p-1.5 rounded-lg bg-gradient-to-br ${item.color} transform group-hover:scale-125 transition-transform duration-500 shadow-md group-hover:shadow-lg`}>
+                    <item.icon className="h-5 w-5 text-white animate-pulse-slow" />
                   </div>
                   <span className={`text-xs font-medium truncate ${
                     isDarkMode ? 'text-gray-300' : 'text-gray-600'
@@ -198,7 +207,7 @@ export default function DashboardCarousel() {
                   </span>
                 </div>
 
-                <h3 className={`text-base font-semibold mb-1.5 line-clamp-2 ${
+                <h3 className={`text-base font-semibold mb-2 line-clamp-2 group-hover:text-transparent bg-clip-text bg-gradient-to-r ${item.color} transition-all duration-500 ${
                   isDarkMode ? 'text-white' : 'text-gray-900'
                 }`}>
                   {item.title}
@@ -224,14 +233,14 @@ export default function DashboardCarousel() {
                 )}
 
                 {/* Bouton "En savoir plus" avec effet de survol */}
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className={`px-4 py-2 rounded-full bg-gradient-to-r ${item.color} opacity-0 group-hover:opacity-90 scale-75 group-hover:scale-100 transition-all duration-300 shadow-lg`}>
+                <div className="absolute inset-0 flex items-center justify-center backdrop-blur-sm backdrop-filter opacity-0 group-hover:opacity-100 transition-all duration-500">
+                  <div className={`px-4 py-2 rounded-full bg-gradient-to-r ${item.color} scale-75 group-hover:scale-100 transition-all duration-500 shadow-lg hover:shadow-xl`}>
                     <Link
                       to={item.pageId ? `/dashboard/pages/${item.pageId}` : item.userId ? `/users/${item.userId}` : '#'}
                       className="inline-flex items-center text-xs font-medium text-white"
                     >
                       En savoir plus
-                      <ArrowTopRightOnSquareIcon className="h-3.5 w-3.5 ml-1 transform group-hover:translate-x-1 transition-transform" />
+                      <ArrowTopRightOnSquareIcon className="h-3.5 w-3.5 ml-1 transform group-hover:translate-x-1 transition-transform duration-300" />
                     </Link>
                   </div>
                 </div>
@@ -244,29 +253,59 @@ export default function DashboardCarousel() {
       <style>
         {`
           .dashboard-carousel {
-            padding: 4px 4px 40px 4px;
+            padding: 8px 8px 50px 8px;
           }
           .dashboard-carousel .swiper-pagination-bullet {
             background: ${isDarkMode ? '#ffffff' : '#000000'};
             opacity: 0.5;
-            transition: all 0.3s ease;
+            transition: all 0.5s ease;
+            width: 8px;
+            height: 8px;
           }
           .dashboard-carousel .swiper-pagination-bullet-active {
             opacity: 1;
             background: ${isDarkMode ? '#ffffff' : '#000000'};
-            transform: scale(1.2);
+            transform: scale(1.5);
+            width: 10px;
+            height: 10px;
           }
           .dashboard-carousel .swiper-button-next,
           .dashboard-carousel .swiper-button-prev {
-            color: ${isDarkMode ? '#ffffff' : '#000000'};
+            color: ${isDarkMode ? 'rgba(255, 255, 255, 0.8)' : 'rgba(0, 0, 0, 0.8)'};
             transition: all 0.3s ease;
+            background-color: ${isDarkMode ? 'rgba(31, 41, 55, 0.7)' : 'rgba(255, 255, 255, 0.7)'};
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(4px);
+          }
+          .dashboard-carousel .swiper-button-next:after,
+          .dashboard-carousel .swiper-button-prev:after {
+            font-size: 18px;
+            font-weight: bold;
           }
           .dashboard-carousel .swiper-button-next:hover,
           .dashboard-carousel .swiper-button-prev:hover {
-            transform: scale(1.1);
+            transform: scale(1.2);
+            background-color: ${isDarkMode ? 'rgba(31, 41, 55, 0.9)' : 'rgba(255, 255, 255, 0.9)'};
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
           }
           .dashboard-carousel .swiper-button-disabled {
             opacity: 0.35;
+          }
+          @keyframes pulse-slow {
+            0%, 100% {
+              opacity: 1;
+            }
+            50% {
+              opacity: 0.8;
+            }
+          }
+          .animate-pulse-slow {
+            animation: pulse-slow 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
           }
         `}
       </style>

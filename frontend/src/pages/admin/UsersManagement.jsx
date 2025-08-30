@@ -159,7 +159,7 @@ const UsersManagement = () => {
   const tabStyles = getTabStyles(isDarkMode);
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto p-0">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
           Gestion des utilisateurs
@@ -226,7 +226,7 @@ const UsersManagement = () => {
           </Tabs>
         </Paper>
 
-        <Box sx={{ mt: 3, bgcolor: isDarkMode ? '#1f2937' : '#ffffff', borderRadius: '0.5rem', p: 2 }}>
+        <Box sx={{ mt: 2, bgcolor: isDarkMode ? '#1f2937' : '#ffffff', borderRadius: '0.5rem', p: 1 }}>
           {availableTabs.map((tab, index) => (
             <div key={index} style={{ display: selectedTab === index ? 'block' : 'none' }}>
               <tab.component />

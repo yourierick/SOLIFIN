@@ -8,7 +8,6 @@ import axios from "axios";
 export default function useWithdrawalRequests() {
   const [pendingCount, setPendingCount] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
 
   useEffect(() => {
     const fetchPendingRequests = async () => {

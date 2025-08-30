@@ -196,7 +196,10 @@ export const AuthProvider = ({ children }) => {
         }
 
         // Afficher un message à l'utilisateur
-        showToast("Votre session a expiré. Veuillez vous reconnecter.", "error");
+        showToast(
+          "Votre session a expiré. Veuillez vous reconnecter.",
+          "error"
+        );
       }
     };
 
@@ -342,9 +345,6 @@ export const AuthProvider = ({ children }) => {
       await axios.get("/sanctum/csrf-cookie");
 
       const response = await axios.post("/api/login", { login, password });
-      
-      // Log de la réponse complète pour débogage
-      console.log("Réponse de login:", response.data);
 
       if (response.data.user) {
         setUser(response.data.user);
@@ -358,9 +358,9 @@ export const AuthProvider = ({ children }) => {
         if (lastUrl) {
           setLastVisitedUrl(lastUrl);
         }
-        
+
         // Les notifications pour les utilisateurs en période d'essai sont maintenant gérées dans LoginForm.jsx
-        
+
         return {
           success: true,
           user: response.data.user,
