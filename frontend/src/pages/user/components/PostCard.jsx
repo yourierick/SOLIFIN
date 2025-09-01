@@ -911,7 +911,8 @@ export default function PostCard({
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.95 }}
                 transition={{ duration: 0.1 }}
-                className={`absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-48 rounded-md shadow-lg z-10 ${
+                style={{ position: "absolute", right: "0", top: "-160px" }}
+                className={`w-48 rounded-md shadow-lg z-50 ${
                   isDarkMode ? "bg-gray-700" : "bg-white"
                 } ring-1 ring-black ring-opacity-5`}
               >
@@ -931,7 +932,7 @@ export default function PostCard({
                   </button>
                   <button
                     onClick={() => {
-                      onShare(post.id, "twitter");
+                      onShare(post.type, post.id, "twitter");
                       setIsShareMenuOpen(false);
                     }}
                     className={`block w-full text-left px-4 py-2 text-sm ${
@@ -940,11 +941,11 @@ export default function PostCard({
                         : "text-gray-700 hover:bg-gray-100"
                     }`}
                   >
-                    Twitter
+                    X/Twitter
                   </button>
                   <button
                     onClick={() => {
-                      onShare(post.id, "linkedin");
+                      onShare(post.type, post.id, "linkedin");
                       setIsShareMenuOpen(false);
                     }}
                     className={`block w-full text-left px-4 py-2 text-sm ${
@@ -957,7 +958,7 @@ export default function PostCard({
                   </button>
                   <button
                     onClick={() => {
-                      onShare(post.id, "whatsapp");
+                      onShare(post.type, post.id, "whatsapp");
                       setIsShareMenuOpen(false);
                     }}
                     className={`block w-full text-left px-4 py-2 text-sm ${

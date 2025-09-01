@@ -50,9 +50,6 @@ export default function PublicationDetailsModal({
   type,
   onEdit,
 }) {
-  const [showComments, setShowComments] = useState(false);
-  const [showShareModal, setShowShareModal] = useState(false);
-
   // Style pour la scrollbar personnalisée et l'effet de flou
   useEffect(() => {
     const style = document.createElement("style");
@@ -426,192 +423,242 @@ export default function PublicationDetailsModal({
           />
 
           {/* Contenu du modal */}
-          <div className="fixed inset-0 z-50">
-        <div className="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-          <span
-            className="hidden sm:inline-block sm:align-middle sm:h-screen"
-            aria-hidden="true"
-          >
-            &#8203;
-          </span>
-
-          <motion.div 
-            initial={{ opacity: 0, y: 20, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 20, scale: 0.95 }}
-            transition={{ duration: 0.4, ease: "easeOut" }}
-            className="inline-block align-bottom bg-white dark:bg-gray-800 rounded-lg text-left overflow-hidden shadow-xl transform sm:my-12 sm:align-middle sm:max-w-2xl sm:w-full">
-            {/* En-tête amélioré avec gradient */}
-            <div className="bg-gradient-to-r from-blue-600 to-indigo-700 px-4 py-3 flex justify-between items-center">
-              <h3 className="text-lg font-bold text-white">
-                {details.title}
-              </h3>
-              <button
-                type="button"
-                onClick={onClose}
-                className="rounded-full p-1 bg-white/20 text-white hover:bg-white/30 focus:outline-none focus:ring-2 focus:ring-white/50 transition-all duration-200"
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div className="w-full max-w-2xl mx-auto">
+              <motion.div
+                initial={{ opacity: 0, y: 20, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 20, scale: 0.95 }}
+                transition={{ duration: 0.4, ease: "easeOut" }}
+                className="bg-white dark:bg-gray-800 rounded-lg text-left overflow-hidden shadow-xl w-full"
               >
-                <XMarkIcon className="h-5 w-5" />
-              </button>
-            </div>
-            
-            <div className="bg-white dark:bg-gray-800 px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
-              <div className="sm:flex sm:items-start">
-                <div className="mt-3 text-center sm:mt-0 sm:text-left w-full">
+                {/* En-tête amélioré avec gradient */}
+                <div className="bg-gradient-to-r from-green-600 to-green-700 px-4 py-3 flex justify-between items-center">
+                  <h3 className="text-lg font-bold text-white">
+                    {details.title}
+                  </h3>
+                  <button
+                    type="button"
+                    onClick={onClose}
+                    className="rounded-full p-1 bg-white/20 text-white hover:bg-white/30 focus:outline-none focus:ring-2 focus:ring-white/50 transition-all duration-200"
+                  >
+                    <XMarkIcon className="h-5 w-5" />
+                  </button>
+                </div>
 
-                  <div className="custom-scrollbar max-h-[calc(100vh-250px)]" style={{ overflowY: 'auto', overflowX: 'hidden' }}>
-                    <div className="bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-700 dark:to-gray-800 p-5 rounded-xl mb-5 shadow-sm border border-gray-200 dark:border-gray-700">
-                      <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
-                        {details.subtitle}
-                      </h2>
-                      <div className="flex items-center text-sm text-gray-500 dark:text-gray-400">
-                        <svg className="h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                        </svg>
-                        <span>Publié le {details.date}</span>
-                      </div>
-                    </div>
-
-                    <div className="mt-6 bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700">
-                      <h4 className="text-base font-semibold text-gray-700 dark:text-gray-300 flex items-center">
-                        <svg className="h-5 w-5 mr-2 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                        </svg>
-                        Description
-                      </h4>
-                      <div className="mt-2 text-sm text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-700 p-3 rounded-lg">
-                        {details.description || "Aucune description disponible"}
-                      </div>
-                    </div>
-
-                    {publication.image_url && (
-                      <div className="mt-6">
-                        <h4 className="text-base font-semibold text-gray-700 dark:text-gray-300 flex items-center mb-2">
-                          <svg className="h-5 w-5 mr-2 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                          </svg>
-                          Image
-                        </h4>
-                        <div className="mt-1 bg-gray-100 dark:bg-gray-700 p-2 rounded-xl overflow-hidden shadow-inner">
-                          <img
-                            src={publication.image_url}
-                            alt={details.subtitle}
-                            className="max-w-full h-auto rounded-lg max-h-72 object-contain mx-auto hover:scale-105 transition-transform duration-300"
-                          />
-                        </div>
-                      </div>
-                    )}
-
-                    {publication.video_url && (
-                      <div className="mt-6">
-                        <h4 className="text-base font-semibold text-gray-700 dark:text-gray-300 flex items-center mb-2">
-                          <svg className="h-5 w-5 mr-2 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                          </svg>
-                          Vidéo
-                        </h4>
-                        <div className="mt-1 bg-gray-100 dark:bg-gray-700 p-2 rounded-xl overflow-hidden shadow-inner">
-                          <video
-                            src={publication.video_url}
-                            controls
-                            className="max-w-full h-auto rounded-lg max-h-72 mx-auto"
-                          />
-                        </div>
-                      </div>
-                    )}
-
-                    <div className="mt-6 bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700">
-                      <h4 className="text-base font-semibold text-gray-700 dark:text-gray-300 flex items-center">
-                        <svg className="h-5 w-5 mr-2 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                        </svg>
-                        {details.details.title} - Détails
-                      </h4>
-                      <dl className="mt-3 divide-y divide-gray-200 dark:divide-gray-700 border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
-                        {details.details.fields.map((field, index) => (
-                          <div
-                            key={index}
-                            className={`py-3 px-4 flex justify-between text-sm gap-4 ${index % 2 === 0 ? 'bg-gray-50 dark:bg-gray-700' : 'bg-white dark:bg-gray-800'}`}
-                          >
-                            <dt className="text-gray-600 dark:text-gray-400 font-medium">
-                              {field.label}
-                            </dt>
-                            <dd className="text-gray-900 dark:text-white font-semibold">
-                              {field.value}
-                            </dd>
+                <div className="bg-white dark:bg-gray-800 px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                  <div className="sm:flex sm:items-start">
+                    <div className="mt-3 text-center sm:mt-0 sm:text-left w-full">
+                      <div
+                        className="custom-scrollbar max-h-[calc(100vh-250px)]"
+                        style={{ overflowY: "auto", overflowX: "hidden" }}
+                      >
+                        <div className="bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-700 dark:to-gray-800 p-5 rounded-xl mb-5 shadow-sm border border-gray-200 dark:border-gray-700">
+                          <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
+                            {details.subtitle}
+                          </h2>
+                          <div className="flex items-center text-sm text-gray-500 dark:text-gray-400">
+                            <svg
+                              className="h-4 w-4 mr-1"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                              xmlns="http://www.w3.org/2000/svg"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                              />
+                            </svg>
+                            <span>Publié le {details.date}</span>
                           </div>
-                        ))}
-                      </dl>
+                        </div>
+
+                        <div className="mt-6 bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700">
+                          <h4 className="text-base font-semibold text-gray-700 dark:text-gray-300 flex items-center">
+                            <svg
+                              className="h-5 w-5 mr-2 text-blue-500"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                              xmlns="http://www.w3.org/2000/svg"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                              />
+                            </svg>
+                            Description
+                          </h4>
+                          <div className="mt-2 text-sm text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-700 p-3 rounded-lg">
+                            {details.description ||
+                              "Aucune description disponible"}
+                          </div>
+                        </div>
+
+                        {publication.image_url && (
+                          <div className="mt-6">
+                            <h4 className="text-base font-semibold text-gray-700 dark:text-gray-300 flex items-center mb-2">
+                              <svg
+                                className="h-5 w-5 mr-2 text-blue-500"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                                xmlns="http://www.w3.org/2000/svg"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                                />
+                              </svg>
+                              Image
+                            </h4>
+                            <div className="mt-1 bg-gray-100 dark:bg-gray-700 p-2 rounded-xl overflow-hidden shadow-inner">
+                              <img
+                                src={publication.image_url}
+                                alt={details.subtitle}
+                                className="max-w-full h-auto rounded-lg max-h-72 object-contain mx-auto hover:scale-105 transition-transform duration-300"
+                              />
+                            </div>
+                          </div>
+                        )}
+
+                        {publication.video_url && (
+                          <div className="mt-6">
+                            <h4 className="text-base font-semibold text-gray-700 dark:text-gray-300 flex items-center mb-2">
+                              <svg
+                                className="h-5 w-5 mr-2 text-blue-500"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                                xmlns="http://www.w3.org/2000/svg"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"
+                                />
+                              </svg>
+                              Vidéo
+                            </h4>
+                            <div className="mt-1 bg-gray-100 dark:bg-gray-700 p-2 rounded-xl overflow-hidden shadow-inner">
+                              <video
+                                src={publication.video_url}
+                                controls
+                                className="max-w-full h-auto rounded-lg max-h-72 mx-auto"
+                              />
+                            </div>
+                          </div>
+                        )}
+
+                        <div className="mt-6 bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700">
+                          <h4 className="text-base font-semibold text-gray-700 dark:text-gray-300 flex items-center">
+                            <svg
+                              className="h-5 w-5 mr-2 text-blue-500"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                              xmlns="http://www.w3.org/2000/svg"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
+                              />
+                            </svg>
+                            {details.details.title} - Détails
+                          </h4>
+                          <dl className="mt-3 divide-y divide-gray-200 dark:divide-gray-700 border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+                            {details.details.fields.map((field, index) => (
+                              <div
+                                key={index}
+                                className={`py-3 px-4 flex justify-between text-sm gap-4 ${
+                                  index % 2 === 0
+                                    ? "bg-gray-50 dark:bg-gray-700"
+                                    : "bg-white dark:bg-gray-800"
+                                }`}
+                              >
+                                <dt className="text-gray-600 dark:text-gray-400 font-medium">
+                                  {field.label}
+                                </dt>
+                                <dd className="text-gray-900 dark:text-white font-semibold">
+                                  {field.value}
+                                </dd>
+                              </div>
+                            ))}
+                          </dl>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            </div>
 
-            {/* Barre d'interactions */}
-            <div className="border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-4 py-4 rounded-b-lg">
-              <InteractionBar
-                publicationType={type}
-                publicationId={publication.id}
-                onCommentClick={() => setShowComments(!showComments)}
-                onShareClick={() => setShowShareModal(true)}
-                className="justify-center gap-8"
-              />
-            </div>
-
-            {/* Section des commentaires */}
-            {showComments && (
-              <div className="border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 rounded-b-lg shadow-inner">
-                <div className="mb-3 flex items-center">
-                  <svg className="h-5 w-5 mr-2 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
-                  </svg>
-                  <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-300">Commentaires</h3>
+                {/* Barre d'interactions */}
+                <div className="border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-4 py-4 rounded-b-lg">
+                  <InteractionBar
+                    publicationType={type}
+                    publicationId={publication.id}
+                    className="justify-center gap-8"
+                  />
                 </div>
-                <CommentSection
-                  publicationType={type}
-                  publicationId={publication.id}
-                />
-              </div>
-            )}
 
-            <div className="bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900 px-6 py-4 sm:px-6 sm:flex sm:flex-row-reverse rounded-b-lg border-t border-gray-200 dark:border-gray-700">
-              {onEdit && (
-                <button
-                  type="button"
-                  onClick={onEdit}
-                  className="ml-3 inline-flex items-center justify-center rounded-md border border-transparent shadow-sm px-5 py-2 bg-gradient-to-r from-blue-600 to-blue-700 text-base font-medium text-white hover:from-blue-700 hover:to-blue-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:text-sm transition-all duration-200 transform hover:scale-105"
-                >
-                  <svg className="h-4 w-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                  </svg>
-                  Modifier
-                </button>
-              )}
-              <button
-                type="button"
-                onClick={onClose}
-                className="mt-3 w-full inline-flex items-center justify-center rounded-md border border-gray-300 dark:border-gray-600 shadow-sm px-5 py-2 bg-white dark:bg-gray-800 text-base font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 dark:focus:ring-offset-gray-800 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm transition-all duration-200"
-              >
-                <svg className="h-4 w-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-                Fermer
-              </button>
+                <div className="bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900 px-6 py-4 sm:px-6 sm:flex sm:flex-row-reverse rounded-b-lg border-t border-gray-200 dark:border-gray-700">
+                  {onEdit && (
+                    <button
+                      type="button"
+                      onClick={onEdit}
+                      className="ml-3 inline-flex items-center justify-center rounded-md border border-transparent shadow-sm px-5 py-2 bg-gradient-to-r from-green-600 to-green-700 text-base font-medium text-white hover:from-green-700 hover:to-green-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 sm:text-sm transition-all duration-200 transform hover:scale-105"
+                    >
+                      <svg
+                        className="h-4 w-4 mr-1.5"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                        xmlns="http://www.w3.org/2000/svg"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                        />
+                      </svg>
+                      Modifier
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={onClose}
+                    className="mt-3 w-full inline-flex items-center justify-center rounded-md border border-gray-300 dark:border-gray-600 shadow-sm px-5 py-2 bg-white dark:bg-gray-800 text-base font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 dark:focus:ring-offset-gray-800 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm transition-all duration-200"
+                  >
+                    <svg
+                      className="h-4 w-4 mr-1.5"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M6 18L18 6M6 6l12 12"
+                      />
+                    </svg>
+                    Fermer
+                  </button>
+                </div>
+              </motion.div>
             </div>
-          </motion.div>
-        </div>
-
-        {showShareModal && (
-          <ShareModal
-            isOpen={showShareModal}
-            onClose={() => setShowShareModal(false)}
-            publicationType={type}
-            publicationId={publication.id}
-            publicationTitle={details.subtitle}
-          />
-        )}
-      </div>
+          </div>
         </>
       )}
     </AnimatePresence>

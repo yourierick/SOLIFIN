@@ -185,10 +185,12 @@ class DigitalProductController extends Controller
      */
     public function update(Request $request, $id)
     {
+        \Log::info($request->all());
         try {
             $validator = Validator::make($request->all(), [
                 'titre' => 'required|string|max:255',
                 'description' => 'required|string',
+                'type' => 'required|in:ebook,fichier_admin',
                 'prix' => 'required|numeric|min:0',
                 'devise' => 'required|string|max:10',
                 'image' => 'nullable|image|max:2048', // 2MB max
@@ -231,10 +233,14 @@ class DigitalProductController extends Controller
             // Mise à jour des autres champs
             $product->titre = $request->titre;
             $product->description = $request->description;
+            $product->type = $request->type;
             $product->prix = $request->prix;
             $product->devise = $request->devise;
             $product->statut = 'en_attente'; // Remettre en attente pour validation
             $product->save();
+
+            $product->image_url = $product->image ? asset("storage/" . $product->image) : null;
+            $product->fichier_url = $product->fichier ? asset("storage/" . $product->fichier) : null;
 
             DB::commit();
             return response()->json([

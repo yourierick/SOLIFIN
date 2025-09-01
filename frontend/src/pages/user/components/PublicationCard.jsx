@@ -8,7 +8,10 @@ import {
   EyeIcon,
   TagIcon,
   RocketLaunchIcon,
+  CalendarIcon,
+  MapPinIcon,
 } from "@heroicons/react/24/outline";
+import { motion } from "framer-motion";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import InteractionBar from "../../../components/InteractionBar";
@@ -240,14 +243,42 @@ export default function PublicationCard({
   };
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden border border-gray-200 dark:border-gray-700 hover:shadow-lg transition-shadow duration-300 flex flex-col h-full">
-      <div className="p-4 flex-grow">
-        <div className="flex justify-between items-start">
-          {details.icon}
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4 }}
+      whileHover={{ y: -4 }}
+      className="bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden border border-gray-200 dark:border-gray-700 hover:shadow-xl transition-all duration-300 flex flex-col h-full"
+    >
+      <div className="p-5 flex-grow relative">
+        {/* Badge de statut flottant */}
+        <div className="absolute top-2 right-2 z-10 flex space-x-1.5">
+          <span
+            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${details.statusStyles}`}
+          >
+            {details.statusText}
+          </span>
+          <span
+            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getEtatStyles(
+              publication.etat || "disponible"
+            )}`}
+          >
+            <TagIcon className="mr-1 h-3 w-3" />
+            {getEtatText(publication.etat || "disponible")}
+          </span>
+        </div>
+        <div className="flex justify-between items-start mt-3">
+          <motion.div
+            whileHover={{ scale: 1.15, rotate: [0, -5, 5, -5, 0] }}
+            transition={{ duration: 0.5 }}
+            className="transform"
+          >
+            {details.icon}
+          </motion.div>
           <div className="relative" ref={menuRef}>
             <button
               onClick={toggleActionMenu}
-              className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 rounded-full p-1 hover:bg-gray-100 dark:hover:bg-gray-600"
+              className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 rounded-full p-2 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
               title="Options"
             >
               <svg
@@ -266,7 +297,7 @@ export default function PublicationCard({
               </svg>
             </button>
             {showActionMenu && (
-              <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-700 rounded-md shadow-lg z-10 border border-gray-200 dark:border-gray-600">
+              <div className="absolute right-0 mt-2 w-52 bg-white dark:bg-gray-700 rounded-lg shadow-xl z-10 border border-gray-200 dark:border-gray-600 overflow-hidden transform origin-top-right transition-all duration-200 animate-fadeIn">
                 <div className="py-1">
                   {publication.statut === "approuvé" &&
                     publication.etat === "disponible" && (
@@ -315,28 +346,40 @@ export default function PublicationCard({
             )}
           </div>
         </div>
-        <div className="px-4 py-3">
-          <h3 className="text-sm font-medium truncate text-gray-900 dark:text-white">
+        <div className="px-1 py-4">
+          <h3
+            onClick={handleViewDetails}
+            className="text-base font-semibold truncate text-gray-900 dark:text-white mb-1 hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-200 cursor-pointer"
+          >
             {details.title}
           </h3>
-          <p className="text-xs text-gray-500 dark:text-gray-300 mb-2 truncate">
+          <div className="flex items-center text-xs text-gray-500 dark:text-gray-400 mb-2">
+            <MapPinIcon className="h-3.5 w-3.5 mr-1" />
+            <span>
+              {publication.ville || publication.pays || "Non spécifié"}
+            </span>
+            <span className="mx-2">•</span>
+            <CalendarIcon className="h-3.5 w-3.5 mr-1" />
+            <span>{formattedDate}</span>
+          </div>
+          <p className="text-sm text-gray-600 dark:text-gray-300 mb-3 line-clamp-2 h-10 overflow-hidden">
             {details.description}
           </p>
-          <div className="flex flex-col space-y-1">
-            <div className="flex justify-between text-sm">
+          <div className="flex flex-col space-y-2 bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-700/50 dark:to-gray-700/30 p-3 rounded-lg border border-gray-100 dark:border-gray-600/20 shadow-sm">
+            <div className="flex justify-between items-center">
               <span className="text-xs font-medium text-gray-500 dark:text-gray-400">
-                {details.categoryLabel}:
+                {details.categoryLabel}
               </span>
-              <span className="text-gray-900 dark:text-white font-medium">
+              <span className="text-sm text-gray-900 dark:text-white font-medium bg-gray-100 dark:bg-gray-600 px-2 py-0.5 rounded">
                 {details.categoryValue}
               </span>
             </div>
             {details.priceLabel && (
-              <div className="flex justify-between text-sm">
+              <div className="flex justify-between items-center">
                 <span className="text-xs font-medium text-gray-500 dark:text-gray-400">
-                  {details.priceLabel}:
+                  {details.priceLabel}
                 </span>
-                <span className="text-gray-900 dark:text-white font-medium">
+                <span className="text-sm text-gray-900 dark:text-white font-medium bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-2 py-0.5 rounded">
                   {details.priceValue}
                 </span>
               </div>
@@ -344,35 +387,27 @@ export default function PublicationCard({
           </div>
         </div>
       </div>
-      <div className="border-t border-gray-200 dark:border-gray-700 px-4 py-2">
+      <div className="border-t border-gray-200 dark:border-gray-700 px-4 py-2 bg-gray-50/50 dark:bg-gray-800/80">
         <InteractionBar
           publicationType={type}
           publicationId={publication.id}
           onCommentClick={handleViewDetails}
           onShareClick={handleViewDetails}
           showCounts={false}
+          className="justify-center gap-6"
         />
       </div>
-      <div className="border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 px-4 py-3 flex justify-between items-center">
-        <div className="flex space-x-2">
-          <span
-            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${details.statusStyles}`}
-          >
-            {details.statusText}
-          </span>
-          <span
-            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getEtatStyles(
-              publication.etat || "disponible"
-            )}`}
-          >
-            <TagIcon className="mr-1 h-3 w-3" />
-            {getEtatText(publication.etat || "disponible")}
-          </span>
-        </div>
-        <span className="text-xs text-gray-500 dark:text-gray-400">
-          Publié le {formattedDate}
-        </span>
+      <div className="border-t border-gray-200 dark:border-gray-700 bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800/70 dark:to-gray-800/50 px-4 py-3 flex items-center">
+        <motion.button
+          onClick={handleViewDetails}
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          className="w-full text-sm bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white py-1.5 px-4 rounded-md transition-all duration-200 flex items-center justify-center shadow-sm"
+        >
+          <EyeIcon className="h-4 w-4 mr-2" />
+          Voir les détails
+        </motion.button>
       </div>
-    </div>
+    </motion.div>
   );
 }

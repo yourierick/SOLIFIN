@@ -310,20 +310,20 @@ export default function NewsFeed({ initialActiveTab = 0, showTabs = true }) {
           setPosts((prevPosts) => {
             // Filtrer les doublons en utilisant un Map pour garantir l'unicité des IDs
             const postsMap = new Map();
-            
+
             // Ajouter d'abord les posts existants au Map
-            prevPosts.forEach(post => {
+            prevPosts.forEach((post) => {
               postsMap.set(post.id, post);
             });
-            
+
             // Ajouter ensuite les nouveaux posts, en écrasant les anciens si même ID
-            newPosts.forEach(post => {
+            newPosts.forEach((post) => {
               postsMap.set(post.id, post);
             });
-            
+
             // Convertir le Map en tableau
             const combinedPosts = Array.from(postsMap.values());
-            
+
             // Extraire les valeurs uniques pour les filtres
             extractUniqueValues(combinedPosts);
             return combinedPosts;
@@ -344,10 +344,10 @@ export default function NewsFeed({ initialActiveTab = 0, showTabs = true }) {
           err.message &&
           (err.message.includes("ERR_INSUFFICIENT_RESOURCES") ||
             err.message.includes("ERR_NETWORK"));
-            
-        const isTimeoutError = 
-          err.code === 'ECONNABORTED' || 
-          (err.message && err.message.includes('timeout'));
+
+        const isTimeoutError =
+          err.code === "ECONNABORTED" ||
+          (err.message && err.message.includes("timeout"));
 
         // Mécanisme de retry limité (maximum 2 tentatives et pas de retry pour les erreurs de ressources)
         // Pour les erreurs de timeout, on fait quand même une tentative mais avec un délai plus long
@@ -667,55 +667,9 @@ export default function NewsFeed({ initialActiveTab = 0, showTabs = true }) {
     }
   };
 
-  // Gérer l'action "J'aime" sur un commentaire
-  const handleCommentLike = async (commentId, postId) => {
-    try {
-      const response = await axios.post(`/api/comments/${commentId}/like`);
-
-      setPosts((prevPosts) =>
-        prevPosts.map((post) =>
-          post.id === postId
-            ? {
-                ...post,
-                comments: post.comments.map((comment) =>
-                  comment.id === commentId
-                    ? {
-                        ...comment,
-                        is_liked: response.data.liked,
-                        likes_count: response.data.likes_count,
-                      }
-                    : comment
-                ),
-              }
-            : post
-        )
-      );
-
-      // Mettre à jour le post sélectionné si nécessaire
-      if (selectedPost && selectedPost.id === postId) {
-        setSelectedPost({
-          ...selectedPost,
-          comments: selectedPost.comments.map((comment) =>
-            comment.id === commentId
-              ? {
-                  ...comment,
-                  is_liked: response.data.liked,
-                  likes_count: response.data.likes_count,
-                }
-              : comment
-          ),
-        });
-      }
-    } catch (err) {
-      console.error(
-        "Erreur lors de l'action \"J'aime\" sur un commentaire:",
-        err
-      );
-    }
-  };
-
   // Gérer le partage d'un post
   const handleShare = async (type, postId, platform) => {
+    console.log(type, postId, platform);
     try {
       const response = await axios.post(`/api/${type}/${postId}/share`, {
         platform,
@@ -1289,7 +1243,11 @@ export default function NewsFeed({ initialActiveTab = 0, showTabs = true }) {
             <div className="space-y-6">
               {error && (
                 <div
-                  className={`p-6 rounded-lg text-center ${isDarkMode ? "bg-gray-800 text-red-300" : "bg-white text-red-500"}`}
+                  className={`p-6 rounded-lg text-center ${
+                    isDarkMode
+                      ? "bg-gray-800 text-red-300"
+                      : "bg-white text-red-500"
+                  }`}
                 >
                   <p className="text-lg font-medium">{error}</p>
                   <button
@@ -1439,7 +1397,6 @@ export default function NewsFeed({ initialActiveTab = 0, showTabs = true }) {
                           post={post}
                           onLike={handleLike}
                           onComment={handleAddComment}
-                          onCommentLike={handleCommentLike}
                           onDeleteComment={handleDeleteComment}
                           onShare={handleShare}
                           onViewDetails={() =>
@@ -1456,7 +1413,6 @@ export default function NewsFeed({ initialActiveTab = 0, showTabs = true }) {
                         post={post}
                         onLike={handleLike}
                         onComment={handleAddComment}
-                        onCommentLike={handleCommentLike}
                         onDeleteComment={handleDeleteComment}
                         onShare={handleShare}
                         onViewDetails={() => openPostDetail(post.id, post.type)}
@@ -1982,32 +1938,6 @@ export default function NewsFeed({ initialActiveTab = 0, showTabs = true }) {
                 <div className="text-sm font-medium text-gray-500 dark:text-gray-400 flex items-center">
                   <InformationCircleIcon className="h-5 w-5 mr-1" />
                   <span>Cliquez sur une offre pour voir les détails</span>
-                </div>
-                <div className="flex items-center">
-                  <span
-                    className={`text-sm mr-2 ${
-                      isDarkMode ? "text-gray-300" : "text-gray-700"
-                    }`}
-                  >
-                    Trier par:
-                  </span>
-                  <div className="relative">
-                    <select
-                      className={`block appearance-none w-full px-4 py-2 pr-8 rounded border ${
-                        isDarkMode
-                          ? "bg-gray-700 text-white border-gray-600"
-                          : "bg-white text-gray-700 border-gray-300"
-                      } focus:outline-none focus:ring-2 focus:ring-primary-500`}
-                      defaultValue="recent"
-                    >
-                      <option value="recent">Offres récentes</option>
-                      <option value="oldest">Offres anciennes</option>
-                      <option value="company">Organisme</option>
-                    </select>
-                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500">
-                      <ChevronDownIcon className="h-4 w-4" />
-                    </div>
-                  </div>
                 </div>
               </div>
             </div>
@@ -3484,7 +3414,6 @@ export default function NewsFeed({ initialActiveTab = 0, showTabs = true }) {
           post={selectedPost}
           onLike={handleLike}
           onComment={handleAddComment}
-          onCommentLike={handleCommentLike}
           onDeleteComment={handleDeleteComment}
           onShare={handleShare}
           isDarkMode={isDarkMode}
