@@ -4,8 +4,10 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Setting;
+use App\Models\SerdiPayTransaction;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\DB;
 
 class SettingsController extends Controller
 {
@@ -268,5 +270,320 @@ class SettingsController extends Controller
             'success' => true,
             'settings' => $settings
         ]);
+    }
+    
+    /**
+     * Récupère les transactions Serdipay avec pagination, filtres et statistiques
+     *
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function getSerdipayTransactions(Request $request)
+    {
+        try {
+            // Récupérer les paramètres de requête
+            $perPage = $request->input('per_page', 10);
+            $search = $request->input('search');
+            $status = $request->input('status');
+            $payment_method = $request->input('payment_method');
+            $type = $request->input('type');
+            $payment_type = $request->input('payment_type');
+            $direction = $request->input('direction');
+            $date_from = $request->input('date_from');
+            $date_to = $request->input('date_to');
+            $stats_only = $request->input('stats_only', false);
+            $include_stats = $request->input('include_stats', true);
+            
+            // Construire la requête de base
+            $query = SerdiPayTransaction::query();
+            
+            // Appliquer les filtres
+            if ($search) {
+                $query->where(function($q) use ($search) {
+                    $q->where('id', 'like', "%{$search}%")
+                      ->orWhere('reference', 'like', "%{$search}%")
+                      ->orWhere('email', 'like', "%{$search}%")
+                      ->orWhere('phone', 'like', "%{$search}%")
+                      ->orWhereHas('user', function($userQuery) use ($search) {
+                          $userQuery->where('name', 'like', "%{$search}%")
+                                   ->orWhere('email', 'like', "%{$search}%");
+                      });
+                });
+            }
+            
+            if ($status) {
+                $query->where('status', $status);
+            }
+            
+            if ($payment_method) {
+                $query->where('payment_method', $payment_method);
+            }
+            
+            if ($type) {
+                $query->where('type', $type);
+            }
+            
+            if ($payment_type) {
+                $query->where('payment_type', $payment_type);
+            }
+            
+            if ($direction) {
+                $query->where('direction', $direction);
+            }
+            
+            if ($date_from) {
+                $query->whereDate('created_at', '>=', $date_from);
+            }
+            
+            if ($date_to) {
+                $query->whereDate('created_at', '<=', $date_to);
+            }
+            
+            // Préparer la réponse
+            $response = ['success' => true];
+            
+            // Si on ne demande que les statistiques, on ne charge pas les transactions
+            if (!$stats_only) {
+                // Ajouter les relations seulement si nécessaire pour la pagination
+                $query->with(['user', 'wallet'])->orderBy('created_at', 'desc');
+                $response['transactions'] = $query->paginate($perPage);
+            }
+            
+            // Calculer les statistiques si demandé
+            if ($include_stats) {
+                // Utiliser des requêtes optimisées avec cache pour les statistiques
+                $cacheTime = 60; // Cache de 60 minutes pour les statistiques
+                $cacheKey = 'serdipay_stats_' . md5(json_encode($request->all()));
+                
+                $stats = \Illuminate\Support\Facades\Cache::remember($cacheKey, $cacheTime, function () use ($date_from, $date_to) {
+                    // Requête optimisée pour les comptages et sommes
+                    $baseQuery = SerdiPayTransaction::query();
+                    
+                    // Appliquer les filtres de date aux statistiques si spécifiés
+                    if ($date_from) {
+                        $baseQuery->whereDate('created_at', '>=', $date_from);
+                    }
+                    
+                    if ($date_to) {
+                        $baseQuery->whereDate('created_at', '<=', $date_to);
+                    }
+                    
+                    // Utiliser une seule requête pour les comptages par statut
+                    $statusCounts = $baseQuery->selectRaw('status, COUNT(*) as count, SUM(CASE WHEN status = "completed" THEN amount ELSE 0 END) as total_amount')
+                        ->groupBy('status')
+                        ->get()
+                        ->keyBy('status');
+                    
+                    // Requête optimisée pour les statistiques par méthode de paiement
+                    $paymentMethodStats = SerdiPayTransaction::selectRaw('payment_method, COUNT(*) as count')
+                        ->groupBy('payment_method')
+                        ->get();
+                    
+                    // Requête optimisée pour les statistiques mensuelles
+                    $monthlyStats = SerdiPayTransaction::selectRaw('DATE_FORMAT(created_at, "%Y-%m") as month, COUNT(*) as count, SUM(CASE WHEN status = "completed" THEN amount ELSE 0 END) as amount')
+                        ->groupBy('month')
+                        ->orderBy('month')
+                        ->get();
+                    
+                    // Calculer les totaux à partir des résultats
+                    $totalTransactions = $statusCounts->sum('count');
+                    $totalAmount = $statusCounts->sum('total_amount');
+                    $successfulTransactions = $statusCounts->get('completed')['count'] ?? 0;
+                    $failedTransactions = $statusCounts->get('failed')['count'] ?? 0;
+                    $pendingTransactions = $statusCounts->get('pending')['count'] ?? 0;
+                    
+                    return [
+                        'totalTransactions' => $totalTransactions,
+                        'totalAmount' => $totalAmount,
+                        'successfulTransactions' => $successfulTransactions,
+                        'failedTransactions' => $failedTransactions,
+                        'pendingTransactions' => $pendingTransactions,
+                        'paymentMethodStats' => $paymentMethodStats,
+                        'monthlyStats' => $monthlyStats
+                    ];
+                });
+                
+                $response['stats'] = $stats;
+            }
+            
+            return response()->json($response);
+            
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Erreur lors de la récupération des transactions: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+    
+    /**
+     * Récupère une transaction Serdipay spécifique avec tous ses détails
+     *
+     * @param int $id
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function getSerdipayTransaction($id)
+    {
+        try {
+            $transaction = SerdiPayTransaction::with(['user', 'wallet'])->findOrFail($id);
+            
+            return response()->json([
+                'success' => true,
+                'transaction' => $transaction
+            ]);
+            
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Erreur lors de la récupération de la transaction: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+    
+    /**
+     * Exporte les transactions Serdipay au format CSV ou Excel
+     *
+     * @param Request $request
+     * @return \Illuminate\Http\Response
+     */
+    public function exportSerdipayTransactions(Request $request)
+    {
+        try {
+            // Récupérer les paramètres de requête
+            $format = $request->input('format', 'csv');
+            $search = $request->input('search');
+            $status = $request->input('status');
+            $payment_method = $request->input('payment_method');
+            $type = $request->input('type');
+            $payment_type = $request->input('payment_type');
+            $direction = $request->input('direction');
+            $date_from = $request->input('date_from');
+            $date_to = $request->input('date_to');
+            
+            // Construire la requête de base
+            $query = SerdiPayTransaction::with('user');
+            
+            // Appliquer les filtres
+            if ($search) {
+                $query->where(function($q) use ($search) {
+                    $q->where('id', 'like', "%{$search}%")
+                      ->orWhere('reference', 'like', "%{$search}%")
+                      ->orWhere('email', 'like', "%{$search}%")
+                      ->orWhere('phone', 'like', "%{$search}%")
+                      ->orWhereHas('user', function($userQuery) use ($search) {
+                          $userQuery->where('name', 'like', "%{$search}%")
+                                   ->orWhere('email', 'like', "%{$search}%");
+                      });
+                });
+            }
+            
+            if ($status) {
+                $query->where('status', $status);
+            }
+            
+            if ($payment_method) {
+                $query->where('payment_method', $payment_method);
+            }
+            
+            if ($type) {
+                $query->where('type', $type);
+            }
+            
+            if ($payment_type) {
+                $query->where('payment_type', $payment_type);
+            }
+            
+            if ($direction) {
+                $query->where('direction', $direction);
+            }
+            
+            if ($date_from) {
+                $query->whereDate('created_at', '>=', $date_from);
+            }
+            
+            if ($date_to) {
+                $query->whereDate('created_at', '<=', $date_to);
+            }
+            
+            // Récupérer les transactions
+            $transactions = $query->orderBy('created_at', 'desc')->get();
+            
+            // Définir les en-têtes
+            $headers = [
+                'ID', 'Référence', 'Utilisateur', 'Email', 'Téléphone', 
+                'Montant', 'Devise', 'Méthode de paiement', 'Type', 'Type de paiement',
+                'Direction', 'Statut', 'Date de création', 'Date de mise à jour'
+            ];
+            
+            // Préparer les données
+            $data = [];
+            foreach ($transactions as $transaction) {
+                $data[] = [
+                    $transaction->id,
+                    $transaction->reference,
+                    $transaction->user ? $transaction->user->name : 'N/A',
+                    $transaction->email,
+                    $transaction->phone,
+                    $transaction->amount,
+                    $transaction->currency,
+                    $transaction->payment_method,
+                    $transaction->type,
+                    $transaction->payment_type,
+                    $transaction->direction,
+                    $transaction->status,
+                    $transaction->created_at,
+                    $transaction->updated_at
+                ];
+            }
+            
+            // Générer le fichier CSV
+            $filename = 'serdipay_transactions_' . date('Y-m-d_H-i-s');
+            
+            if ($format === 'csv') {
+                $callback = function() use ($data, $headers) {
+                    $file = fopen('php://output', 'w');
+                    fputcsv($file, $headers);
+                    
+                    foreach ($data as $row) {
+                        fputcsv($file, $row);
+                    }
+                    
+                    fclose($file);
+                };
+                
+                $headers = [
+                    'Content-Type' => 'text/csv',
+                    'Content-Disposition' => 'attachment; filename="' . $filename . '.csv"',
+                ];
+                
+                return response()->stream($callback, 200, $headers);
+            } elseif ($format === 'excel') {
+                // Pour Excel, nous utilisons une bibliothèque comme PhpSpreadsheet
+                // Mais pour simplifier, nous retournons un CSV pour l'instant
+                $callback = function() use ($data, $headers) {
+                    $file = fopen('php://output', 'w');
+                    fputcsv($file, $headers);
+                    
+                    foreach ($data as $row) {
+                        fputcsv($file, $row);
+                    }
+                    
+                    fclose($file);
+                };
+                
+                $headers = [
+                    'Content-Type' => 'text/csv',
+                    'Content-Disposition' => 'attachment; filename="' . $filename . '.csv"',
+                ];
+                
+                return response()->stream($callback, 200, $headers);
+            }
+            
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Erreur lors de l\'export des transactions: ' . $e->getMessage()
+            ], 500);
+        }
     }
 }

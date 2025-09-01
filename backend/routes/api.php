@@ -634,10 +634,6 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function ()
         Route::get('/finances/system-balance', [\App\Http\Controllers\Admin\FinanceController::class, 'getSystemBalance']);
         Route::get('/finances/summary', [\App\Http\Controllers\Admin\FinanceController::class, 'getSummary']);
         
-        // // Routes pour la gestion des points bonus
-        // Route::get('/finances/bonus-points-history', [\App\Http\Controllers\Admin\FinanceController::class, 'getBonusPointsHistory']);
-        // Route::get('/finances/bonus-points-stats', [\App\Http\Controllers\Admin\FinanceController::class, 'getBonusPointsStats']);
-        // Route::get('/finances/bonus-points-types', [\App\Http\Controllers\Admin\FinanceController::class, 'getBonusPointsTypes']);
     });
     
     Route::middleware('permission:manage-faqs')->group(function () {
@@ -684,7 +680,11 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function ()
         Route::get('/settings/key/{key}', [\App\Http\Controllers\Admin\SettingsController::class, 'getByKey']);
         Route::put('/settings/key/{key}', [\App\Http\Controllers\Admin\SettingsController::class, 'updateByKey']);
         Route::post('/settings/upload/{key}', [\App\Http\Controllers\Admin\SettingsController::class, 'uploadImage']);
-    
+        // Routes pour les transactions Serdipay
+        Route::get('/serdipay-transactions', [\App\Http\Controllers\Admin\SettingsController::class, 'getSerdipayTransactions']);
+        Route::get('/serdipay-transactions/export', [\App\Http\Controllers\Admin\SettingsController::class, 'exportSerdipayTransactions']);
+        Route::get('/serdipay-transactions/{id}', [\App\Http\Controllers\Admin\SettingsController::class, 'getSerdipayTransaction']);
+
         Route::prefix('/roles')->group(function () {    
             Route::get('/', [\App\Http\Controllers\RoleController::class, 'index']);
             Route::get('/{id}', [\App\Http\Controllers\RoleController::class, 'show']);

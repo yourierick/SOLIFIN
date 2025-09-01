@@ -5,7 +5,6 @@ import CountryAccessSettings from "./components/CountryAccessSettings";
 import GeneralSettings from "./components/GeneralSettings";
 import ExchangeRatesSettings from "./components/ExchangeRatesSettings";
 import RoleManagement from "./components/RoleManagement";
-import TransactionSerdipay from "./components/TransactionSerdipay";
 import { useTheme } from "../../contexts/ThemeContext";
 import {
   CurrencyDollarIcon,
@@ -16,7 +15,6 @@ import {
   UserGroupIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
-  CreditCardIcon,
 } from "@heroicons/react/24/outline";
 
 function classNames(...classes) {
@@ -83,7 +81,6 @@ const Settings = () => {
     { name: "Taux de change", icon: CurrencyDollarIcon },
     { name: "Pays Autorisés", icon: GlobeAltIcon },
     { name: "Rôles & Permissions", icon: UserGroupIcon },
-    { name: "Transactions Serdipay", icon: CreditCardIcon },
   ];
 
   return (
@@ -194,17 +191,6 @@ const Settings = () => {
                 </h2>
                 <div className="space-y-4">
                   <RoleManagement />
-                </div>
-              </div>
-            </Tab.Panel>
-            <Tab.Panel>
-              <div className="rounded-lg bg-white p-4 dark:bg-[#1f2937] dark:text-white">
-                <h2 className="text-xl font-semibold mb-4 flex items-center">
-                  <CreditCardIcon className="h-6 w-6 mr-2 text-primary-600 dark:text-primary-400" />
-                  Transactions Serdipay
-                </h2>
-                <div className="space-y-4">
-                  <TransactionSerdipay />
                 </div>
               </div>
             </Tab.Panel>
