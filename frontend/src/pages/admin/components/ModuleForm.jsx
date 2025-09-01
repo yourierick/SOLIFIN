@@ -86,8 +86,8 @@ const ModuleForm = ({
 
   // Gérer les changements du contenu du quiz
   // Utiliser une référence pour éviter les mises à jour inutiles
-  const prevQuizContentRef = React.useRef('');
-  
+  const prevQuizContentRef = React.useRef("");
+
   const handleQuizContentChange = (quizContent) => {
     // Ne mettre à jour que si le contenu a réellement changé
     if (quizContent !== prevQuizContentRef.current) {
@@ -439,19 +439,21 @@ const ModuleForm = ({
             />
           </Grid>
         ) : (
-          <Grid item xs={12}>
-            <TextField
-              required={formData.type === "text"}
-              fullWidth
-              label="Contenu du module"
-              name="content"
-              value={formData.content}
-              onChange={handleChange}
-              multiline
-              rows={8}
-              helperText="Contenu principal du module (texte, HTML, etc.)"
-            />
-          </Grid>
+          formData.type === "text" && (
+            <Grid item xs={12}>
+              <TextField
+                required={formData.type === "text"}
+                fullWidth
+                label="Contenu du module"
+                name="content"
+                value={formData.content}
+                onChange={handleChange}
+                multiline
+                rows={8}
+                helperText="Contenu principal du module (texte, HTML, etc.)"
+              />
+            </Grid>
+          )
         )}
       </Grid>
 
