@@ -53,6 +53,8 @@ import Profile from "./pages/Profile";
 import AdminProfile from "./pages/admin/AdminProfile";
 import DashboardLayout from "./layouts/DashboardLayout";
 import { PublicationPackProvider } from "./contexts/PublicationPackContext";
+import { ChatProvider } from "./contexts/ChatContext";
+import ChatInterface from "./components/chat/ChatInterface";
 import VerificationSuccess from "./pages/VerificationSuccess";
 import VerificationError from "./pages/VerificationError";
 import BuyPack from "./pages/user/Packs";
@@ -75,13 +77,16 @@ import JetonsEsengo from "./pages/user/components/JetonsEsengo";
 // import AdminManagement from "./pages/admin/AdminManagement";
 import UsersManagement from "./pages/admin/UsersManagement";
 import ContentManagement from "./pages/admin/components/ContentManagement";
+import ChatPollingTest from "./pages/ChatPollingTest";
 
 function App() {
   return (
     <PublicationPackProvider>
-      <div>
-        <ToastContainer />
-        <Routes>
+      <ChatProvider>
+        <div>
+          <ToastContainer />
+          <ChatInterface />
+          <Routes>
           {/* Routes publiques */}
           <Route
             path="/"
@@ -218,12 +223,14 @@ function App() {
             <Route path="formations/edit/:id" element={<FormationEditor />} />
             <Route path="formations/create" element={<FormationEditor />} />
             <Route path="pages/:id" element={<Page />} />
+            <Route path="chat-polling-test" element={<ChatPollingTest />} />
           </Route>
 
           {/* Redirection pour les routes inconnues */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
-      </div>
+        </div>
+      </ChatProvider>
     </PublicationPackProvider>
   );
 }

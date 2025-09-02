@@ -45,6 +45,7 @@ class User extends Authenticatable implements MustVerifyEmail
         'role_id',
         'email_verified_at',
         'acquisition_source', // Comment l'utilisateur a connu SOLIFIN
+        'last_seen', // Dernière fois que l'utilisateur a été vu en ligne
     ];
 
     /**
@@ -66,6 +67,7 @@ class User extends Authenticatable implements MustVerifyEmail
         'email_verified_at' => 'datetime',
         'is_admin' => 'boolean',
         'status' => 'string',
+        'last_seen' => 'datetime',
     ];
 
     /**

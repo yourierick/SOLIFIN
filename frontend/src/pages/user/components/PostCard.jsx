@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
+import { useChat } from "../../../contexts/ChatContext";
 import EmojiPicker from "emoji-picker-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -63,8 +64,9 @@ export default function PostCard({
   onShare,
   onViewDetails,
   isDarkMode,
+  user,
 }) {
-  const { user } = useAuth();
+  const { createChatRoom, setActiveRoom, setIsChatExpanded, fetchChatRooms, chatRooms } = useChat();
   const [comment, setComment] = useState("");
   const [isCommenting, setIsCommenting] = useState(false);
   const [isShareMenuOpen, setIsShareMenuOpen] = useState(false);
@@ -75,6 +77,29 @@ export default function PostCard({
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [visibleCommentsCount, setVisibleCommentsCount] = useState(5);
   const commentInputRef = useRef(null);
+
+  // Fonction pour ouvrir le chat avec l'auteur de la publication
+  const handleOpenChat = async () => {
+    if (post.user) {
+      try {
+        // Utiliser directement createChatRoom qui gère déjà la vérification d'existence
+        const chatRoom = await createChatRoom(post.user.id);
+        
+        if (chatRoom) {
+          // Définir cette salle comme salle active
+          setActiveRoom(chatRoom);
+          
+          // Ouvrir automatiquement la fenêtre de chat
+          setIsChatExpanded(true);
+          
+          // Rafraîchir la liste des salons pour s'assurer qu'elle est à jour
+          await fetchChatRooms();
+        }
+      } catch (error) {
+        console.error("Erreur lors de l'ouverture du chat:", error);
+      }
+    }
+  };
 
   // Préparer les éléments média pour le carrousel
   useEffect(() => {
@@ -890,6 +915,33 @@ export default function PostCard({
           <ChatBubbleLeftIcon className="h-5 w-5 mr-2" />
           <span>Commenter</span>
         </button>
+        {/* Afficher le bouton "Discuter" uniquement si l'utilisateur n'est pas l'auteur de la publication */}
+        {user && post.user && user.id && post.user.id && user.id !== post.user.id && (
+          <button
+            onClick={handleOpenChat}
+            className={`flex items-center justify-center flex-1 py-2 rounded-lg ${
+              isDarkMode
+                ? "hover:bg-gray-700 text-gray-400"
+                : "hover:bg-gray-100 text-gray-500"
+            }`}
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-5 w-5 mr-2"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+              />
+            </svg>
+            <span>Discuter</span>
+          </button>
+        )}
         <div className="relative flex-1">
           <button
             onClick={() => setIsShareMenuOpen(!isShareMenuOpen)}

@@ -6,12 +6,12 @@ import {
   Tab,
   Typography,
   CircularProgress,
-  Badge
+  Badge,
 } from "@mui/material";
 import {
   School as SchoolIcon,
   Comment as CommentIcon,
-  VerifiedUser as VerifiedUserIcon
+  VerifiedUser as VerifiedUserIcon,
 } from "@mui/icons-material";
 import { useTheme } from "../../../contexts/ThemeContext";
 import usePendingFormations from "../../../hooks/usePendingFormations";
@@ -35,11 +35,14 @@ const ContentManagement = () => {
   const { isDarkMode } = useTheme();
   const [activeTab, setActiveTab] = useState(0);
   const [tabHover, setTabHover] = useState(null);
-  
+
   // Utilisation des hooks pour récupérer les compteurs d'éléments en attente
-  const { pendingCount: pendingFormations, loading: loadingFormations } = usePendingFormations();
-  const { pendingCount: pendingTestimonials, loading: loadingTestimonials } = usePendingTestimonials();
-  const { pendingCount: pendingPublications, loading: loadingPublications } = usePendingPublications();
+  const { pendingCount: pendingFormations, loading: loadingFormations } =
+    usePendingFormations();
+  const { pendingCount: pendingTestimonials, loading: loadingTestimonials } =
+    usePendingTestimonials();
+  const { pendingCount: pendingPublications, loading: loadingPublications } =
+    usePendingPublications();
 
   // Gestionnaire de changement d'onglet
   const handleTabChange = (event, newValue) => {
@@ -122,8 +125,8 @@ const ContentManagement = () => {
         >
           <Tab
             icon={
-              <Badge 
-                badgeContent={pendingFormations} 
+              <Badge
+                badgeContent={pendingFormations}
                 color="error"
                 max={99}
                 invisible={loadingFormations || pendingFormations === 0}
@@ -133,7 +136,7 @@ const ContentManagement = () => {
                     top: -3,
                     fontSize: "0.65rem",
                     padding: "0 4px",
-                  }
+                  },
                 }}
               >
                 <SchoolIcon fontSize="small" />
@@ -149,8 +152,8 @@ const ContentManagement = () => {
           />
           <Tab
             icon={
-              <Badge 
-                badgeContent={pendingTestimonials} 
+              <Badge
+                badgeContent={pendingTestimonials}
                 color="error"
                 max={99}
                 invisible={loadingTestimonials || pendingTestimonials === 0}
@@ -160,7 +163,7 @@ const ContentManagement = () => {
                     top: -3,
                     fontSize: "0.65rem",
                     padding: "0 4px",
-                  }
+                  },
                 }}
               >
                 <CommentIcon fontSize="small" />
@@ -176,8 +179,8 @@ const ContentManagement = () => {
           />
           <Tab
             icon={
-              <Badge 
-                badgeContent={pendingPublications} 
+              <Badge
+                badgeContent={pendingPublications}
                 color="error"
                 max={99}
                 invisible={loadingPublications || pendingPublications === 0}
@@ -187,7 +190,7 @@ const ContentManagement = () => {
                     top: -3,
                     fontSize: "0.65rem",
                     padding: "0 4px",
-                  }
+                  },
                 }}
               >
                 <VerifiedUserIcon fontSize="small" />

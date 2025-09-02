@@ -9,6 +9,7 @@ import { useParams, Link } from "react-router-dom";
 import axios from "axios";
 import { useTheme } from "../../contexts/ThemeContext";
 import { useAuth } from "../../contexts/AuthContext";
+import { useChat } from "../../contexts/ChatContext";
 import { Tab, Menu, Transition } from "@headlessui/react";
 import {
   NewspaperIcon,
@@ -59,6 +60,7 @@ export default function Page() {
   const { id } = useParams(); // Récupérer l'ID de la page depuis l'URL
   const { isDarkMode } = useTheme();
   const { user } = useAuth();
+  const { createChatRoom, setActiveRoom, setIsChatExpanded, fetchChatRooms } = useChat();
   const [pageData, setPageData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -325,20 +327,34 @@ export default function Page() {
       if (response.data.success) {
         setIsSubscribed(false);
         // Mettre à jour le nombre d'abonnés
-        setPageData((prev) => ({
-          ...prev,
-          nombre_abonnes: Math.max(0, prev.nombre_abonnes - 1),
-        }));
-        toast.success(
-          response.data.message ||
-            "Vous êtes maintenant désabonné de cette page"
-        );
+        if (pageData) {
+          setPageData({
+            ...pageData,
+            subscribers_count: pageData.subscribers_count - 1,
+          });
+        }
+        toast.success("Vous vous êtes désabonné avec succès");
       }
-    } catch (err) {
-      console.error("Erreur lors du désabonnement:", err);
-      toast.error(
-        err.response?.data?.message || "Erreur lors du désabonnement"
-      );
+    } catch (error) {
+      console.error("Erreur lors du désabonnement:", error);
+      toast.error("Erreur lors du désabonnement");
+    }
+  };
+
+  // Gérer l'ouverture du chat avec le propriétaire de la page
+  const handleOpenChat = async () => {
+    if (!pageData?.user_id) return;
+    
+    try {
+      const chatRoom = await createChatRoom(pageData.user_id);
+      if (chatRoom) {
+        setActiveRoom(chatRoom);
+        setIsChatExpanded(true);
+        await fetchChatRooms();
+      }
+    } catch (error) {
+      console.error("Erreur lors de l'ouverture du chat:", error);
+      toast.error("Impossible d'ouvrir la conversation");
     }
   };
 
@@ -2059,6 +2075,17 @@ export default function Page() {
                     <EnvelopeIcon className="h-4 w-4 mr-1.5" />
                     <span className="hidden sm:inline">Email</span>
                   </a>
+                )}
+                
+                {/* Bouton Discuter - visible uniquement si l'utilisateur n'est pas le propriétaire */}
+                {!pageData?.is_owner && (
+                  <button
+                    onClick={handleOpenChat}
+                    className="inline-flex items-center px-3 py-1.5 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
+                  >
+                    <ChatBubbleLeftIcon className="h-4 w-4 mr-1.5" />
+                    <span className="hidden sm:inline">Discuter</span>
+                  </button>
                 )}
               </>
             )}

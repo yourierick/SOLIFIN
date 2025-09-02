@@ -106,6 +106,24 @@ Route::middleware('throttle:api')->group(function () {
 
 // Routes protégées
 Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
+    // Routes pour le chat privé en temps réel
+    Route::prefix('chat')->group(function () {
+        Route::get('/rooms', [\App\Http\Controllers\ChatController::class, 'getRooms']);
+        Route::post('/rooms', [\App\Http\Controllers\ChatController::class, 'createRoom']);
+        Route::get('/rooms/{roomId}/messages', [\App\Http\Controllers\ChatController::class, 'getMessages']);
+        Route::post('/rooms/{roomId}/messages', [\App\Http\Controllers\ChatController::class, 'sendMessage']);
+        Route::post('/rooms/{roomId}/typing', [\App\Http\Controllers\ChatController::class, 'typing']);
+        Route::get('/rooms/{roomId}/typing', [\App\Http\Controllers\ChatController::class, 'getTypingUsers']);
+        Route::delete('/rooms/{roomId}', [\App\Http\Controllers\ChatController::class, 'deleteRoom']);
+    });
+    
+    // Routes pour les statuts utilisateur
+    Route::post('/user/status/update', [\App\Http\Controllers\UserStatusController::class, 'updateStatus']);
+    Route::get('/user/statuses', [\App\Http\Controllers\UserStatusController::class, 'getStatuses']);
+    
+    // Route pour récupérer la liste des utilisateurs pour le chat privé
+    Route::get('/users/list', [\App\Http\Controllers\UserListController::class, 'index']);
+
     // Routes pour les produits numériques
     Route::prefix('digital-products')->group(function () {
         Route::get('/purchases/my', [App\Http\Controllers\DigitalProductController::class, 'myPurchases']);

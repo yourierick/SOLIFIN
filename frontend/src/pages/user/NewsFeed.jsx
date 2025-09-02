@@ -1403,6 +1403,7 @@ export default function NewsFeed({ initialActiveTab = 0, showTabs = true }) {
                             openPostDetail(post.id, post.type)
                           }
                           isDarkMode={isDarkMode}
+                          user={user}
                         />
                       </div>
                     );
@@ -1417,6 +1418,7 @@ export default function NewsFeed({ initialActiveTab = 0, showTabs = true }) {
                         onShare={handleShare}
                         onViewDetails={() => openPostDetail(post.id, post.type)}
                         isDarkMode={isDarkMode}
+                        user={user}
                       />
                     );
                   }
