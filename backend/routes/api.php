@@ -123,6 +123,9 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
     
     // Route pour récupérer la liste des utilisateurs pour le chat privé
     Route::get('/users/list', [\App\Http\Controllers\UserListController::class, 'index']);
+    
+    // Route pour obtenir ou créer une conversation avec le support
+    Route::get('/support/contact', [\App\Http\Controllers\SupportController::class, 'getSupportContact']);
 
     // Routes pour les produits numériques
     Route::prefix('digital-products')->group(function () {

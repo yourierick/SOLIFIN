@@ -102,14 +102,18 @@ const ConfirmationModal = ({
     >
       <div 
         className={`max-w-md w-full rounded-lg shadow-xl ${
-          isDarkMode ? 'bg-gray-800' : 'bg-white'
-        } p-6 relative`}
+          isDarkMode ? 'bg-gray-800 border border-gray-700 dark:animate-glow' : 'bg-white'
+        } p-6 relative animate__animated animate__fadeInUp animate__faster`}
         onClick={(e) => e.stopPropagation()} // Empêcher la fermeture en cliquant sur le contenu
+        style={{
+          boxShadow: isDarkMode ? '0 8px 32px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.05)' : '',
+          backdropFilter: isDarkMode ? 'blur(4px)' : 'none'
+        }}
       >
         <button
           onClick={onClose}
-          className={`absolute top-4 right-4 ${
-            isDarkMode ? 'text-gray-400 hover:text-gray-300' : 'text-gray-500 hover:text-gray-700'
+          className={`absolute top-4 right-4 rounded-full p-1 transition-all duration-200 ${
+            isDarkMode ? 'text-gray-400 hover:text-gray-200 hover:bg-gray-700' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
           }`}
           aria-label="Fermer"
         >
@@ -117,39 +121,48 @@ const ConfirmationModal = ({
         </button>
         
         <div className="flex items-center mb-4">
-          <div className={`mr-3 ${typeStyles.icon}`}>
-            <ExclamationTriangleIcon className="h-6 w-6" />
+          <div className={`mr-3 ${typeStyles.icon} transition-all duration-300 ${isDarkMode ? 'dark:animate-dark-pulse' : ''}`} 
+            style={{
+              filter: isDarkMode ? 'drop-shadow(0 0 3px rgba(255, 255, 255, 0.2))' : 'none',
+              transform: 'translateZ(0)'
+            }}>
+            <ExclamationTriangleIcon className="h-6 w-6 animate__animated animate__pulse animate__infinite animate__slow" />
           </div>
           <h2 className={`text-xl font-semibold ${
             isDarkMode ? 'text-white' : 'text-gray-900'
-          }`}>
+          }`}
+          style={{ 
+            textShadow: isDarkMode ? '0 0 1px rgba(255, 255, 255, 0.2)' : 'none' 
+          }}>
             {title}
           </h2>
         </div>
         
         <p className={`mb-6 ${
           isDarkMode ? 'text-gray-300' : 'text-gray-600'
-        }`}>
+        } leading-relaxed transition-colors duration-300`}
+        style={{
+          maxWidth: '100%',
+          overflowWrap: 'break-word',
+          lineHeight: '1.6'
+        }}>
           {message}
         </p>
         
-        <div className="flex justify-end space-x-3">
+        <div className="flex justify-end space-x-3 mt-6">
           <button
             onClick={onClose}
-            className={`px-4 py-2 border rounded-md text-sm font-medium ${
-              isDarkMode 
-                ? 'border-gray-600 text-gray-300 hover:bg-gray-700' 
-                : 'border-gray-300 text-gray-700 hover:bg-gray-100'
-            }`}
+            className={`px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${isDarkMode ? 'border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600' : 'border border-gray-300 bg-white text-gray-700 hover:bg-gray-50'} ${isDarkMode ? 'hover:scale-105 dark:hover:animate-dark-float' : ''}`}
           >
             {cancelButtonText}
           </button>
           <button
-            onClick={() => {
-              onConfirm();
-              onClose();
+            onClick={onConfirm}
+            className={`px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${typeStyles.confirmButton} border ${typeStyles.confirmButtonBorder} ${isDarkMode ? 'hover:scale-105 dark:animate-glow dark:hover:animate-dark-pulse' : ''}`}
+            style={{
+              boxShadow: isDarkMode ? `0 2px 8px ${type === 'danger' ? 'rgba(239, 68, 68, 0.3)' : type === 'warning' ? 'rgba(245, 158, 11, 0.3)' : 'rgba(59, 130, 246, 0.3)'}` : '',
+              transform: 'translateZ(0)'
             }}
-            className={`px-4 py-2 border rounded-md text-sm font-medium ${typeStyles.confirmButton} ${typeStyles.confirmButtonBorder}`}
           >
             {confirmButtonText}
           </button>

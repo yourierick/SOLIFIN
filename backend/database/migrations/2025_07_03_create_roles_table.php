@@ -49,6 +49,13 @@ return new class extends Migration
                 'created_at' => now(),
                 'updated_at' => now(),
             ],
+            [
+                'nom' => 'service client',
+                'slug' => 'support-center',
+                'description' => 'Service client',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
         ]);
     }
 

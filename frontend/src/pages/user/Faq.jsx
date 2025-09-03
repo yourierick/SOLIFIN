@@ -2,12 +2,15 @@ import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import axios from "axios";
 import { useTheme } from "../../contexts/ThemeContext";
+import { useChat } from "../../contexts/ChatContext";
+import { useToast } from "../../contexts/ToastContext";
 import {
   ChevronDownIcon,
   ChevronUpIcon,
   MagnifyingGlassIcon,
   HandThumbUpIcon,
   HandThumbDownIcon,
+  ChatBubbleLeftRightIcon,
 } from "@heroicons/react/24/outline";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -15,6 +18,8 @@ import Notification from "../../components/Notification";
 
 export default function Faq() {
   const { isDarkMode } = useTheme();
+  const { showToast } = useToast();
+  const { createChatRoom, setActiveRoom, setIsChatExpanded, fetchChatRooms } = useChat();
   const [faqs, setFaqs] = useState([]);
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -22,6 +27,7 @@ export default function Faq() {
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [relatedFaqs, setRelatedFaqs] = useState({});
+  const [loadingSupport, setLoadingSupport] = useState(false);
 
   // Charger les FAQs et les catégories au chargement de la page
   useEffect(() => {
@@ -97,6 +103,42 @@ export default function Faq() {
     }
   };
 
+  // Fonction pour contacter le support (approche intégrée)
+  const handleContactSupport = async () => {
+    try {
+      setLoadingSupport(true);
+      const response = await axios.get('/api/support/contact');
+      
+      if (response.data && response.data.room_id) {
+        // Récupérer toutes les salles de chat
+        await fetchChatRooms();
+        
+        // Trouver la salle correspondante dans la liste des salles
+        const rooms = await axios.get('/api/chat/rooms');
+        const supportRoom = rooms.data.rooms.find(room => room.id === response.data.room_id);
+        
+        if (supportRoom) {
+          // Définir cette salle comme salle active
+          setActiveRoom(supportRoom);
+          
+          // Ouvrir automatiquement la fenêtre de chat
+          setIsChatExpanded(true);
+          
+          showToast('Conversation avec le support ouverte', 'success');
+        } else {
+          showToast('Erreur lors de la récupération des détails de la conversation', 'error');
+        }
+      } else {
+        showToast('Erreur lors de la connexion avec le support', 'error');
+      }
+    } catch (error) {
+      console.error('Erreur lors de la connexion avec le support:', error);
+      showToast('Erreur lors de la connexion avec le support', 'error');
+    } finally {
+      setLoadingSupport(false);
+    }
+  };
+
   // Filtrer les FAQs en fonction de la catégorie sélectionnée et de la recherche
   const filteredFaqs = faqs.filter((faq) => {
     const matchesCategory =
@@ -129,13 +171,37 @@ export default function Faq() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
       >
-        <h1
-          className={`text-3xl font-bold mb-8 ${
-            isDarkMode ? "text-white" : "text-gray-800"
-          }`}
-        >
-          Foire Aux Questions
-        </h1>
+        <div className="flex justify-between items-center mb-8">
+          <h1
+            className={`text-3xl font-bold ${
+              isDarkMode ? "text-white" : "text-gray-800"
+            }`}
+          >
+            Foire Aux Questions
+          </h1>
+          <button
+            onClick={handleContactSupport}
+            disabled={loadingSupport}
+            className={`flex items-center px-4 py-2 rounded-lg transition-all ${
+              isDarkMode
+                ? "bg-green-700 hover:bg-green-600 text-white"
+                : "bg-green-600 hover:bg-green-700 text-white"
+            } ${loadingSupport ? "opacity-70 cursor-not-allowed" : ""}`}
+          >
+            <ChatBubbleLeftRightIcon className="h-5 w-5 mr-2" />
+            {loadingSupport ? (
+              <>
+                <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Connexion...
+              </>
+            ) : (
+              "Contacter le support"
+            )}
+          </button>
+        </div>
 
         {/* Filtres et recherche */}
         <div className="flex flex-col md:flex-row gap-4 mb-8">

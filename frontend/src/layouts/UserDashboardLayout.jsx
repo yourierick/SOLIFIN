@@ -89,7 +89,6 @@ const navigation = [
   //   icon: NewspaperIcon,
   // },
   { name: "Ma page", href: "/dashboard/my-page", icon: BuildingOfficeIcon },
-  // { name: "Social", href: "/dashboard/social", icon: ChatBubbleLeftRightIcon },
   // { name: "Formations", href: "/dashboard/formations", icon: AcademicCapIcon },
   { name: "FAQ", href: "/dashboard/faq", icon: QuestionMarkCircleIcon },
 ];
