@@ -101,10 +101,10 @@ export default function Ads() {
   return (
     <section
       id="ads"
-      className={`w-full py-16 ${
+      className={`w-full py-12 ${
         isDarkMode
           ? "bg-gradient-to-br from-gray-900 to-gray-800"
-          : "bg-gradient-to-br from-gray-50 to-white"
+          : "bg-gradient-to-br from-gray-100 to-white"
       }`}
     >
       <div className="w-full px-4 mx-auto sm:px-6 lg:px-8">
@@ -123,14 +123,13 @@ export default function Ads() {
             Annonces et <span className="text-primary-600">Publicités</span>
           </h2> */}
           <p
-            className={`text-lg max-w-2xl mx-auto ${
+            className={`text-base max-w-xl mx-auto ${
               isDarkMode ? "text-gray-300" : "text-gray-600"
             }`}
           >
-            Profitez des meilleures opportunités de marketing de vos produits et
+            Profitez des meilleures opportunités de marketing pour vos produits et
             services grâce à la communauté grandissante de{" "}
-            <span className="text-primary-600">SOLIFIN</span> et maximiser votre
-            potentiel
+            <span className="text-primary-600 font-medium">SOLIFIN</span>
           </p>
         </motion.div>
 
@@ -145,27 +144,27 @@ export default function Ads() {
             Aucune publicité à afficher.
           </div>
         ) : (
-          <div className="relative max-w-2xl mx-auto">
+          <div className="relative max-w-lg mx-auto">
             <motion.div
               key={ads[current]?.id}
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -30 }}
               transition={{ duration: 0.5 }}
-              className={`w-full max-w-6xl mx-auto rounded-xl overflow-hidden shadow-lg ${
+              className={`w-full mx-auto rounded-lg overflow-hidden ${
                 isDarkMode
-                  ? "bg-gray-800 shadow-gray-900/50"
-                  : "bg-white shadow-lg"
+                  ? "bg-gray-800 shadow-md shadow-gray-900/30"
+                  : "bg-white shadow-md"
               }`}
             >
               <div className="relative w-full flex flex-col items-center">
                 <div
                   className={`absolute inset-0 pointer-events-none ${
-                    isDarkMode ? "bg-primary-900/30" : "bg-primary-600/20"
+                    isDarkMode ? "bg-primary-900/10" : "bg-primary-600/10"
                   }`}
                   style={{
-                    borderTopLeftRadius: "0.75rem",
-                    borderTopRightRadius: "0.75rem",
+                    borderTopLeftRadius: "0.5rem",
+                    borderTopRightRadius: "0.5rem",
                   }}
                 />
                 {/* Image avec bouton play si vidéo présente */}
@@ -176,9 +175,9 @@ export default function Ads() {
                   className="w-full"
                   style={{
                     position: "relative",
-                    borderRadius: "0.75rem",
+                    borderRadius: "0.5rem",
                     overflow: "hidden",
-                    background: "#fff",
+                    background: isDarkMode ? "#1f2937" : "#f9fafb",
                   }}
                 >
                   <div
@@ -214,47 +213,40 @@ export default function Ads() {
                                 top: "50%",
                                 left: "50%",
                                 transform: "translate(-50%, -50%)",
-                                background: "#22c55e",
+                                background: "rgba(34, 197, 94, 0.9)",
                                 border: "none",
                                 borderRadius: "50%",
-                                width: 80,
-                                height: 80,
+                                width: 60,
+                                height: 60,
                                 display: "flex",
                                 alignItems: "center",
                                 justifyContent: "center",
                                 cursor: "pointer",
                                 zIndex: 2,
-                                boxShadow: "0 4px 24px rgba(34,197,94,0.3)",
+                                boxShadow: "0 4px 16px rgba(34,197,94,0.25)",
                                 transition:
-                                  "transform 0.18s cubic-bezier(.4,2,.6,1)",
+                                  "all 0.2s ease",
                               }}
-                              onMouseOver={(e) =>
-                                (e.currentTarget.style.transform =
-                                  "translate(-50%, -50%) scale(1.08)")
-                              }
-                              onMouseOut={(e) =>
-                                (e.currentTarget.style.transform =
-                                  "translate(-50%, -50%)")
-                              }
+                              onMouseOver={(e) => {
+                                e.currentTarget.style.transform = "translate(-50%, -50%) scale(1.05)";
+                                e.currentTarget.style.background = "rgba(34, 197, 94, 1)";
+                              }}
+                              onMouseOut={(e) => {
+                                e.currentTarget.style.transform = "translate(-50%, -50%)";
+                                e.currentTarget.style.background = "rgba(34, 197, 94, 0.9)";
+                              }}
                             >
                               <svg
-                                width="48"
-                                height="48"
-                                viewBox="0 0 48 48"
+                                width="24"
+                                height="24"
+                                viewBox="0 0 24 24"
                                 fill="none"
+                                stroke="white"
+                                strokeWidth="2"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
                               >
-                                <circle
-                                  cx="24"
-                                  cy="24"
-                                  r="24"
-                                  fill="rgba(0,0,0,0.24)"
-                                />
-                                <polygon
-                                  points="19,16 36,24 19,32"
-                                  fill="#fff"
-                                  stroke="#fff"
-                                  strokeWidth="2"
-                                />
+                                <polygon points="5,3 19,12 5,21 5,3" fill="white" />
                               </svg>
                             </button>
                           )}
@@ -293,10 +285,10 @@ export default function Ads() {
                             width: "100%",
                             height: "100%",
                             objectFit: "contain",
-                            borderRadius: "0.75rem",
+                            borderRadius: "0.5rem",
                             background: "#000",
                             display: "block",
-                            boxShadow: "0 4px 24px rgba(0,0,0,0.15)",
+                            boxShadow: "0 2px 12px rgba(0,0,0,0.1)",
                           }}
                         />
                       </div>
@@ -304,10 +296,10 @@ export default function Ads() {
                   </div>
                 </div>
               </div>
-              <div className="p-6">
+              <div className="p-5">
                 <h3
-                  className={`text-xl font-bold mb-1 ${
-                    isDarkMode ? "text-white" : "text-gray-900"
+                  className={`text-lg font-semibold mb-1 ${
+                    isDarkMode ? "text-white" : "text-gray-800"
                   }`}
                 >
                   {ads[current]?.titre || ads[current]?.title}
@@ -335,7 +327,7 @@ export default function Ads() {
                   <span>{formatPublishedDate(ads[current]?.created_at)}</span>
                 </div>
                 <p
-                  className={`mb-4 ${
+                  className={`mb-3 text-sm ${
                     isDarkMode ? "text-gray-300" : "text-gray-600"
                   }`}
                 >
@@ -343,8 +335,8 @@ export default function Ads() {
                 </p>
                 {/* Bouton principal "Je suis intéressé !" avec logique auth */}
                 <button
-                  className="inline-block px-6 py-2 bg-primary-600 text-white rounded-full hover:bg-primary-700 transition-colors duration-300 font-semibold shadow-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-                  style={{ minWidth: 220 }}
+                  className="inline-block px-5 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 transition-colors duration-200 font-medium text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-1"
+                  style={{ minWidth: 180 }}
                   onClick={() => {
                     // Si utilisateur authentifié, rediriger vers la page utilisateur avec ancre sur la publication
                     if (user && user.id) {
@@ -395,9 +387,9 @@ export default function Ads() {
                   }}
                   onMouseEnter={pauseAutoScroll}
                   onMouseLeave={resumeAutoScroll}
-                  className="absolute left-0 top-1/2 -translate-y-1/2 bg-white dark:bg-gray-700 shadow p-2 rounded-full hover:bg-primary-100 dark:hover:bg-primary-800 transition z-10"
+                  className="absolute left-0 top-1/2 -translate-y-1/2 bg-white dark:bg-gray-700 shadow-sm p-1.5 rounded-md hover:bg-primary-50 dark:hover:bg-primary-800 transition z-10"
                   aria-label="Précédent"
-                  style={{ left: "-2.5rem" }}
+                  style={{ left: "-1.75rem" }}
                 >
                   <svg
                     width="24"
@@ -417,9 +409,9 @@ export default function Ads() {
                   }}
                   onMouseEnter={pauseAutoScroll}
                   onMouseLeave={resumeAutoScroll}
-                  className="absolute right-0 top-1/2 -translate-y-1/2 bg-white dark:bg-gray-700 shadow p-2 rounded-full hover:bg-primary-100 dark:hover:bg-primary-800 transition z-10"
+                  className="absolute right-0 top-1/2 -translate-y-1/2 bg-white dark:bg-gray-700 shadow-sm p-1.5 rounded-md hover:bg-primary-50 dark:hover:bg-primary-800 transition z-10"
                   aria-label="Suivant"
-                  style={{ right: "-2.5rem" }}
+                  style={{ right: "-1.75rem" }}
                 >
                   <svg
                     width="24"
@@ -432,7 +424,7 @@ export default function Ads() {
                     <path d="M9 5l7 7-7 7" />
                   </svg>
                 </button>
-                <div className="flex justify-center mt-4 space-x-2">
+                <div className="flex justify-center mt-3 space-x-1.5">
                   {ads.map((_, idx) => (
                     <button
                       key={idx}
@@ -442,10 +434,10 @@ export default function Ads() {
                       }}
                       onMouseEnter={pauseAutoScroll}
                       onMouseLeave={resumeAutoScroll}
-                      className={`w-3 h-3 rounded-full ${
+                      className={`w-2 h-2 rounded-full transition-all duration-200 ${
                         current === idx
-                          ? "bg-primary-600"
-                          : "bg-gray-300 dark:bg-gray-600"
+                          ? "bg-primary-500 scale-125"
+                          : "bg-gray-300 dark:bg-gray-600 hover:bg-primary-300 dark:hover:bg-primary-700"
                       }`}
                       aria-label={`Aller à la publicité ${idx + 1}`}
                     />
