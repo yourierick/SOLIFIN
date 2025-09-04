@@ -7,6 +7,7 @@ import { useNavigate } from "react-router-dom";
 import PromptLoginOrSubscribe from "./PromptLoginOrSubscribe";
 import { formatDistanceToNow } from "date-fns";
 import { fr } from "date-fns/locale";
+import ReactPlayer from "react-player";
 // import "video-react/dist/video-react.css";
 // import { Player } from "video-react";
 // Les imports video-react ne sont plus utilisés
@@ -35,7 +36,9 @@ export default function Ads() {
   const [showVideo, setShowVideo] = useState(false);
   const [showPrompt, setShowPrompt] = useState(false); // Pour afficher la modale si non authentifié
   const [isPaused, setIsPaused] = useState(false);
+  const [isSeeking, setIsSeeking] = useState(false); // État pour suivre si l'utilisateur est en train de chercher dans la vidéo
   const intervalRef = useRef(null);
+  const videoRef = useRef(null); // Référence à l'élément vidéo
 
   useEffect(() => {
     setLoading(true);
@@ -267,28 +270,63 @@ export default function Ads() {
                           justifyContent: "center",
                         }}
                       >
-                        <video
-                          src={ads[current].video_url}
-                          controls
-                          autoPlay
-                          // Masquer la vidéo et reprendre le défilement quand la vidéo est mise en pause
-                          onPause={() => {
-                            setShowVideo(false);
-                            resumeAutoScroll();
-                          }}
-                          // Masquer la vidéo et reprendre le défilement quand la vidéo se termine
-                          onEnded={() => {
+                        {/* Bouton de fermeture de la vidéo */}
+                        <button
+                          onClick={() => {
                             setShowVideo(false);
                             resumeAutoScroll();
                           }}
                           style={{
-                            width: "100%",
-                            height: "100%",
-                            objectFit: "contain",
+                            position: "absolute",
+                            top: "10px",
+                            right: "10px",
+                            zIndex: 10,
+                            background: "rgba(0,0,0,0.5)",
+                            color: "white",
+                            border: "none",
+                            borderRadius: "50%",
+                            width: "30px",
+                            height: "30px",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            cursor: "pointer",
+                            fontSize: "18px",
+                            fontWeight: "bold",
+                          }}
+                          aria-label="Fermer la vidéo"
+                        >
+                          ×
+                        </button>
+                        
+                        <ReactPlayer
+                          ref={videoRef}
+                          url={ads[current].video_url}
+                          width="100%"
+                          height="100%"
+                          playing={true}
+                          controls={true}
+                          config={{
+                            file: {
+                              attributes: {
+                                controlsList: "nodownload",
+                                disablePictureInPicture: true,
+                              },
+                            },
+                          }}
+                          style={{
                             borderRadius: "0.5rem",
-                            background: "#000",
-                            display: "block",
+                            overflow: "hidden",
                             boxShadow: "0 2px 12px rgba(0,0,0,0.1)",
+                          }}
+                          // Ne pas masquer la vidéo lors des interactions avec la barre de progression
+                          onPause={() => {
+                            // Ne rien faire - la vidéo reste visible même en pause
+                          }}
+                          // Masquer la vidéo uniquement quand elle se termine
+                          onEnded={() => {
+                            setShowVideo(false);
+                            resumeAutoScroll();
                           }}
                         />
                       </div>
@@ -383,10 +421,13 @@ export default function Ads() {
                 <button
                   onClick={() => {
                     prevAd();
-                    pauseAutoScroll();
+                    // Ne pas arrêter la vidéo si elle est en cours de lecture
+                    if (!showVideo) {
+                      pauseAutoScroll();
+                    }
                   }}
-                  onMouseEnter={pauseAutoScroll}
-                  onMouseLeave={resumeAutoScroll}
+                  onMouseEnter={showVideo ? null : pauseAutoScroll}
+                  onMouseLeave={showVideo ? null : resumeAutoScroll}
                   className="absolute left-0 top-1/2 -translate-y-1/2 bg-white dark:bg-gray-700 shadow-sm p-1.5 rounded-md hover:bg-primary-50 dark:hover:bg-primary-800 transition z-10"
                   aria-label="Précédent"
                   style={{ left: "-1.75rem" }}
@@ -405,10 +446,13 @@ export default function Ads() {
                 <button
                   onClick={() => {
                     nextAd();
-                    pauseAutoScroll();
+                    // Ne pas arrêter la vidéo si elle est en cours de lecture
+                    if (!showVideo) {
+                      pauseAutoScroll();
+                    }
                   }}
-                  onMouseEnter={pauseAutoScroll}
-                  onMouseLeave={resumeAutoScroll}
+                  onMouseEnter={showVideo ? null : pauseAutoScroll}
+                  onMouseLeave={showVideo ? null : resumeAutoScroll}
                   className="absolute right-0 top-1/2 -translate-y-1/2 bg-white dark:bg-gray-700 shadow-sm p-1.5 rounded-md hover:bg-primary-50 dark:hover:bg-primary-800 transition z-10"
                   aria-label="Suivant"
                   style={{ right: "-1.75rem" }}
@@ -430,10 +474,13 @@ export default function Ads() {
                       key={idx}
                       onClick={() => {
                         setCurrent(idx);
-                        pauseAutoScroll();
+                        // Ne pas arrêter la vidéo si elle est en cours de lecture
+                        if (!showVideo) {
+                          pauseAutoScroll();
+                        }
                       }}
-                      onMouseEnter={pauseAutoScroll}
-                      onMouseLeave={resumeAutoScroll}
+                      onMouseEnter={showVideo ? null : pauseAutoScroll}
+                      onMouseLeave={showVideo ? null : resumeAutoScroll}
                       className={`w-2 h-2 rounded-full transition-all duration-200 ${
                         current === idx
                           ? "bg-primary-500 scale-125"

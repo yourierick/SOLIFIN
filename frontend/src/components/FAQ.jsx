@@ -27,85 +27,9 @@ const getIcon = (iconName) => {
   }
 };
 
-// Données de secours en cas d'erreur de chargement
-const fallbackFaqs = [
-  {
-    id: 1,
-    category_id: 1,
-    question: "Comment fonctionne le système de parrainage ?",
-    answer:
-      "Notre système de parrainage fonctionne sur plusieurs niveaux. Vous recevez des commissions à chaque fois qu'une personne s'inscrit en utilisant votre code de parrainage, ainsi que sur les inscriptions réalisées par vos filleuls.",
-    is_featured: true,
-    order: 1,
-    helpful_votes: 24,
-    unhelpful_votes: 2,
-    category: { name: "Parrainage", slug: "parrainage", icon: "user-group" },
-  },
-  {
-    id: 2,
-    category_id: 2,
-    question: "Quels sont les différents niveaux de commission ?",
-    answer:
-      "SOLIFIN propose différents niveaux de commission selon la profondeur de votre réseau : Niveau 1 : 10% du montant de l'inscription, Niveau 2 : 5% du montant de l'inscription, Niveau 3 : 2% du montant de l'inscription. Plus votre réseau s'agrandit, plus vos commissions augmentent.",
-    is_featured: true,
-    order: 2,
-    helpful_votes: 18,
-    unhelpful_votes: 1,
-    category: {
-      name: "Commissions",
-      slug: "commissions",
-      icon: "currency-dollar",
-    },
-  },
-  {
-    id: 3,
-    category_id: 3,
-    question: "Comment puis-je retirer mes gains ?",
-    answer:
-      'Pour retirer vos gains, rendez-vous dans la section "Portefeuille" de votre tableau de bord et cliquez sur "Retrait". Vous pouvez choisir parmi plusieurs méthodes de paiement : virement bancaire, mobile money, ou crypto-monnaies. Le délai de traitement varie selon la méthode choisie, généralement entre 24h et 72h.',
-    is_featured: true,
-    order: 3,
-    helpful_votes: 32,
-    unhelpful_votes: 3,
-    category: { name: "Paiements", slug: "paiements", icon: "credit-card" },
-  },
-];
-
-// Données de secours pour les catégories
-const fallbackCategories = [
-  {
-    id: 1,
-    name: "Général",
-    slug: "general",
-    icon: "information-circle",
-    order: 1,
-  },
-  {
-    id: 2,
-    name: "Parrainage",
-    slug: "parrainage",
-    icon: "user-group",
-    order: 2,
-  },
-  {
-    id: 3,
-    name: "Commissions",
-    slug: "commissions",
-    icon: "currency-dollar",
-    order: 3,
-  },
-  {
-    id: 4,
-    name: "Paiements",
-    slug: "paiements",
-    icon: "credit-card",
-    order: 4,
-  },
-];
-
 export default function FAQ({ whatsappUrl = "https://wa.me/33600000000" }) {
-  const [faqs, setFaqs] = useState(fallbackFaqs);
-  const [categories, setCategories] = useState(fallbackCategories);
+  const [faqs, setFaqs] = useState(null);
+  const [categories, setCategories] = useState(null);
   const [activeIndex, setActiveIndex] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
@@ -134,8 +58,8 @@ export default function FAQ({ whatsappUrl = "https://wa.me/33600000000" }) {
         console.error("Erreur lors du chargement des FAQ:", err);
         setError("Impossible de charger les questions fréquentes");
         // Utiliser les données de secours en cas d'erreur
-        setFaqs(fallbackFaqs);
-        setCategories(fallbackCategories);
+        setFaqs(null);
+        setCategories(null);
       } finally {
         setLoading(false);
       }
@@ -146,7 +70,7 @@ export default function FAQ({ whatsappUrl = "https://wa.me/33600000000" }) {
 
   // Filtrer les FAQs en fonction de la recherche et de la catégorie
   const filteredFaqs = useMemo(() => {
-    return faqs.filter((faq) => {
+    return faqs?.filter((faq) => {
       const matchesSearch =
         searchQuery === "" ||
         faq.question.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -154,7 +78,7 @@ export default function FAQ({ whatsappUrl = "https://wa.me/33600000000" }) {
 
       const matchesCategory =
         selectedCategory === "all" ||
-        faq.category_id === parseInt(selectedCategory);
+        faq?.category_id === parseInt(selectedCategory);
 
       return matchesSearch && matchesCategory;
     });
@@ -252,7 +176,7 @@ export default function FAQ({ whatsappUrl = "https://wa.me/33600000000" }) {
         </div>
 
         {/* Filtres par catégorie */}
-        {categories.length > 0 && (
+        {categories?.length > 0 && (
           <div className="flex flex-wrap gap-2 mb-8 justify-center">
             <button
               onClick={() => setSelectedCategory("all")}

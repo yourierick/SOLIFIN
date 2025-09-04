@@ -400,7 +400,6 @@ class UserFormationController extends Controller
         ]);
         
         if ($validator->fails()) {
-            \Log::info($validator->errors());
             return response()->json([
                 'success' => false,
                 'errors' => $validator->errors()
