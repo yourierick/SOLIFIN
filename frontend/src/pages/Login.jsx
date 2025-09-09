@@ -44,13 +44,6 @@ export default function Login() {
   const { isDarkMode } = useTheme();
   const { user, loading } = useAuth();
 
-  // Si l'utilisateur est déjà connecté, le rediriger vers le dashboard approprié
-  if (!loading && user) {
-    const isAdmin =
-      user.is_admin === 1 || user.is_admin === true || user.role === "admin";
-    return <Navigate to={isAdmin ? "/admin" : "/dashboard"} replace />;
-  }
-
   // Afficher un loader pendant la vérification de l'authentification
   if (loading) {
     return (

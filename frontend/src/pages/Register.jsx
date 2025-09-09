@@ -178,7 +178,7 @@ export default function Register() {
       };
 
       const response = await axios.post("/api/register", dataToSubmit);
-      
+
       if (response.data.success) {
         Notification.success(
           "Inscription réussie, vous pouvez maintenant vous connecter"
@@ -193,23 +193,25 @@ export default function Register() {
       }
     } catch (error) {
       console.error("Erreur d'inscription:", error);
-      
+
       // Traiter les erreurs de validation du backend
       if (error.response && error.response.data) {
         const { data } = error.response;
         const backendErrors = {};
-        
+
         // Afficher le message d'erreur principal
         if (data.message) {
           Notification.error(data.message);
         } else {
-          Notification.error("Erreur lors de l'inscription. Veuillez vérifier vos informations.");
+          Notification.error(
+            "Erreur lors de l'inscription. Veuillez vérifier vos informations."
+          );
         }
-        
+
         // Format d'erreur Laravel standard avec 'errors' comme objet
         if (data.errors) {
           // Parcourir toutes les erreurs de validation
-          Object.keys(data.errors).forEach(field => {
+          Object.keys(data.errors).forEach((field) => {
             let errorMsg = "";
             // Gérer les erreurs sous forme de tableau ou de chaîne
             if (Array.isArray(data.errors[field])) {
@@ -217,23 +219,25 @@ export default function Register() {
             } else {
               errorMsg = data.errors[field];
             }
-            
+
             // Mapper les erreurs aux champs du formulaire
-            if (field === 'phone') {
-              backendErrors['phoneNumber'] = errorMsg;
-            } else if (field === 'whatsapp') {
-              backendErrors['whatsappNumber'] = errorMsg;
+            if (field === "phone") {
+              backendErrors["phoneNumber"] = errorMsg;
+            } else if (field === "whatsapp") {
+              backendErrors["whatsappNumber"] = errorMsg;
             } else {
               backendErrors[field] = errorMsg;
             }
           });
-          
+
           // Mettre à jour l'état des erreurs de formulaire
-          setFormErrors(prev => ({ ...prev, ...backendErrors }));
+          setFormErrors((prev) => ({ ...prev, ...backendErrors }));
         }
       } else {
         // Erreur réseau ou autre erreur non liée à la validation
-        Notification.error("Erreur de connexion. Veuillez réessayer plus tard.");
+        Notification.error(
+          "Erreur de connexion. Veuillez réessayer plus tard."
+        );
       }
     } finally {
       setLoading(false);

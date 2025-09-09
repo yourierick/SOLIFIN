@@ -1128,7 +1128,7 @@ export default function MyPage() {
           </button>
         </div>
         <div className="px-6 pb-4 relative">
-          <div className="flex items-end -mt-16 sm:items-center sm:flex-row flex-col relative z-30">
+          <div className="flex items-end -mt-16 sm:items-center flex-row relative z-30">
             <div className="h-24 w-24 sm:h-32 sm:w-32 rounded-full border-4 border-white dark:border-gray-800 bg-gray-100 dark:bg-gray-700 overflow-hidden shadow-lg">
               {user?.picture ? (
                 <img
@@ -1152,8 +1152,8 @@ export default function MyPage() {
                 {user?.name?.charAt(0) || "U"}
               </div>
             </div>
-            <div className="mt-4 sm:mt-0 sm:ml-6 flex-1">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between">
+            <div className="ml-6 flex-1">
+              <div className="flex flex-row items-center justify-between">
                 <div>
                   <h1
                     className="text-2xl font-bold text-gray-900 dark:text-white"

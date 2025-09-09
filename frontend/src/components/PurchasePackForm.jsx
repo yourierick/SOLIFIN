@@ -1848,6 +1848,7 @@ export default function PurchasePackForm({
                     inputProps={{
                       min: getSubscriptionStep(pack.abonnement),
                       step: getSubscriptionStep(pack.abonnement),
+                      max: 24,
                     }}
                     fullWidth
                     size="small"

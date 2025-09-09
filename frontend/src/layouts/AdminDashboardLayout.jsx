@@ -31,7 +31,7 @@
  * - ToastContext : Notifications
  */
 
-import { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { motion } from "framer-motion";
 import { Link, Outlet, useLocation } from "react-router-dom";
@@ -421,6 +421,13 @@ export default function AdminDashboardLayout() {
     const hasSubmenu = item.children && item.children.length > 0;
     const isSubmenuOpen = openSubmenu === item.name;
 
+    // Fonction pour fermer le menu mobile après un clic
+    const handleMobileClick = () => {
+      if (isMobile) {
+        setSidebarOpen(false);
+      }
+    };
+
     // Ajouter un badge pour les demandes de retrait en attente
     const showWithdrawalBadge =
       item.href === "/admin/withdrawal-requests" && pendingCount > 0;
@@ -458,14 +465,17 @@ export default function AdminDashboardLayout() {
                 <Link
                   key={child.href}
                   to={child.href}
-                  className={`flex items-center px-4 py-2 text-sm rounded-lg transition-colors ${
+                  onClick={
+                    handleMobileClick
+                  } /* Fermer le menu mobile après clic */
+                  className={`flex items-center px-4 py-2 text-sm rounded-lg transition-all duration-200 ${
                     location.pathname === child.href
                       ? isDarkMode
-                        ? "bg-gray-700 text-white"
-                        : "bg-primary-50 text-primary-600"
+                        ? "bg-gradient-to-r from-primary-700/80 to-primary-800/80 text-white shadow-sm shadow-primary-900/20 border-l-2 border-primary-500 rounded-r-lg rounded-l-sm"
+                        : "bg-gradient-to-r from-primary-50/80 to-primary-100/80 text-primary-700 border-l-2 border-primary-500 shadow-sm rounded-r-lg rounded-l-sm"
                       : isDarkMode
-                      ? "text-gray-400 hover:bg-gray-700"
-                      : "text-gray-600 hover:bg-gray-50"
+                      ? "text-gray-400 hover:bg-gray-700/50 hover:text-gray-200 hover:translate-x-1 hover:rounded-r-lg hover:rounded-l-sm"
+                      : "text-gray-600 hover:bg-gray-50 hover:text-gray-900 hover:translate-x-1 hover:rounded-r-lg hover:rounded-l-sm"
                   }`}
                 >
                   {child.name}
@@ -482,6 +492,7 @@ export default function AdminDashboardLayout() {
         key={item.name}
         to={item.href}
         ref={showTooltip === item.name ? tooltipTargetRef : null}
+        onClick={handleMobileClick} /* Fermer le menu mobile après clic */
         onMouseEnter={(e) => {
           if (isSidebarCollapsed && !isMobile) {
             const rect = e.currentTarget.getBoundingClientRect();
@@ -493,14 +504,14 @@ export default function AdminDashboardLayout() {
           }
         }}
         onMouseLeave={() => setShowTooltip(null)}
-        className={`flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors ${
+        className={`flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-all duration-200 ${
           isActive
             ? isDarkMode
-              ? "bg-gray-700 text-white"
-              : "bg-primary-50 text-primary-600"
+              ? "bg-gradient-to-r from-primary-600 to-primary-700 text-white shadow-md shadow-primary-900/30 rounded-r-xl rounded-l-sm border-l-4 border-primary-400"
+              : "bg-gradient-to-r from-primary-50 to-primary-100 text-primary-700 border-l-4 border-primary-600 shadow-sm rounded-r-xl rounded-l-sm"
             : isDarkMode
-            ? "text-gray-300 hover:bg-gray-700"
-            : "text-gray-700 hover:bg-gray-50"
+            ? "text-gray-300 hover:bg-gray-700/70 hover:translate-x-1 hover:shadow-md hover:shadow-primary-900/10 hover:rounded-r-xl hover:rounded-l-sm"
+            : "text-gray-700 hover:bg-gray-50/90 hover:translate-x-1 hover:shadow-md hover:shadow-primary-600/10 hover:border-l-4 hover:border-primary-300 hover:rounded-r-xl hover:rounded-l-sm"
         }`}
       >
         <div className="relative">
@@ -663,7 +674,34 @@ export default function AdminDashboardLayout() {
             </div>
           ) : (
             // Afficher les éléments de navigation une fois les permissions chargées
-            navigation.map((item) => renderNavLink(item, true))
+            navigation.map((item) => {
+              // Créer une version modifiée de renderNavLink qui ferme le menu
+              const navItem = renderNavLink(item, true);
+
+              // Si c'est un lien (pas un sous-menu), ajouter onClick pour fermer le sidebar
+              if (navItem.type === Link) {
+                return React.cloneElement(navItem, {
+                  onClick: () => setSidebarOpen(false),
+                });
+              } else if (navItem.props && navItem.props.children) {
+                // Si c'est un sous-menu, ajouter onClick aux liens enfants
+                const modifiedChildren = React.Children.map(
+                  navItem.props.children,
+                  (child) => {
+                    if (child && child.type === Link) {
+                      return React.cloneElement(child, {
+                        onClick: () => setSidebarOpen(false),
+                      });
+                    }
+                    return child;
+                  }
+                );
+
+                return React.cloneElement(navItem, {}, modifiedChildren);
+              }
+
+              return navItem;
+            })
           )}
         </nav>
         <div

@@ -245,14 +245,15 @@ export default function UserDashboardLayout() {
               <Link
                 key={item.name}
                 to={item.href}
-                className={`flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors ${
+                onClick={() => setSidebarOpen(false)} /* Fermer le menu après clic */
+                className={`flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-all duration-200 ${
                   isActive
                     ? isDarkMode
-                      ? "bg-gray-700 text-white"
-                      : "bg-primary-50 text-primary-600"
+                      ? "bg-gradient-to-r from-primary-600 to-primary-700 text-white shadow-md shadow-primary-900/30 border-l-4 border-primary-400 rounded-r-xl rounded-l-sm"
+                      : "bg-gradient-to-r from-primary-50 to-primary-100 text-primary-700 border-l-4 border-primary-600 shadow-sm rounded-r-xl rounded-l-sm"
                     : isDarkMode
-                    ? "text-gray-300 hover:bg-gray-700"
-                    : "text-gray-700 hover:bg-gray-50"
+                    ? "text-gray-300 hover:bg-gray-700/70 hover:translate-x-1 hover:shadow-md hover:shadow-primary-900/10 hover:rounded-r-xl hover:rounded-l-sm"
+                    : "text-gray-700 hover:bg-gray-50/90 hover:translate-x-1 hover:shadow-md hover:shadow-primary-600/10 hover:border-l-4 hover:border-primary-300 hover:rounded-r-xl hover:rounded-l-sm"
                 }`}
               >
                 <item.icon className="h-5 w-5" />
@@ -330,14 +331,14 @@ export default function UserDashboardLayout() {
                       <li key={item.name} className="relative">
                         <Link
                           to={item.href}
-                          className={`flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors ${
+                          className={`flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-all duration-200 ${
                             isActive
                               ? isDarkMode
-                                ? "bg-gray-700 text-white"
-                                : "bg-primary-50 text-primary-600"
+                                ? "bg-gradient-to-r from-primary-600 to-primary-700 text-white shadow-md shadow-primary-900/30 border-l-4 border-primary-400 rounded-r-xl rounded-l-sm"
+                                : "bg-gradient-to-r from-primary-50 to-primary-100 text-primary-700 border-l-4 border-primary-600 shadow-sm rounded-r-xl rounded-l-sm"
                               : isDarkMode
-                              ? "text-gray-300 hover:bg-gray-700"
-                              : "text-gray-700 hover:bg-gray-50"
+                              ? "text-gray-300 hover:bg-gray-700/70 hover:translate-x-1 hover:shadow-md hover:shadow-primary-900/10 hover:rounded-r-xl hover:rounded-l-sm"
+                              : "text-gray-700 hover:bg-gray-50/90 hover:translate-x-1 hover:shadow-md hover:shadow-primary-600/10 hover:border-l-4 hover:border-primary-300 hover:rounded-r-xl hover:rounded-l-sm"
                           }`}
                           ref={
                             showTooltip === item.name ? tooltipTargetRef : null

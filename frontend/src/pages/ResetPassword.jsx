@@ -1,9 +1,13 @@
-import { useState } from 'react';
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
-import { useTheme } from '../contexts/ThemeContext';
-import { motion } from 'framer-motion';
-import { LockClosedIcon, EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline';
+import { useState } from "react";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { useAuth } from "../contexts/AuthContext";
+import { useTheme } from "../contexts/ThemeContext";
+import { motion } from "framer-motion";
+import {
+  LockClosedIcon,
+  EyeIcon,
+  EyeSlashIcon,
+} from "@heroicons/react/24/outline";
 
 export default function ResetPassword() {
   const { isDarkMode } = useTheme();
@@ -11,28 +15,28 @@ export default function ResetPassword() {
   const { resetPassword } = useAuth();
   const navigate = useNavigate();
   const { token } = useParams();
-  const email = searchParams.get('email');
+  const email = searchParams.get("email");
 
   const [formData, setFormData] = useState({
-    password: '',
-    password_confirmation: ''
+    password: "",
+    password_confirmation: "",
   });
   const [showPassword, setShowPassword] = useState(false);
-  const [status, setStatus] = useState({ type: '', message: '' });
+  const [status, setStatus] = useState({ type: "", message: "" });
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (formData.password !== formData.password_confirmation) {
       setStatus({
-        type: 'error',
-        message: 'Les mots de passe ne correspondent pas'
+        type: "error",
+        message: "Les mots de passe ne correspondent pas",
       });
       return;
     }
 
     setLoading(true);
-    setStatus({ type: '', message: '' });
+    setStatus({ type: "", message: "" });
 
     const result = await resetPassword(
       token,
@@ -43,16 +47,16 @@ export default function ResetPassword() {
 
     if (result.success) {
       setStatus({
-        type: 'success',
-        message: result.message
+        type: "success",
+        message: result.message,
       });
       setTimeout(() => {
-        navigate('/login');
+        navigate("/login");
       }, 2000);
     } else {
       setStatus({
-        type: 'error',
-        message: result.error
+        type: "error",
+        message: result.error,
       });
     }
 
@@ -64,18 +68,34 @@ export default function ResetPassword() {
   };
 
   return (
-    <div className={`min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 ${isDarkMode ? 'bg-gradient-to-br from-gray-900 to-gray-800' : 'bg-gradient-to-br from-primary-50 to-white'}`}>
+    <div
+      className={`min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 ${
+        isDarkMode
+          ? "bg-gradient-to-br from-gray-900 to-gray-800"
+          : "bg-gradient-to-br from-primary-50 to-white"
+      }`}
+    >
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        className={`max-w-md w-full space-y-8 p-8 rounded-xl shadow-lg ${isDarkMode ? 'bg-gray-800 shadow-gray-900' : 'bg-white'}`}
+        className={`max-w-md w-full space-y-8 p-8 rounded-xl shadow-lg ${
+          isDarkMode ? "bg-gray-800 shadow-gray-900" : "bg-white"
+        }`}
       >
         <div>
-          <h2 className={`mt-6 text-center text-3xl font-extrabold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+          <h2
+            className={`mt-6 text-center text-3xl font-extrabold ${
+              isDarkMode ? "text-white" : "text-gray-900"
+            }`}
+          >
             Réinitialisation du mot de passe
           </h2>
-          <p className={`mt-2 text-center text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+          <p
+            className={`mt-2 text-center text-sm ${
+              isDarkMode ? "text-gray-300" : "text-gray-600"
+            }`}
+          >
             Choisissez un nouveau mot de passe
           </p>
         </div>
@@ -86,7 +106,11 @@ export default function ResetPassword() {
             animate={{ opacity: 1 }}
             className="mt-2 text-center"
           >
-            <p className={status.type === 'success' ? 'text-green-500' : 'text-red-500'}>
+            <p
+              className={
+                status.type === "success" ? "text-green-500" : "text-red-500"
+              }
+            >
               {status.message}
             </p>
           </motion.div>
@@ -100,18 +124,26 @@ export default function ResetPassword() {
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <LockClosedIcon className={`h-5 w-5 ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`} />
+                  <LockClosedIcon
+                    className={`h-5 w-5 ${
+                      isDarkMode ? "text-gray-500" : "text-gray-400"
+                    }`}
+                  />
                 </div>
                 <input
                   id="password"
                   name="password"
-                  type={showPassword ? 'text' : 'password'}
+                  type={showPassword ? "text" : "password"}
                   required
                   value={formData.password}
                   onChange={(e) =>
                     setFormData({ ...formData, password: e.target.value })
                   }
-                  className={`appearance-none rounded-t-md relative block w-full px-3 py-2 border ${isDarkMode ? 'border-gray-600 bg-gray-700 placeholder-gray-400 text-white' : 'border-gray-300 placeholder-gray-500 text-gray-900'} focus:outline-none focus:ring-primary-500 focus:border-primary-500 focus:z-10 sm:text-sm pl-10`}
+                  className={`appearance-none rounded-t-md relative block w-full px-3 py-2 border ${
+                    isDarkMode
+                      ? "border-gray-600 bg-gray-700 placeholder-gray-400 text-white"
+                      : "border-gray-300 placeholder-gray-500 text-gray-900"
+                  } focus:outline-none focus:ring-primary-500 focus:border-primary-500 focus:z-10 sm:text-sm pl-10`}
                   placeholder="Nouveau mot de passe"
                 />
                 <button
@@ -120,9 +152,21 @@ export default function ResetPassword() {
                   className="absolute inset-y-0 right-0 pr-3 flex items-center"
                 >
                   {showPassword ? (
-                    <EyeSlashIcon className={`h-5 w-5 ${isDarkMode ? 'text-gray-400 hover:text-gray-300' : 'text-gray-400 hover:text-gray-500'}`} />
+                    <EyeSlashIcon
+                      className={`h-5 w-5 ${
+                        isDarkMode
+                          ? "text-gray-400 hover:text-gray-300"
+                          : "text-gray-400 hover:text-gray-500"
+                      }`}
+                    />
                   ) : (
-                    <EyeIcon className={`h-5 w-5 ${isDarkMode ? 'text-gray-400 hover:text-gray-300' : 'text-gray-400 hover:text-gray-500'}`} />
+                    <EyeIcon
+                      className={`h-5 w-5 ${
+                        isDarkMode
+                          ? "text-gray-400 hover:text-gray-300"
+                          : "text-gray-400 hover:text-gray-500"
+                      }`}
+                    />
                   )}
                 </button>
               </div>
@@ -134,16 +178,20 @@ export default function ResetPassword() {
               <input
                 id="password_confirmation"
                 name="password_confirmation"
-                type={showPassword ? 'text' : 'password'}
+                type={showPassword ? "text" : "password"}
                 required
                 value={formData.password_confirmation}
                 onChange={(e) =>
                   setFormData({
                     ...formData,
-                    password_confirmation: e.target.value
+                    password_confirmation: e.target.value,
                   })
                 }
-                className={`appearance-none rounded-b-md relative block w-full px-3 py-2 border ${isDarkMode ? 'border-gray-600 bg-gray-700 placeholder-gray-400 text-white' : 'border-gray-300 placeholder-gray-500 text-gray-900'} focus:outline-none focus:ring-primary-500 focus:border-primary-500 focus:z-10 sm:text-sm pl-10`}
+                className={`appearance-none rounded-b-md relative block w-full px-3 py-2 border ${
+                  isDarkMode
+                    ? "border-gray-600 bg-gray-700 placeholder-gray-400 text-white"
+                    : "border-gray-300 placeholder-gray-500 text-gray-900"
+                } focus:outline-none focus:ring-primary-500 focus:border-primary-500 focus:z-10 sm:text-sm pl-10`}
                 placeholder="Confirmer le mot de passe"
               />
             </div>
@@ -154,7 +202,7 @@ export default function ResetPassword() {
               type="submit"
               disabled={loading}
               className={`group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 ${
-                loading ? 'opacity-75 cursor-not-allowed' : ''
+                loading ? "opacity-75 cursor-not-allowed" : ""
               }`}
             >
               {loading ? (

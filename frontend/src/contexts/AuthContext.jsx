@@ -127,16 +127,22 @@ export const AuthProvider = ({ children }) => {
         // Utiliser la nouvelle fonction isPublicRoute pour vérifier les routes dynamiques
         const isPublicRoutePath = isPublicRoute(currentPath);
 
-        // Ignorer la vérification d'authentification pour la page d'accueil et la page d'inscription avec un code de parrainage
-        if (
-          currentPath === "/" ||
-          currentPath === "/register" ||
-          (currentPath === "/register" && hasReferralCode) ||
-          isPublicRoutePath
-        ) {
-          setLoading(false);
-          return;
+        // Pour la page d'accueil, vérifier l'authentification mais ne pas rediriger
+        // Cela permet de récupérer l'état d'authentification tout en gardant la page accessible à tous
+        if (currentPath === "/") {
+          try {
+            await checkAuth();
+          } catch (error) {
+            console.error("Erreur lors de la vérification d'authentification sur la page d'accueil:", error);
+          } finally {
+            setLoading(false);
+            return;
+          }
         }
+        
+        // Pour les routes d'authentification (login, register, etc.), vérifier si l'utilisateur est déjà connecté
+        const authRoutes = ["/login", "/register", "/forgot-password", "/reset-password", "/verification-success", "/verification-error"];
+        const isAuthRoute = authRoutes.includes(currentPath) || currentPath.startsWith("/reset-password/");
 
         const isAuthenticated = await checkAuth();
         isAuthenticatedRef.current = isAuthenticated;
@@ -147,9 +153,9 @@ export const AuthProvider = ({ children }) => {
           navigate("/login", { replace: true });
         }
 
-        // Si l'utilisateur est authentifié et qu'il est sur une route publique comme login
+        // Si l'utilisateur est authentifié et qu'il est sur une route d'authentification
         if (isAuthenticated && user) {
-          if (["/login", "/register"].includes(currentPath)) {
+          if (isAuthRoute) {
             // Rediriger vers le dashboard approprié
             const isAdmin =
               user.is_admin === 1 ||

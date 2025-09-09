@@ -293,6 +293,13 @@ export default function MyPacks() {
   const treeRef = useRef(null);
   const [isFullScreen, setIsFullScreen] = useState(false);
 
+  // Hooks pour la responsivité
+  const theme = useMuiTheme();
+  const isSmallScreen = useMediaQuery(theme.breakpoints.down("sm"));
+  const paginationSize = isSmallScreen ? "small" : "medium";
+  const paginationSiblingCount = isSmallScreen ? 0 : 1;
+  const paginationBoundaryCount = isSmallScreen ? 1 : 2;
+
   const [copySuccess, setCopySuccess] = useState(false);
 
   const handleCopy = (text) => {
@@ -1405,10 +1412,12 @@ export default function MyPacks() {
             borderBottom: 1,
             borderColor: "divider",
             display: "flex",
+            flexDirection: { xs: "column", sm: "row" },
             justifyContent: "space-between",
-            alignItems: "center",
-            py: 2,
-            px: 3,
+            alignItems: { xs: "flex-start", sm: "center" },
+            gap: { xs: 2, sm: 0 },
+            py: { xs: 1.5, sm: 2 },
+            px: { xs: 2, sm: 3 },
           }}
         >
           <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
@@ -1420,97 +1429,129 @@ export default function MyPacks() {
               Arbre des filleuls
             </Typography>
           </Box>
-          <Box sx={{ display: "flex", gap: 1 }}>
-            <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-              <Button
-                variant="contained"
-                onClick={() => setViewMode("table")}
-                size="small"
-                startIcon={
-                  <Box
-                    component="span"
-                    sx={{ display: "flex", alignItems: "center" }}
-                  >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="18"
-                      height="18"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
+          <Box
+            sx={{
+              display: "flex",
+              gap: 1,
+              flexDirection: { xs: "column", sm: "row" },
+              width: { xs: "100%", sm: "auto" },
+            }}
+          >
+            <Box
+              sx={{
+                display: "flex",
+                gap: 1,
+                width: { xs: "100%", sm: "auto" },
+                justifyContent: { xs: "space-between", sm: "flex-start" },
+              }}
+            >
+              <motion.div
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                style={{ flex: 1 }}
+              >
+                <Button
+                  variant="contained"
+                  onClick={() => setViewMode("table")}
+                  size="small"
+                  fullWidth
+                  startIcon={
+                    <Box
+                      component="span"
+                      sx={{ display: "flex", alignItems: "center" }}
                     >
-                      <rect
-                        x="3"
-                        y="3"
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
                         width="18"
                         height="18"
-                        rx="2"
-                        ry="2"
-                      ></rect>
-                      <line x1="3" y1="9" x2="21" y2="9"></line>
-                      <line x1="3" y1="15" x2="21" y2="15"></line>
-                      <line x1="9" y1="3" x2="9" y2="21"></line>
-                      <line x1="15" y1="3" x2="15" y2="21"></line>
-                    </svg>
-                  </Box>
-                }
-                sx={{
-                  borderRadius: "8px",
-                  textTransform: "none",
-                  fontWeight: 500,
-                  boxShadow:
-                    viewMode === "table"
-                      ? "0 4px 8px rgba(0, 0, 0, 0.15)"
-                      : "none",
-                }}
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <rect
+                          x="3"
+                          y="3"
+                          width="18"
+                          height="18"
+                          rx="2"
+                          ry="2"
+                        ></rect>
+                        <line x1="3" y1="9" x2="21" y2="9"></line>
+                        <line x1="3" y1="15" x2="21" y2="15"></line>
+                        <line x1="9" y1="3" x2="9" y2="21"></line>
+                        <line x1="15" y1="3" x2="15" y2="21"></line>
+                      </svg>
+                    </Box>
+                  }
+                  sx={{
+                    borderRadius: "8px",
+                    textTransform: "none",
+                    fontWeight: 500,
+                    boxShadow:
+                      viewMode === "table"
+                        ? "0 4px 8px rgba(0, 0, 0, 0.15)"
+                        : "none",
+                    minWidth: { xs: 0, sm: "auto" },
+                    px: { xs: 1, sm: 2 },
+                  }}
+                >
+                  <Box sx={{ display: { xs: "none", sm: "block" } }}></Box>
+                  <Box sx={{ display: { xs: "block", sm: "none" } }}></Box>
+                </Button>
+              </motion.div>
+              <motion.div
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                style={{ flex: 1 }}
               >
-                Vue tableau
-              </Button>
-            </motion.div>
-            <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-              <Button
-                variant="contained"
-                onClick={() => setViewMode("tree")}
-                size="small"
-                startIcon={
-                  <Box
-                    component="span"
-                    sx={{ display: "flex", alignItems: "center" }}
-                  >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="18"
-                      height="18"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
+                <Button
+                  variant="contained"
+                  onClick={() => setViewMode("tree")}
+                  size="small"
+                  fullWidth
+                  startIcon={
+                    <Box
+                      component="span"
+                      sx={{ display: "flex", alignItems: "center" }}
                     >
-                      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                      <circle cx="9" cy="7" r="4"></circle>
-                      <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
-                      <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-                    </svg>
-                  </Box>
-                }
-                sx={{
-                  borderRadius: "8px",
-                  textTransform: "none",
-                  fontWeight: 500,
-                  boxShadow:
-                    viewMode === "tree"
-                      ? "0 4px 8px rgba(0, 0, 0, 0.15)"
-                      : "none",
-                }}
-              >
-                Vue arbre
-              </Button>
-            </motion.div>
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="18"
+                        height="18"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="9" cy="7" r="4"></circle>
+                        <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                        <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                      </svg>
+                    </Box>
+                  }
+                  sx={{
+                    borderRadius: "8px",
+                    textTransform: "none",
+                    fontWeight: 500,
+                    boxShadow:
+                      viewMode === "tree"
+                        ? "0 4px 8px rgba(0, 0, 0, 0.15)"
+                        : "none",
+                    minWidth: { xs: 0, sm: "auto" },
+                    px: { xs: 1, sm: 2 },
+                  }}
+                >
+                  <Box sx={{ display: { xs: "none", sm: "block" } }}></Box>
+                  <Box sx={{ display: { xs: "block", sm: "none" } }}></Box>
+                </Button>
+              </motion.div>
+            </Box>
             <Tooltip
               title={
                 isFullScreen ? "Quitter le mode plein écran" : "Plein écran"
@@ -1520,7 +1561,8 @@ export default function MyPacks() {
               <IconButton
                 onClick={() => setIsFullScreen(!isFullScreen)}
                 sx={{
-                  ml: 1,
+                  ml: { xs: 0, sm: 1 },
+                  mt: { xs: 1, sm: 0 },
                   color: isDarkMode ? "grey.300" : "grey.700",
                   bgcolor: isDarkMode
                     ? "rgba(255, 255, 255, 0.05)"
@@ -1530,6 +1572,7 @@ export default function MyPacks() {
                       ? "rgba(255, 255, 255, 0.1)"
                       : "rgba(0, 0, 0, 0.1)",
                   },
+                  alignSelf: { xs: "flex-end", sm: "auto" },
                 }}
               >
                 {isFullScreen ? (
@@ -1614,9 +1657,8 @@ export default function MyPacks() {
                   <Box
                     sx={{
                       display: "flex",
-                      flexDirection: { xs: "column", md: "row" },
+                      flexDirection: "column",
                       justifyContent: "space-between",
-                      alignItems: { xs: "flex-start", md: "center" },
                       gap: 2,
                       mb: 3,
                     }}
@@ -1628,7 +1670,7 @@ export default function MyPacks() {
                       size="small"
                       fullWidth
                       sx={{
-                        width: { xs: "100%", md: "300px" },
+                        width: "100%",
                         bgcolor: isDarkMode
                           ? "#1a2433"
                           : "rgba(255, 255, 255, 0.9)",
@@ -1678,18 +1720,19 @@ export default function MyPacks() {
 
                     <Box
                       sx={{
-                        display: "flex",
-                        flexDirection: { xs: "column", sm: "row" },
+                        display: "grid",
+                        gridTemplateColumns: {
+                          xs: "1fr",
+                          sm: "auto auto auto",
+                        },
                         gap: 2,
-                        width: { xs: "100%", sm: "auto" },
-                        alignItems: { xs: "stretch", sm: "flex-start" },
+                        width: "100%",
                       }}
                     >
                       <FormControl
                         size="small"
                         sx={{
                           minWidth: { xs: "100%", sm: 120 },
-                          flex: { xs: 1, sm: "none" },
                         }}
                       >
                         <InputLabel
@@ -1768,83 +1811,70 @@ export default function MyPacks() {
                         </Select>
                       </FormControl>
 
-                      <Box
+                      <TextField
+                        label="Date début"
+                        type="date"
+                        size="small"
+                        fullWidth
+                        value={dateFilter.startDate}
+                        onChange={(e) =>
+                          setDateFilter((prev) => ({
+                            ...prev,
+                            startDate: e.target.value,
+                          }))
+                        }
+                        InputLabelProps={{ shrink: true }}
                         sx={{
-                          display: "flex",
-                          flexDirection: { xs: "row", sm: "row" },
-                          gap: 1,
-                          width: { xs: "100%", sm: "auto" },
-                          justifyContent: {
-                            xs: "space-between",
-                            sm: "flex-start",
+                          bgcolor: isDarkMode
+                            ? "#1f2937"
+                            : "rgba(255, 255, 255, 0.9)",
+                          borderRadius: "8px",
+                          "& .MuiOutlinedInput-root": {
+                            borderRadius: "8px",
+                            color: isDarkMode ? "grey.300" : undefined,
+                          },
+                          "& .MuiInputLabel-root": {
+                            color: isDarkMode ? "grey.400" : undefined,
+                          },
+                          "& .MuiInputLabel-root.Mui-focused": {
+                            color: isDarkMode
+                              ? "primary.light"
+                              : "primary.main",
                           },
                         }}
-                      >
-                        <TextField
-                          label="Date début"
-                          type="date"
-                          size="small"
-                          value={dateFilter.startDate}
-                          onChange={(e) =>
-                            setDateFilter((prev) => ({
-                              ...prev,
-                              startDate: e.target.value,
-                            }))
-                          }
-                          InputLabelProps={{ shrink: true }}
-                          sx={{
-                            width: { xs: "calc(50% - 4px)", sm: "140px" },
-                            bgcolor: isDarkMode
-                              ? "#1f2937"
-                              : "rgba(255, 255, 255, 0.9)",
+                      />
+                      <TextField
+                        label="Date fin"
+                        type="date"
+                        size="small"
+                        fullWidth
+                        value={dateFilter.endDate}
+                        onChange={(e) =>
+                          setDateFilter((prev) => ({
+                            ...prev,
+                            endDate: e.target.value,
+                          }))
+                        }
+                        InputLabelProps={{ shrink: true }}
+                        sx={{
+                          bgcolor: isDarkMode
+                            ? "#1f2937"
+                            : "rgba(255, 255, 255, 0.9)",
+                          borderRadius: "8px",
+                          "& .MuiOutlinedInput-root": {
                             borderRadius: "8px",
-                            "& .MuiOutlinedInput-root": {
-                              borderRadius: "8px",
-                              color: isDarkMode ? "grey.300" : undefined,
-                            },
-                            "& .MuiInputLabel-root": {
-                              color: isDarkMode ? "grey.400" : undefined,
-                            },
-                            "& .MuiInputLabel-root.Mui-focused": {
-                              color: isDarkMode
-                                ? "primary.light"
-                                : "primary.main",
-                            },
-                          }}
-                        />
-                        <TextField
-                          label="Date fin"
-                          type="date"
-                          size="small"
-                          value={dateFilter.endDate}
-                          onChange={(e) =>
-                            setDateFilter((prev) => ({
-                              ...prev,
-                              endDate: e.target.value,
-                            }))
-                          }
-                          InputLabelProps={{ shrink: true }}
-                          sx={{
-                            width: { xs: "calc(50% - 4px)", sm: "140px" },
-                            bgcolor: isDarkMode
-                              ? "#1f2937"
-                              : "rgba(255, 255, 255, 0.9)",
-                            borderRadius: "8px",
-                            "& .MuiOutlinedInput-root": {
-                              borderRadius: "8px",
-                              color: isDarkMode ? "grey.300" : undefined,
-                            },
-                            "& .MuiInputLabel-root": {
-                              color: isDarkMode ? "grey.400" : undefined,
-                            },
-                            "& .MuiInputLabel-root.Mui-focused": {
-                              color: isDarkMode
-                                ? "primary.light"
-                                : "primary.main",
-                            },
-                          }}
-                        />
-                      </Box>
+                            color: isDarkMode ? "grey.300" : undefined,
+                          },
+                          "& .MuiInputLabel-root": {
+                            color: isDarkMode ? "grey.400" : undefined,
+                          },
+                          "& .MuiInputLabel-root.Mui-focused": {
+                            color: isDarkMode
+                              ? "primary.light"
+                              : "primary.main",
+                          },
+                        }}
+                      />
                     </Box>
                   </Box>
                 </motion.div>
@@ -2037,13 +2067,35 @@ export default function MyPacks() {
                             ? "#1a2433"
                             : "rgba(255, 255, 255, 0.9)",
                           boxShadow: "0 2px 10px rgba(0, 0, 0, 0.1)",
+                          height: "auto",
+                          minHeight: 300,
+                          "& .MuiDataGrid-main": {
+                            // Configuration uniforme pour tous les cas
+                            overflow: "hidden",
+                          },
+                          "& .MuiDataGrid-virtualScroller": {
+                            // Configuration uniforme pour l'ascenseur vertical
+                            overflowY: "auto",
+                            overflowX: "hidden",
+                          },
+                          "& .MuiDataGrid-overlay": {
+                            // Centrer le message "No rows"
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            height: "100%",
+                          },
                           "& .MuiDataGrid-cell": {
                             color: isDarkMode ? "grey.300" : "inherit",
                             borderColor: isDarkMode
                               ? "rgba(255, 255, 255, 0.1)"
                               : "grey.200",
-                            fontSize: "0.875rem",
+                            fontSize: { xs: "0.75rem", sm: "0.875rem" },
                             py: 1.5,
+                            px: { xs: 1, sm: 2 },
+                            whiteSpace: "nowrap",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
                           },
                           "& .MuiDataGrid-columnHeaders": {
                             bgcolor: isDarkMode
@@ -2054,6 +2106,10 @@ export default function MyPacks() {
                               : "grey.200",
                             "& .MuiDataGrid-columnHeaderTitle": {
                               fontWeight: 600,
+                              fontSize: { xs: "0.75rem", sm: "0.875rem" },
+                              whiteSpace: "nowrap",
+                              overflow: "hidden",
+                              textOverflow: "ellipsis",
                             },
                           },
                           "& .MuiDataGrid-row": {
@@ -2083,11 +2139,13 @@ export default function MyPacks() {
                           <Box
                             sx={{
                               display: "flex",
+                              flexDirection: { xs: "column", sm: "row" },
                               justifyContent: "space-between",
-                              alignItems: "center",
+                              alignItems: { xs: "center", sm: "center" },
+                              gap: { xs: 2, sm: 0 },
                               mt: 2,
-                              px: 2,
-                              py: 1,
+                              px: { xs: 1, sm: 2 },
+                              py: { xs: 2, sm: 1 },
                               bgcolor: isDarkMode
                                 ? "#1a2433"
                                 : "rgba(0, 0, 0, 0.02)",
@@ -2097,13 +2155,24 @@ export default function MyPacks() {
                                 : "1px solid rgba(0, 0, 0, 0.1)",
                             }}
                           >
-                            <Box sx={{ display: "flex", alignItems: "center" }}>
+                            <Box
+                              sx={{
+                                display: "flex",
+                                alignItems: "center",
+                                order: { xs: 2, sm: 1 },
+                                textAlign: { xs: "center", sm: "left" },
+                                width: { xs: "100%", sm: "auto" },
+                              }}
+                            >
                               <Typography
                                 variant="body2"
                                 sx={{
                                   color: isDarkMode
                                     ? "grey.400"
                                     : "text.secondary",
+                                  fontSize: { xs: "0.75rem", sm: "0.875rem" },
+                                  width: { xs: "100%", sm: "auto" },
+                                  textAlign: { xs: "center", sm: "left" },
                                 }}
                               >
                                 Affichage de{" "}
@@ -2115,20 +2184,35 @@ export default function MyPacks() {
                             </Box>
 
                             <Pagination
-                              count={
-                                referralsPaginationMeta[currentTab].last_page
-                              }
-                              page={
-                                referralsPaginationMeta[currentTab].current_page
-                              }
+                              count={parseInt(
+                                referralsPaginationMeta[currentTab].last_page,
+                                10
+                              )}
+                              page={parseInt(
+                                referralsPaginationMeta[currentTab]
+                                  .current_page,
+                                10
+                              )}
                               onChange={(e, page) =>
                                 handleReferralsPageChange(selectedPackId, page)
                               }
                               color="primary"
-                              size="medium"
+                              size={paginationSize}
+                              siblingCount={paginationSiblingCount}
+                              boundaryCount={paginationBoundaryCount}
                               sx={{
+                                order: { xs: 1, sm: 2 },
+                                width: { xs: "100%", sm: "auto" },
+                                display: "flex",
+                                justifyContent: {
+                                  xs: "center",
+                                  sm: "flex-end",
+                                },
                                 "& .MuiPaginationItem-root": {
                                   color: isDarkMode ? "grey.300" : "inherit",
+                                  fontSize: { xs: "0.75rem", sm: "0.875rem" },
+                                  minWidth: { xs: "28px", sm: "32px" },
+                                  height: { xs: "28px", sm: "32px" },
                                   "&.Mui-selected": {
                                     bgcolor: isDarkMode
                                       ? "primary.dark"
