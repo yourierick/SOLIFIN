@@ -245,10 +245,15 @@ export const ChatProvider = ({ children }) => {
     
     // Créer un intervalle pour vérifier les nouveaux messages dans tous les salons
     const checkInterval = setInterval(async () => {
+      // Ne vérifier que si la page est visible et qu'il y a des salons non actifs
+      if (document.visibilityState !== 'visible') return;
+      
       // Ne vérifier que les salons qui ne sont pas actuellement actifs
       const roomsToCheck = chatRooms.filter(room => 
         !activeRoom || activeRoom.id !== room.id
       );
+      
+      if (roomsToCheck.length === 0) return;
       
       for (const room of roomsToCheck) {
         try {
@@ -269,9 +274,43 @@ export const ChatProvider = ({ children }) => {
           console.error(`Erreur lors de la vérification des messages non lus pour le salon ${room.id}:`, error);
         }
       }
-    }, 10000); // Vérifier toutes les 10 secondes
+    }, 20000); // Vérifier toutes les 20 secondes au lieu de 10 secondes
     
-    return () => clearInterval(checkInterval);
+    // Écouter les changements de visibilité de la page
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        // Vérifier immédiatement les messages non lus lorsque l'utilisateur revient sur la page
+        const roomsToCheck = chatRooms.filter(room => 
+          !activeRoom || activeRoom.id !== room.id
+        );
+        
+        roomsToCheck.forEach(async (room) => {
+          try {
+            const response = await axios.get(`/api/chat/rooms/${room.id}/messages`, {
+              params: { unread_only: true }
+            });
+            
+            const unreadCount = response.data.unread_count || 0;
+            
+            if (unreadCount > 0) {
+              setUnreadMessages(prev => ({
+                ...prev,
+                [room.id]: unreadCount
+              }));
+            }
+          } catch (error) {
+            console.error(`Erreur lors de la vérification des messages non lus pour le salon ${room.id}:`, error);
+          }
+        });
+      }
+    };
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    return () => {
+      clearInterval(checkInterval);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, [chatRooms, activeRoom, user]);
 
   // Charger les salons au chargement initial

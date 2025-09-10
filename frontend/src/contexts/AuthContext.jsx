@@ -122,27 +122,39 @@ export const AuthProvider = ({ children }) => {
       try {
         // Vérifier si nous sommes sur la page d'inscription avec un code de parrainage
         const currentPath = window.location.pathname;
-        const queryParams = new URLSearchParams(window.location.search);
-        const hasReferralCode = queryParams.has("referral_code");
         // Utiliser la nouvelle fonction isPublicRoute pour vérifier les routes dynamiques
         const isPublicRoutePath = isPublicRoute(currentPath);
 
         // Pour la page d'accueil, vérifier l'authentification mais ne pas rediriger
         // Cela permet de récupérer l'état d'authentification tout en gardant la page accessible à tous
+
+        console.log(currentPath === "/");
         if (currentPath === "/") {
           try {
             await checkAuth();
           } catch (error) {
-            console.error("Erreur lors de la vérification d'authentification sur la page d'accueil:", error);
+            console.error(
+              "Erreur lors de la vérification d'authentification sur la page d'accueil:",
+              error
+            );
           } finally {
             setLoading(false);
             return;
           }
         }
-        
+
         // Pour les routes d'authentification (login, register, etc.), vérifier si l'utilisateur est déjà connecté
-        const authRoutes = ["/login", "/register", "/forgot-password", "/reset-password", "/verification-success", "/verification-error"];
-        const isAuthRoute = authRoutes.includes(currentPath) || currentPath.startsWith("/reset-password/");
+        const authRoutes = [
+          "/login",
+          "/register",
+          "/forgot-password",
+          "/reset-password",
+          "/verification-success",
+          "/verification-error",
+        ];
+        const isAuthRoute =
+          authRoutes.includes(currentPath) ||
+          currentPath.startsWith("/reset-password/");
 
         const isAuthenticated = await checkAuth();
         isAuthenticatedRef.current = isAuthenticated;

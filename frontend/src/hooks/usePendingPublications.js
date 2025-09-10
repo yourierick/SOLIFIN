@@ -29,7 +29,7 @@ const usePendingPublications = () => {
       ]);
 
       // Calculer le total des publications en attente
-      const totalPending = 
+      const totalPending =
         (advertisementsRes.data.count || 0) +
         (jobOffersRes.data.count || 0) +
         (businessOpportunitiesRes.data.count || 0) +
@@ -52,12 +52,28 @@ const usePendingPublications = () => {
   useEffect(() => {
     fetchPendingPublications();
 
-    // Mettre à jour le compteur toutes les 5 minutes
+    // Mettre à jour le compteur toutes les 10 minutes
     const interval = setInterval(() => {
-      fetchPendingPublications();
-    }, 5 * 60 * 1000);
+      // Vérifier si la page est visible avant de faire la requête
+      if (document.visibilityState === 'visible') {
+        fetchPendingPublications();
+      }
+    }, 10 * 60 * 1000);
 
-    return () => clearInterval(interval);
+    // Écouter les changements de visibilité de la page
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        // Rafraîchir les données quand l'utilisateur revient sur la page
+        fetchPendingPublications();
+      }
+    };
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, []);
 
   return { pendingCount, loading, error, refresh: fetchPendingPublications };

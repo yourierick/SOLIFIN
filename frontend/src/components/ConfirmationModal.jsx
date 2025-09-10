@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import ReactDOM from 'react-dom';
 import { XMarkIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline';
 import { useTheme } from '../contexts/ThemeContext';
@@ -24,7 +24,8 @@ const ConfirmationModal = ({
   confirmButtonText = 'Confirmer',
   cancelButtonText = 'Annuler',
   isDarkMode: isDarkModeProp,
-  type = 'danger' // 'danger', 'warning', 'info'
+  type = 'danger', // 'danger', 'warning', 'info'
+  isLoading = false // Nouvel état pour le chargement
 }) => {
   // Utiliser le contexte de thème global de l'application
   const { isDarkMode: contextDarkMode } = useTheme();
@@ -152,19 +153,32 @@ const ConfirmationModal = ({
         <div className="flex justify-end space-x-3 mt-6">
           <button
             onClick={onClose}
-            className={`px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${isDarkMode ? 'border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600' : 'border border-gray-300 bg-white text-gray-700 hover:bg-gray-50'} ${isDarkMode ? 'hover:scale-105 dark:hover:animate-dark-float' : ''}`}
+            disabled={isLoading}
+            className={`px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${isDarkMode ? 'border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600' : 'border border-gray-300 bg-white text-gray-700 hover:bg-gray-50'} ${isDarkMode ? 'hover:scale-105 dark:hover:animate-dark-float' : ''} ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
           >
             {cancelButtonText}
           </button>
           <button
             onClick={onConfirm}
-            className={`px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${typeStyles.confirmButton} border ${typeStyles.confirmButtonBorder} ${isDarkMode ? 'hover:scale-105 dark:animate-glow dark:hover:animate-dark-pulse' : ''}`}
+            disabled={isLoading}
+            className={`px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${typeStyles.confirmButton} border ${typeStyles.confirmButtonBorder} ${isDarkMode ? 'hover:scale-105 dark:animate-glow dark:hover:animate-dark-pulse' : ''} ${isLoading ? 'opacity-90 cursor-wait' : ''} flex items-center justify-center`}
             style={{
               boxShadow: isDarkMode ? `0 2px 8px ${type === 'danger' ? 'rgba(239, 68, 68, 0.3)' : type === 'warning' ? 'rgba(245, 158, 11, 0.3)' : 'rgba(59, 130, 246, 0.3)'}` : '',
-              transform: 'translateZ(0)'
+              transform: 'translateZ(0)',
+              minWidth: '120px'
             }}
           >
-            {confirmButtonText}
+            {isLoading ? (
+              <>
+                <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Traitement...
+              </>
+            ) : (
+              confirmButtonText
+            )}
           </button>
         </div>
       </div>

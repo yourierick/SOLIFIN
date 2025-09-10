@@ -106,6 +106,16 @@ Route::middleware('throttle:api')->group(function () {
 
 // Routes protégées
 Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
+    // Routes pour les statuts utilisateur
+    Route::post('/user/status/update', [\App\Http\Controllers\UserStatusController::class, 'updateStatus']);
+    Route::get('/user/statuses', [\App\Http\Controllers\UserStatusController::class, 'getStatuses']);
+    
+    // Routes pour les messages de diffusion (utilisateur)
+    Route::prefix('broadcast-messages')->group(function () {
+        Route::get('/', [\App\Http\Controllers\BroadcastMessageController::class, 'getUnseenMessages']);
+        Route::post('/{id}/seen', [\App\Http\Controllers\BroadcastMessageController::class, 'markAsSeen']);
+        Route::get('/check', [\App\Http\Controllers\BroadcastMessageController::class, 'checkNewMessages']);
+    });
     // Routes pour le chat privé en temps réel
     Route::prefix('chat')->group(function () {
         Route::get('/rooms', [\App\Http\Controllers\ChatController::class, 'getRooms']);
@@ -116,10 +126,6 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
         Route::get('/rooms/{roomId}/typing', [\App\Http\Controllers\ChatController::class, 'getTypingUsers']);
         Route::delete('/rooms/{roomId}', [\App\Http\Controllers\ChatController::class, 'deleteRoom']);
     });
-    
-    // Routes pour les statuts utilisateur
-    Route::post('/user/status/update', [\App\Http\Controllers\UserStatusController::class, 'updateStatus']);
-    Route::get('/user/statuses', [\App\Http\Controllers\UserStatusController::class, 'getStatuses']);
     
     // Route pour récupérer la liste des utilisateurs pour le chat privé
     Route::get('/users/list', [\App\Http\Controllers\UserListController::class, 'index']);
@@ -673,6 +679,19 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function ()
         Route::post('/faq/categories', [\App\Http\Controllers\FaqController::class, 'storeCategory']);
         Route::put('/faq/categories/{id}', [\App\Http\Controllers\FaqController::class, 'updateCategory']);
         Route::delete('/faq/categories/{id}', [\App\Http\Controllers\FaqController::class, 'destroyCategory']);
+    });
+
+    Route::middleware('permission:manage-broadcast-messages')->group(function () {
+        // Routes pour la gestion des messages de diffusion
+        Route::prefix('broadcast-messages')->group(function () {
+            Route::get('/stats', [\App\Http\Controllers\Admin\BroadcastMessageController::class, 'stats']);
+            Route::get('/', [\App\Http\Controllers\Admin\BroadcastMessageController::class, 'index']);
+            Route::post('/', [\App\Http\Controllers\Admin\BroadcastMessageController::class, 'store']);
+            Route::get('/{id}', [\App\Http\Controllers\Admin\BroadcastMessageController::class, 'show']);
+            Route::put('/{id}', [\App\Http\Controllers\Admin\BroadcastMessageController::class, 'update']);
+            Route::delete('/{id}', [\App\Http\Controllers\Admin\BroadcastMessageController::class, 'destroy']);
+            Route::post('/{id}/republish', [\App\Http\Controllers\Admin\BroadcastMessageController::class, 'republish']);
+        });
     });
     
     // Routes pour la gestion des rôles et permissions (super-admin uniquement)

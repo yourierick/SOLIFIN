@@ -70,6 +70,7 @@ import {
   GiftIcon,
   TicketIcon,
   ShieldCheckIcon,
+  SpeakerWaveIcon,
 } from "@heroicons/react/24/outline";
 import NotificationsDropdown from "../components/NotificationsDropdown";
 
@@ -94,18 +95,6 @@ const navigationItems = [
     icon: WalletIcon,
     permission: "manage-wallets",
   },
-  // {
-  //   name: "Mes packs",
-  //   href: "/admin/mespacks",
-  //   icon: CubeIcon,
-  //   permission: "manage-own-packs",
-  // },
-  // {
-  //   name: "Commissions",
-  //   href: "/admin/commissions",
-  //   icon: CreditCardIcon,
-  //   permission: "manage-commissions",
-  // },
   {
     name: "Finances",
     href: "/admin/finances",
@@ -124,28 +113,6 @@ const navigationItems = [
     icon: GiftIcon,
     permission: "manage-gifts",
   },
-  // {
-  //   name: "Vérification tickets",
-  //   href: "/admin/tickets-verification",
-  //   icon: TicketIcon,
-  //   permission: "verify-tickets",
-  // },
-  // {
-  //   name: "Témoignages",
-  //   href: "/admin/testimonials",
-  //   icon: ChatBubbleLeftRightIcon,
-  //   permission: "manage-testimonials",
-  // },
-
-  // {
-  //   name: "Formations",
-  //   href: "/admin/formations",
-  //   icon: AcademicCapIcon,
-  //   permission: "manage-courses",
-  //   badge: (pendingFormationsCount) =>
-  //     pendingFormationsCount > 0 ? pendingFormationsCount : null,
-  //   badgeColor: "red",
-  // },
   {
     name: "Gestion des contenus",
     href: "/admin/content-management",
@@ -172,6 +139,12 @@ const navigationItems = [
     permission: "manage-system",
   },
 
+  {
+    name: "Messages de diffusion",
+    href: "/admin/broadcast-messages",
+    icon: SpeakerWaveIcon,
+    permission: "manage-broadcast-messages",
+  },
   {
     name: "FAQ",
     href: "/admin/faqs",

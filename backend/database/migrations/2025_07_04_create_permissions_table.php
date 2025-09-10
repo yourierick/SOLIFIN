@@ -141,6 +141,13 @@ return new class extends Migration
                 'created_at' => now(),
                 'updated_at' => now(),
             ],
+            [
+                'nom' => 'Gérer les messages de diffusion',
+                'slug' => 'manage-broadcast-messages',
+                'description' => 'Gérer les messages de diffusion',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
         ]);
     }
 

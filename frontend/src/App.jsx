@@ -78,161 +78,165 @@ import JetonsEsengo from "./pages/user/components/JetonsEsengo";
 import UsersManagement from "./pages/admin/UsersManagement";
 import ContentManagement from "./pages/admin/components/ContentManagement";
 import ChatPollingTest from "./pages/ChatPollingTest";
+import BroadcastMessagesPage from "./pages/admin/BroadcastMessagesPage";
+import { BroadcastProvider } from "./contexts/BroadcastContext";
 
 function App() {
   return (
     <PublicationPackProvider>
       <ChatProvider>
-        <div>
-          <ToastContainer />
-          <ChatInterface />
-          <Routes>
-            {/* Routes publiques */}
-            <Route
-              path="/"
-              element={
-                <PublicRoute>
-                  <Homepage />
-                </PublicRoute>
-              }
-            />
-            <Route
-              path="/login"
-              element={
-                <PublicRoute>
-                  <Login />
-                </PublicRoute>
-              }
-            />
-            <Route
-              path="/register"
-              element={
-                <PublicRoute>
-                  <Register />
-                </PublicRoute>
-              }
-            />
-            {/* Page d'invitation à la connexion ou souscription */}
-            <Route
-              path="/interet"
-              element={
-                <PublicRoute>
-                  <PromptLoginOrSubscribePage />
-                </PublicRoute>
-              }
-            />
-            <Route
-              path="/forgot-password"
-              element={
-                <PublicRoute>
-                  <ForgotPassword />
-                </PublicRoute>
-              }
-            />
-            <Route
-              path="/reset-password/:token"
-              element={
-                <PublicRoute>
-                  <ResetPassword />
-                </PublicRoute>
-              }
-            />
-            <Route
-              path="/email/verify/:id/:hash"
-              element={
-                <PublicRoute>
-                  <EmailVerification />
-                </PublicRoute>
-              }
-            />
-            <Route
-              path="/verification-success"
-              element={
-                <PublicRoute>
-                  <VerificationSuccess />
-                </PublicRoute>
-              }
-            />
-            <Route
-              path="/verification-error"
-              element={
-                <PublicRoute>
-                  <VerificationError />
-                </PublicRoute>
-              }
-            />
+        <BroadcastProvider>
+          <div>
+            <ToastContainer />
+            <ChatInterface />
+            <Routes>
+              {/* Routes publiques */}
+              <Route path="/" element={<Homepage />} />
+              <Route
+                path="/login"
+                element={
+                  <PublicRoute>
+                    <Login />
+                  </PublicRoute>
+                }
+              />
+              <Route
+                path="/register"
+                element={
+                  <PublicRoute>
+                    <Register />
+                  </PublicRoute>
+                }
+              />
+              {/* Page d'invitation à la connexion ou souscription */}
+              <Route
+                path="/interet"
+                element={
+                  <PublicRoute>
+                    <PromptLoginOrSubscribePage />
+                  </PublicRoute>
+                }
+              />
+              <Route
+                path="/forgot-password"
+                element={
+                  <PublicRoute>
+                    <ForgotPassword />
+                  </PublicRoute>
+                }
+              />
+              <Route
+                path="/reset-password/:token"
+                element={
+                  <PublicRoute>
+                    <ResetPassword />
+                  </PublicRoute>
+                }
+              />
+              <Route
+                path="/email/verify/:id/:hash"
+                element={
+                  <PublicRoute>
+                    <EmailVerification />
+                  </PublicRoute>
+                }
+              />
+              <Route
+                path="/verification-success"
+                element={
+                  <PublicRoute>
+                    <VerificationSuccess />
+                  </PublicRoute>
+                }
+              />
+              <Route
+                path="/verification-error"
+                element={
+                  <PublicRoute>
+                    <VerificationError />
+                  </PublicRoute>
+                }
+              />
 
-            {/* Routes protégées */}
-            <Route
-              path="/admin"
-              element={
-                <PrivateRoute>
-                  <AdminDashboardLayout />
-                </PrivateRoute>
-              }
-            >
-              <Route index element={<AdminDashboard />} />
-              <Route path="users" element={<UsersManagement />} />
-              <Route path="users/:id" element={<UserDetails />} />
-              <Route path="wallets" element={<Wallets />} />
-              <Route path="packs" element={<Packs />} />
-              <Route path="packs/add" element={<AddPack />} />
-              <Route path="packs/edit/:id" element={<EditPack />} />
-              {/* <Route path="mespacks" element={<MesPacks />} /> */}
-              {/* <Route path="commissions" element={<Commissions />} /> */}
-              <Route path="finances" element={<AdminFinances />} />
-              {/* <Route
+              {/* Routes protégées */}
+              <Route
+                path="/admin"
+                element={
+                  <PrivateRoute>
+                    <AdminDashboardLayout />
+                  </PrivateRoute>
+                }
+              >
+                <Route index element={<AdminDashboard />} />
+                <Route path="users" element={<UsersManagement />} />
+                <Route path="users/:id" element={<UserDetails />} />
+                <Route path="wallets" element={<Wallets />} />
+                <Route path="packs" element={<Packs />} />
+                <Route path="packs/add" element={<AddPack />} />
+                <Route path="packs/edit/:id" element={<EditPack />} />
+                {/* <Route path="mespacks" element={<MesPacks />} /> */}
+                {/* <Route path="commissions" element={<Commissions />} /> */}
+                <Route path="finances" element={<AdminFinances />} />
+                {/* <Route
               path="withdrawal-requests"
               element={<WithdrawalRequests />}
             /> */}
-              <Route
-                path="content-management"
-                element={<ContentManagement />}
-              />
-              <Route path="profile" element={<AdminProfile />} />
-              <Route path="settings" element={<Settings />} />
-              {/* <Route path="administrators" element={<AdminManagement />} /> */}
-              {/* <Route path="testimonials" element={<TestimonialManagement />} /> */}
-              <Route path="faqs" element={<FaqManagement />} />
-              {/* <Route path="formations" element={<FormationManagement />} /> */}
-              <Route path="cadeaux" element={<CadeauxManagement />} />
-              {/* <Route
+                <Route
+                  path="content-management"
+                  element={<ContentManagement />}
+                />
+                <Route path="profile" element={<AdminProfile />} />
+                <Route path="settings" element={<Settings />} />
+                <Route
+                  path="broadcast-messages"
+                  element={<BroadcastMessagesPage />}
+                />
+                {/* <Route path="administrators" element={<AdminManagement />} /> */}
+                {/* <Route path="testimonials" element={<TestimonialManagement />} /> */}
+                <Route path="faqs" element={<FaqManagement />} />
+                {/* <Route path="formations" element={<FormationManagement />} /> */}
+                <Route path="cadeaux" element={<CadeauxManagement />} />
+                {/* <Route
               path="tickets-verification"
               element={<TicketVerification />}
             /> */}
-            </Route>
+              </Route>
 
-            <Route
-              path="/dashboard"
-              element={
-                <PrivateRoute>
-                  <UserDashboardLayout />
-                </PrivateRoute>
-              }
-            >
-              <Route index element={<UserDashboard />} />
-              <Route path="profile" element={<Profile />} />
-              {/* <Route path="wallet" element={<Wallet />} /> */}
-              <Route path="finances" element={<UserFinances />} />
-              <Route path="packs" element={<BuyPack />} />
-              <Route path="packs/:id" element={<MyPacks />} />
-              <Route path="stats" element={<Stats />} />
-              {/* <Route path="news-feed" element={<NewsFeed />} /> */}
-              <Route path="my-page" element={<MyPage />} />
-              {/* <Route path="social" element={<Social />} /> */}
-              {/* <Route path="jetons-esengo" element={<JetonsEsengo />} /> */}
-              <Route path="faq" element={<UserFaq />} />
-              {/* <Route path="formations" element={<Formations />} /> */}
-              <Route path="formations/edit/:id" element={<FormationEditor />} />
-              <Route path="formations/create" element={<FormationEditor />} />
-              <Route path="pages/:id" element={<Page />} />
-              <Route path="chat-polling-test" element={<ChatPollingTest />} />
-            </Route>
+              <Route
+                path="/dashboard"
+                element={
+                  <PrivateRoute>
+                    <UserDashboardLayout />
+                  </PrivateRoute>
+                }
+              >
+                <Route index element={<UserDashboard />} />
+                <Route path="profile" element={<Profile />} />
+                {/* <Route path="wallet" element={<Wallet />} /> */}
+                <Route path="finances" element={<UserFinances />} />
+                <Route path="packs" element={<BuyPack />} />
+                <Route path="packs/:id" element={<MyPacks />} />
+                <Route path="stats" element={<Stats />} />
+                {/* <Route path="news-feed" element={<NewsFeed />} /> */}
+                <Route path="my-page" element={<MyPage />} />
+                {/* <Route path="social" element={<Social />} /> */}
+                {/* <Route path="jetons-esengo" element={<JetonsEsengo />} /> */}
+                <Route path="faq" element={<UserFaq />} />
+                {/* <Route path="formations" element={<Formations />} /> */}
+                <Route
+                  path="formations/edit/:id"
+                  element={<FormationEditor />}
+                />
+                <Route path="formations/create" element={<FormationEditor />} />
+                <Route path="pages/:id" element={<Page />} />
+                <Route path="chat-polling-test" element={<ChatPollingTest />} />
+              </Route>
 
-            {/* Redirection pour les routes inconnues */}
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-        </div>
+              {/* Redirection pour les routes inconnues */}
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </div>
+        </BroadcastProvider>
       </ChatProvider>
     </PublicationPackProvider>
   );

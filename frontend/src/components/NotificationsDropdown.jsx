@@ -68,13 +68,26 @@ export default function NotificationsDropdown() {
 
     // Configurer un intervalle pour rafraîchir les notifications
     const interval = setInterval(() => {
-      if (!isOpen) {
-        // Rafraîchir seulement si le dropdown n'est pas ouvert
+      if (!isOpen && document.visibilityState === 'visible') {
+        // Rafraîchir seulement si le dropdown n'est pas ouvert et que la page est visible
         fetchNotifications();
       }
-    }, 60000); // Rafraîchir toutes les minutes
+    }, 120000); // Rafraîchir toutes les 2 minutes au lieu de chaque minute
 
-    return () => clearInterval(interval);
+    // Écouter les changements de visibilité de la page
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && !isOpen) {
+        // Rafraîchir les notifications quand l'utilisateur revient sur la page
+        fetchNotifications();
+      }
+    };
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, [isOpen]);
 
   useEffect(() => {
