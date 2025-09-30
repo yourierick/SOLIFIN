@@ -30,27 +30,27 @@ const usePendingFormations = () => {
   useEffect(() => {
     fetchPendingFormations();
 
-    // Mettre à jour le compteur toutes les 8 minutes
+    // Mettre à jour le compteur toutes les 2 minutes
     const interval = setInterval(() => {
       // Vérifier si la page est visible avant de faire la requête
-      if (document.visibilityState === 'visible') {
+      if (document.visibilityState === "visible") {
         fetchPendingFormations();
       }
-    }, 8 * 60 * 1000);
+    }, 2 * 60 * 1000);
 
     // Écouter les changements de visibilité de la page
     const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
+      if (document.visibilityState === "visible") {
         // Rafraîchir les données quand l'utilisateur revient sur la page
         fetchPendingFormations();
       }
     };
-    
-    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
 
     return () => {
       clearInterval(interval);
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
   }, []);
 

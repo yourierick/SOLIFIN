@@ -39,27 +39,27 @@ const usePendingTestimonials = () => {
   useEffect(() => {
     fetchPendingCount();
 
-    // Rafraîchir le compteur toutes les 12 minutes
+    // Rafraîchir le compteur toutes les 2 minutes
     const interval = setInterval(() => {
       // Vérifier si la page est visible avant de faire la requête
-      if (document.visibilityState === 'visible') {
+      if (document.visibilityState === "visible") {
         fetchPendingCount();
       }
-    }, 12 * 60 * 1000);
+    }, 2 * 60 * 1000);
 
     // Écouter les changements de visibilité de la page
     const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
+      if (document.visibilityState === "visible") {
         // Rafraîchir les données quand l'utilisateur revient sur la page
         fetchPendingCount();
       }
     };
-    
-    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
 
     return () => {
       clearInterval(interval);
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
   }, []);
 

@@ -1129,50 +1129,7 @@ export default function MyPacks() {
                         </IconButton>
                       </Tooltip>
                     </ListItem>
-                    {/* Lien de parrainage */}
-                    <ListItem
-                      disablePadding
-                      sx={{
-                        py: 1.5,
-                        borderBottom: "1px solid",
-                        borderColor: isDarkMode
-                          ? "rgba(255, 255, 255, 0.05)"
-                          : "rgba(0, 0, 0, 0.05)",
-                      }}
-                    >
-                      <ListItemIcon sx={{ minWidth: 36 }}>
-                        <ContentCopy fontSize="small" color="action" />
-                      </ListItemIcon>
-                      <ListItemText
-                        primary="Lien de parrainage"
-                        secondary={userPack.link_referral}
-                        primaryTypographyProps={{
-                          variant: "caption",
-                          color: "text.secondary",
-                          component: "span",
-                        }}
-                        secondaryTypographyProps={{
-                          variant: "body2",
-                          fontWeight: 600,
-                          component: "span",
-                          sx: {
-                            mt: 0.5,
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                            whiteSpace: "nowrap",
-                          },
-                        }}
-                      />
-                      <Tooltip title="Copier le lien" placement="top">
-                        <IconButton
-                          edge="end"
-                          size="small"
-                          onClick={() => handleCopy(userPack.link_referral)}
-                        >
-                          <ContentCopy fontSize="small" />
-                        </IconButton>
-                      </Tooltip>
-                    </ListItem>
+
                     {/* Date d'expiration */}
                     {userPack.expiry_date && (
                       <ListItem

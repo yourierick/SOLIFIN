@@ -23,7 +23,7 @@ export const ChatProvider = ({ children }) => {
   const [userStatuses, setUserStatuses] = useState({});
   const [unreadMessages, setUnreadMessages] = useState({});
   const [isChatExpanded, setIsChatExpanded] = useState(false);
-  
+
   // Synchroniser l'état d'expansion initial avec le service de polling
   useEffect(() => {
     chatPollingService.setChatExpanded(isChatExpanded);
@@ -61,11 +61,13 @@ export const ChatProvider = ({ children }) => {
         setLoading(true);
         const response = await axios.get(`/api/chat/rooms/${roomId}/messages`);
         setMessages(response.data.messages.data);
-        
+
         // Mettre à jour le dernier timestamp pour le polling
         if (response.data.messages.data.length > 0) {
           const latestMessage = response.data.messages.data[0]; // Les messages sont triés par date décroissante
-          chatPollingService.lastMessageTimestamps[roomId] = new Date(latestMessage.created_at).getTime();
+          chatPollingService.lastMessageTimestamps[roomId] = new Date(
+            latestMessage.created_at
+          ).getTime();
         }
 
         // Marquer les messages comme lus
@@ -122,7 +124,7 @@ export const ChatProvider = ({ children }) => {
   // Notifier que l'utilisateur est en train de taper
   const sendTypingNotification = useCallback(async (roomId) => {
     if (!roomId) return;
-    
+
     try {
       await chatPollingService.sendTypingNotification(roomId);
     } catch (error) {
@@ -210,23 +212,29 @@ export const ChatProvider = ({ children }) => {
     if (!activeRoom) return;
 
     // Démarrer le polling des messages
-    const stopMessagePolling = chatPollingService.startMessagePolling(activeRoom.id);
-    
+    const stopMessagePolling = chatPollingService.startMessagePolling(
+      activeRoom.id
+    );
+
     // Démarrer le polling des utilisateurs en train de taper
-    const stopTypingPolling = chatPollingService.startTypingPolling(activeRoom.id);
-    
+    const stopTypingPolling = chatPollingService.startTypingPolling(
+      activeRoom.id
+    );
+
     // S'abonner aux nouveaux messages
     chatPollingService.onNewMessages(activeRoom.id, (newMessages) => {
       setMessages((prev) => {
         // Filtrer les messages déjà présents pour éviter les doublons
-        const existingIds = new Set(prev.map(msg => msg.id));
-        const uniqueNewMessages = newMessages.filter(msg => !existingIds.has(msg.id));
-        
+        const existingIds = new Set(prev.map((msg) => msg.id));
+        const uniqueNewMessages = newMessages.filter(
+          (msg) => !existingIds.has(msg.id)
+        );
+
         if (uniqueNewMessages.length === 0) return prev;
         return [...uniqueNewMessages, ...prev];
       });
     });
-    
+
     // S'abonner aux notifications de frappe
     chatPollingService.onTypingUsers(activeRoom.id, (typingUsersData) => {
       setTypingUsers(typingUsersData);
@@ -242,74 +250,86 @@ export const ChatProvider = ({ children }) => {
   // Vérifier périodiquement les nouveaux messages dans tous les salons pour mettre à jour les compteurs
   useEffect(() => {
     if (!user || !chatRooms.length) return;
-    
+
     // Créer un intervalle pour vérifier les nouveaux messages dans tous les salons
     const checkInterval = setInterval(async () => {
       // Ne vérifier que si la page est visible et qu'il y a des salons non actifs
-      if (document.visibilityState !== 'visible') return;
-      
+      if (document.visibilityState !== "visible") return;
+
       // Ne vérifier que les salons qui ne sont pas actuellement actifs
-      const roomsToCheck = chatRooms.filter(room => 
-        !activeRoom || activeRoom.id !== room.id
+      const roomsToCheck = chatRooms.filter(
+        (room) => !activeRoom || activeRoom.id !== room.id
       );
-      
+
       if (roomsToCheck.length === 0) return;
-      
+
       for (const room of roomsToCheck) {
         try {
           // Récupérer uniquement le nombre de nouveaux messages non lus
-          const response = await axios.get(`/api/chat/rooms/${room.id}/messages`, {
-            params: { unread_only: true }
-          });
-          
+          const response = await axios.get(
+            `/api/chat/rooms/${room.id}/messages`,
+            {
+              params: { unread_only: true },
+            }
+          );
+
           const unreadCount = response.data.unread_count || 0;
-          
+
           if (unreadCount > 0) {
-            setUnreadMessages(prev => ({
+            setUnreadMessages((prev) => ({
               ...prev,
-              [room.id]: unreadCount
+              [room.id]: unreadCount,
             }));
           }
         } catch (error) {
-          console.error(`Erreur lors de la vérification des messages non lus pour le salon ${room.id}:`, error);
+          console.error(
+            `Erreur lors de la vérification des messages non lus pour le salon ${room.id}:`,
+            error
+          );
         }
       }
-    }, 20000); // Vérifier toutes les 20 secondes au lieu de 10 secondes
-    
+    }, 5000); // Vérifier toutes les 5 secondes
+
     // Écouter les changements de visibilité de la page
     const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
+      if (document.visibilityState === "visible") {
         // Vérifier immédiatement les messages non lus lorsque l'utilisateur revient sur la page
-        const roomsToCheck = chatRooms.filter(room => 
-          !activeRoom || activeRoom.id !== room.id
+        const roomsToCheck = chatRooms.filter(
+          (room) => !activeRoom || activeRoom.id !== room.id
         );
-        
+
         roomsToCheck.forEach(async (room) => {
           try {
-            const response = await axios.get(`/api/chat/rooms/${room.id}/messages`, {
-              params: { unread_only: true }
-            });
-            
+            const response = await axios.get(
+              `/api/chat/rooms/${room.id}/messages`,
+              {
+                params: { unread_only: true },
+              }
+            );
+
             const unreadCount = response.data.unread_count || 0;
-            
+
             if (unreadCount > 0) {
-              setUnreadMessages(prev => ({
+              setUnreadMessages((prev) => ({
                 ...prev,
-                [room.id]: unreadCount
+                [room.id]: unreadCount,
               }));
             }
           } catch (error) {
-            console.error(`Erreur lors de la vérification des messages non lus pour le salon ${room.id}:`, error);
+            console.error(
+              `Erreur lors de la vérification des messages non lus pour le salon ${room.id}:`,
+              error
+            );
           }
         });
       }
     };
-    
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
     return () => {
       clearInterval(checkInterval);
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
   }, [chatRooms, activeRoom, user]);
 
@@ -368,42 +388,43 @@ export const ChatProvider = ({ children }) => {
   // Configurer le polling des statuts utilisateur
   useEffect(() => {
     if (!user) return;
-    
+
     // S'abonner aux mises à jour des statuts utilisateur
     chatPollingService.onUserStatuses((statuses) => {
       setUserStatuses(statuses);
-      
+
       // Mettre à jour l'objet onlineUsers pour la rétrocompatibilité
       const onlineUsersMap = {};
-      Object.keys(statuses).forEach(userId => {
+      Object.keys(statuses).forEach((userId) => {
         onlineUsersMap[userId] = statuses[userId].is_online;
       });
       setOnlineUsers(onlineUsersMap);
     });
-    
+
     // Démarrer le polling des statuts utilisateur
-    const stopStatusUpdatePolling = chatPollingService.startStatusUpdatePolling();
-    
+    const stopStatusUpdatePolling =
+      chatPollingService.startStatusUpdatePolling();
+
     return () => {
       stopStatusUpdatePolling();
     };
   }, [user]);
-  
+
   // Ajouter les utilisateurs des salons de chat à la liste des utilisateurs à suivre
   useEffect(() => {
     if (!chatRooms.length) return;
-    
+
     // Extraire les IDs des utilisateurs des salons de chat
     const userIds = chatRooms
-      .filter(room => room.other_user)
-      .map(room => room.other_user.id);
-    
+      .filter((room) => room.other_user)
+      .map((room) => room.other_user.id);
+
     if (userIds.length > 0) {
       // Ajouter ces utilisateurs à la liste des utilisateurs à suivre
       chatPollingService.addUsersToTrack(userIds);
     }
   }, [chatRooms]);
-  
+
   // Nettoyer tous les pollings lorsque le composant est démonté
   useEffect(() => {
     return () => {

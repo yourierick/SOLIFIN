@@ -33,7 +33,7 @@ const containerVariants = {
   visible: {
     transition: {
       staggerChildren: 0.15, // Délai entre l'animation de chaque enfant
-      delayChildren: 0.1,    // Délai avant de commencer les animations des enfants
+      delayChildren: 0.1, // Délai avant de commencer les animations des enfants
     },
   },
 };
@@ -47,9 +47,9 @@ const categoryTitleVariants = {
     scale: 1,
     transition: {
       type: "spring",
-      stiffness: 260,  // Rigidité du ressort (plus élevé = plus rigide)
-      damping: 20,     // Amortissement (plus élevé = moins d'oscillations)
-      duration: 0.7,   // Durée totale de l'animation
+      stiffness: 260, // Rigidité du ressort (plus élevé = plus rigide)
+      damping: 20, // Amortissement (plus élevé = moins d'oscillations)
+      duration: 0.7, // Durée totale de l'animation
     },
   },
 };
@@ -78,8 +78,8 @@ const itemVariants = {
     scale: 1,
     transition: {
       type: "spring",
-      stiffness: 100,  // Ressort plus souple pour les cartes
-      damping: 12,     // Moins d'amortissement pour un effet plus dynamique
+      stiffness: 100, // Ressort plus souple pour les cartes
+      damping: 12, // Moins d'amortissement pour un effet plus dynamique
       duration: 0.5,
     },
   },
@@ -88,12 +88,12 @@ const itemVariants = {
 // Animation pour les éléments internes des cartes - apparition en fondu
 const cardContentVariants = {
   hidden: { opacity: 0 },
-  visible: { 
+  visible: {
     opacity: 1,
-    transition: { 
-      delay: 0.2,     // Délai après l'apparition de la carte
-      duration: 0.4   // Durée du fondu
-    } 
+    transition: {
+      delay: 0.2, // Délai après l'apparition de la carte
+      duration: 0.4, // Durée du fondu
+    },
   },
 };
 
@@ -142,21 +142,21 @@ const decorationRightVariants = {
 // Animation pour les badges (réduction, populaire)
 const badgeVariants = {
   initial: { opacity: 0, scale: 0.8, y: -10 },
-  animate: { 
-    opacity: 1, 
-    scale: 1, 
+  animate: {
+    opacity: 1,
+    scale: 1,
     y: 0,
-    transition: { 
-      type: "spring", 
-      stiffness: 400, 
-      damping: 15, 
-      delay: 0.4 
-    }
+    transition: {
+      type: "spring",
+      stiffness: 400,
+      damping: 15,
+      delay: 0.4,
+    },
   },
-  hover: { 
+  hover: {
     scale: 1.05,
-    transition: { duration: 0.2 }
-  }
+    transition: { duration: 0.2 },
+  },
 };
 
 // Définition des couleurs par catégorie - Système de couleurs amélioré avec plus de variété
@@ -178,7 +178,7 @@ const categoryColors = {
       buttonBg: "#22c55e",
       buttonHover: "#16a34a",
       cardBorder: "rgba(34, 197, 94, 0.3)",
-      cardGlow: "rgba(34, 197, 94, 0.15)"
+      cardGlow: "rgba(34, 197, 94, 0.15)",
     },
     Premium: {
       bg: "#ffffff",
@@ -196,7 +196,7 @@ const categoryColors = {
       buttonHover: "#4338ca",
       discount: "75% OFF",
       cardBorder: "rgba(79, 70, 229, 0.3)",
-      cardGlow: "rgba(79, 70, 229, 0.15)"
+      cardGlow: "rgba(79, 70, 229, 0.15)",
     },
     Business: {
       bg: "#ffffff",
@@ -215,7 +215,7 @@ const categoryColors = {
       discount: "71% OFF",
       popular: true,
       cardBorder: "rgba(234, 88, 12, 0.3)",
-      cardGlow: "rgba(234, 88, 12, 0.15)"
+      cardGlow: "rgba(234, 88, 12, 0.15)",
     },
     "Cloud Startup": {
       bg: "#ffffff",
@@ -233,7 +233,7 @@ const categoryColors = {
       buttonHover: "#0891b2",
       discount: "71% OFF",
       cardBorder: "rgba(6, 182, 212, 0.3)",
-      cardGlow: "rgba(6, 182, 212, 0.15)"
+      cardGlow: "rgba(6, 182, 212, 0.15)",
     },
     Débutant: {
       bg: "#ffffff",
@@ -250,7 +250,7 @@ const categoryColors = {
       buttonBg: "#22c55e",
       buttonHover: "#16a34a",
       cardBorder: "rgba(34, 197, 94, 0.3)",
-      cardGlow: "rgba(34, 197, 94, 0.15)"
+      cardGlow: "rgba(34, 197, 94, 0.15)",
     },
     Intermédiaire: {
       bg: "#ffffff",
@@ -267,7 +267,7 @@ const categoryColors = {
       buttonBg: "#d97706",
       buttonHover: "#b45309",
       cardBorder: "rgba(217, 119, 6, 0.3)",
-      cardGlow: "rgba(217, 119, 6, 0.15)"
+      cardGlow: "rgba(217, 119, 6, 0.15)",
     },
     Expert: {
       bg: "#ffffff",
@@ -284,7 +284,7 @@ const categoryColors = {
       buttonBg: "#a855f7",
       buttonHover: "#9333ea",
       cardBorder: "rgba(168, 85, 247, 0.3)",
-      cardGlow: "rgba(168, 85, 247, 0.15)"
+      cardGlow: "rgba(168, 85, 247, 0.15)",
     },
     VIP: {
       bg: "#ffffff",
@@ -301,7 +301,7 @@ const categoryColors = {
       buttonBg: "#ec4899",
       buttonHover: "#db2777",
       cardBorder: "rgba(236, 72, 153, 0.3)",
-      cardGlow: "rgba(236, 72, 153, 0.15)"
+      cardGlow: "rgba(236, 72, 153, 0.15)",
     },
   },
   // Couleurs pour le mode sombre
@@ -321,7 +321,7 @@ const categoryColors = {
       buttonBg: "#22c55e",
       buttonHover: "#16a34a",
       cardBorder: "rgba(74, 222, 128, 0.3)",
-      cardGlow: "rgba(74, 222, 128, 0.1)"
+      cardGlow: "rgba(74, 222, 128, 0.1)",
     },
     Premium: {
       bg: "#1f2937",
@@ -339,7 +339,7 @@ const categoryColors = {
       buttonHover: "#6d28d9",
       discount: "75% OFF",
       cardBorder: "rgba(139, 92, 246, 0.3)",
-      cardGlow: "rgba(139, 92, 246, 0.1)"
+      cardGlow: "rgba(139, 92, 246, 0.1)",
     },
     Business: {
       bg: "#1f2937",
@@ -358,7 +358,7 @@ const categoryColors = {
       discount: "71% OFF",
       popular: true,
       cardBorder: "rgba(251, 146, 60, 0.3)",
-      cardGlow: "rgba(251, 146, 60, 0.1)"
+      cardGlow: "rgba(251, 146, 60, 0.1)",
     },
     "Cloud Startup": {
       bg: "#1f2937",
@@ -376,7 +376,7 @@ const categoryColors = {
       buttonHover: "#0891b2",
       discount: "71% OFF",
       cardBorder: "rgba(34, 211, 238, 0.3)",
-      cardGlow: "rgba(34, 211, 238, 0.1)"
+      cardGlow: "rgba(34, 211, 238, 0.1)",
     },
     Débutant: {
       bg: "#1f2937",
@@ -393,7 +393,7 @@ const categoryColors = {
       buttonBg: "#22c55e",
       buttonHover: "#16a34a",
       cardBorder: "rgba(74, 222, 128, 0.3)",
-      cardGlow: "rgba(74, 222, 128, 0.1)"
+      cardGlow: "rgba(74, 222, 128, 0.1)",
     },
     Intermédiaire: {
       bg: "#1f2937",
@@ -410,7 +410,7 @@ const categoryColors = {
       buttonBg: "#fbbf24",
       buttonHover: "#f59e0b",
       cardBorder: "rgba(252, 211, 77, 0.3)",
-      cardGlow: "rgba(252, 211, 77, 0.1)"
+      cardGlow: "rgba(252, 211, 77, 0.1)",
     },
     Expert: {
       bg: "#1f2937",
@@ -427,7 +427,7 @@ const categoryColors = {
       buttonBg: "#a855f7",
       buttonHover: "#9333ea",
       cardBorder: "rgba(192, 132, 252, 0.3)",
-      cardGlow: "rgba(192, 132, 252, 0.1)"
+      cardGlow: "rgba(192, 132, 252, 0.1)",
     },
     VIP: {
       bg: "#1f2937",
@@ -444,7 +444,7 @@ const categoryColors = {
       buttonBg: "#ec4899",
       buttonHover: "#db2777",
       cardBorder: "rgba(244, 114, 182, 0.3)",
-      cardGlow: "rgba(244, 114, 182, 0.1)"
+      cardGlow: "rgba(244, 114, 182, 0.1)",
     },
   },
 };
@@ -503,7 +503,7 @@ export default function Packages() {
       if (user.is_admin) {
         navigate("/admin/mespacks");
       } else {
-        navigate("/dashboard/buypacks");
+        navigate("/dashboard/packs");
       }
     }
   };
@@ -600,7 +600,13 @@ export default function Packages() {
                   transform: "translateX(-50%)",
                   width: "80px",
                   height: "3px",
-                  background: `linear-gradient(90deg, ${categoryColors[isDarkMode ? "dark" : "light"][category]?.gradientFrom || "#4f46e5"}, ${categoryColors[isDarkMode ? "dark" : "light"][category]?.gradientTo || "#10b981"})`,
+                  background: `linear-gradient(90deg, ${
+                    categoryColors[isDarkMode ? "dark" : "light"][category]
+                      ?.gradientFrom || "#4f46e5"
+                  }, ${
+                    categoryColors[isDarkMode ? "dark" : "light"][category]
+                      ?.gradientTo || "#10b981"
+                  })`,
                   borderRadius: "2px",
                 },
               }}
@@ -654,12 +660,24 @@ export default function Packages() {
                   <Card
                     component={motion.div}
                     variants={itemVariants}
-                    whileHover={{ 
-                      y: -8, 
-                      boxShadow: `0 15px 30px ${isPackPopular ? 
-                        `rgba(${colorScheme.highlight.replace(/^#/, '').match(/.{2}/g).map(hex => parseInt(hex, 16)).join(', ')}, 0.2)` : 
-                        isDarkMode ? 'rgba(0, 0, 0, 0.3)' : 'rgba(0, 0, 0, 0.1)'}`,
-                      transition: { type: "spring", stiffness: 300, damping: 15 }
+                    whileHover={{
+                      y: -8,
+                      boxShadow: `0 15px 30px ${
+                        isPackPopular
+                          ? `rgba(${colorScheme.highlight
+                              .replace(/^#/, "")
+                              .match(/.{2}/g)
+                              .map((hex) => parseInt(hex, 16))
+                              .join(", ")}, 0.2)`
+                          : isDarkMode
+                          ? "rgba(0, 0, 0, 0.3)"
+                          : "rgba(0, 0, 0, 0.1)"
+                      }`,
+                      transition: {
+                        type: "spring",
+                        stiffness: 300,
+                        damping: 15,
+                      },
                     }}
                     sx={{
                       height: "100%",
@@ -673,8 +691,8 @@ export default function Packages() {
                       borderRadius: "12px",
                       overflow: "hidden",
                       position: "relative",
-                      boxShadow: isPackPopular 
-                        ? `0 8px 20px ${colorScheme.cardGlow}` 
+                      boxShadow: isPackPopular
+                        ? `0 8px 20px ${colorScheme.cardGlow}`
                         : colorScheme.shadow,
                     }}
                   >
@@ -685,10 +703,10 @@ export default function Packages() {
                         variants={badgeVariants}
                         initial="initial"
                         animate="animate"
-                        whileHover={{ 
+                        whileHover={{
                           scale: 1.05,
                           rotate: [0, -2, 2, 0],
-                          transition: { duration: 0.4 }
+                          transition: { duration: 0.4 },
                         }}
                         sx={{
                           position: "absolute",
@@ -702,13 +720,15 @@ export default function Packages() {
                           px: 1.8,
                           borderRadius: "20px",
                           zIndex: 1,
-                          boxShadow: `0 2px 8px ${isDarkMode ? 'rgba(0,0,0,0.25)' : 'rgba(0,0,0,0.15)'}`,
+                          boxShadow: `0 2px 8px ${
+                            isDarkMode ? "rgba(0,0,0,0.25)" : "rgba(0,0,0,0.15)"
+                          }`,
                           display: "flex",
                           alignItems: "center",
                           gap: 0.5,
                         }}
                       >
-                        <Box 
+                        <Box
                           component="span"
                           sx={{
                             width: 6,
@@ -730,16 +750,22 @@ export default function Packages() {
                         variants={badgeVariants}
                         initial="initial"
                         animate="animate"
-                        whileHover={{ 
+                        whileHover={{
                           scale: 1.05,
-                          boxShadow: `0 4px 12px ${isDarkMode ? 'rgba(79, 70, 229, 0.4)' : 'rgba(79, 70, 229, 0.25)'}`,
-                          transition: { duration: 0.3 }
+                          boxShadow: `0 4px 12px ${
+                            isDarkMode
+                              ? "rgba(79, 70, 229, 0.4)"
+                              : "rgba(79, 70, 229, 0.25)"
+                          }`,
+                          transition: { duration: 0.3 },
                         }}
                         sx={{
                           position: "absolute",
                           top: 16,
                           left: 16,
-                          bgcolor: isDarkMode ? "rgba(79, 70, 229, 0.9)" : "#4f46e5",
+                          bgcolor: isDarkMode
+                            ? "rgba(79, 70, 229, 0.9)"
+                            : "#4f46e5",
                           color: "white",
                           fontWeight: 700,
                           fontSize: "0.8rem",
@@ -747,7 +773,9 @@ export default function Packages() {
                           px: 1.8,
                           borderRadius: "20px",
                           zIndex: 1,
-                          boxShadow: `0 2px 8px ${isDarkMode ? 'rgba(0,0,0,0.25)' : 'rgba(0,0,0,0.15)'}`,
+                          boxShadow: `0 2px 8px ${
+                            isDarkMode ? "rgba(0,0,0,0.25)" : "rgba(0,0,0,0.15)"
+                          }`,
                           display: "flex",
                           alignItems: "center",
                           gap: 0.5,
@@ -763,7 +791,11 @@ export default function Packages() {
                         p: 3,
                         pt: isPackPopular ? 4.5 : 3,
                         pb: 2.5,
-                        borderBottom: `1px solid ${isDarkMode ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.05)"}`,
+                        borderBottom: `1px solid ${
+                          isDarkMode
+                            ? "rgba(255, 255, 255, 0.08)"
+                            : "rgba(0, 0, 0, 0.05)"
+                        }`,
                         display: "flex",
                         flexDirection: "column",
                         alignItems: "flex-start",
@@ -782,7 +814,7 @@ export default function Packages() {
                           background: `linear-gradient(90deg, ${colorScheme.gradientFrom}, ${colorScheme.gradientTo})`,
                         }}
                       />
-                      
+
                       <Typography
                         variant="h5"
                         component="h3"
@@ -797,11 +829,13 @@ export default function Packages() {
                       >
                         {pack.name}
                       </Typography>
-                      
+
                       <Typography
                         variant="body2"
                         sx={{
-                          color: isDarkMode ? "rgba(255, 255, 255, 0.7)" : "rgba(55, 65, 81, 0.8)",
+                          color: isDarkMode
+                            ? "rgba(255, 255, 255, 0.7)"
+                            : "rgba(55, 65, 81, 0.8)",
                           mb: 2,
                           lineHeight: 1.5,
                           fontSize: "0.925rem",
@@ -818,7 +852,9 @@ export default function Packages() {
                           flexDirection: "column",
                           mb: 3,
                           position: "relative",
-                          background: isDarkMode ? "rgba(0, 0, 0, 0.15)" : "rgba(249, 250, 251, 0.8)",
+                          background: isDarkMode
+                            ? "rgba(0, 0, 0, 0.15)"
+                            : "rgba(249, 250, 251, 0.8)",
                           borderRadius: "10px",
                           p: 2,
                           pb: 2.5,
@@ -838,7 +874,7 @@ export default function Packages() {
                             zIndex: 0,
                           }}
                         />
-                        
+
                         {/* Price tag icon */}
                         <Box
                           sx={{
@@ -852,7 +888,7 @@ export default function Packages() {
                         >
                           <WalletIcon style={{ width: 20, height: 20 }} />
                         </Box>
-                        
+
                         <Box
                           sx={{
                             display: "flex",
@@ -877,7 +913,9 @@ export default function Packages() {
                           <Typography
                             variant="body1"
                             sx={{
-                              color: isDarkMode ? "rgba(255, 255, 255, 0.7)" : "rgba(55, 65, 81, 0.8)",
+                              color: isDarkMode
+                                ? "rgba(255, 255, 255, 0.7)"
+                                : "rgba(55, 65, 81, 0.8)",
                               fontWeight: 500,
                               fontSize: "1rem",
                             }}
@@ -897,8 +935,10 @@ export default function Packages() {
 
                         <Typography
                           variant="body2"
-                          sx={{ 
-                            color: isDarkMode ? "rgba(255, 255, 255, 0.6)" : "rgba(55, 65, 81, 0.7)",
+                          sx={{
+                            color: isDarkMode
+                              ? "rgba(255, 255, 255, 0.6)"
+                              : "rgba(55, 65, 81, 0.7)",
                             mb: 0,
                             fontStyle: "italic",
                             fontSize: "0.875rem",
@@ -925,12 +965,14 @@ export default function Packages() {
 
                       {pack.features && pack.features.length > 0 && (
                         <Box sx={{ mb: 3 }}>
-                          <Typography 
-                            variant="subtitle2" 
-                            sx={{ 
-                              mb: 1.5, 
-                              fontWeight: 700, 
-                              color: isDarkMode ? "rgba(255, 255, 255, 0.9)" : "rgba(17, 24, 39, 0.9)",
+                          <Typography
+                            variant="subtitle2"
+                            sx={{
+                              mb: 1.5,
+                              fontWeight: 700,
+                              color: isDarkMode
+                                ? "rgba(255, 255, 255, 0.9)"
+                                : "rgba(17, 24, 39, 0.9)",
                               fontSize: "0.95rem",
                               letterSpacing: "0.01em",
                               display: "flex",
@@ -938,11 +980,11 @@ export default function Packages() {
                               gap: 0.75,
                             }}
                           >
-                            <Box 
-                              component="span" 
-                              sx={{ 
-                                width: 10, 
-                                height: 2, 
+                            <Box
+                              component="span"
+                              sx={{
+                                width: 10,
+                                height: 2,
                                 bgcolor: colorScheme.accent,
                                 display: "inline-block",
                                 borderRadius: 1,
@@ -950,34 +992,43 @@ export default function Packages() {
                             />
                             Fonctionnalités incluses
                           </Typography>
-                          <List dense sx={{ 
-                            bgcolor: isDarkMode ? "rgba(0, 0, 0, 0.1)" : "rgba(249, 250, 251, 0.5)",
-                            borderRadius: "8px",
-                            py: 1,
-                          }}>
+                          <List
+                            dense
+                            sx={{
+                              bgcolor: isDarkMode
+                                ? "rgba(0, 0, 0, 0.1)"
+                                : "rgba(249, 250, 251, 0.5)",
+                              borderRadius: "8px",
+                              py: 1,
+                            }}
+                          >
                             {pack.features.map((feature, index) => (
-                              <ListItem 
+                              <ListItem
                                 component={motion.li}
                                 initial={{ opacity: 0, x: -10 }}
                                 animate={{ opacity: 1, x: 0 }}
-                                transition={{ 
-                                  delay: 0.3 + (index * 0.1),
+                                transition={{
+                                  delay: 0.3 + index * 0.1,
                                   duration: 0.4,
-                                  ease: "easeOut"
+                                  ease: "easeOut",
                                 }}
-                                whileHover={{ 
+                                whileHover={{
                                   x: 4,
-                                  backgroundColor: isDarkMode ? "rgba(255, 255, 255, 0.05)" : "rgba(0, 0, 0, 0.03)",
-                                  transition: { duration: 0.2 }
+                                  backgroundColor: isDarkMode
+                                    ? "rgba(255, 255, 255, 0.05)"
+                                    : "rgba(0, 0, 0, 0.03)",
+                                  transition: { duration: 0.2 },
                                 }}
-                                key={index} 
-                                sx={{ 
-                                  px: 1.5, 
+                                key={index}
+                                sx={{
+                                  px: 1.5,
                                   py: 0.75,
                                   transition: "all 0.2s",
                                   borderRadius: "4px",
                                   "&:hover": {
-                                    bgcolor: isDarkMode ? "rgba(255, 255, 255, 0.03)" : "rgba(0, 0, 0, 0.02)",
+                                    bgcolor: isDarkMode
+                                      ? "rgba(255, 255, 255, 0.03)"
+                                      : "rgba(0, 0, 0, 0.02)",
                                   },
                                 }}
                               >
@@ -993,7 +1044,9 @@ export default function Packages() {
                                   primary={feature}
                                   primaryTypographyProps={{
                                     variant: "body2",
-                                    color: isDarkMode ? "rgba(255, 255, 255, 0.85)" : "rgba(55, 65, 81, 0.95)",
+                                    color: isDarkMode
+                                      ? "rgba(255, 255, 255, 0.85)"
+                                      : "rgba(55, 65, 81, 0.95)",
                                     fontWeight: 500,
                                     fontSize: "0.9rem",
                                   }}
@@ -1006,12 +1059,14 @@ export default function Packages() {
 
                       {pack.avantages && pack.avantages.length > 0 && (
                         <Box sx={{ mb: 1 }}>
-                          <Typography 
-                            variant="subtitle2" 
-                            sx={{ 
-                              mb: 1.5, 
-                              fontWeight: 700, 
-                              color: isDarkMode ? "rgba(255, 255, 255, 0.9)" : "rgba(17, 24, 39, 0.9)",
+                          <Typography
+                            variant="subtitle2"
+                            sx={{
+                              mb: 1.5,
+                              fontWeight: 700,
+                              color: isDarkMode
+                                ? "rgba(255, 255, 255, 0.9)"
+                                : "rgba(17, 24, 39, 0.9)",
                               fontSize: "0.95rem",
                               letterSpacing: "0.01em",
                               display: "flex",
@@ -1019,11 +1074,11 @@ export default function Packages() {
                               gap: 0.75,
                             }}
                           >
-                            <Box 
-                              component="span" 
-                              sx={{ 
-                                width: 10, 
-                                height: 2, 
+                            <Box
+                              component="span"
+                              sx={{
+                                width: 10,
+                                height: 2,
                                 bgcolor: colorScheme.highlight,
                                 display: "inline-block",
                                 borderRadius: 1,
@@ -1031,9 +1086,11 @@ export default function Packages() {
                             />
                             Avantages exclusifs
                           </Typography>
-                          <Box 
-                            sx={{ 
-                              bgcolor: isDarkMode ? "rgba(0, 0, 0, 0.1)" : "rgba(249, 250, 251, 0.5)",
+                          <Box
+                            sx={{
+                              bgcolor: isDarkMode
+                                ? "rgba(0, 0, 0, 0.1)"
+                                : "rgba(249, 250, 251, 0.5)",
                               borderRadius: "8px",
                               py: 1,
                               px: 1,
@@ -1045,26 +1102,31 @@ export default function Packages() {
                                 component={motion.div}
                                 initial={{ opacity: 0, x: -10 }}
                                 animate={{ opacity: 1, x: 0 }}
-                                transition={{ 
-                                  delay: 0.3 + (index * 0.1),
+                                transition={{
+                                  delay: 0.3 + index * 0.1,
                                   duration: 0.4,
-                                  ease: "easeOut"
+                                  ease: "easeOut",
                                 }}
-                                whileHover={{ 
-                                  x: 4, 
-                                  backgroundColor: isDarkMode ? "rgba(255, 255, 255, 0.05)" : "rgba(0, 0, 0, 0.03)",
-                                  transition: { duration: 0.2 }
+                                whileHover={{
+                                  x: 4,
+                                  backgroundColor: isDarkMode
+                                    ? "rgba(255, 255, 255, 0.05)"
+                                    : "rgba(0, 0, 0, 0.03)",
+                                  transition: { duration: 0.2 },
                                 }}
-                                sx={{ 
+                                sx={{
                                   display: "flex",
                                   alignItems: "flex-start",
-                                  mb: index < pack.avantages.length - 1 ? 1.5 : 0,
+                                  mb:
+                                    index < pack.avantages.length - 1 ? 1.5 : 0,
                                   py: 0.5,
                                   px: 0.5,
                                   transition: "all 0.2s",
                                   borderRadius: "4px",
                                   "&:hover": {
-                                    bgcolor: isDarkMode ? "rgba(255, 255, 255, 0.03)" : "rgba(0, 0, 0, 0.02)",
+                                    bgcolor: isDarkMode
+                                      ? "rgba(255, 255, 255, 0.03)"
+                                      : "rgba(0, 0, 0, 0.02)",
                                   },
                                 }}
                               >
@@ -1077,12 +1139,17 @@ export default function Packages() {
                                     justifyContent: "center",
                                   }}
                                 >
-                                  <CheckCircleIcon fontSize="small" sx={{ fontSize: "1.1rem" }} />
+                                  <CheckCircleIcon
+                                    fontSize="small"
+                                    sx={{ fontSize: "1.1rem" }}
+                                  />
                                 </Box>
                                 <Typography
                                   variant="body2"
                                   sx={{
-                                    color: isDarkMode ? "rgba(255, 255, 255, 0.85)" : "rgba(55, 65, 81, 0.95)",
+                                    color: isDarkMode
+                                      ? "rgba(255, 255, 255, 0.85)"
+                                      : "rgba(55, 65, 81, 0.95)",
                                     fontWeight: 500,
                                     fontSize: "0.9rem",
                                     lineHeight: 1.4,
@@ -1103,15 +1170,19 @@ export default function Packages() {
                         component={motion.button}
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
-                        transition={{ 
-                          type: "spring", 
-                          stiffness: 300, 
-                          damping: 15, 
-                          delay: 0.6 
+                        transition={{
+                          type: "spring",
+                          stiffness: 300,
+                          damping: 15,
+                          delay: 0.6,
                         }}
-                        whileHover={{ 
-                          scale: 1.03, 
-                          boxShadow: `0 6px 16px ${isDarkMode ? 'rgba(0, 0, 0, 0.5)' : 'rgba(0, 0, 0, 0.2)'}` 
+                        whileHover={{
+                          scale: 1.03,
+                          boxShadow: `0 6px 16px ${
+                            isDarkMode
+                              ? "rgba(0, 0, 0, 0.5)"
+                              : "rgba(0, 0, 0, 0.2)"
+                          }`,
                         }}
                         whileTap={{ scale: 0.97 }}
                         sx={{
@@ -1125,7 +1196,11 @@ export default function Packages() {
                           textTransform: "none",
                           fontSize: "1rem",
                           borderRadius: "10px",
-                          boxShadow: `0 4px 10px ${isDarkMode ? 'rgba(0, 0, 0, 0.3)' : 'rgba(0, 0, 0, 0.1)'}`,
+                          boxShadow: `0 4px 10px ${
+                            isDarkMode
+                              ? "rgba(0, 0, 0, 0.3)"
+                              : "rgba(0, 0, 0, 0.1)"
+                          }`,
                           position: "relative",
                           overflow: "hidden",
                         }}
@@ -1144,9 +1219,18 @@ export default function Packages() {
                             zIndex: 0,
                           }}
                         />
-                        <Box sx={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 1, position: "relative", zIndex: 1 }}>
+                        <Box
+                          sx={{
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            gap: 1,
+                            position: "relative",
+                            zIndex: 1,
+                          }}
+                        >
                           <ShoppingCartIcon style={{ width: 18, height: 18 }} />
-                          S'abonner
+                          {user ? "Acheter ce pack" : "S'inscrire"}
                         </Box>
                       </Button>
                     </CardActions>

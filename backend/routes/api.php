@@ -98,8 +98,7 @@ Route::middleware('throttle:api')->group(function () {
 // Routes publiques sensibles avec throttle:api
 Route::middleware('throttle:api')->group(function () {
     // Route publique pour vérifier une invitation par son code
-    Route::post('/check-invitation', [\App\Http\Controllers\ReferralInvitationController::class, 'checkInvitation']);
-
+    // Route::post('/check-invitation', [\App\Http\Controllers\ReferralInvitationController::class, 'checkInvitation']);
     // Route publique pour récupérer les packs administrateurs avec leurs codes de parrainage
     Route::get('/admin-packs', [\App\Http\Controllers\Admin\PackController::class, 'getAdminPacks']);
 });

@@ -19,7 +19,7 @@ class AdminSeeder extends Seeder
         
         // Créer l'administrateur
         $admin = User::create([
-            'name' => 'Mukuta Bitangalo Erick',
+            'name' => 'Administrateur',
             'sexe' => 'homme',
             'pays' => 'CD',
             'province' => 'SudKivu',
@@ -31,7 +31,7 @@ class AdminSeeder extends Seeder
             'is_admin' => true,
             'role_id' => 1,
             'email_verified_at' => now(),
-            'phone' => '+243813728334',
+            'phone' => '+243000000000',
         ]);
 
         // Générer un identifiant de compte unique
@@ -89,5 +89,37 @@ class AdminSeeder extends Seeder
                 ]);
             }
         });
+
+        $supportAccount = User::create([
+            'name' => 'Support',
+            'sexe' => 'homme',
+            'pays' => 'CD',
+            'province' => 'SudKivu',
+            'ville' => 'Bukavu',
+            'address' => '1 Rue de la Paix, 75001 Bukavu',
+            'status' => 'active',
+            'email' => 'support@solifin.com',
+            'password' => Hash::make('support123'),
+            'is_admin' => true,
+            'role_id' => 5,
+            'email_verified_at' => now(),
+            'phone' => '+243000000000',
+        ]);
+
+        // Générer un identifiant de compte unique
+        do {
+            $account_id = 'SUP-' . rand(1, 100) . '-' . strtoupper(Str::random(4));
+        } while (User::where('account_id', $account_id)->exists());
+
+        $supportAccount->account_id = $account_id;
+        $supportAccount->save();
+
+        // Créer le wallet pour le support
+        Wallet::create([
+            'user_id' => $supportAccount->id,
+            'balance' => 0,
+            'total_earned' => 0,
+            'total_withdrawn' => 0,
+        ]);
     }
 }

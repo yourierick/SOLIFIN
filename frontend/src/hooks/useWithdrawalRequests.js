@@ -54,27 +54,27 @@ export default function useWithdrawalRequests() {
 
     fetchPendingRequests();
 
-    // Rafraîchir les données toutes les 9 minutes
+    // Rafraîchir les données toutes les 1 minute
     const intervalId = setInterval(() => {
       // Vérifier si la page est visible avant de faire la requête
-      if (document.visibilityState === 'visible') {
+      if (document.visibilityState === "visible") {
         fetchPendingRequests();
       }
-    }, 9 * 60 * 1000);
+    }, 1 * 60 * 1000);
 
     // Écouter les changements de visibilité de la page
     const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
+      if (document.visibilityState === "visible") {
         // Rafraîchir les données quand l'utilisateur revient sur la page
         fetchPendingRequests();
       }
     };
-    
-    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
 
     return () => {
       clearInterval(intervalId);
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
   }, []);
 

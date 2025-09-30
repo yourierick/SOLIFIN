@@ -296,9 +296,6 @@ export const AuthProvider = ({ children }) => {
           // Utiliser une fonction spécifique qui n'actualise pas lastActivity
           logoutDueToInactivity();
 
-          // Afficher un message
-          showToast("Vous avez été déconnecté en raison d'inactivité.", "info");
-
           // Rediriger vers la page de connexion
           navigate("/login", { replace: true });
         }
@@ -328,6 +325,12 @@ export const AuthProvider = ({ children }) => {
 
   const checkAuth = async () => {
     try {
+      const currentPath = window.location.pathname;
+      // Vérifier si le lien actuel est la page d'accueil
+      if (currentPath === "/") {
+        return true;
+      }
+
       // Ajouter un paramètre pour indiquer que c'est une vérification d'authentification
       // et non une activité utilisateur
       const response = await axios.get("/api/user?check_only=true", {
@@ -345,6 +348,7 @@ export const AuthProvider = ({ children }) => {
         setLoading(false);
         return true;
       }
+
       isAuthenticatedRef.current = false;
       setLoading(false);
       return false;

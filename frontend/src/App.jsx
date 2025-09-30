@@ -21,7 +21,6 @@
 
 import { Routes, Route, Navigate } from "react-router-dom";
 import React, { Suspense } from "react";
-import RequireAuth from "./components/RequireAuth";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import AdminDashboardLayout from "./layouts/AdminDashboardLayout";
