@@ -963,7 +963,7 @@ export default function Packages() {
                         </Typography>
                       </Box>
 
-                      {pack.features && pack.features.length > 0 && (
+                      {pack?.features && pack.features?.length > 0 && (
                         <Box sx={{ mb: 3 }}>
                           <Typography
                             variant="subtitle2"
@@ -1057,7 +1057,7 @@ export default function Packages() {
                         </Box>
                       )}
 
-                      {pack.avantages && pack.avantages.length > 0 && (
+                      {pack?.avantages && pack.avantages?.length > 0 && (
                         <Box sx={{ mb: 1 }}>
                           <Typography
                             variant="subtitle2"
@@ -1118,7 +1118,9 @@ export default function Packages() {
                                   display: "flex",
                                   alignItems: "flex-start",
                                   mb:
-                                    index < pack.avantages.length - 1 ? 1.5 : 0,
+                                    index < pack.avantages?.length - 1
+                                      ? 1.5
+                                      : 0,
                                   py: 0.5,
                                   px: 0.5,
                                   transition: "all 0.2s",

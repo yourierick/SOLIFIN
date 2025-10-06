@@ -182,7 +182,7 @@ export default function NotificationsDropdown() {
   };
 
   return (
-    <div className="relative" ref={dropdownRef}>
+    <div className="relative z-50" ref={dropdownRef}>
       <button
         onClick={() => {
           setIsOpen(!isOpen);
@@ -207,17 +207,17 @@ export default function NotificationsDropdown() {
       <AnimatePresence>
         {isOpen && (
           <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            transition={{ duration: 0.2 }}
-            className={`absolute right-0 mt-2 w-96 rounded-lg shadow-lg ${
+            initial={{ opacity: 0, y: -10, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -10, scale: 0.95 }}
+            transition={{ duration: 0.2, ease: "easeOut" }}
+            className={`fixed sm:absolute right-0 sm:right-0 left-2 sm:left-auto top-16 sm:top-auto sm:mt-2 w-[calc(100%-1rem)] sm:w-80 md:w-96 rounded-lg shadow-lg ${
               isDarkMode ? "bg-gray-800" : "bg-white"
-            } ring-1 ring-black ring-opacity-5 z-50 max-h-[80vh] overflow-hidden flex flex-col`}
+            } ring-1 ring-black ring-opacity-5 z-50 max-h-[60vh] sm:max-h-[80vh] overflow-hidden flex flex-col`}
           >
-            <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
+            <div className="p-3 sm:p-4 border-b border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
               <h3
-                className={`text-lg font-medium ${
+                className={`text-base sm:text-lg font-medium ${
                   isDarkMode ? "text-white" : "text-gray-900"
                 }`}
               >
@@ -226,7 +226,7 @@ export default function NotificationsDropdown() {
               {notifications.length > 0 && (
                 <button
                   onClick={markAllAsRead}
-                  className={`text-xs font-medium px-2 py-1 rounded ${
+                  className={`text-xs font-medium px-2 py-1 rounded whitespace-nowrap ${
                     isDarkMode
                       ? "bg-gray-700 text-gray-300 hover:bg-gray-600"
                       : "bg-gray-100 text-gray-700 hover:bg-gray-200"
@@ -264,18 +264,18 @@ export default function NotificationsDropdown() {
                     return (
                       <div
                         key={notification.id}
-                        className={`p-4 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors cursor-pointer`}
+                        className={`p-3 sm:p-4 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors cursor-pointer`}
                         onClick={() =>
                           markAsRead(notification.id, notificationLink)
                         }
                       >
-                        <div className="flex items-start gap-3">
+                        <div className="flex items-start gap-2 sm:gap-3">
                           <div
-                            className={`flex-shrink-0 p-2 rounded-full ${style.bgColor} ${style.textColor}`}
+                            className={`flex-shrink-0 p-1.5 sm:p-2 rounded-full ${style.bgColor} ${style.textColor}`}
                           >
                             {style.icon}
                           </div>
-                          <div className="flex-1 min-w-0">
+                          <div className="flex-1 min-w-0 break-words">
                             <p
                               className={`text-sm font-medium ${
                                 isDarkMode ? "text-white" : "text-gray-900"
@@ -284,9 +284,9 @@ export default function NotificationsDropdown() {
                               {notification.data?.titre || "Notification"}
                             </p>
                             <p
-                              className={`text-sm ${
+                              className={`text-xs sm:text-sm ${
                                 isDarkMode ? "text-gray-400" : "text-gray-500"
-                              } mt-1`}
+                              } mt-1 line-clamp-3`}
                             >
                               {notification.data?.message ||
                                 notification.data?.content ||

@@ -130,7 +130,7 @@ export default function Footer({
               Entreprise
             </h3>
             <ul className="mt-4 space-y-2">
-              {footerLinks.company.map((link) => (
+              {footerLinks.company?.map((link) => (
                 <li key={link.name}>
                   <a
                     href={link.href}
@@ -154,7 +154,7 @@ export default function Footer({
               Support
             </h3>
             <ul className="mt-4 space-y-2">
-              {footerLinks.support.map((link) => (
+              {footerLinks.support?.map((link) => (
                 <li key={link.name}>
                   <a
                     href={link.href}
@@ -178,7 +178,7 @@ export default function Footer({
               Légal
             </h3>
             <ul className="mt-4 space-y-2">
-              {footerLinks.legal.map((link) => (
+              {footerLinks.legal?.map((link) => (
                 <li key={link.key || link.name}>
                   <button
                     onClick={link.action}
@@ -208,7 +208,7 @@ export default function Footer({
                   Erreur de chargement des liens sociaux
                 </p>
               ) : availableSocialLinks.length > 0 ? (
-                availableSocialLinks.map((item) => (
+                availableSocialLinks?.map((item) => (
                   <motion.a
                     key={item.name}
                     whileHover={{ scale: 1.1 }}

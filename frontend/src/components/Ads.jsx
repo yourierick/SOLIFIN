@@ -59,7 +59,7 @@ export default function Ads() {
   useEffect(() => {
     // Démarrer le défilement automatique seulement si nous avons plus d'une publicité
     // et si aucune vidéo n'est en cours de lecture
-    if (ads.length > 1 && !isPaused && !showVideo) {
+    if (ads?.length > 1 && !isPaused && !showVideo) {
       // Nettoyer tout intervalle existant
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
@@ -77,15 +77,15 @@ export default function Ads() {
         clearInterval(intervalRef.current);
       }
     };
-  }, [ads.length, isPaused, showVideo]);
+  }, [ads?.length, isPaused, showVideo]);
 
   const nextAd = () => {
-    setCurrent((prev) => (ads.length ? (prev + 1) % ads.length : 0));
+    setCurrent((prev) => (ads?.length ? (prev + 1) % ads?.length : 0));
   };
 
   const prevAd = () => {
     setCurrent((prev) =>
-      ads.length ? (prev - 1 + ads.length) % ads.length : 0
+      ads?.length ? (prev - 1 + ads?.length) % ads?.length : 0
     );
   };
 
@@ -130,8 +130,8 @@ export default function Ads() {
               isDarkMode ? "text-gray-300" : "text-gray-600"
             }`}
           >
-            Profitez des meilleures opportunités de marketing pour vos produits et
-            services grâce à la communauté grandissante de{" "}
+            Profitez des meilleures opportunités de marketing pour vos produits
+            et services grâce à la communauté grandissante de{" "}
             <span className="text-primary-600 font-medium">SOLIFIN</span>
           </p>
         </motion.div>
@@ -142,7 +142,7 @@ export default function Ads() {
           </div>
         ) : error ? (
           <div className="text-center py-12 text-red-500">{error}</div>
-        ) : !ads.length ? (
+        ) : !ads?.length ? (
           <div className="text-center py-12 text-gray-400">
             Aucune publicité à afficher.
           </div>
@@ -227,16 +227,19 @@ export default function Ads() {
                                 cursor: "pointer",
                                 zIndex: 2,
                                 boxShadow: "0 4px 16px rgba(34,197,94,0.25)",
-                                transition:
-                                  "all 0.2s ease",
+                                transition: "all 0.2s ease",
                               }}
                               onMouseOver={(e) => {
-                                e.currentTarget.style.transform = "translate(-50%, -50%) scale(1.05)";
-                                e.currentTarget.style.background = "rgba(34, 197, 94, 1)";
+                                e.currentTarget.style.transform =
+                                  "translate(-50%, -50%) scale(1.05)";
+                                e.currentTarget.style.background =
+                                  "rgba(34, 197, 94, 1)";
                               }}
                               onMouseOut={(e) => {
-                                e.currentTarget.style.transform = "translate(-50%, -50%)";
-                                e.currentTarget.style.background = "rgba(34, 197, 94, 0.9)";
+                                e.currentTarget.style.transform =
+                                  "translate(-50%, -50%)";
+                                e.currentTarget.style.background =
+                                  "rgba(34, 197, 94, 0.9)";
                               }}
                             >
                               <svg
@@ -249,7 +252,10 @@ export default function Ads() {
                                 strokeLinecap="round"
                                 strokeLinejoin="round"
                               >
-                                <polygon points="5,3 19,12 5,21 5,3" fill="white" />
+                                <polygon
+                                  points="5,3 19,12 5,21 5,3"
+                                  fill="white"
+                                />
                               </svg>
                             </button>
                           )}
@@ -298,7 +304,7 @@ export default function Ads() {
                         >
                           ×
                         </button>
-                        
+
                         <ReactPlayer
                           ref={videoRef}
                           url={ads[current].video_url}
@@ -416,7 +422,7 @@ export default function Ads() {
                 )}
               </div>
             </motion.div>
-            {ads.length > 1 && (
+            {ads?.length > 1 && (
               <>
                 <button
                   onClick={() => {
@@ -469,7 +475,7 @@ export default function Ads() {
                   </svg>
                 </button>
                 <div className="flex justify-center mt-3 space-x-1.5">
-                  {ads.map((_, idx) => (
+                  {ads?.map((_, idx) => (
                     <button
                       key={idx}
                       onClick={() => {

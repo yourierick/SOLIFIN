@@ -122,7 +122,7 @@ export default function Stats() {
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-1 lg:grid-cols-3 gap-8">
-            {stats.map((stat, index) => {
+            {stats?.map((stat, index) => {
               const Icon = getIcon(stat.icon);
               return (
                 <motion.div

@@ -186,14 +186,14 @@ export default function FAQ({ whatsappUrl = "https://wa.me/33600000000" }) {
                     ? "bg-primary-500 text-white"
                     : "bg-primary-600 text-white"
                   : isDarkMode
-                  ? "bg-gray-800 text-gray-300 hover:bg-gray-700"
-                  : "bg-white text-gray-700 hover:bg-gray-100"
+                    ? "bg-gray-800 text-gray-300 hover:bg-gray-700"
+                    : "bg-white text-gray-700 hover:bg-gray-100"
               }`}
             >
               Toutes les questions
             </button>
 
-            {categories.map((category) => (
+            {categories?.map((category) => (
               <button
                 key={category.id}
                 onClick={() => setSelectedCategory(category.id)}
@@ -231,7 +231,7 @@ export default function FAQ({ whatsappUrl = "https://wa.me/33600000000" }) {
               {error}
             </p>
           </div>
-        ) : filteredFaqs.length === 0 ? (
+        ) : filteredFaqs?.length === 0 ? (
           <div className="text-center py-8">
             <p className={isDarkMode ? "text-gray-400" : "text-gray-500"}>
               Aucune question ne correspond à votre recherche.
@@ -245,7 +245,7 @@ export default function FAQ({ whatsappUrl = "https://wa.me/33600000000" }) {
             transition={{ duration: 0.5, delay: 0.2 }}
             className="space-y-4"
           >
-            {filteredFaqs.map((faq, index) => (
+            {filteredFaqs?.map((faq, index) => (
               <motion.div
                 key={faq.id || index}
                 initial={{ opacity: 0, y: 20 }}
@@ -316,7 +316,7 @@ export default function FAQ({ whatsappUrl = "https://wa.me/33600000000" }) {
                         <div dangerouslySetInnerHTML={{ __html: faq.answer }} />
 
                         {/* Questions connexes */}
-                        {faq.relatedFaqs && faq.relatedFaqs.length > 0 && (
+                        {faq.relatedFaqs && faq.relatedFaqs?.length > 0 && (
                           <div
                             className={`mt-4 pt-4 border-t ${
                               isDarkMode ? "border-gray-700" : "border-gray-200"
@@ -330,7 +330,7 @@ export default function FAQ({ whatsappUrl = "https://wa.me/33600000000" }) {
                               Questions connexes:
                             </p>
                             <ul className="space-y-1">
-                              {faq.relatedFaqs.map((relatedFaq) => (
+                              {faq.relatedFaqs?.map((relatedFaq) => (
                                 <li key={relatedFaq.id}>
                                   <button
                                     onClick={() => {

@@ -209,7 +209,7 @@ export default function Hero() {
           className="max-w-4xl mx-auto"
           onSlideChange={(swiper) => setActiveIndex(swiper.realIndex)}
         >
-          {slides.map((slide, idx) => (
+          {slides?.map((slide, idx) => (
             <SwiperSlide key={idx}>
               <div className="text-center">
                 <motion.div

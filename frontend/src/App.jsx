@@ -20,65 +20,98 @@
  */
 
 import { Routes, Route, Navigate } from "react-router-dom";
-import React, { Suspense } from "react";
-import Login from "./pages/Login";
-import Register from "./pages/Register";
-import AdminDashboardLayout from "./layouts/AdminDashboardLayout";
-import UserDashboardLayout from "./layouts/UserDashboardLayout";
-import ForgotPassword from "./pages/ForgotPassword";
-import ResetPassword from "./pages/ResetPassword";
-import EmailVerification from "./pages/EmailVerification";
-import Homepage from "./pages/Homepage";
+import React, { Suspense, lazy } from "react";
 import { useAuth } from "./contexts/AuthContext";
-import AdminDashboard from "./pages/admin/Dashboard";
-import PromptLoginOrSubscribePage from "./pages/PromptLoginOrSubscribePage";
-import UserDashboard from "./pages/user/Dashboard";
-import Wallet from "./pages/user/Wallet";
-import Wallets from "./pages/admin/Wallets";
-import AddPack from "./pages/admin/AddPack";
-import Packs from "./pages/admin/Packs";
-import Users from "./pages/admin/Users";
-import UserDetails from "./pages/admin/UserDetails";
-import MyPage from "./pages/user/MyPage";
-import NewsFeed from "./pages/user/NewsFeed";
-import Social from "./pages/user/Social";
-// import WithdrawalRequests from './pages/admin/WithdrawalRequests';
-import AdvertisementValidation from "./pages/admin/AdvertisementValidation";
-import ToastContainer from "./components/Toast";
-import EditPack from "./pages/admin/EditPack";
-import MyPacks from "./pages/user/MyPacks";
-import MesPacks from "./pages/admin/MyPacks";
-import Profile from "./pages/Profile";
-import AdminProfile from "./pages/admin/AdminProfile";
-import DashboardLayout from "./layouts/DashboardLayout";
 import { PublicationPackProvider } from "./contexts/PublicationPackContext";
 import { ChatProvider } from "./contexts/ChatContext";
-import ChatInterface from "./components/chat/ChatInterface";
-import VerificationSuccess from "./pages/VerificationSuccess";
-import VerificationError from "./pages/VerificationError";
-import BuyPack from "./pages/user/Packs";
-import Stats from "./pages/user/Stats";
-import WithdrawalRequests from "./components/WithdrawalRequests";
-import Settings from "./pages/admin/Settings";
-import Page from "./pages/user/Page";
-import Commissions from "./pages/admin/Commissions";
-import AdminFinances from "./pages/admin/Finances";
-import UserFinances from "./pages/user/Finances";
-import UserFaq from "./pages/user/Faq";
-import TestimonialManagement from "./pages/admin/TestimonialManagement";
-import FaqManagement from "./pages/admin/FaqManagement";
-import Formations from "./pages/user/components/Formations";
-import FormationEditor from "./pages/user/components/FormationEditor";
-import FormationManagement from "./pages/admin/components/FormationManagement";
-import CadeauxManagement from "./pages/admin/components/CadeauxManagement";
-import TicketVerification from "./pages/admin/components/TicketVerification";
-import JetonsEsengo from "./pages/user/components/JetonsEsengo";
-// import AdminManagement from "./pages/admin/AdminManagement";
-import UsersManagement from "./pages/admin/UsersManagement";
-import ContentManagement from "./pages/admin/components/ContentManagement";
-import ChatPollingTest from "./pages/ChatPollingTest";
-import BroadcastMessagesPage from "./pages/admin/BroadcastMessagesPage";
 import { BroadcastProvider } from "./contexts/BroadcastContext";
+import ToastContainer from "./components/Toast";
+import ChatInterface from "./components/chat/ChatInterface";
+
+// Layouts - Gardés en import direct car ils sont essentiels pour la structure de l'application
+import AdminDashboardLayout from "./layouts/AdminDashboardLayout";
+import UserDashboardLayout from "./layouts/UserDashboardLayout";
+
+// Composant de chargement pour Suspense
+const LoadingSpinner = () => (
+  <div className="min-h-screen flex items-center justify-center bg-white dark:bg-[rgba(17,24,39,0.95)]">
+    <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-600"></div>
+  </div>
+);
+
+// Pages publiques - Chargées de manière différée
+const Homepage = lazy(() => import("./pages/Homepage"));
+const Login = lazy(() => import("./pages/Login"));
+const Register = lazy(() => import("./pages/Register"));
+const ForgotPassword = lazy(() => import("./pages/ForgotPassword"));
+const ResetPassword = lazy(() => import("./pages/ResetPassword"));
+const EmailVerification = lazy(() => import("./pages/EmailVerification"));
+const VerificationSuccess = lazy(() => import("./pages/VerificationSuccess"));
+const VerificationError = lazy(() => import("./pages/VerificationError"));
+const PromptLoginOrSubscribePage = lazy(() =>
+  import("./pages/PromptLoginOrSubscribePage")
+);
+
+// Pages administrateur - Chargées de manière différée
+const AdminDashboard = lazy(() => import("./pages/admin/Dashboard"));
+const UsersManagement = lazy(() => import("./pages/admin/UsersManagement"));
+const UserDetails = lazy(() => import("./pages/admin/UserDetails"));
+const Wallets = lazy(() => import("./pages/admin/Wallets"));
+const Packs = lazy(() => import("./pages/admin/Packs"));
+const AddPack = lazy(() => import("./pages/admin/AddPack"));
+const EditPack = lazy(() => import("./pages/admin/EditPack"));
+const MesPacks = lazy(() => import("./pages/admin/MyPacks"));
+const AdminFinances = lazy(() => import("./pages/admin/Finances"));
+const ContentManagement = lazy(() =>
+  import("./pages/admin/components/ContentManagement")
+);
+const AdminProfile = lazy(() => import("./pages/admin/AdminProfile"));
+const Settings = lazy(() => import("./pages/admin/Settings"));
+const BroadcastMessagesPage = lazy(() =>
+  import("./pages/admin/BroadcastMessagesPage")
+);
+const FaqManagement = lazy(() => import("./pages/admin/FaqManagement"));
+const CadeauxManagement = lazy(() =>
+  import("./pages/admin/components/CadeauxManagement")
+);
+const AdvertisementValidation = lazy(() =>
+  import("./pages/admin/AdvertisementValidation")
+);
+const Commissions = lazy(() => import("./pages/admin/Commissions"));
+const TestimonialManagement = lazy(() =>
+  import("./pages/admin/TestimonialManagement")
+);
+const FormationManagement = lazy(() =>
+  import("./pages/admin/components/FormationManagement")
+);
+const TicketVerification = lazy(() =>
+  import("./pages/admin/components/TicketVerification")
+);
+
+// Pages utilisateur - Chargées de manière différée
+const UserDashboard = lazy(() => import("./pages/user/Dashboard"));
+const Profile = lazy(() => import("./pages/Profile"));
+const Wallet = lazy(() => import("./pages/user/Wallet"));
+const UserFinances = lazy(() => import("./pages/user/Finances"));
+const BuyPack = lazy(() => import("./pages/user/Packs"));
+const MyPacks = lazy(() => import("./pages/user/MyPacks"));
+const Stats = lazy(() => import("./pages/user/Stats"));
+const MyPage = lazy(() => import("./pages/user/MyPage"));
+const Page = lazy(() => import("./pages/user/Page"));
+const UserFaq = lazy(() => import("./pages/user/Faq"));
+const FormationEditor = lazy(() =>
+  import("./pages/user/components/FormationEditor")
+);
+const Formations = lazy(() => import("./pages/user/components/Formations"));
+const Social = lazy(() => import("./pages/user/Social"));
+const ChatPollingTest = lazy(() => import("./pages/ChatPollingTest"));
+
+// Composants
+const WithdrawalRequests = lazy(() =>
+  import("./components/WithdrawalRequests")
+);
+import PrefetchManager from "./components/PrefetchManager";
+import ServiceWorkerUpdater from "./components/ServiceWorkerUpdater";
 
 function App() {
   return (
@@ -88,14 +121,25 @@ function App() {
           <div>
             <ToastContainer />
             <ChatInterface />
+            <PrefetchManager />
+            <ServiceWorkerUpdater />
             <Routes>
               {/* Routes publiques */}
-              <Route path="/" element={<Homepage />} />
+              <Route
+                path="/"
+                element={
+                  <Suspense fallback={<LoadingSpinner />}>
+                    <Homepage />
+                  </Suspense>
+                }
+              />
               <Route
                 path="/login"
                 element={
                   <PublicRoute>
-                    <Login />
+                    <Suspense fallback={<LoadingSpinner />}>
+                      <Login />
+                    </Suspense>
                   </PublicRoute>
                 }
               />
@@ -103,7 +147,9 @@ function App() {
                 path="/register"
                 element={
                   <PublicRoute>
-                    <Register />
+                    <Suspense fallback={<LoadingSpinner />}>
+                      <Register />
+                    </Suspense>
                   </PublicRoute>
                 }
               />
@@ -112,7 +158,9 @@ function App() {
                 path="/interet"
                 element={
                   <PublicRoute>
-                    <PromptLoginOrSubscribePage />
+                    <Suspense fallback={<LoadingSpinner />}>
+                      <PromptLoginOrSubscribePage />
+                    </Suspense>
                   </PublicRoute>
                 }
               />
@@ -120,7 +168,9 @@ function App() {
                 path="/forgot-password"
                 element={
                   <PublicRoute>
-                    <ForgotPassword />
+                    <Suspense fallback={<LoadingSpinner />}>
+                      <ForgotPassword />
+                    </Suspense>
                   </PublicRoute>
                 }
               />
@@ -128,7 +178,9 @@ function App() {
                 path="/reset-password/:token"
                 element={
                   <PublicRoute>
-                    <ResetPassword />
+                    <Suspense fallback={<LoadingSpinner />}>
+                      <ResetPassword />
+                    </Suspense>
                   </PublicRoute>
                 }
               />
@@ -136,7 +188,9 @@ function App() {
                 path="/email/verify/:id/:hash"
                 element={
                   <PublicRoute>
-                    <EmailVerification />
+                    <Suspense fallback={<LoadingSpinner />}>
+                      <EmailVerification />
+                    </Suspense>
                   </PublicRoute>
                 }
               />
@@ -144,7 +198,9 @@ function App() {
                 path="/verification-success"
                 element={
                   <PublicRoute>
-                    <VerificationSuccess />
+                    <Suspense fallback={<LoadingSpinner />}>
+                      <VerificationSuccess />
+                    </Suspense>
                   </PublicRoute>
                 }
               />
@@ -152,7 +208,9 @@ function App() {
                 path="/verification-error"
                 element={
                   <PublicRoute>
-                    <VerificationError />
+                    <Suspense fallback={<LoadingSpinner />}>
+                      <VerificationError />
+                    </Suspense>
                   </PublicRoute>
                 }
               />
@@ -166,38 +224,130 @@ function App() {
                   </PrivateRoute>
                 }
               >
-                <Route index element={<AdminDashboard />} />
-                <Route path="users" element={<UsersManagement />} />
-                <Route path="users/:id" element={<UserDetails />} />
-                <Route path="wallets" element={<Wallets />} />
-                <Route path="packs" element={<Packs />} />
-                <Route path="packs/add" element={<AddPack />} />
-                <Route path="packs/edit/:id" element={<EditPack />} />
-                {/* <Route path="mespacks" element={<MesPacks />} /> */}
-                {/* <Route path="commissions" element={<Commissions />} /> */}
-                <Route path="finances" element={<AdminFinances />} />
+                <Route
+                  index
+                  element={
+                    <Suspense fallback={<LoadingSpinner />}>
+                      <AdminDashboard />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="users"
+                  element={
+                    <Suspense fallback={<LoadingSpinner />}>
+                      <UsersManagement />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="users/:id"
+                  element={
+                    <Suspense fallback={<LoadingSpinner />}>
+                      <UserDetails />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="wallets"
+                  element={
+                    <Suspense fallback={<LoadingSpinner />}>
+                      <Wallets />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="packs"
+                  element={
+                    <Suspense fallback={<LoadingSpinner />}>
+                      <Packs />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="packs/add"
+                  element={
+                    <Suspense fallback={<LoadingSpinner />}>
+                      <AddPack />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="packs/edit/:id"
+                  element={
+                    <Suspense fallback={<LoadingSpinner />}>
+                      <EditPack />
+                    </Suspense>
+                  }
+                />
+                {/* <Route path="mespacks" element={<Suspense fallback={<LoadingSpinner />}><MesPacks /></Suspense>} /> */}
+                {/* <Route path="commissions" element={<Suspense fallback={<LoadingSpinner />}><Commissions /></Suspense>} /> */}
+                <Route
+                  path="finances"
+                  element={
+                    <Suspense fallback={<LoadingSpinner />}>
+                      <AdminFinances />
+                    </Suspense>
+                  }
+                />
                 {/* <Route
               path="withdrawal-requests"
-              element={<WithdrawalRequests />}
+              element={<Suspense fallback={<LoadingSpinner />}><WithdrawalRequests /></Suspense>}
             /> */}
                 <Route
                   path="content-management"
-                  element={<ContentManagement />}
+                  element={
+                    <Suspense fallback={<LoadingSpinner />}>
+                      <ContentManagement />
+                    </Suspense>
+                  }
                 />
-                <Route path="profile" element={<AdminProfile />} />
-                <Route path="settings" element={<Settings />} />
+                <Route
+                  path="profile"
+                  element={
+                    <Suspense fallback={<LoadingSpinner />}>
+                      <AdminProfile />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="settings"
+                  element={
+                    <Suspense fallback={<LoadingSpinner />}>
+                      <Settings />
+                    </Suspense>
+                  }
+                />
                 <Route
                   path="broadcast-messages"
-                  element={<BroadcastMessagesPage />}
+                  element={
+                    <Suspense fallback={<LoadingSpinner />}>
+                      <BroadcastMessagesPage />
+                    </Suspense>
+                  }
                 />
-                {/* <Route path="administrators" element={<AdminManagement />} /> */}
-                {/* <Route path="testimonials" element={<TestimonialManagement />} /> */}
-                <Route path="faqs" element={<FaqManagement />} />
-                {/* <Route path="formations" element={<FormationManagement />} /> */}
-                <Route path="cadeaux" element={<CadeauxManagement />} />
+                {/* <Route path="administrators" element={<Suspense fallback={<LoadingSpinner />}><AdminManagement /></Suspense>} /> */}
+                {/* <Route path="testimonials" element={<Suspense fallback={<LoadingSpinner />}><TestimonialManagement /></Suspense>} /> */}
+                <Route
+                  path="faqs"
+                  element={
+                    <Suspense fallback={<LoadingSpinner />}>
+                      <FaqManagement />
+                    </Suspense>
+                  }
+                />
+                {/* <Route path="formations" element={<Suspense fallback={<LoadingSpinner />}><FormationManagement /></Suspense>} /> */}
+                <Route
+                  path="cadeaux"
+                  element={
+                    <Suspense fallback={<LoadingSpinner />}>
+                      <CadeauxManagement />
+                    </Suspense>
+                  }
+                />
                 {/* <Route
               path="tickets-verification"
-              element={<TicketVerification />}
+              element={<Suspense fallback={<LoadingSpinner />}><TicketVerification /></Suspense>}
             /> */}
               </Route>
 
@@ -209,26 +359,107 @@ function App() {
                   </PrivateRoute>
                 }
               >
-                <Route index element={<UserDashboard />} />
-                <Route path="profile" element={<Profile />} />
-                {/* <Route path="wallet" element={<Wallet />} /> */}
-                <Route path="finances" element={<UserFinances />} />
-                <Route path="packs" element={<BuyPack />} />
-                <Route path="packs/:id" element={<MyPacks />} />
-                <Route path="stats" element={<Stats />} />
-                {/* <Route path="news-feed" element={<NewsFeed />} /> */}
-                <Route path="my-page" element={<MyPage />} />
-                {/* <Route path="social" element={<Social />} /> */}
-                {/* <Route path="jetons-esengo" element={<JetonsEsengo />} /> */}
-                <Route path="faq" element={<UserFaq />} />
-                {/* <Route path="formations" element={<Formations />} /> */}
+                <Route
+                  index
+                  element={
+                    <Suspense fallback={<LoadingSpinner />}>
+                      <UserDashboard />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="profile"
+                  element={
+                    <Suspense fallback={<LoadingSpinner />}>
+                      <Profile />
+                    </Suspense>
+                  }
+                />
+                {/* <Route path="wallet" element={<Suspense fallback={<LoadingSpinner />}><Wallet /></Suspense>} /> */}
+                <Route
+                  path="finances"
+                  element={
+                    <Suspense fallback={<LoadingSpinner />}>
+                      <UserFinances />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="packs"
+                  element={
+                    <Suspense fallback={<LoadingSpinner />}>
+                      <BuyPack />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="packs/:id"
+                  element={
+                    <Suspense fallback={<LoadingSpinner />}>
+                      <MyPacks />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="stats"
+                  element={
+                    <Suspense fallback={<LoadingSpinner />}>
+                      <Stats />
+                    </Suspense>
+                  }
+                />
+                {/* <Route path="news-feed" element={<Suspense fallback={<LoadingSpinner />}><NewsFeed /></Suspense>} /> */}
+                <Route
+                  path="my-page"
+                  element={
+                    <Suspense fallback={<LoadingSpinner />}>
+                      <MyPage />
+                    </Suspense>
+                  }
+                />
+                {/* <Route path="social" element={<Suspense fallback={<LoadingSpinner />}><Social /></Suspense>} /> */}
+                {/* <Route path="jetons-esengo" element={<Suspense fallback={<LoadingSpinner />}><JetonsEsengo /></Suspense>} /> */}
+                <Route
+                  path="faq"
+                  element={
+                    <Suspense fallback={<LoadingSpinner />}>
+                      <UserFaq />
+                    </Suspense>
+                  }
+                />
+                {/* <Route path="formations" element={<Suspense fallback={<LoadingSpinner />}><Formations /></Suspense>} /> */}
                 <Route
                   path="formations/edit/:id"
-                  element={<FormationEditor />}
+                  element={
+                    <Suspense fallback={<LoadingSpinner />}>
+                      <FormationEditor />
+                    </Suspense>
+                  }
                 />
-                <Route path="formations/create" element={<FormationEditor />} />
-                <Route path="pages/:id" element={<Page />} />
-                <Route path="chat-polling-test" element={<ChatPollingTest />} />
+                <Route
+                  path="formations/create"
+                  element={
+                    <Suspense fallback={<LoadingSpinner />}>
+                      <FormationEditor />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="pages/:id"
+                  element={
+                    <Suspense fallback={<LoadingSpinner />}>
+                      <Page />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="chat-polling-test"
+                  element={
+                    <Suspense fallback={<LoadingSpinner />}>
+                      <ChatPollingTest />
+                    </Suspense>
+                  }
+                />
               </Route>
 
               {/* Redirection pour les routes inconnues */}

@@ -23,7 +23,7 @@ export default function Testimonials() {
         setLoading(true);
         const response = await axios.get("/api/testimonials/featured");
 
-        if (response.data.success && response.data.testimonials.length > 0) {
+        if (response.data.success && response.data?.testimonials?.length > 0) {
           setTestimonials(response.data.testimonials);
         }
       } catch (err) {
@@ -40,17 +40,17 @@ export default function Testimonials() {
 
   // Rotation automatique des témoignages
   useEffect(() => {
-    if (!autoplay || testimonials.length === 0) return;
+    if (!autoplay || testimonials?.length === 0) return;
 
     const timer = setInterval(() => {
-      setCurrent((prev) => (prev + 1) % testimonials.length);
+      setCurrent((prev) => (prev + 1) % testimonials?.length);
     }, 5000);
 
     return () => clearInterval(timer);
-  }, [autoplay, testimonials.length]);
+  }, [autoplay, testimonials?.length]);
 
   // Ne rien afficher s'il n'y a pas de témoignages
-  if (loading || error || testimonials.length === 0) {
+  if (loading || error || testimonials?.length === 0) {
     return null;
   }
 
@@ -153,7 +153,7 @@ export default function Testimonials() {
                       </div>
                       <div>
                         <div className="flex mb-4">
-                          {[...Array(testimonials[current].rating)].map(
+                          {[...Array(testimonials[current].rating)]?.map(
                             (_, i) => (
                               <StarIcon
                                 key={i}
@@ -194,7 +194,7 @@ export default function Testimonials() {
               </div>
 
               <div className="flex justify-center mt-8 space-x-2">
-                {testimonials.map((_, index) => (
+                {testimonials?.map((_, index) => (
                   <button
                     key={index}
                     onClick={() => {

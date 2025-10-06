@@ -172,14 +172,14 @@ export default function LegalDocumentModal({ documentKey, isOpen, onClose }) {
                       Fermer
                     </button>
                   </div>
-                ) : legalDoc.content ? (
+                ) : legalDoc?.content ? (
                   <>
                     <motion.div
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
                       className="prose prose-sm sm:prose-base md:prose-lg max-w-none dark:prose-invert"
                     >
-                      <h2>{legalDoc.title}</h2>
+                      <h2>{legalDoc?.title}</h2>
                       <ReactMarkdown
                         rehypePlugins={[rehypeSanitize]}
                         components={{
@@ -227,7 +227,7 @@ export default function LegalDocumentModal({ documentKey, isOpen, onClose }) {
                           ),
                         }}
                       >
-                        {legalDoc.content ?? "aucun document légal"}
+                        {legalDoc?.content ?? "aucun document légal"}
                       </ReactMarkdown>
                     </motion.div>
                   </>

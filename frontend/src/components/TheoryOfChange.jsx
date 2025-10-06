@@ -190,11 +190,11 @@ export default function TheoryOfChange() {
             </h3>
 
             <div className="space-y-6">
-              {quotes.map((quote, index) => (
+              {quotes?.map((quote, index) => (
                 <div
                   key={index}
                   className={`${
-                    index !== quotes.length - 1 ? "pb-5 mb-5 border-b" : ""
+                    index !== quotes?.length - 1 ? "pb-5 mb-5 border-b" : ""
                   } ${isDarkMode ? "border-gray-700" : "border-gray-200"}`}
                 >
                   <div

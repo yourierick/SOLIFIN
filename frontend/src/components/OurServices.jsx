@@ -59,11 +59,10 @@ const titleVariants = {
 export default function OurServices() {
   const { isDarkMode } = useTheme();
 
-
   const services = [
     {
       images: [
-        "/img/blog/publicite.jpg",
+        "/img/blog/services.jpg",
         "/img/blog/location-auto.jpg",
         "/img/blog/maison-for-sale.jpg",
         "/img/blog/terrain.png",
@@ -114,27 +113,35 @@ export default function OurServices() {
             initial={{ scale: 0.95, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             transition={{ delay: 0.2, duration: 0.8, type: "spring" }}
-            className={`h-1.5 w-24 mx-auto mb-6 rounded-full ${isDarkMode ? "bg-green-500" : "bg-green-600"}`}
+            className={`h-1.5 w-24 mx-auto mb-6 rounded-full ${
+              isDarkMode ? "bg-green-500" : "bg-green-600"
+            }`}
           />
         </div>
-        
+
         <h2
           className={`text-3xl font-extrabold tracking-tight sm:text-5xl mb-6 ${
             isDarkMode ? "text-white" : "text-gray-900"
           }`}
         >
           Nos{" "}
-          <span className={`relative inline-block ${isDarkMode ? "text-green-400" : "text-green-600"}`}>
+          <span
+            className={`relative inline-block ${
+              isDarkMode ? "text-green-400" : "text-green-600"
+            }`}
+          >
             Services
-            <motion.span 
+            <motion.span
               initial={{ width: "0%" }}
               animate={{ width: "100%" }}
               transition={{ delay: 0.5, duration: 1.2, ease: "easeInOut" }}
-              className={`absolute bottom-1 left-0 h-0.5 ${isDarkMode ? "bg-green-400/40" : "bg-green-600/40"}`}
+              className={`absolute bottom-1 left-0 h-0.5 ${
+                isDarkMode ? "bg-green-400/40" : "bg-green-600/40"
+              }`}
             />
           </span>
         </h2>
-        
+
         <p
           className={`text-lg md:text-xl max-w-3xl mx-auto leading-relaxed ${
             isDarkMode ? "text-gray-300" : "text-gray-600"
@@ -151,7 +158,7 @@ export default function OurServices() {
           viewport={{ once: true, margin: "-50px" }}
           className="mt-16 grid gap-6 sm:gap-8 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
         >
-          {services.map((service, index) => (
+          {services?.map((service, index) => (
             <motion.div
               key={index}
               variants={itemVariants}
@@ -178,7 +185,7 @@ export default function OurServices() {
                     modules={[Autoplay, Pagination, Navigation]}
                     className="h-full w-full rounded-t-2xl"
                   >
-                    {service.images.map((img, imgIndex) => (
+                    {service?.images?.map((img, imgIndex) => (
                       <SwiperSlide key={imgIndex} className="w-full h-full">
                         <img
                           src={img}
@@ -191,8 +198,8 @@ export default function OurServices() {
                   </Swiper>
                 ) : (
                   <img
-                    src={service.image}
-                    alt={service.title}
+                    src={service?.image}
+                    alt={service?.title}
                     className="object-cover w-full h-full rounded-t-2xl"
                     loading="lazy"
                   />
@@ -204,14 +211,14 @@ export default function OurServices() {
                     isDarkMode ? "text-white" : "text-gray-900"
                   }`}
                 >
-                  {service.title}
+                  {service?.title}
                 </h3>
                 <p
                   className={`mb-0 flex-grow text-sm leading-relaxed ${
                     isDarkMode ? "text-gray-300" : "text-gray-600"
                   }`}
                 >
-                  {service.description}
+                  {service?.description}
                 </p>
               </div>
             </motion.div>

@@ -169,7 +169,7 @@ export default function AboutSolifin() {
             viewport={{ once: true }}
             className="space-y-6"
           >
-            {features.map((feature, index) => (
+            {features?.map((feature, index) => (
               <motion.div
                 key={index}
                 variants={itemVariants}
