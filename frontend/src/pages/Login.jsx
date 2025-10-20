@@ -62,7 +62,7 @@ export default function Login() {
       }`}
     >
       <div
-        className={`max-w-md w-full space-y-8 p-8 rounded-xl ${
+        className={`max-w-md w-full space-y-8 p-2 md:p-8 rounded-xl ${
           isDarkMode ? "bg-gray-800" : "bg-white shadow-lg"
         }`}
       >

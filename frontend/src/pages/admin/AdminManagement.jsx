@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { useAuth } from "../../contexts/AuthContext";
 import { useTheme } from "../../contexts/ThemeContext";
 import axios from "axios";
@@ -231,111 +232,65 @@ const AdminManagement = () => {
   return (
     <div className="p-4">
       {/* En-tête de la page */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-4 flex items-center">
+      <div className="mb-6">
+        <h1 className="text-xl font-semibold mb-2 flex items-center text-gray-900 dark:text-white">
           <ShieldCheckIcon
-            className="mr-3 animate__animated animate__fadeIn"
-            style={{
-              width: "36px",
-              height: "36px",
-              color: isDarkMode ? "#3b82f6" : "#1d4ed8",
-              filter: isDarkMode
-                ? "drop-shadow(0 0 2px rgba(59, 130, 246, 0.5))"
-                : "drop-shadow(0 0 2px rgba(29, 78, 216, 0.3))",
-            }}
+            className="h-6 w-6 mr-2 text-blue-600 dark:text-blue-400"
           />
-          <span>Gestion des administrateurs</span>
+          Gestion des administrateurs
         </h1>
-        <div className="flex justify-between items-center mb-4">
-          <p className="text-gray-600 dark:text-gray-300 text-lg pl-1 border-l-4 border-blue-500 dark:border-blue-600 ml-1 pl-3">
-            Gérez les comptes administrateurs, leurs permissions et leurs
-            statuts.
-          </p>
-        </div>
+        <p className="text-sm text-gray-600 dark:text-gray-400">
+          Gérez les comptes administrateurs, leurs permissions et leurs statuts.
+        </p>
       </div>
 
       {/* Section des statistiques */}
-      <div className="mb-8 animate__animated animate__fadeInUp animate__delay-1s">
+      <div className="mb-6">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {/* Statistique 1: Nombre total d'administrateurs */}
-          <div
-            className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 border border-gray-200 dark:border-gray-700 transition-all duration-300 hover:shadow-xl hover:scale-105 animate__animated animate__fadeIn dark:animate-glow"
-            style={{
-              background: isDarkMode
-                ? "linear-gradient(145deg, #1e2837, #1a1f2b)"
-                : "white",
-            }}
-          >
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-500 dark:text-blue-300 mb-1">
+                <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
                   Administrateurs
                 </p>
-                <h3 className="text-3xl font-bold text-gray-800 dark:text-gray-100 animate__animated animate__fadeIn animate__delay-1s">
+                <h3 className="text-2xl font-semibold text-gray-800 dark:text-gray-100">
                   {admins.length}
                 </h3>
               </div>
-              <div
-                className="p-3 bg-blue-100 dark:bg-blue-800/40 rounded-full shadow-lg dark:animate-dark-pulse"
-                style={{
-                  boxShadow: isDarkMode
-                    ? "0 0 15px rgba(37, 99, 235, 0.3)"
-                    : "",
-                }}
-              >
-                <UserIcon className="h-6 w-6 text-blue-600 dark:text-blue-300" />
+              <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
+                <UserIcon className="h-5 w-5 text-blue-600 dark:text-blue-400" />
               </div>
             </div>
-            <div className="mt-4">
-              <div className="flex items-center">
-                <div className="text-sm font-medium text-green-500 dark:text-green-400 flex items-center">
-                  <CheckIcon className="h-4 w-4 mr-1" />
-                  <span>
-                    {admins.filter((admin) => admin.status === "active").length}{" "}
-                    actifs
-                  </span>
-                </div>
+            <div className="mt-3">
+              <div className="text-xs text-gray-600 dark:text-gray-400 flex items-center">
+                <CheckIcon className="h-3 w-3 mr-1 text-green-500" />
+                <span>
+                  {admins.filter((admin) => admin.status === "active").length} actifs
+                </span>
               </div>
             </div>
           </div>
 
-          {/* Statistique 2: Administrateurs actifs */}
-          <div
-            className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 border border-gray-200 dark:border-gray-700 transition-all duration-300 hover:shadow-xl hover:scale-105 animate__animated animate__fadeIn animate__delay-1s dark:animate-glow"
-            style={{
-              background: isDarkMode
-                ? "linear-gradient(145deg, #1e2837, #1a1f2b)"
-                : "white",
-            }}
-          >
+          {/* Statistique 2: Taux d'activité */}
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-500 dark:text-green-300 mb-1">
+                <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
                   Taux d'activité
                 </p>
-                <h3 className="text-3xl font-bold text-gray-800 dark:text-gray-100 animate__animated animate__fadeIn animate__delay-2s">
+                <h3 className="text-2xl font-semibold text-gray-800 dark:text-gray-100">
                   {admins.length > 0
                     ? Math.round(
-                        (admins.filter((admin) => admin.status === "active")
-                          .length /
-                          admins.length) *
-                          100
+                        (admins.filter((admin) => admin.status === "active").length / admins.length) * 100
                       )
-                    : 0}
-                  %
+                    : 0}%
                 </h3>
               </div>
-              <div
-                className="p-3 bg-green-100 dark:bg-green-800/40 rounded-full shadow-lg dark:animate-dark-pulse"
-                style={{
-                  boxShadow: isDarkMode
-                    ? "0 0 15px rgba(34, 197, 94, 0.3)"
-                    : "",
-                }}
-              >
+              <div className="p-2 bg-green-100 dark:bg-green-900/30 rounded-lg">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
-                  className="h-6 w-6 text-green-600 dark:text-green-300"
+                  className="h-5 w-5 text-green-600 dark:text-green-400"
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
@@ -349,23 +304,16 @@ const AdminManagement = () => {
                 </svg>
               </div>
             </div>
-            <div className="mt-4">
-              <div className="w-full bg-gray-200 dark:bg-gray-700/60 rounded-full h-2.5 shadow-inner">
+            <div className="mt-3">
+              <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5">
                 <div
-                  className="bg-green-600 dark:bg-green-400 h-2.5 rounded-full animate__animated animate__fadeIn animate__delay-2s dark:animate-dark-pulse"
+                  className="bg-green-600 dark:bg-green-400 h-1.5 rounded-full"
                   style={{
                     width: `${
                       admins.length > 0
-                        ? (admins.filter((admin) => admin.status === "active")
-                            .length /
-                            admins.length) *
-                          100
+                        ? (admins.filter((admin) => admin.status === "active").length / admins.length) * 100
                         : 0
                     }%`,
-                    transition: "width 1s ease-in-out",
-                    boxShadow: isDarkMode
-                      ? "0 0 10px rgba(34, 197, 94, 0.5)"
-                      : "",
                   }}
                 ></div>
               </div>
@@ -373,34 +321,20 @@ const AdminManagement = () => {
           </div>
 
           {/* Statistique 3: Administrateurs inactifs */}
-          <div
-            className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 border border-gray-200 dark:border-gray-700 transition-all duration-300 hover:shadow-xl hover:scale-105 animate__animated animate__fadeIn animate__delay-2s dark:animate-glow"
-            style={{
-              background: isDarkMode
-                ? "linear-gradient(145deg, #1e2837, #1a1f2b)"
-                : "white",
-            }}
-          >
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-500 dark:text-red-300 mb-1">
-                  Administrateurs inactifs
+                <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+                  Inactifs
                 </p>
-                <h3 className="text-3xl font-bold text-gray-800 dark:text-gray-100 animate__animated animate__fadeIn animate__delay-3s">
+                <h3 className="text-2xl font-semibold text-gray-800 dark:text-gray-100">
                   {admins.filter((admin) => admin.status === "inactive").length}
                 </h3>
               </div>
-              <div
-                className="p-3 bg-red-100 dark:bg-red-800/40 rounded-full shadow-lg dark:animate-dark-pulse"
-                style={{
-                  boxShadow: isDarkMode
-                    ? "0 0 15px rgba(239, 68, 68, 0.3)"
-                    : "",
-                }}
-              >
+              <div className="p-2 bg-red-100 dark:bg-red-900/30 rounded-lg">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
-                  className="h-6 w-6 text-red-600 dark:text-red-300"
+                  className="h-5 w-5 text-red-600 dark:text-red-400"
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
@@ -414,62 +348,45 @@ const AdminManagement = () => {
                 </svg>
               </div>
             </div>
-            <div className="mt-4">
-              <div className="flex items-center">
-                <div className="text-sm font-medium text-red-500 dark:text-red-400 flex items-center bg-red-50 dark:bg-red-900/20 px-2 py-1 rounded-md shadow-sm">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-4 w-4 mr-1"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-                    />
-                  </svg>
-                  <span>Accès restreint</span>
-                </div>
+            <div className="mt-3">
+              <div className="text-xs text-red-600 dark:text-red-400 flex items-center">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-3 w-3 mr-1"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                  />
+                </svg>
+                <span>Accès restreint</span>
               </div>
             </div>
           </div>
 
-          {/* Statistique 4: Dernière activité */}
-          <div
-            className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 border border-gray-200 dark:border-gray-700 transition-all duration-300 hover:shadow-xl hover:scale-105 animate__animated animate__fadeIn animate__delay-3s dark:animate-glow"
-            style={{
-              background: isDarkMode
-                ? "linear-gradient(145deg, #1e2837, #1a1f2b)"
-                : "white",
-            }}
-          >
+          {/* Statistique 4: Dernière mise à jour */}
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-500 dark:text-purple-300 mb-1">
+                <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
                   Dernière mise à jour
                 </p>
-                <h3 className="text-xl font-bold text-gray-800 dark:text-gray-100 animate__animated animate__fadeIn animate__delay-4s">
+                <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-100">
                   {new Date().toLocaleDateString("fr-FR", {
                     day: "numeric",
-                    month: "long",
-                    year: "numeric",
+                    month: "short",
                   })}
                 </h3>
               </div>
-              <div
-                className="p-3 bg-purple-100 dark:bg-purple-800/40 rounded-full shadow-lg dark:animate-dark-pulse"
-                style={{
-                  boxShadow: isDarkMode
-                    ? "0 0 15px rgba(147, 51, 234, 0.3)"
-                    : "",
-                }}
-              >
+              <div className="p-2 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
-                  className="h-6 w-6 text-purple-600 dark:text-purple-300"
+                  className="h-5 w-5 text-purple-600 dark:text-purple-400"
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
@@ -483,25 +400,9 @@ const AdminManagement = () => {
                 </svg>
               </div>
             </div>
-            <div className="mt-4">
-              <div className="flex items-center">
-                <div className="text-sm font-medium text-purple-500 dark:text-purple-400 flex items-center bg-purple-50 dark:bg-purple-900/20 px-2 py-1 rounded-md shadow-sm">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-4 w-4 mr-1"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                    />
-                  </svg>
-                  <span>Données actualisées</span>
-                </div>
+            <div className="mt-3">
+              <div className="text-xs text-gray-600 dark:text-gray-400">
+                Données actualisées
               </div>
             </div>
           </div>
@@ -532,22 +433,10 @@ const AdminManagement = () => {
             </p>
           </div>
         ) : (
-          <div
-            className="mt-6 bg-white dark:bg-gray-800 shadow-xl rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700 max-w-5xl mx-auto transition-all duration-300 ease-in-out hover:shadow-2xl animate__animated animate__fadeIn animate__faster dark:animate-glow"
-            style={{
-              boxShadow: isDarkMode ? "0 4px 20px rgba(0, 0, 0, 0.3)" : "",
-            }}
-          >
+          <div className="mt-6 bg-white dark:bg-gray-800 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 max-w-5xl mx-auto">
             <div className="overflow-x-auto">
               <table className="w-full divide-y divide-gray-200 dark:divide-gray-700">
-                <thead
-                  className="bg-gradient-to-r from-blue-600 to-blue-800 dark:from-blue-800 dark:to-blue-900 text-white"
-                  style={{
-                    boxShadow: isDarkMode
-                      ? "0 4px 12px rgba(30, 64, 175, 0.4)"
-                      : "",
-                  }}
-                >
+                <thead className="bg-gray-50 dark:bg-gray-700/50">
                   <tr>
                     <th
                       scope="col"
@@ -817,12 +706,17 @@ const AdminManagement = () => {
       </div>
 
       {/* Modal de détails */}
-      {viewDetails && (
-        <div
-          className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center z-50 animate__animated animate__fadeIn animate__faster"
-          onClick={closeDetails}
-        >
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-hidden animate__animated animate__zoomIn animate__faster">
+      {viewDetails && createPortal(
+        <div className="fixed inset-0 z-[9999] flex flex-col">
+          {/* Overlay qui couvre toute la page */}
+          <div
+            className="absolute inset-0 bg-black bg-opacity-70 backdrop-blur-sm"
+            onClick={closeDetails}
+          />
+          
+          {/* Contenu du modal centré */}
+          <div className="relative flex items-center justify-center min-h-screen p-4">
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-hidden animate__animated animate__zoomIn animate__faster relative transform transition-all duration-300 ease-in-out">
             {/* En-tête de la modale */}
             <div className="bg-gradient-to-r from-blue-600 to-blue-800 dark:from-blue-700 dark:to-blue-900 text-white px-6 py-4">
               <div className="flex justify-between items-center">
@@ -990,7 +884,9 @@ const AdminManagement = () => {
               </button>
             </div>
           </div>
-        </div>
+          </div>
+        </div>,
+        document.body
       )}
 
       {/* Modal de confirmation de suppression */}

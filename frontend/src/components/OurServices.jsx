@@ -1,11 +1,14 @@
 import { motion } from "framer-motion";
 import { useTheme } from "../contexts/ThemeContext";
 import { CheckCircleIcon } from "@heroicons/react/24/solid";
+import { ArrowRightIcon } from "@heroicons/react/24/outline";
 import { Swiper, SwiperSlide } from "swiper/react";
 import { Autoplay, Pagination, Navigation } from "swiper/modules";
 import "swiper/css";
 import "swiper/css/pagination";
 import "swiper/css/navigation";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "../contexts/AuthContext";
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -58,6 +61,19 @@ const titleVariants = {
 
 export default function OurServices() {
   const { isDarkMode } = useTheme();
+  const { isAuthenticated } = useAuth();
+  const navigate = useNavigate();
+  
+  // Fonction pour gérer le clic sur une carte de service
+  const handleServiceClick = () => {
+    if (isAuthenticated) {
+      // Si l'utilisateur est connecté, rediriger vers le tableau de bord
+      navigate("/dashboard");
+    } else {
+      // Sinon, rediriger vers la page de connexion
+      navigate("/login");
+    }
+  };
 
   const services = [
     {
@@ -163,11 +179,12 @@ export default function OurServices() {
               key={index}
               variants={itemVariants}
               whileHover="hover"
+              onClick={handleServiceClick}
               className={`flex flex-col h-full p-0 rounded-2xl transition-all duration-300 overflow-hidden shadow-xl ${
                 isDarkMode
                   ? "bg-gray-800 hover:shadow-green-500/40 border border-gray-700"
                   : "bg-white hover:shadow-green-500/40 border border-gray-100"
-              } transform-gpu`}
+              } transform-gpu cursor-pointer`}
             >
               <div className="w-full h-40 md:h-44 lg:h-48 xl:h-44 overflow-hidden bg-gray-100 dark:bg-gray-900">
                 {index === 0 ? (
@@ -214,12 +231,73 @@ export default function OurServices() {
                   {service?.title}
                 </h3>
                 <p
-                  className={`mb-0 flex-grow text-sm leading-relaxed ${
+                  className={`mb-4 flex-grow text-sm leading-relaxed ${
                     isDarkMode ? "text-gray-300" : "text-gray-600"
                   }`}
                 >
                   {service?.description}
                 </p>
+                
+                {/* Bouton d'action avec animation */}
+                <div className="mt-auto">
+                  {isAuthenticated ? (
+                    <button
+                      className={`flex items-center justify-center w-full py-2 px-4 rounded-lg transition-all duration-300 ${
+                        isDarkMode
+                          ? "bg-green-600 hover:bg-green-700 text-white"
+                          : "bg-green-500 hover:bg-green-600 text-white"
+                      }`}
+                      onClick={(e) => {
+                        e.stopPropagation(); // Évite le déclenchement du onClick du parent
+                        handleServiceClick();
+                      }}
+                    >
+                      <span>Accéder au service</span>
+                      <ArrowRightIcon className="ml-2 h-4 w-4" />
+                    </button>
+                  ) : (
+                    <motion.button
+                      className={`flex items-center justify-center w-full py-2 px-4 rounded-lg ${
+                        isDarkMode
+                          ? "bg-green-600 hover:bg-green-700 text-white"
+                          : "bg-green-500 hover:bg-green-600 text-white"
+                      }`}
+                      onClick={(e) => {
+                        e.stopPropagation(); // Évite le déclenchement du onClick du parent
+                        handleServiceClick();
+                      }}
+                      animate={{
+                        y: [0, -5, 0],
+                        boxShadow: [
+                          "0 0 0 rgba(34, 197, 94, 0)",
+                          "0 4px 12px rgba(34, 197, 94, 0.5)",
+                          "0 0 0 rgba(34, 197, 94, 0)"
+                        ]
+                      }}
+                      transition={{
+                        duration: 2,
+                        repeat: Infinity,
+                        repeatType: "loop",
+                        ease: "easeInOut"
+                      }}
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.98 }}
+                    >
+                      <span>Se connecter pour accéder</span>
+                      <motion.div
+                        animate={{ x: [0, 5, 0] }}
+                        transition={{
+                          duration: 1.5,
+                          repeat: Infinity,
+                          repeatType: "loop",
+                          ease: "easeInOut"
+                        }}
+                      >
+                        <ArrowRightIcon className="ml-2 h-4 w-4" />
+                      </motion.div>
+                    </motion.button>
+                  )}
+                </div>
               </div>
             </motion.div>
           ))}

@@ -8,7 +8,8 @@ import {
   ClipboardDocumentIcon,
 } from "@heroicons/react/24/outline";
 import logo from "../assets/logo.png";
-import Notification from "../components/Notification";
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 import CountryCodeSelector from "../components/CountryCodeSelector";
 import CountrySelector from "../components/CountrySelector";
 import { countries as countriesList } from "../data/countries";
@@ -105,7 +106,7 @@ export default function Register() {
       setCountries(formattedCountries);
     } catch (err) {
       console.error("Erreur lors du chargement des pays", err);
-      Notification.error("Erreur lors du chargement des pays");
+      toast.error("Erreur lors du chargement des pays");
     } finally {
       setLoadingCountries(false);
     }
@@ -180,15 +181,36 @@ export default function Register() {
       const response = await axios.post("/api/register", dataToSubmit);
 
       if (response.data.success) {
-        Notification.success(
-          "Inscription réussie, vous pouvez maintenant vous connecter"
+        toast.success(
+          "Votre inscription a réussie, connectez-vous maintenant, une copie de vos coordonnées de connexion a été envoyé à votre adresse email"
         );
-        // Rediriger vers la page de connexion
-        navigate("/login");
+
+        // Vider les champs du formulaire
+        setFormData({
+          name: "",
+          email: "",
+          password: "",
+          password_confirmation: "",
+          phone: "",
+          phoneNumber: "",
+          phoneCode: "+243",
+          whatsapp: "",
+          whatsappNumber: "",
+          whatsappCode: "+243",
+          address: "",
+          gender: "",
+          country: "",
+          province: "",
+          city: "",
+          acquisition_source: "",
+          acceptTerms: false,
+        });
+
+        toast.info("Bienvenue dans la communauté SOLIFIN");
       } else {
         // Afficher le message d'erreur général si disponible
         if (response.data.message) {
-          Notification.error(response.data.message);
+          toast.error(response.data.message);
         }
       }
     } catch (error) {
@@ -201,9 +223,9 @@ export default function Register() {
 
         // Afficher le message d'erreur principal
         if (data.message) {
-          Notification.error(data.message);
+          toast.error(data.message);
         } else {
-          Notification.error(
+          toast.error(
             "Erreur lors de l'inscription. Veuillez vérifier vos informations."
           );
         }
@@ -235,9 +257,7 @@ export default function Register() {
         }
       } else {
         // Erreur réseau ou autre erreur non liée à la validation
-        Notification.error(
-          "Erreur de connexion. Veuillez réessayer plus tard."
-        );
+        toast.error("Erreur de connexion. Veuillez réessayer plus tard.");
       }
     } finally {
       setLoading(false);
@@ -396,12 +416,14 @@ export default function Register() {
                         MenuProps={{
                           PaperProps: {
                             sx: {
-                              bgcolor: "#1f2937",
-                              color: "white",
+                              bgcolor: isDarkMode ? "#1f2937" : "#fff",
+                              color: isDarkMode ? "white" : "#333",
                               "& .MuiMenuItem-root": {
-                                color: "white",
+                                color: isDarkMode ? "white" : "#333",
                                 "&:hover": {
-                                  bgcolor: "rgba(255, 255, 255, 0.08)",
+                                  bgcolor: isDarkMode
+                                    ? "rgba(255, 255, 255, 0.08)"
+                                    : "rgba(0, 0, 0, 0.04)",
                                 },
                               },
                             },
@@ -646,6 +668,22 @@ export default function Register() {
                         value={formData.acquisition_source}
                         onChange={handleChange}
                         label="Comment avez-vous connu SOLIFIN ?"
+                        MenuProps={{
+                          PaperProps: {
+                            sx: {
+                              bgcolor: isDarkMode ? "#1f2937" : "#fff",
+                              color: isDarkMode ? "white" : "#333",
+                              "& .MuiMenuItem-root": {
+                                color: isDarkMode ? "white" : "#333",
+                                "&:hover": {
+                                  bgcolor: isDarkMode
+                                    ? "rgba(255, 255, 255, 0.08)"
+                                    : "rgba(0, 0, 0, 0.04)",
+                                },
+                              },
+                            },
+                          },
+                        }}
                         sx={{
                           "& .MuiOutlinedInput-root": {
                             "&.Mui-focused fieldset": {
@@ -752,6 +790,19 @@ export default function Register() {
           </div>
         </div>
       </section>
+      <ToastContainer
+        position="top-right"
+        autoClose={5000}
+        hideProgressBar={false}
+        newestOnTop
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        zIndex={9999}
+        pauseOnHover
+        theme={isDarkMode ? "dark" : "light"}
+      />
     </>
   );
 }

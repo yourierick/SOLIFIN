@@ -156,7 +156,7 @@ export default function Hero() {
   return (
     <section
       id="hero"
-      className="min-h-screen flex items-center justify-center relative overflow-hidden"
+      className="min-h-screen flex items-center justify-center relative overflow-hidden pt-14 md:pt-18 lg:pt-20"
     >
       {/* Image de fond dynamique */}
       <div className="absolute inset-0">
@@ -313,11 +313,14 @@ export default function Hero() {
           position: static !important;
           margin-top: 2rem;
           z-index: 20;
+          margin-bottom: 12px
         }
         .custom-swiper-pagination .swiper-pagination-bullet {
-          background: #e5e7eb !important; /* gris très clair */
+          background: ${
+            isDarkMode ? "#e5e7eb" : "gray"
+          } !important; /* gris très clair */
           opacity: 0.6;
-          width: 18px;
+          width: 10px;
           height: 6px;
           border-radius: 3px;
           margin: 0 4px !important;

@@ -52,6 +52,7 @@ import AboutSolifin from "../components/AboutSolifin";
 import OurServices from "../components/OurServices";
 import TheoryOfChange from "../components/TheoryOfChange";
 import LegalDocumentModal from "../components/LegalDocumentModal";
+import MobileLoginButton from "../components/MobileLoginButton";
 import { useTheme } from "../contexts/ThemeContext";
 import { useState, useEffect } from "react";
 import { useLocation } from "react-router-dom";
@@ -187,6 +188,9 @@ export default function Homepage() {
         openLegalDocument={openLegalDocument}
       />
       <ThemeToggle />
+      
+      {/* Bouton flottant de connexion pour mobile */}
+      <MobileLoginButton />
 
       {/* Modal pour les documents légaux */}
       <LegalDocumentModal

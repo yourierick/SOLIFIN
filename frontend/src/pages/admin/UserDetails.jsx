@@ -137,6 +137,9 @@ export default function UserDetails({ userId }) {
     amount_max: "",
     search: "",
   });
+  
+  // État pour contrôler l'affichage des filtres avancés
+  const [showTransactionFilters, setShowTransactionFilters] = useState(false);
 
   const fetchUserDetails = async () => {
     try {
@@ -1373,40 +1376,56 @@ export default function UserDetails({ userId }) {
             </div>
           </div>
 
-          {/* Onglets */}
-          <div className="border-b border-gray-200 dark:border-gray-700">
-            <nav className="flex -mb-px">
-              <button
-                onClick={() => setActiveTab("info")}
-                className={`px-6 py-3 border-b-2 text-sm font-medium ${
-                  activeTab === "info"
-                    ? "border-blue-500 text-blue-600 dark:text-blue-400"
-                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300 dark:hover:border-gray-600"
-                }`}
-              >
-                Informations
-              </button>
-              <button
-                onClick={() => setActiveTab("packs")}
-                className={`px-6 py-3 border-b-2 text-sm font-medium ${
-                  activeTab === "packs"
-                    ? "border-blue-500 text-blue-600 dark:text-blue-400"
-                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300 dark:hover:border-gray-600"
-                }`}
-              >
-                Packs
-              </button>
-              <button
-                onClick={() => setActiveTab("transactions")}
-                className={`px-6 py-3 border-b-2 text-sm font-medium ${
-                  activeTab === "transactions"
-                    ? "border-blue-500 text-blue-600 dark:text-blue-400"
-                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300 dark:hover:border-gray-600"
-                }`}
-              >
-                Transactions
-              </button>
-            </nav>
+          {/* Onglets - avec défilement horizontal sur petits écrans */}
+          <div className="border-b border-gray-200 dark:border-gray-700 overflow-hidden">
+            <div
+              className="overflow-x-auto"
+              style={{
+                scrollbarWidth: "none",
+                msOverflowStyle: "none",
+                WebkitOverflowScrolling: "touch",
+              }}
+            >
+              <style>
+                {`
+                  .tabs-container::-webkit-scrollbar {
+                    display: none;
+                  }
+                `}
+              </style>
+              <nav className="flex whitespace-nowrap min-w-full pb-px tabs-container">
+                <button
+                  onClick={() => setActiveTab("info")}
+                  className={`px-6 py-3 border-b-2 text-sm font-medium flex-shrink-0 ${
+                    activeTab === "info"
+                      ? "border-blue-500 text-blue-600 dark:text-blue-400"
+                      : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300 dark:hover:border-gray-600"
+                  }`}
+                >
+                  Informations
+                </button>
+                <button
+                  onClick={() => setActiveTab("packs")}
+                  className={`px-6 py-3 border-b-2 text-sm font-medium flex-shrink-0 ${
+                    activeTab === "packs"
+                      ? "border-blue-500 text-blue-600 dark:text-blue-400"
+                      : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300 dark:hover:border-gray-600"
+                  }`}
+                >
+                  Packs
+                </button>
+                <button
+                  onClick={() => setActiveTab("transactions")}
+                  className={`px-6 py-3 border-b-2 text-sm font-medium flex-shrink-0 ${
+                    activeTab === "transactions"
+                      ? "border-blue-500 text-blue-600 dark:text-blue-400"
+                      : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300 dark:hover:border-gray-600"
+                  }`}
+                >
+                  Transactions
+                </button>
+              </nav>
+            </div>
           </div>
 
           {/* Contenu des onglets */}
@@ -1473,19 +1492,11 @@ export default function UserDetails({ userId }) {
                   Historique des transactions
                 </h2>
 
-                {/* Filtres pour les transactions */}
-                <Paper
-                  elevation={2}
-                  className="mb-4 p-4"
-                  sx={{
-                    backgroundColor: isDarkMode ? "#1d2e36" : "#fff",
-
-                    color: isDarkMode ? "#fff" : "inherit",
-                  }}
-                >
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {/* Barre de recherche et bouton pour afficher/masquer les filtres */}
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-3">
+                  <div className="relative w-full sm:w-64 md:w-80">
                     <TextField
-                      label="Recherche"
+                      label="Recherche rapide"
                       variant="outlined"
                       size="small"
                       fullWidth
@@ -1505,155 +1516,220 @@ export default function UserDetails({ userId }) {
                         ),
                       }}
                     />
-
-                    <FormControl size="small" fullWidth>
-                      <InputLabel>Type de transaction</InputLabel>
-                      <Select
-                        value={transactionFilters.type}
-                        label="Type de transaction"
-                        onChange={(e) =>
-                          setTransactionFilters((prev) => ({
-                            ...prev,
-                            type: e.target.value,
-                            page: 1,
-                          }))
-                        }
-                      >
-                        <MenuItem value="">Tous</MenuItem>
-                        <MenuItem value="virtual">Achat des virtuels</MenuItem>
-                        <MenuItem value="sales">Achat</MenuItem>
-                        <MenuItem value="purchase">Achat</MenuItem>
-                        <MenuItem value="withdrawal">Retrait</MenuItem>
-                        <MenuItem value="transfer">
-                          Transfert des fonds
-                        </MenuItem>
-                        <MenuItem value="reception">
-                          Réception des fonds
-                        </MenuItem>
-                      </Select>
-                    </FormControl>
-
-                    <FormControl size="small" fullWidth>
-                      <InputLabel>Statut</InputLabel>
-                      <Select
-                        value={transactionFilters.status}
-                        label="Statut"
-                        onChange={(e) =>
-                          setTransactionFilters((prev) => ({
-                            ...prev,
-                            status: e.target.value,
-                            page: 1,
-                          }))
-                        }
-                      >
-                        <MenuItem value="">Tous</MenuItem>
-                        <MenuItem value="pending">En attente</MenuItem>
-                        <MenuItem value="completed">Complété</MenuItem>
-                        <MenuItem value="failed">Échoué</MenuItem>
-                        <MenuItem value="cancelled">Annulé</MenuItem>
-                      </Select>
-                    </FormControl>
                   </div>
+                  
+                  {/* Bouton pour afficher/masquer les filtres avancés */}
+                  <Button
+                    variant="outlined"
+                    color="primary"
+                    onClick={() => setShowTransactionFilters(!showTransactionFilters)}
+                    startIcon={
+                      showTransactionFilters ? (
+                        <ChevronUpIcon className="h-5 w-5" />
+                      ) : (
+                        <ChevronDownIcon className="h-5 w-5" />
+                      )
+                    }
+                    className="whitespace-nowrap"
+                  >
+                    {showTransactionFilters ? "Masquer les filtres" : "Filtres avancés"}
+                  </Button>
+                </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-4">
-                    <TextField
-                      label="Montant min"
-                      type="number"
-                      variant="outlined"
-                      size="small"
-                      fullWidth
-                      value={transactionFilters.amount_min}
-                      onChange={(e) =>
-                        setTransactionFilters((prev) => ({
-                          ...prev,
-                          amount_min: e.target.value,
-                          page: 1,
-                        }))
-                      }
-                    />
+                {/* Filtres avancés pour les transactions - cachés par défaut */}
+                {showTransactionFilters && (
+                  <Paper
+                    elevation={2}
+                    className="mb-4 p-4 border-l-4 border-blue-500 dark:border-blue-600"
+                    sx={{
+                      backgroundColor: isDarkMode ? "#1d2e36" : "#fff",
+                      color: isDarkMode ? "#fff" : "inherit",
+                      transition: "all 0.3s ease-in-out",
+                    }}
+                  >
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <FormControl size="small" fullWidth>
+                        <InputLabel>Type de transaction</InputLabel>
+                        <Select
+                          value={transactionFilters.type}
+                          label="Type de transaction"
+                          onChange={(e) =>
+                            setTransactionFilters((prev) => ({
+                              ...prev,
+                              type: e.target.value,
+                              page: 1,
+                            }))
+                          }
+                          MenuProps={{
+                            PaperProps: {
+                              sx: {
+                                bgcolor: isDarkMode ? "#1f2937" : "#fff",
+                                color: isDarkMode ? "white" : "#333",
+                                "& .MuiMenuItem-root": {
+                                  color: isDarkMode ? "white" : "#333",
+                                  "&:hover": {
+                                    bgcolor: isDarkMode ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.04)",
+                                  },
+                                },
+                              },
+                            },
+                          }}
+                        >
+                          <MenuItem value="">Tous</MenuItem>
+                          <MenuItem value="virtual">Achat des virtuels</MenuItem>
+                          <MenuItem value="sales">Achat</MenuItem>
+                          <MenuItem value="purchase">Achat</MenuItem>
+                          <MenuItem value="withdrawal">Retrait</MenuItem>
+                          <MenuItem value="transfer">
+                            Transfert des fonds
+                          </MenuItem>
+                          <MenuItem value="reception">
+                            Réception des fonds
+                          </MenuItem>
+                        </Select>
+                      </FormControl>
 
-                    <TextField
-                      label="Montant max"
-                      type="number"
-                      variant="outlined"
-                      size="small"
-                      fullWidth
-                      value={transactionFilters.amount_max}
-                      onChange={(e) =>
-                        setTransactionFilters((prev) => ({
-                          ...prev,
-                          amount_max: e.target.value,
-                          page: 1,
-                        }))
-                      }
-                    />
+                      <FormControl size="small" fullWidth>
+                        <InputLabel>Statut</InputLabel>
+                        <Select
+                          value={transactionFilters.status}
+                          label="Statut"
+                          onChange={(e) =>
+                            setTransactionFilters((prev) => ({
+                              ...prev,
+                              status: e.target.value,
+                              page: 1,
+                            }))
+                          }
+                          MenuProps={{
+                            PaperProps: {
+                              sx: {
+                                bgcolor: isDarkMode ? "#1f2937" : "#fff",
+                                color: isDarkMode ? "white" : "#333",
+                                "& .MuiMenuItem-root": {
+                                  color: isDarkMode ? "white" : "#333",
+                                  "&:hover": {
+                                    bgcolor: isDarkMode ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.04)",
+                                  },
+                                },
+                              },
+                            },
+                          }}
+                        >
+                          <MenuItem value="">Tous</MenuItem>
+                          <MenuItem value="pending">En attente</MenuItem>
+                          <MenuItem value="completed">Complété</MenuItem>
+                          <MenuItem value="failed">Échoué</MenuItem>
+                          <MenuItem value="cancelled">Annulé</MenuItem>
+                        </Select>
+                      </FormControl>
 
-                    <TextField
-                      label="Date début"
-                      type="date"
-                      variant="outlined"
-                      size="small"
-                      fullWidth
-                      InputLabelProps={{ shrink: true }}
-                      value={transactionFilters.date_from}
-                      onChange={(e) =>
-                        setTransactionFilters((prev) => ({
-                          ...prev,
-                          date_from: e.target.value,
-                          page: 1,
-                        }))
-                      }
-                    />
+                      <div className="flex items-center gap-2">
+                        <TextField
+                          label="Montant min"
+                          type="number"
+                          variant="outlined"
+                          size="small"
+                          fullWidth
+                          value={transactionFilters.amount_min}
+                          onChange={(e) =>
+                            setTransactionFilters((prev) => ({
+                              ...prev,
+                              amount_min: e.target.value,
+                              page: 1,
+                            }))
+                          }
+                        />
+                        <span className="text-gray-500 dark:text-gray-400">-</span>
+                        <TextField
+                          label="Montant max"
+                          type="number"
+                          variant="outlined"
+                          size="small"
+                          fullWidth
+                          value={transactionFilters.amount_max}
+                          onChange={(e) =>
+                            setTransactionFilters((prev) => ({
+                              ...prev,
+                              amount_max: e.target.value,
+                              page: 1,
+                            }))
+                          }
+                        />
+                      </div>
+                    </div>
 
-                    <TextField
-                      label="Date fin"
-                      type="date"
-                      variant="outlined"
-                      size="small"
-                      fullWidth
-                      InputLabelProps={{ shrink: true }}
-                      value={transactionFilters.date_to}
-                      onChange={(e) =>
-                        setTransactionFilters((prev) => ({
-                          ...prev,
-                          date_to: e.target.value,
-                          page: 1,
-                        }))
-                      }
-                    />
-                  </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                      <div className="flex items-center gap-2">
+                        <TextField
+                          label="Date début"
+                          type="date"
+                          variant="outlined"
+                          size="small"
+                          fullWidth
+                          InputLabelProps={{ shrink: true }}
+                          value={transactionFilters.date_from}
+                          onChange={(e) =>
+                            setTransactionFilters((prev) => ({
+                              ...prev,
+                              date_from: e.target.value,
+                              page: 1,
+                            }))
+                          }
+                        />
+                        <span className="text-gray-500 dark:text-gray-400">-</span>
+                        <TextField
+                          label="Date fin"
+                          type="date"
+                          variant="outlined"
+                          size="small"
+                          fullWidth
+                          InputLabelProps={{ shrink: true }}
+                          value={transactionFilters.date_to}
+                          onChange={(e) =>
+                            setTransactionFilters((prev) => ({
+                              ...prev,
+                              date_to: e.target.value,
+                              page: 1,
+                            }))
+                          }
+                        />
+                      </div>
 
-                  <div className="flex justify-end mt-4">
-                    <Button
-                      variant="outlined"
-                      startIcon={<ArrowPathIcon className="h-5 w-5" />}
-                      onClick={() => {
-                        setTransactionFilters({
-                          page: 1,
-                          per_page: 10,
-                          type: "",
-                          status: "",
-                          date_from: "",
-                          date_to: "",
-                          amount_min: "",
-                          amount_max: "",
-                          search: "",
-                        });
-                      }}
-                      sx={{ mr: 2 }}
-                    >
-                      Réinitialiser
-                    </Button>
+                      <div className="flex justify-end items-center gap-2">
+                        <Button
+                          variant="outlined"
+                          color="secondary"
+                          startIcon={<ArrowPathIcon className="h-5 w-5" />}
+                          onClick={() => {
+                            setTransactionFilters({
+                              page: 1,
+                              per_page: 10,
+                              type: "",
+                              status: "",
+                              date_from: "",
+                              date_to: "",
+                              amount_min: "",
+                              amount_max: "",
+                              search: "",
+                            });
+                          }}
+                        >
+                          Réinitialiser
+                        </Button>
 
-                    <Button
-                      variant="contained"
-                      color="primary"
-                      onClick={() => fetchTransactions()}
-                    >
-                      Filtrer
-                    </Button>
-                  </div>
-                </Paper>
+                        <Button
+                          variant="contained"
+                          color="primary"
+                          onClick={() => fetchTransactions()}
+                          startIcon={<MagnifyingGlassIcon className="h-5 w-5" />}
+                        >
+                          Appliquer
+                        </Button>
+                      </div>
+                    </div>
+                  </Paper>
+                )}
 
                 <div style={{ height: 500, width: "100%" }}>
                   <DataGrid

@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SOLIFIN - Site en maintenance</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #4CAF50;
+            --primary-dark: #388E3C;
+            --primary-light: #C8E6C9;
+            --accent: #FF9800;
+            --text-light: #FFFFFF;
+            --text-dark: #333333;
+            --background-light: #F9F9F9;
+            --background-dark: #121212;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(135deg, var(--background-light), #E0F2F1);
+            color: var(--text-dark);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            overflow-x: hidden;
+        }
+
+        .dark-mode {
+            background: linear-gradient(135deg, var(--background-dark), #0D2E29);
+            color: var(--text-light);
+        }
+
+        .container {
+            width: 90%;
+            max-width: 1200px;
+            text-align: center;
+            padding: 2rem;
+            position: relative;
+            z-index: 1;
+        }
+
+
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+            color: var(--primary-dark);
+            position: relative;
+            display: inline-block;
+        }
+
+        .dark-mode h1 {
+            color: var(--primary-light);
+        }
+
+        h1::after {
+            content: '';
+            position: absolute;
+            width: 60%;
+            height: 4px;
+            background: var(--accent);
+            bottom: -10px;
+            left: 20%;
+            border-radius: 2px;
+            animation: expand 3s infinite;
+        }
+
+        p {
+            font-size: 1.2rem;
+            line-height: 1.6;
+            margin-bottom: 2rem;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+
+        .theme-toggle {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 1.5rem;
+            color: var(--text-dark);
+            z-index: 10;
+        }
+
+        .dark-mode .theme-toggle {
+            color: var(--text-light);
+        }
+
+        .particles {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+        }
+
+        .particle {
+            position: absolute;
+            border-radius: 50%;
+            background: var(--primary-light);
+            opacity: 0.6;
+            animation: float 15s infinite linear;
+        }
+
+        .dark-mode .particle {
+            background: var(--primary);
+            opacity: 0.3;
+        }
+
+        .progress-container {
+            width: 80%;
+            max-width: 500px;
+            margin: 2rem auto;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 10px;
+            height: 10px;
+            overflow: hidden;
+        }
+
+        .progress-bar {
+            height: 100%;
+            width: 0%;
+            background: var(--primary);
+            border-radius: 10px;
+            transition: width 0.5s ease;
+        }
+
+        .dark-mode .progress-container {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .notification {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: var(--accent);
+            color: white;
+            padding: 1rem;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            transform: translateX(200%);
+            transition: transform 0.5s ease;
+            z-index: 100;
+        }
+
+        .notification.show {
+            transform: translateX(0);
+        }
+
+
+        @keyframes expand {
+            0%, 100% {
+                width: 60%;
+            }
+            50% {
+                width: 80%;
+            }
+        }
+
+        @keyframes float {
+            0% {
+                transform: translateY(0) rotate(0deg);
+            }
+            50% {
+                transform: translateY(-20vh) rotate(180deg);
+            }
+            100% {
+                transform: translateY(-40vh) rotate(360deg);
+                opacity: 0;
+            }
+        }
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 2rem;
+            }
+            p {
+                font-size: 1rem;
+            }
+            .countdown {
+                flex-wrap: wrap;
+            }
+            .countdown-item {
+                min-width: 70px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <button class="theme-toggle" id="themeToggle">🌙</button>
+    
+    <div class="particles" id="particles"></div>
+    
+    <div class="container">
+        
+        <h1>Site en maintenance</h1>
+        
+        <p>Nous travaillons actuellement à l'amélioration de notre plateforme pour vous offrir une meilleure expérience. Nous serons de retour très bientôt !</p>
+        
+        <div class="progress-container">
+            <div class="progress-bar" id="progressBar"></div>
+        </div>
+        
+        <p>Merci de votre patience et de votre compréhension.</p>
+    </div>
+    
+    <div class="notification" id="notification">
+        Nous avons fait des progrès ! Revenez bientôt.
+    </div>
+
+    <script>
+        // Création des particules
+        function createParticles() {
+            const particlesContainer = document.getElementById('particles');
+            const particleCount = 20;
+            
+            for (let i = 0; i < particleCount; i++) {
+                const particle = document.createElement('div');
+                particle.classList.add('particle');
+                
+                // Taille aléatoire
+                const size = Math.random() * 30 + 5;
+                particle.style.width = `${size}px`;
+                particle.style.height = `${size}px`;
+                
+                // Position aléatoire
+                particle.style.left = `${Math.random() * 100}%`;
+                particle.style.top = `${Math.random() * 100}%`;
+                
+                // Délai d'animation aléatoire
+                particle.style.animationDelay = `${Math.random() * 15}s`;
+                particle.style.animationDuration = `${Math.random() * 10 + 10}s`;
+                
+                particlesContainer.appendChild(particle);
+            }
+        }
+
+
+        // Barre de progression
+        function animateProgressBar() {
+            const progressBar = document.getElementById('progressBar');
+            let width = 0;
+            
+            const interval = setInterval(() => {
+                if (width >= 75) {
+                    clearInterval(interval);
+                    showNotification();
+                } else {
+                    width += 0.1;
+                    progressBar.style.width = `${width}%`;
+                }
+            }, 100);
+        }
+
+        // Notification
+        function showNotification() {
+            const notification = document.getElementById('notification');
+            notification.classList.add('show');
+            
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 5000);
+        }
+
+        // Basculement du thème
+        function setupThemeToggle() {
+            const themeToggle = document.getElementById('themeToggle');
+            const prefersDarkScheme = window.matchMedia('(prefers-color-scheme: dark)');
+            
+            // Vérifier les préférences de l'utilisateur
+            if (prefersDarkScheme.matches) {
+                document.body.classList.add('dark-mode');
+                themeToggle.innerText = '☀️';
+            }
+            
+            themeToggle.addEventListener('click', () => {
+                document.body.classList.toggle('dark-mode');
+                themeToggle.innerText = document.body.classList.contains('dark-mode') ? '☀️' : '🌙';
+            });
+        }
+
+
+        // Initialisation
+        document.addEventListener('DOMContentLoaded', () => {
+            createParticles();
+            animateProgressBar();
+            setupThemeToggle();
+            
+            // Afficher une notification aléatoire toutes les 30 secondes
+            setInterval(() => {
+                if (Math.random() > 0.5) {
+                    showNotification();
+                }
+            }, 30000);
+        });
+    </script>
+</body>
+</html>

@@ -4,7 +4,13 @@ import axios from "axios";
 import { useAuth } from "../../contexts/AuthContext";
 import Users from "./Users";
 import AdminManagement from "./AdminManagement";
-import { UserIcon, ShieldCheckIcon, UsersIcon, Cog6ToothIcon, ArrowLeftIcon } from "@heroicons/react/24/outline";
+import {
+  UserIcon,
+  ShieldCheckIcon,
+  UsersIcon,
+  Cog6ToothIcon,
+  ArrowLeftIcon,
+} from "@heroicons/react/24/outline";
 import { UserGroupIcon } from "@heroicons/react/24/solid";
 import {
   Tabs,
@@ -24,11 +30,11 @@ import "animate.css";
 // Composant personnalisé pour l'icône dans l'onglet
 const TabIcon = ({ icon: Icon, selected, isDarkMode }) => (
   <Icon
-    className={`h-5 w-5 mr-2 ${
+    className={`h-4 w-4 mr-2 ${
       selected
         ? isDarkMode
-          ? "text-primary-400"
-          : "text-primary-600"
+          ? "text-blue-400"
+          : "text-blue-600"
         : "text-gray-500 dark:text-gray-400"
     }`}
   />
@@ -127,7 +133,9 @@ const UsersManagement = () => {
       borderRadius: "0.75rem",
       padding: "0.5rem",
       marginBottom: "1.5rem",
-      border: isDarkMode ? "1px solid rgba(59, 130, 246, 0.1)" : "1px solid rgba(226, 232, 240, 1)",
+      border: isDarkMode
+        ? "1px solid rgba(59, 130, 246, 0.1)"
+        : "1px solid rgba(226, 232, 240, 1)",
     },
     indicator: {
       display: "flex",
@@ -135,13 +143,13 @@ const UsersManagement = () => {
       backgroundColor: "transparent",
     },
     selected: {
-      backgroundColor: isDarkMode 
-        ? "linear-gradient(145deg, #2563eb, #3b82f6)" 
+      backgroundColor: isDarkMode
+        ? "linear-gradient(145deg, #2563eb, #3b82f6)"
         : "linear-gradient(145deg, #ffffff, #f9fafb)",
       color: isDarkMode ? "#bfdbfe" : "#1d4ed8",
       borderRadius: "0.5rem",
-      boxShadow: isDarkMode 
-        ? "0 4px 12px rgba(37, 99, 235, 0.2)" 
+      boxShadow: isDarkMode
+        ? "0 4px 12px rgba(37, 99, 235, 0.2)"
         : "0 4px 12px rgba(0, 0, 0, 0.05)",
       fontWeight: 600,
     },
@@ -154,36 +162,22 @@ const UsersManagement = () => {
   if (loadingPermissions) {
     return (
       <div className="container mx-auto p-4">
-        <div className="mb-8 animate__animated animate__fadeIn animate__faster">
-          <h1 className="text-3xl font-bold mb-4 flex items-center">
-            <UserGroupIcon
-              className="mr-3 animate__animated animate__fadeIn animate__slower animate__infinite animate__pulse"
-              style={{
-                width: "36px",
-                height: "36px",
-                color: isDarkMode ? "#3b82f6" : "#1d4ed8",
-                filter: isDarkMode
-                  ? "drop-shadow(0 0 2px rgba(59, 130, 246, 0.5))"
-                  : "drop-shadow(0 0 2px rgba(29, 78, 216, 0.3))",
-              }}
-            />
-            <span className="text-gray-900 dark:text-white">
-              Gestion des utilisateurs et administrateurs
-            </span>
+        <div className="mb-6">
+          <h1 className="text-xl font-semibold mb-2 flex items-center text-gray-900 dark:text-white">
+            <UserGroupIcon className="h-6 w-6 mr-2 text-blue-600 dark:text-blue-400" />
+            Gestion des utilisateurs et administrateurs
           </h1>
+          <p className="text-sm text-gray-600 dark:text-gray-400">
+            Gérez les comptes utilisateurs et les permissions d'accès au système.
+          </p>
         </div>
-        
-        <Zoom in={true} timeout={500}>
-          <div className="flex flex-col justify-center items-center h-64 bg-white dark:bg-gray-800 rounded-xl shadow-lg p-8 border border-gray-200 dark:border-gray-700 transition-all duration-300 hover:shadow-xl">
-            <div className="relative">
-              <div className="animate-ping absolute inline-flex h-12 w-12 rounded-full bg-blue-400 opacity-75"></div>
-              <div className="animate-spin relative rounded-full h-12 w-12 border-2 border-t-blue-600 border-r-blue-500 border-b-blue-400 border-l-transparent shadow-lg"></div>
-            </div>
-            <p className="mt-6 text-gray-600 dark:text-gray-300 font-medium animate__animated animate__fadeIn animate__delay-1s">
-              Chargement des permissions...
-            </p>
-          </div>
-        </Zoom>
+
+        <div className="flex flex-col justify-center items-center h-48 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+          <CircularProgress size={32} sx={{ color: isDarkMode ? "#60a5fa" : "#2563eb" }} />
+          <p className="mt-4 text-sm text-gray-600 dark:text-gray-400">
+            Chargement des permissions...
+          </p>
+        </div>
       </div>
     );
   }
@@ -191,78 +185,59 @@ const UsersManagement = () => {
   if (availableTabs.length === 0) {
     return (
       <div className="container mx-auto p-4">
-        <div className="mb-8 animate__animated animate__fadeIn animate__faster">
-          <h1 className="text-3xl font-bold mb-4 flex items-center">
-            <UserGroupIcon
-              className="mr-3 animate__animated animate__fadeIn"
-              style={{
-                width: "36px",
-                height: "36px",
-                color: isDarkMode ? "#3b82f6" : "#1d4ed8",
-                filter: isDarkMode
-                  ? "drop-shadow(0 0 2px rgba(59, 130, 246, 0.5))"
-                  : "drop-shadow(0 0 2px rgba(29, 78, 216, 0.3))",
-              }}
-            />
-            <span className="text-gray-900 dark:text-white">
-              Gestion des utilisateurs et administrateurs
-            </span>
+        <div className="mb-6">
+          <h1 className="text-xl font-semibold mb-2 flex items-center text-gray-900 dark:text-white">
+            <UserGroupIcon className="h-6 w-6 mr-2 text-blue-600 dark:text-blue-400" />
+            Gestion des utilisateurs et administrateurs
           </h1>
+          <p className="text-sm text-gray-600 dark:text-gray-400">
+            Gérez les comptes utilisateurs et les permissions d'accès au système.
+          </p>
         </div>
-        
-        <Zoom in={true} timeout={400}>
-          <Paper
-            elevation={3}
-            className="p-8 text-center rounded-xl border border-red-100 dark:border-red-900/30 transition-all duration-300 hover:shadow-xl"
-            sx={{ 
-              bgcolor: isDarkMode ? "#1e293b" : "#ffffff",
-              boxShadow: isDarkMode ? '0 4px 12px rgba(239, 68, 68, 0.2)' : '0 4px 12px rgba(0, 0, 0, 0.05)',
-              transition: 'all 0.3s ease-in-out',
+
+        <Paper
+          elevation={0}
+          className="p-8 text-center rounded-lg border"
+          sx={{
+            bgcolor: isDarkMode ? "#1f2937" : "#ffffff",
+            borderColor: isDarkMode ? "rgba(239, 68, 68, 0.2)" : "rgba(239, 68, 68, 0.1)",
+          }}
+        >
+          <div className="mx-auto mb-4 h-16 w-16 rounded-full bg-red-100 dark:bg-red-900/20 flex items-center justify-center">
+            <UserIcon className="h-8 w-8 text-red-600 dark:text-red-400" />
+          </div>
+
+          <Typography
+            variant="h6"
+            sx={{
+              color: isDarkMode ? "#f3f4f6" : "#111827",
+              fontWeight: 600,
+              mb: 1,
             }}
           >
-            <div className="mx-auto mb-6 h-24 w-24 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center transition-all duration-300 hover:scale-105">
-              <UserIcon
-                className="h-14 w-14 text-red-600 dark:text-red-500 animate__animated animate__pulse animate__infinite animate__slow"
-                aria-hidden="true"
-              />
-            </div>
-            
-            <Typography
-              variant="h5"
-              sx={{ 
-                mt: 2, 
-                color: isDarkMode ? "#f3f4f6" : "#111827",
-                fontWeight: 600,
-              }}
-              className="animate__animated animate__fadeIn"
-            >
-              Accès non autorisé
-            </Typography>
-            
-            <Typography
-              variant="body1"
-              sx={{ 
-                mt: 2, 
-                color: isDarkMode ? "#9ca3af" : "#6b7280",
-                maxWidth: "500px",
-                margin: "0 auto",
-                transition: 'color 0.3s ease-in-out',
-              }}
-              className="animate__animated animate__fadeIn animate__delay-1s"
-            >
-              Vous n'avez pas les permissions nécessaires pour accéder à cette section. 
-              Veuillez contacter votre administrateur système si vous pensez que cela est une erreur.
-            </Typography>
-            
-            <button 
-              className="mt-6 px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-md hover:shadow-lg transition-all duration-300 animate__animated animate__fadeIn animate__delay-2s flex items-center justify-center mx-auto group"
-              onClick={() => window.history.back()}
-            >
-              <ArrowLeftIcon className="h-4 w-4 mr-2 group-hover:animate__animated group-hover:animate__fadeInLeft" />
-              Retour à la page précédente
-            </button>
-          </Paper>
-        </Zoom>
+            Accès non autorisé
+          </Typography>
+
+          <Typography
+            variant="body2"
+            sx={{
+              color: isDarkMode ? "#9ca3af" : "#6b7280",
+              maxWidth: "400px",
+              margin: "0 auto",
+              mb: 3,
+            }}
+          >
+            Vous n'avez pas les permissions nécessaires pour accéder à cette section.
+          </Typography>
+
+          <button
+            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded-lg transition-all duration-200 flex items-center justify-center mx-auto"
+            onClick={() => window.history.back()}
+          >
+            <ArrowLeftIcon className="h-4 w-4 mr-2" />
+            Retour
+          </button>
+        </Paper>
       </div>
     );
   }
@@ -271,127 +246,107 @@ const UsersManagement = () => {
 
   return (
     <div className="container mx-auto p-4">
-      {/* En-tête de la page avec animation améliorée */}
-      <div className="mb-8 animate__animated animate__fadeIn animate__faster">
-        <h1 className="text-3xl font-bold mb-4 flex items-center group">
+      {/* En-tête de la page */}
+      <div className="mb-6">
+        <h1 className="text-xl font-semibold mb-2 flex items-center text-gray-900 dark:text-white">
           <UserGroupIcon
-            className="mr-3 animate__animated animate__fadeIn group-hover:animate__pulse"
-            style={{
-              width: "36px",
-              height: "36px",
-              color: isDarkMode ? "#3b82f6" : "#1d4ed8",
-              filter: isDarkMode
-                ? "drop-shadow(0 0 2px rgba(59, 130, 246, 0.5))"
-                : "drop-shadow(0 0 2px rgba(29, 78, 216, 0.3))",
-              transition: "transform 0.3s ease-in-out, filter 0.3s ease-in-out",
-            }}
+            className="h-6 w-6 mr-2 text-blue-600 dark:text-blue-400"
           />
-          <span className="text-gray-900 dark:text-white transition-colors duration-300 ease-in-out">
-            Gestion des utilisateurs et administrateurs
-          </span>
+          Gestion des utilisateurs et administrateurs
         </h1>
-        <div className="flex justify-between items-center mb-4 animate__animated animate__fadeIn animate__delay-1s">
-          <p className="text-gray-600 dark:text-gray-300 text-lg pl-1 border-l-4 border-blue-500 dark:border-blue-600 ml-1 pl-3 transition-all duration-300 ease-in-out hover:border-blue-600 dark:hover:border-blue-500 hover:pl-4">
-            Gérez les comptes utilisateurs et les permissions d'accès au système.
-          </p>
-        </div>
+        <p className="text-sm text-gray-600 dark:text-gray-400">
+          Gérez les comptes utilisateurs et les permissions d'accès au système.
+        </p>
       </div>
-      
+
       <Box sx={{ width: "100%" }}>
-        <Grow in={true} timeout={300}>
-          <Paper
-            elevation={3}
-            sx={{
-              bgcolor: tabStyles.root.backgroundColor,
-              borderRadius: tabStyles.root.borderRadius,
-              padding: tabStyles.root.padding,
-              marginBottom: tabStyles.root.marginBottom,
-              boxShadow: isDarkMode ? '0 4px 12px rgba(0, 0, 0, 0.3)' : '0 4px 12px rgba(0, 0, 0, 0.1)',
-              overflow: 'hidden',
-              transition: 'all 0.3s ease-in-out',
-              '&:hover': {
-                boxShadow: isDarkMode ? '0 6px 16px rgba(0, 0, 0, 0.4)' : '0 6px 16px rgba(0, 0, 0, 0.15)',
-                transform: 'translateY(-2px)'
-              }
-            }}
-          >
-          <Tabs
-            value={selectedTab}
-            onChange={(e, newValue) => setSelectedTab(newValue)}
-            variant="fullWidth"
-            sx={{
-              "& .MuiTabs-indicator": {
-                display: tabStyles.indicator.display,
-              },
-              minHeight: "48px",
-            }}
-          >
-            {availableTabs.map((tab, index) => (
-              <Tab
-                key={index}
-                label={
-                  <Box
-                    sx={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                    }}
-                    className="transition-all duration-300 ease-in-out"
-                  >
-                    <TabIcon
-                      icon={tab.icon}
-                      selected={selectedTab === index}
-                      isDarkMode={isDarkMode}
-                    />
-                    <span className="transition-all duration-300 ease-in-out">{tab.name}</span>
-                  </Box>
-                }
-                sx={{
-                  textTransform: "none",
-                  fontWeight: 500,
-                  fontSize: "0.875rem",
-                  minHeight: "40px",
-                  borderRadius: "0.375rem",
-                  transition: "all 0.3s ease-in-out",
-                  "&.Mui-selected": {
-                    backgroundColor: tabStyles.selected.backgroundColor,
-                    color: tabStyles.selected.color,
-                    borderRadius: tabStyles.selected.borderRadius,
-                    boxShadow: tabStyles.selected.boxShadow,
-                    transform: "translateY(-1px)",
-                  },
-                  "&:not(.Mui-selected)": {
-                    color: tabStyles.notSelected.color,
-                    "&:hover": {
+        <Paper
+          elevation={0}
+          sx={{
+            bgcolor: tabStyles.root.backgroundColor,
+            borderRadius: "0.5rem",
+            padding: "0.25rem",
+            marginBottom: "1rem",
+            border: isDarkMode
+              ? "1px solid rgba(55, 65, 81, 0.5)"
+              : "1px solid rgba(229, 231, 235, 1)",
+            overflow: "hidden",
+          }}
+        >
+            <Tabs
+              value={selectedTab}
+              onChange={(e, newValue) => setSelectedTab(newValue)}
+              variant="fullWidth"
+              sx={{
+                "& .MuiTabs-indicator": {
+                  display: "none",
+                },
+                minHeight: "40px",
+              }}
+            >
+              {availableTabs.map((tab, index) => (
+                <Tab
+                  key={index}
+                  label={
+                    <Box
+                      sx={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                      }}
+                      className="transition-all duration-300 ease-in-out"
+                    >
+                      <TabIcon
+                        icon={tab.icon}
+                        selected={selectedTab === index}
+                        isDarkMode={isDarkMode}
+                      />
+                      <span className="transition-all duration-300 ease-in-out">
+                        {tab.name}
+                      </span>
+                    </Box>
+                  }
+                  sx={{
+                    textTransform: "none",
+                    fontWeight: 500,
+                    fontSize: "0.875rem",
+                    minHeight: "36px",
+                    borderRadius: "0.375rem",
+                    transition: "all 0.2s ease-in-out",
+                    "&.Mui-selected": {
                       backgroundColor: isDarkMode
-                        ? "rgba(55, 65, 81, 0.5)"
-                        : "rgba(255, 255, 255, 0.8)",
-                      color: isDarkMode ? "#e5e7eb" : "#1f2937",
-                      transform: "translateY(-1px)",
+                        ? "rgba(59, 130, 246, 0.15)"
+                        : "rgba(59, 130, 246, 0.1)",
+                      color: isDarkMode ? "#60a5fa" : "#2563eb",
+                      borderRadius: "0.375rem",
                     },
-                  },
-                }}
-              />
-            ))}
-          </Tabs>
+                    "&:not(.Mui-selected)": {
+                      color: isDarkMode ? "#9ca3af" : "#6b7280",
+                      "&:hover": {
+                        backgroundColor: isDarkMode
+                          ? "rgba(55, 65, 81, 0.3)"
+                          : "rgba(243, 244, 246, 0.8)",
+                        color: isDarkMode ? "#d1d5db" : "#374151",
+                      },
+                    },
+                  }}
+                />
+              ))}
+            </Tabs>
           </Paper>
-        </Grow>
 
         <Box
           sx={{
             mt: 2,
             bgcolor: isDarkMode ? "#1f2937" : "#ffffff",
             borderRadius: "0.5rem",
-            p: 1,
-            transition: 'all 0.3s ease-in-out',
-            boxShadow: isDarkMode ? '0 2px 8px rgba(0, 0, 0, 0.25)' : '0 2px 8px rgba(0, 0, 0, 0.05)',
+            p: 0,
           }}
-          className="animate__animated animate__fadeIn animate__faster"
         >
           {availableTabs.map((tab, index) => (
-            <Fade 
-              key={index} 
-              in={selectedTab === index} 
+            <Fade
+              key={index}
+              in={selectedTab === index}
               timeout={300}
               style={{ display: selectedTab === index ? "block" : "none" }}
             >

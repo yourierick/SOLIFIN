@@ -212,12 +212,6 @@ export const AuthProvider = ({ children }) => {
         if (inactivityCheckIntervalRef.current) {
           clearInterval(inactivityCheckIntervalRef.current);
         }
-
-        // Afficher un message à l'utilisateur
-        showToast(
-          "Votre session a expiré. Veuillez vous reconnecter.",
-          "error"
-        );
       }
     };
 

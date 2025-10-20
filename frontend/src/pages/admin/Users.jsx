@@ -332,53 +332,39 @@ const Users = () => {
 
   return (
     <div className="p-6 bg-gray-50 dark:bg-gray-900 min-h-screen">
-      <div className="mb-8 max-w-4xl animate__animated animate__fadeIn animate__faster">
-        <h1 className="text-3xl font-bold mb-4 flex items-center">
-          <PersonIcon
-            className="mr-3 animate__animated animate__fadeIn"
-            sx={{
-              fontSize: 36,
-              color: isDarkMode ? "#3b82f6" : "#1d4ed8",
-              filter: isDarkMode
-                ? "drop-shadow(0 0 2px rgba(59, 130, 246, 0.5))"
-                : "drop-shadow(0 0 2px rgba(29, 78, 216, 0.3))",
-            }}
-          />
-          <span>Gestion des utilisateurs</span>
-        </h1>
-        <div className="flex justify-between items-center mb-4">
-          <p className="text-gray-600 dark:text-gray-300 text-lg pl-1 border-l-4 border-blue-500 dark:border-blue-600 ml-1 pl-3">
-            Gérez les utilisateurs, consultez leurs informations et modifiez
-            leurs statuts.
-          </p>
+      <div className="mb-6 max-w-4xl">
+        <div className="flex justify-between items-center mb-2">
+          <h1 className="text-xl font-semibold flex items-center text-gray-900 dark:text-white">
+            <PersonIcon
+              sx={{
+                fontSize: 24,
+                color: isDarkMode ? "#60a5fa" : "#2563eb",
+                marginRight: 1,
+              }}
+            />
+            Gestion des utilisateurs
+          </h1>
           <Button
             variant="outlined"
             color="primary"
             size="small"
             startIcon={
-              showFilters ? (
-                <FilterListOffIcon className="animate__animated animate__flipInY" />
-              ) : (
-                <FilterListIcon className="animate__animated animate__flipInY" />
-              )
+              showFilters ? <FilterListOffIcon /> : <FilterListIcon />
             }
             onClick={() => setShowFilters(!showFilters)}
-            className="transition-all duration-300 ease-in-out hover:shadow-md"
             sx={{
-              borderRadius: "12px",
-              borderWidth: "1.5px",
+              borderRadius: "8px",
               fontWeight: 500,
               textTransform: "none",
-              "&:hover": {
-                borderWidth: "1.5px",
-                transform: "translateY(-1px)",
-                boxShadow: isDarkMode
-                  ? "0 4px 8px rgba(59, 130, 246, 0.3)"
-                  : "0 4px 8px rgba(29, 78, 216, 0.2)",
-              },
+              fontSize: "0.875rem",
             }}
-          ></Button>
+          >
+            {showFilters ? "Masquer" : "Filtres"}
+          </Button>
         </div>
+        <p className="text-sm text-gray-600 dark:text-gray-400">
+          Gérez les utilisateurs, consultez leurs informations et modifiez leurs statuts.
+        </p>
       </div>
       {error && (
         <div className="mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded">
@@ -487,6 +473,7 @@ const Users = () => {
                       <MenuItem value="">Tous</MenuItem>
                       <MenuItem value="active">Actif</MenuItem>
                       <MenuItem value="inactive">Inactif</MenuItem>
+                      <MenuItem value="trial">En essai</MenuItem>
                     </Select>
                   </FormControl>
                   <FormControl size="small" className="w-full sm:w-44">
@@ -717,7 +704,7 @@ const Users = () => {
                 }}
                 className="mt-4"
               >
-                Réinitialiser les filtres
+                {showFilters ? "Masquer" : "Filtres"}
               </Button>
             </div>
           </div>
@@ -823,10 +810,20 @@ const Users = () => {
                             className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium transition-all duration-300 ease-in-out ${
                               user.status === "active"
                                 ? "bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 border border-green-200 dark:border-green-800 shadow-sm hover:shadow-md hover:bg-green-200 dark:hover:bg-green-800"
-                                : "bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200 border border-red-200 dark:border-red-800 shadow-sm hover:shadow-md hover:bg-red-200 dark:hover:bg-red-800"
+                                : user.status === "inactive"
+                                ? "bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200 border border-red-200 dark:border-red-800 shadow-sm hover:shadow-md hover:bg-red-200 dark:hover:bg-red-800"
+                                : user.status === "trial"
+                                ? "bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200 border border-yellow-200 dark:border-yellow-800 shadow-sm hover:shadow-md hover:bg-yellow-200 dark:hover:bg-yellow-800"
+                                : "bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-300 border border-gray-200 dark:border-gray-800 shadow-sm hover:shadow-md hover:bg-gray-200 dark:hover:bg-gray-800"
                             }`}
                           >
-                            {user.status === "active" ? "Actif" : "Inactif"}
+                            {user.status === "active"
+                              ? "Actif"
+                              : user.status === "inactive"
+                              ? "Inactif"
+                              : user.status === "trial"
+                              ? "En essai"
+                              : ""}
                           </span>
                         </td>
                         <td className="px-5 py-4 whitespace-nowrap text-sm font-medium">

@@ -62,13 +62,16 @@ const LoginForm = () => {
 
         // Stocker les informations de période d'essai dans localStorage pour le Dashboard
         if (result.trial && result.trial.isTrialUser) {
-          localStorage.setItem('trialInfo', JSON.stringify({
-            isTrialUser: result.trial.isTrialUser,
-            daysRemaining: result.trial.daysRemaining,
-            message: result.trial.message
-          }));
+          localStorage.setItem(
+            "trialInfo",
+            JSON.stringify({
+              isTrialUser: result.trial.isTrialUser,
+              daysRemaining: result.trial.daysRemaining,
+              message: result.trial.message,
+            })
+          );
         } else {
-          localStorage.removeItem('trialInfo');
+          localStorage.removeItem("trialInfo");
         }
       } else {
         Notification.error(result.message);
@@ -96,7 +99,7 @@ const LoginForm = () => {
     <div className="w-full max-w-md mx-auto">
       <form
         onSubmit={handleSubmit(onSubmit)}
-        className="bg-white dark:bg-gray-800 rounded-lg shadow-md px-8 pt-6 pb-8 mb-4"
+        className="bg-white dark:bg-gray-800 rounded-lg shadow-md px-4 pt-6 pb-8 mb-4"
       >
         <div className="rounded-md shadow-sm -space-y-px">
           <div>
@@ -193,14 +196,26 @@ const LoginForm = () => {
               {...register("rememberMe")}
               type="checkbox"
               onChange={handleRememberMeChange}
-              className={`h-4 w-4 ${isDarkMode ? "text-primary-600 bg-gray-700 border-gray-600" : "text-primary-600 bg-white border-gray-300"}`}
+              className={`h-4 w-4 ${
+                isDarkMode
+                  ? "text-primary-600 bg-gray-700 border-gray-600"
+                  : "text-primary-600 bg-white border-gray-300"
+              }`}
             />
-            <label htmlFor="rememberMe" className={`ml-2 block text-sm ${isDarkMode ? "text-gray-300" : "text-gray-900"}`}>
+            <label
+              htmlFor="rememberMe"
+              className={`ml-2 block text-sm ${
+                isDarkMode ? "text-gray-300" : "text-gray-900"
+              }`}
+            >
               Se souvenir de moi
             </label>
           </div>
           <div className="text-sm">
-            <Link to="/forgot-password" className="font-medium text-primary-600 hover:text-primary-500">
+            <Link
+              to="/forgot-password"
+              className="font-medium text-primary-600 hover:text-primary-500"
+            >
               Mot de passe oublié ?
             </Link>
           </div>

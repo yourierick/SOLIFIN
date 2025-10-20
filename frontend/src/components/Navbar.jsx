@@ -134,15 +134,15 @@ export default function Navbar() {
           : "bg-transparent"
       }`}
     >
-      <div className="px-4 mx-auto max-w-7xl sm:px-6 lg:px-8">
-        <div className="flex justify-between h-16">
+      <div className="px-4 py-1 mx-auto max-w-7xl sm:px-6 sm:py-2 lg:px-8">
+        <div className="flex justify-between h-16 sm:h-20 py-2">
           <div className="flex items-center">
             <RouterLink to="/">
               <motion.div
                 whileHover={{ scale: 1.05 }}
                 className="flex items-center"
               >
-                <img className="w-auto h-10 sm:h-12" src={logo} alt="Logo" />
+                <img className="w-auto h-14 sm:h-16 md:h-[4.5rem] lg:h-20" src={logo} alt="Logo" />
               </motion.div>
             </RouterLink>
           </div>
@@ -278,7 +278,7 @@ export default function Navbar() {
           <div className="flex items-center lg:hidden">
             <button
               onClick={() => setIsOpen(!isOpen)}
-              className={`inline-flex items-center justify-center p-2 rounded-md ${
+              className={`inline-flex items-center justify-center p-2 my-auto rounded-md ${
                 isDarkMode
                   ? "text-gray-200 hover:text-white hover:bg-gray-800"
                   : "text-gray-900 hover:text-gray-700 hover:bg-gray-100"
@@ -286,9 +286,9 @@ export default function Navbar() {
             >
               <span className="sr-only">Open main menu</span>
               {isOpen ? (
-                <XMarkIcon className="block h-6 w-6" />
+                <XMarkIcon className="block h-7 w-7" />
               ) : (
-                <Bars3Icon className="block h-6 w-6" />
+                <Bars3Icon className="block h-7 w-7" />
               )}
             </button>
           </div>
