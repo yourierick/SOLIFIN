@@ -436,15 +436,15 @@ const Finances = () => {
   };
 
   return (
-    <Box sx={{ p: 3 }}>
-      <Typography variant="h4" gutterBottom>
-        Gestion des Finances
+    <Box sx={{ p: { xs: 2, sm: 3 } }}>
+      <Typography variant="h4" gutterBottom sx={{ fontSize: { xs: '1.5rem', sm: '2.125rem' } }}>
+        <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>Gestion des </Box>Finances
       </Typography>
-      <Typography variant="subtitle1" color="text.secondary" paragraph>
+      <Typography variant="subtitle1" color="text.secondary" paragraph sx={{ fontSize: { xs: '0.875rem', sm: '1rem' }, display: { xs: 'none', sm: 'block' } }}>
         Consultez et analysez les transactions financières du système
       </Typography>
       {/* Cartes de résumé financier */}
-      <Grid container spacing={3} sx={{ mb: 4 }}>
+      <Grid container spacing={{ xs: 2, sm: 3 }} sx={{ mb: { xs: 3, sm: 4 } }}>
         {/* Carte 1: Solde actuel */}
         <Grid item xs={12} sm={6} md={3}>
           <Card
@@ -483,7 +483,7 @@ const Finances = () => {
                 opacity: 0.1,
               }}
             />
-            <CardContent sx={{ position: "relative", p: 3 }}>
+            <CardContent sx={{ position: "relative", p: { xs: 2, sm: 3 } }}>
               <Box
                 sx={{
                   display: "flex",
@@ -495,7 +495,7 @@ const Finances = () => {
                 <Typography
                   variant="subtitle1"
                   color="primary"
-                  sx={{ fontWeight: 600, fontSize: "0.9rem" }}
+                  sx={{ fontWeight: 600, fontSize: { xs: "0.75rem", sm: "0.9rem" } }}
                 >
                   Solde actuel
                 </Typography>
@@ -506,19 +506,19 @@ const Finances = () => {
                     justifyContent: "center",
                     bgcolor: "primary.main",
                     color: "white",
-                    width: 36,
-                    height: 36,
+                    width: { xs: 32, sm: 36 },
+                    height: { xs: 32, sm: 36 },
                     borderRadius: "50%",
                   }}
                 >
-                  <AccountBalanceIcon sx={{ fontSize: "1.2rem" }} />
+                  <AccountBalanceIcon sx={{ fontSize: { xs: "1rem", sm: "1.2rem" } }} />
                 </Box>
               </Box>
               <Typography
                 variant="h5"
                 component="div"
                 sx={{
-                  fontSize: "1.4rem",
+                  fontSize: { xs: "1.1rem", sm: "1.4rem" },
                   fontWeight: 700,
                   color: isDarkMode ? "#fff" : "text.primary",
                 }}
@@ -570,7 +570,7 @@ const Finances = () => {
                 opacity: 0.1,
               }}
             />
-            <CardContent sx={{ position: "relative", p: 3 }}>
+            <CardContent sx={{ position: "relative", p: { xs: 2, sm: 3 } }}>
               <Box
                 sx={{
                   display: "flex",
@@ -605,7 +605,7 @@ const Finances = () => {
                 variant="h5"
                 component="div"
                 sx={{
-                  fontSize: "1.4rem",
+                  fontSize: { xs: "1.1rem", sm: "1.4rem" },
                   fontWeight: 700,
                   color: isDarkMode ? "#fff" : "text.primary",
                 }}
@@ -655,7 +655,7 @@ const Finances = () => {
                 opacity: 0.1,
               }}
             />
-            <CardContent sx={{ position: "relative", p: 3 }}>
+            <CardContent sx={{ position: "relative", p: { xs: 2, sm: 3 } }}>
               <Box
                 sx={{
                   display: "flex",
@@ -690,7 +690,7 @@ const Finances = () => {
                 variant="h5"
                 component="div"
                 sx={{
-                  fontSize: "1.4rem",
+                  fontSize: { xs: "1.1rem", sm: "1.4rem" },
                   fontWeight: 700,
                   color: isDarkMode ? "#fff" : "text.primary",
                 }}
@@ -740,7 +740,7 @@ const Finances = () => {
                 opacity: 0.1,
               }}
             />
-            <CardContent sx={{ position: "relative", p: 3 }}>
+            <CardContent sx={{ position: "relative", p: { xs: 2, sm: 3 } }}>
               <Box
                 sx={{
                   display: "flex",
@@ -775,7 +775,7 @@ const Finances = () => {
                 variant="h5"
                 component="div"
                 sx={{
-                  fontSize: "1.4rem",
+                  fontSize: { xs: "1.1rem", sm: "1.4rem" },
                   fontWeight: 700,
                   color: isDarkMode ? "#fff" : "text.primary",
                 }}
@@ -796,7 +796,7 @@ const Finances = () => {
         elevation={isDarkMode ? 2 : 3}
         sx={{
           p: 0,
-          mb: 3,
+          mb: { xs: 2, sm: 3 },
           bgcolor: isDarkMode ? "#1f2937" : "#fff",
           borderRadius: 2,
           overflow: "hidden",
@@ -826,17 +826,18 @@ const Finances = () => {
               : "rgba(0, 0, 0, 0.08)",
             bgcolor: isDarkMode ? "#111827" : "#f8fafc",
             "& .MuiTabs-flexContainer": {
-              gap: 1,
-              px: 1,
-              pt: 1,
+              gap: { xs: 0.5, sm: 1 },
+              px: { xs: 0.5, sm: 1 },
+              pt: { xs: 0.5, sm: 1 },
             },
             "& .MuiTab-root": {
-              minHeight: 48,
+              minHeight: { xs: 44, sm: 48 },
               transition: "all 0.2s ease",
               borderRadius: "8px 8px 0 0",
               fontWeight: 500,
               textTransform: "none",
-              fontSize: "0.95rem",
+              fontSize: { xs: "0.75rem", sm: "0.95rem" },
+              px: { xs: 1, sm: 2 },
               "&:hover": {
                 backgroundColor: isDarkMode
                   ? "rgba(59, 130, 246, 0.1)"
@@ -946,9 +947,9 @@ const Finances = () => {
 
         {/* Contenu de l'onglet actif */}
         {activeTab === 0 && (
-          <Box sx={{ p: 2 }}>
+          <Box sx={{ p: { xs: 1.5, sm: 2 } }}>
             {loading ? (
-              <Box sx={{ display: "flex", justifyContent: "center", p: 4 }}>
+              <Box sx={{ display: "flex", justifyContent: "center", p: { xs: 3, sm: 4 } }}>
                 <CircularProgress />
               </Box>
             ) : error ? (
@@ -964,8 +965,8 @@ const Finances = () => {
                 {/* Filtres */}
                 <Paper
                   sx={{
-                    p: 2,
-                    mb: 3,
+                    p: { xs: 1.5, sm: 2 },
+                    mb: { xs: 2, sm: 3 },
                     bgcolor: isDarkMode ? "#111827" : "#fff",
                     borderRadius: 2,
                   }}
@@ -978,7 +979,7 @@ const Finances = () => {
                       mb: 2,
                     }}
                   >
-                    <Typography variant="h6">Filtres</Typography>
+                    <Typography variant="h6" sx={{ fontSize: { xs: '1rem', sm: '1.25rem' } }}>Filtres</Typography>
                     <Box>
                       <IconButton
                         onClick={() => setShowFilters(!showFilters)}

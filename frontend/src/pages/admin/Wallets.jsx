@@ -536,103 +536,127 @@ export default function Wallets() {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-4 sm:space-y-8 p-3 sm:p-6">
       {/* En-tête */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        className="sm:flex sm:items-center sm:justify-between"
+        className="flex items-center justify-between"
       >
-        <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">
-          Gestion des portefeuilles
-        </h1>
+        <div className="flex items-center gap-3">
+          <div className="p-2 sm:p-3 rounded-xl bg-gradient-to-br from-primary-500 to-primary-600 shadow-lg">
+            <WalletIcon className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
+          </div>
+          <div>
+            <h1 className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-white">
+              <span className="hidden sm:inline">Gestion des portefeuilles</span>
+              <span className="sm:hidden">Portefeuilles</span>
+            </h1>
+            <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 hidden sm:block">
+              Gérez vos transactions et retraits
+            </p>
+          </div>
+        </div>
         <motion.button
-          whileHover={{ scale: 1.1 }}
-          whileTap={{ scale: 0.9 }}
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
           onClick={handleRefresh}
-          className={`p-2 rounded-md ${
-            isDarkMode ? "hover:bg-gray-700" : "hover:bg-gray-100"
+          className={`p-2 sm:p-2.5 rounded-lg shadow-md transition-all duration-200 ${
+            isDarkMode ? "bg-gray-800 hover:bg-gray-700" : "bg-white hover:bg-gray-50"
           }`}
         >
           <ArrowPathIcon
-            className={`h-5 w-5 ${loading ? "animate-spin" : ""}`}
+            className={`h-4 w-4 sm:h-5 sm:w-5 ${loading ? "animate-spin" : ""} ${isDarkMode ? "text-gray-300" : "text-gray-600"}`}
           />
         </motion.button>
       </motion.div>
 
       {/* Portefeuilles */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
         {/* Portefeuille Admin */}
         {adminWallet && (
           <motion.div
             initial={{ opacity: 0, x: -50 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.5 }}
-            className={`p-6 rounded-lg shadow-lg ${
-              isDarkMode ? "bg-gray-800" : "bg-white"
-            }`}
+            className={`relative overflow-hidden rounded-2xl shadow-xl ${
+              isDarkMode ? "bg-gradient-to-br from-gray-800 to-gray-900" : "bg-gradient-to-br from-white to-gray-50"
+            } border ${isDarkMode ? "border-gray-700" : "border-gray-200"}`}
           >
-            <div className="items-start justify-between">
-              <div className="flex items-center gap-4">
-                <div className="p-3 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600">
-                  <WalletIcon className="h-6 w-6 text-white" />
-                </div>
-                <div>
-                  <h3
-                    className={`font-medium ${
-                      isDarkMode ? "text-white" : "text-gray-900"
-                    }`}
-                  >
-                    Mon portefeuille
-                  </h3>
-                  <p
-                    className={`text-2xl font-bold mt-1 ${
-                      isDarkMode ? "text-white" : "text-gray-900"
-                    }`}
-                  >
-                    {adminWallet.balance} $
-                  </p>
-                  <div className="mt-2 space-y-1">
-                    <p
-                      className={`text-sm ${
-                        isDarkMode ? "text-gray-400" : "text-gray-500"
-                      }`}
-                    >
-                      Total gagné: {adminWallet.total_earned} $
-                    </p>
-                    <p
-                      className={`text-sm ${
-                        isDarkMode ? "text-gray-400" : "text-gray-500"
-                      }`}
-                    >
-                      Total retiré: {adminWallet.total_withdrawn} $
+            {/* Badge décoratif */}
+            <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-blue-500/10 to-blue-600/10 rounded-full -mr-16 -mt-16"></div>
+            
+            <div className="p-4 sm:p-6 relative z-10">
+              <div className="flex items-start justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-2.5 sm:p-3 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 shadow-lg">
+                    <CurrencyDollarIcon className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
+                  </div>
+                  <div>
+                    <h3 className={`text-sm sm:text-base font-semibold ${
+                      isDarkMode ? "text-gray-300" : "text-gray-600"
+                    }`}>
+                      Mon portefeuille
+                    </h3>
+                    <p className={`text-2xl sm:text-3xl font-bold mt-1 bg-gradient-to-r from-blue-600 to-blue-500 bg-clip-text text-transparent`}>
+                      {adminWallet.balance} $
                     </p>
                   </div>
                 </div>
               </div>
-              <div className="mt-8 space-y-2">
+              
+              <div className="grid grid-cols-2 gap-3 sm:gap-4 mb-4 sm:mb-6">
+                <div className={`p-3 rounded-xl ${
+                  isDarkMode ? "bg-gray-700/50" : "bg-blue-50"
+                }`}>
+                  <p className={`text-xs font-medium ${
+                    isDarkMode ? "text-gray-400" : "text-gray-500"
+                  }`}>
+                    Total gagné
+                  </p>
+                  <p className={`text-base sm:text-lg font-bold mt-1 ${
+                    isDarkMode ? "text-green-400" : "text-green-600"
+                  }`}>
+                    {adminWallet.total_earned} $
+                  </p>
+                </div>
+                <div className={`p-3 rounded-xl ${
+                  isDarkMode ? "bg-gray-700/50" : "bg-blue-50"
+                }`}>
+                  <p className={`text-xs font-medium ${
+                    isDarkMode ? "text-gray-400" : "text-gray-500"
+                  }`}>
+                    Total retiré
+                  </p>
+                  <p className={`text-base sm:text-lg font-bold mt-1 ${
+                    isDarkMode ? "text-red-400" : "text-red-600"
+                  }`}>
+                    {adminWallet.total_withdrawn} $
+                  </p>
+                </div>
+              </div>
+              
+              <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
                 <button
                   onClick={() => handleWithdrawalClick(adminWallet.id, "admin")}
-                  className={`inline-flex items-center mr-2 px-3 py-2 border text-sm leading-4 font-medium rounded-md ${
-                    isDarkMode
-                      ? "border-gray-600 text-gray-300 hover:bg-gray-700"
-                      : "border-gray-300 text-gray-700 hover:bg-gray-100"
-                  }`}
+                  className="flex-1 inline-flex items-center justify-center px-4 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white text-sm font-medium rounded-lg shadow-md hover:shadow-lg transition-all duration-200"
                 >
-                  <BanknotesIcon className="h-5 w-5 mr-2" />
-                  Faire un retrait
+                  <BanknotesIcon className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
+                  <span className="hidden sm:inline">Faire un retrait</span>
+                  <span className="sm:hidden">Retrait</span>
                 </button>
                 <button
                   onClick={() => setShowTransferModal(true)}
-                  className={`inline-flex items-center px-3 py-2 border text-sm leading-4 font-medium rounded-md ${
+                  className={`flex-1 inline-flex items-center justify-center px-4 py-2.5 text-sm font-medium rounded-lg shadow-md hover:shadow-lg transition-all duration-200 ${
                     isDarkMode
-                      ? "border-gray-600 text-gray-300 hover:bg-gray-700"
-                      : "border-gray-300 text-gray-700 hover:bg-gray-100"
+                      ? "bg-gray-700 hover:bg-gray-600 text-gray-200"
+                      : "bg-white hover:bg-gray-50 text-gray-700 border border-gray-300"
                   }`}
                 >
-                  <FaExchangeAlt className="h-5 w-5 mr-2" />
-                  Transférer des fonds
+                  <FaExchangeAlt className="h-4 w-4 mr-2" />
+                  <span className="hidden sm:inline">Transférer</span>
+                  <span className="sm:hidden">Transférer</span>
                 </button>
               </div>
             </div>
@@ -645,46 +669,60 @@ export default function Wallets() {
             initial={{ opacity: 0, x: 50 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.3, delay: 0.2 }}
-            className={`p-6 rounded-lg shadow-lg ${
-              isDarkMode ? "bg-gray-800" : "bg-white"
-            }`}
+            className={`relative overflow-hidden rounded-2xl shadow-xl ${
+              isDarkMode ? "bg-gradient-to-br from-gray-800 to-gray-900" : "bg-gradient-to-br from-white to-gray-50"
+            } border ${isDarkMode ? "border-gray-700" : "border-gray-200"}`}
           >
-            <div className="flex items-start justify-between">
-              <div className="flex items-center gap-4">
-                <div className="p-3 rounded-lg bg-gradient-to-br from-green-500 to-green-600">
-                  <WalletIcon className="h-6 w-6 text-white" />
-                </div>
-                <div>
-                  <h3
-                    className={`font-medium ${
-                      isDarkMode ? "text-white" : "text-gray-900"
-                    }`}
-                  >
-                    Portefeuille Système
-                  </h3>
-                  <p
-                    className={`text-2xl font-bold mt-1 ${
-                      isDarkMode ? "text-white" : "text-gray-900"
-                    }`}
-                  >
-                    {systemWallet.balance} $
-                  </p>
-                  <div className="mt-2 space-y-1">
-                    <p
-                      className={`text-sm ${
-                        isDarkMode ? "text-gray-400" : "text-gray-500"
-                      }`}
-                    >
-                      Total entré: {systemWallet.total_in} $
-                    </p>
-                    <p
-                      className={`text-sm ${
-                        isDarkMode ? "text-gray-400" : "text-gray-500"
-                      }`}
-                    >
-                      Total retiré: {systemWallet.total_out} $
+            {/* Badge décoratif */}
+            <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-green-500/10 to-green-600/10 rounded-full -mr-16 -mt-16"></div>
+            
+            <div className="p-4 sm:p-6 relative z-10">
+              <div className="flex items-start justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-2.5 sm:p-3 rounded-xl bg-gradient-to-br from-green-500 to-green-600 shadow-lg">
+                    <CircleStackIcon className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
+                  </div>
+                  <div>
+                    <h3 className={`text-sm sm:text-base font-semibold ${
+                      isDarkMode ? "text-gray-300" : "text-gray-600"
+                    }`}>
+                      Portefeuille Système
+                    </h3>
+                    <p className={`text-2xl sm:text-3xl font-bold mt-1 bg-gradient-to-r from-green-600 to-green-500 bg-clip-text text-transparent`}>
+                      {systemWallet.balance} $
                     </p>
                   </div>
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-3 sm:gap-4">
+                <div className={`p-3 rounded-xl ${
+                  isDarkMode ? "bg-gray-700/50" : "bg-green-50"
+                }`}>
+                  <p className={`text-xs font-medium ${
+                    isDarkMode ? "text-gray-400" : "text-gray-500"
+                  }`}>
+                    Total entré
+                  </p>
+                  <p className={`text-base sm:text-lg font-bold mt-1 ${
+                    isDarkMode ? "text-green-400" : "text-green-600"
+                  }`}>
+                    {systemWallet.total_in} $
+                  </p>
+                </div>
+                <div className={`p-3 rounded-xl ${
+                  isDarkMode ? "bg-gray-700/50" : "bg-green-50"
+                }`}>
+                  <p className={`text-xs font-medium ${
+                    isDarkMode ? "text-gray-400" : "text-gray-500"
+                  }`}>
+                    Total sorti
+                  </p>
+                  <p className={`text-base sm:text-lg font-bold mt-1 ${
+                    isDarkMode ? "text-orange-400" : "text-orange-600"
+                  }`}>
+                    {systemWallet.total_out} $
+                  </p>
                 </div>
               </div>
             </div>
@@ -694,24 +732,29 @@ export default function Wallets() {
 
       {/* Historique des transactions */}
       <div
-        className={`rounded-lg shadow-lg overflow-hidden ${
-          isDarkMode ? "bg-gray-800" : "bg-white"
+        className={`rounded-2xl shadow-xl overflow-hidden border ${
+          isDarkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"
         }`}
       >
-        <div className="p-6">
-          <h2
-            className={`text-xl font-semibold mb-4 ${
-              isDarkMode ? "text-white" : "text-gray-900"
-            }`}
-          >
-            Historique des transactions
-          </h2>
+        <div className="p-4 sm:p-6">
+          <div className="flex items-center gap-3 mb-4 sm:mb-6">
+            <div className="p-2 rounded-lg bg-gradient-to-br from-purple-500 to-purple-600">
+              <DocumentArrowDownIcon className="h-5 w-5 text-white" />
+            </div>
+            <h2
+              className={`text-lg sm:text-xl font-bold ${
+                isDarkMode ? "text-white" : "text-gray-900"
+              }`}
+            >
+              Historique des transactions
+            </h2>
+          </div>
 
           {/* Navigation entre les onglets */}
           <div className="flex border-b border-gray-200 dark:border-gray-700 mb-4">
             <button
               onClick={() => setActiveTab("system")}
-              className={`py-2 px-4 text-sm font-medium ${
+              className={`flex-1 sm:flex-none py-2.5 px-3 sm:px-4 text-xs sm:text-sm font-medium transition-all duration-200 ${
                 activeTab === "system"
                   ? `border-b-2 border-blue-500 ${
                       isDarkMode ? "text-blue-400" : "text-blue-600"
@@ -723,11 +766,12 @@ export default function Wallets() {
                     }`
               }`}
             >
-              Portefeuille Système
+              <span className="hidden sm:inline">Portefeuille Système</span>
+              <span className="sm:hidden">Système</span>
             </button>
             <button
               onClick={() => setActiveTab("admin")}
-              className={`py-2 px-4 text-sm font-medium ${
+              className={`flex-1 sm:flex-none py-2.5 px-3 sm:px-4 text-xs sm:text-sm font-medium transition-all duration-200 ${
                 activeTab === "admin"
                   ? `border-b-2 border-blue-500 ${
                       isDarkMode ? "text-blue-400" : "text-blue-600"
@@ -739,32 +783,33 @@ export default function Wallets() {
                     }`
               }`}
             >
-              Portefeuille Personnel
+              <span className="hidden sm:inline">Portefeuille Personnel</span>
+              <span className="sm:hidden">Personnel</span>
             </button>
           </div>
 
           <div className="mb-4">
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4">
-              <div className="flex items-center space-x-2">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+              <div className="flex items-center gap-2">
                 <button
                   onClick={() => setShowFilters(!showFilters)}
-                  className={`p-2 rounded-md transition-all duration-200 ${
+                  className={`p-2 rounded-lg shadow-sm transition-all duration-200 ${
                     showFilters
                       ? isDarkMode
-                        ? "bg-gray-700 text-blue-400"
-                        : "bg-gray-200 text-blue-600"
+                        ? "bg-blue-900/50 text-blue-400 ring-1 ring-blue-500"
+                        : "bg-blue-50 text-blue-600 ring-1 ring-blue-200"
                       : isDarkMode
-                      ? "text-gray-300 hover:bg-gray-700"
-                      : "text-gray-600 hover:bg-gray-100"
+                      ? "bg-gray-700 text-gray-300 hover:bg-gray-600"
+                      : "bg-gray-100 text-gray-600 hover:bg-gray-200"
                   }`}
                   title={
                     showFilters ? "Masquer les filtres" : "Afficher les filtres"
                   }
                 >
                   {showFilters ? (
-                    <FaTimes className="w-5 h-5" />
+                    <FaTimes className="w-4 h-4 sm:w-5 sm:h-5" />
                   ) : (
-                    <FaFilter className="w-5 h-5" />
+                    <FaFilter className="w-4 h-4 sm:w-5 sm:h-5" />
                   )}
                 </button>
 
@@ -841,32 +886,22 @@ export default function Wallets() {
             {/* Barre de recherche */}
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <svg
-                  className={`h-5 w-5 ${
+                <MagnifyingGlassIcon
+                  className={`h-4 w-4 sm:h-5 sm:w-5 ${
                     isDarkMode ? "text-gray-400" : "text-gray-500"
                   }`}
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 20 20"
-                  fill="currentColor"
-                  aria-hidden="true"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z"
-                    clipRule="evenodd"
-                  />
-                </svg>
+                />
               </div>
               <input
                 type="text"
-                placeholder="Rechercher une transaction..."
+                placeholder="Rechercher..."
                 value={searchTerm}
                 onChange={handleSearch}
-                className={`w-full pl-10 pr-3 py-2.5 rounded-lg border ${
+                className={`w-full pl-9 sm:pl-10 pr-3 py-2 sm:py-2.5 rounded-lg border text-sm sm:text-base ${
                   isDarkMode
-                    ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:ring-blue-500 focus:border-blue-500"
-                    : "bg-white border-gray-300 text-gray-900 placeholder-gray-500 focus:ring-blue-500 focus:border-blue-500"
-                } transition-all duration-200 focus:outline-none focus:ring-2`}
+                    ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    : "bg-white border-gray-300 text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                } transition-all duration-200 focus:outline-none shadow-sm`}
               />
             </div>
 

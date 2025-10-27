@@ -77,7 +77,7 @@ class PackController extends Controller
 
             //Attribuer automatiquement le pack aux super-administrateurs
             $superAdmins = User::whereHas('roleRelation', function ($query) {
-                $query->where('nom', '=', 'super-admin');
+                $query->where('slug', '=', 'super-admin');
             })->get();
             
             foreach ($superAdmins as $admin) {

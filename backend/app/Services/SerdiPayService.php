@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Cache;
 use App\Models\SerdiPayTransaction;
 use App\Models\WalletTransaction;
 use App\Models\Wallet;
+use Illuminate\Support\Facades\Config;
 
 class SerdiPayService
 {
@@ -23,7 +24,7 @@ class SerdiPayService
     
     public function __construct()
     {
-        $this->baseUrl = env('SERDIPAY_BASE_URL', 'https://serdipay.com/api/public-api/v1');
+        $this->baseUrl = env('SERDIPAY_BASE_TEST_URL', 'https://api.kenzo.serdipay.cloud/api/public-api/v1');
         $this->apiId = env('SERDIPAY_API_ID');
         $this->apiPassword = env('SERDIPAY_API_PASSWORD');
         $this->merchantCode = env('SERDIPAY_MERCHANT_CODE');
@@ -56,8 +57,8 @@ class SerdiPayService
         try {
             $response = $this->client->request('POST', $this->baseUrl . '/merchant/get-token', [
                 'json' => [
-                    'email' => env('SERDIPAY_EMAIL'),
-                    'password' => env('SERDIPAY_PASSWORD'),
+                    'email' => Config::get('app.serdipay_email'),
+                    'password' => Config::get('app.serdipay_password'),
                 ]
             ]);
             

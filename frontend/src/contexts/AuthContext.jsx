@@ -128,7 +128,6 @@ export const AuthProvider = ({ children }) => {
         // Pour la page d'accueil, vérifier l'authentification mais ne pas rediriger
         // Cela permet de récupérer l'état d'authentification tout en gardant la page accessible à tous
 
-        console.log(currentPath === "/");
         if (currentPath === "/") {
           try {
             await checkAuth();

@@ -167,10 +167,9 @@ const Users = () => {
       }
     } catch (err) {
       console.error("Error fetching user details:", err);
-      toast({
-        type: "error",
-        message: "Erreur lors de la récupération des détails de l'utilisateur",
-      });
+      Notification.error(
+        "Erreur lors de la récupération des détails de l'utilisateur"
+      );
     }
   };
 
@@ -244,8 +243,10 @@ const Users = () => {
         }
       );
 
+      console.log(response.data.success);
+
       if (response.data.success) {
-        toast.success(
+        Notification.success(
           response.data.message || "Mot de passe réinitialisé avec succès"
         );
         handleCloseResetPassword();
@@ -267,7 +268,7 @@ const Users = () => {
         setResetPasswordError(
           "Erreur lors de la réinitialisation du mot de passe"
         );
-        toast.error("Une erreur est survenue");
+        Notification.error("Une erreur est survenue");
       }
     } finally {
       setResetPasswordLoading(false);
@@ -284,17 +285,17 @@ const Users = () => {
         // Rafraîchir la liste des utilisateurs
         fetchUsers();
         // Afficher un message de succès
-        toast.success("Statut modifié avec succès");
+        Notification.success("Statut modifié avec succès");
       } else {
         // Gérer le cas où success est false
-        toast.error(
+        Notification.error(
           response.data.message || "Erreur lors de la modification du statut"
         );
       }
     } catch (err) {
       console.error("Error in toggleUserStatus:", err);
       // Afficher le message d'erreur de l'API si disponible
-      toast.error(
+      Notification.error(
         err.response?.data?.message ||
           "Erreur lors de la modification du statut"
       );
@@ -331,26 +332,25 @@ const Users = () => {
   }
 
   return (
-    <div className="p-6 bg-gray-50 dark:bg-gray-900 min-h-screen">
-      <div className="mb-6 max-w-4xl">
+    <div className="p-3 sm:p-6 bg-gray-50 dark:bg-gray-900 min-h-screen">
+      <div className="mb-4 sm:mb-6 max-w-4xl">
         <div className="flex justify-between items-center mb-2">
-          <h1 className="text-xl font-semibold flex items-center text-gray-900 dark:text-white">
+          <h1 className="text-lg sm:text-xl font-semibold flex items-center text-gray-900 dark:text-white">
             <PersonIcon
               sx={{
-                fontSize: 24,
+                fontSize: { xs: 20, sm: 24 },
                 color: isDarkMode ? "#60a5fa" : "#2563eb",
-                marginRight: 1,
+                marginRight: { xs: 0.5, sm: 1 },
               }}
             />
-            Gestion des utilisateurs
+            <span className="hidden sm:inline">Gestion des utilisateurs</span>
+            <span className="sm:hidden">Utilisateurs</span>
           </h1>
           <Button
             variant="outlined"
             color="primary"
             size="small"
-            startIcon={
-              showFilters ? <FilterListOffIcon /> : <FilterListIcon />
-            }
+            startIcon={showFilters ? <FilterListOffIcon /> : <FilterListIcon />}
             onClick={() => setShowFilters(!showFilters)}
             sx={{
               borderRadius: "8px",
@@ -362,17 +362,18 @@ const Users = () => {
             {showFilters ? "Masquer" : "Filtres"}
           </Button>
         </div>
-        <p className="text-sm text-gray-600 dark:text-gray-400">
-          Gérez les utilisateurs, consultez leurs informations et modifiez leurs statuts.
+        <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 hidden sm:block">
+          Gérez les utilisateurs, consultez leurs informations et modifiez leurs
+          statuts.
         </p>
       </div>
       {error && (
-        <div className="mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded">
+        <div className="mb-3 sm:mb-4 p-3 sm:p-4 bg-red-100 border border-red-400 text-red-700 rounded text-sm">
           {error}
         </div>
       )}
 
-      <div className="mb-6 max-w-5xl mx-auto">
+      <div className="mb-4 sm:mb-6 max-w-5xl mx-auto">
         <div className="mt-3 flex justify-between items-center">
           {!showFilters &&
             (filters.search ||
@@ -406,7 +407,7 @@ const Users = () => {
         </div>
 
         {showFilters && (
-          <div className="mt-3 p-5 bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-md transition-all duration-300 ease-in-out animate__animated animate__fadeIn animate__faster">
+          <div className="mt-3 p-3 sm:p-5 bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-md transition-all duration-300 ease-in-out animate__animated animate__fadeIn animate__faster">
             <div className="flex flex-wrap gap-3 items-start">
               <div className="w-full">
                 <TextField
@@ -710,7 +711,7 @@ const Users = () => {
           </div>
         ) : (
           <div>
-            <div className="mt-6 bg-white dark:bg-gray-800 shadow-xl rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700 max-w-5xl mx-auto transition-all duration-300 ease-in-out hover:shadow-2xl animate__animated animate__fadeIn animate__faster">
+            <div className="mt-4 sm:mt-6 bg-white dark:bg-gray-800 shadow-xl rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700 max-w-5xl mx-auto transition-all duration-300 ease-in-out hover:shadow-2xl animate__animated animate__fadeIn animate__faster">
               <div className="overflow-x-auto">
                 <table className="w-full divide-y divide-gray-200 dark:divide-gray-700">
                   <thead className="bg-gradient-to-r from-blue-600 to-blue-800 dark:from-blue-800 dark:to-blue-900 text-white">
@@ -758,7 +759,7 @@ const Users = () => {
                         }`}
                         style={{ animationDelay: `${index * 50}ms` }}
                       >
-                        <td className="px-5 py-4 whitespace-nowrap">
+                        <td className="px-3 sm:px-5 py-3 sm:py-4 whitespace-nowrap">
                           <div className="flex items-center">
                             {user.picture ? (
                               <img
@@ -795,17 +796,17 @@ const Users = () => {
                             </div>
                           </div>
                         </td>
-                        <td className="px-5 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-300 hidden md:table-cell">
+                        <td className="px-3 sm:px-5 py-3 sm:py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-300 hidden md:table-cell">
                           <div className="transition-all duration-300 hover:text-blue-600 dark:hover:text-blue-400 font-medium">
                             {user.email}
                           </div>
                         </td>
-                        <td className="px-5 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-300 hidden lg:table-cell">
+                        <td className="px-3 sm:px-5 py-3 sm:py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-300 hidden lg:table-cell">
                           <div className="transition-all duration-300 hover:text-blue-600 dark:hover:text-blue-400">
                             {formatDate(user.created_at)}
                           </div>
                         </td>
-                        <td className="px-5 py-4 whitespace-nowrap text-center">
+                        <td className="px-3 sm:px-5 py-3 sm:py-4 whitespace-nowrap text-center">
                           <span
                             className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium transition-all duration-300 ease-in-out ${
                               user.status === "active"
@@ -826,22 +827,25 @@ const Users = () => {
                               : ""}
                           </span>
                         </td>
-                        <td className="px-5 py-4 whitespace-nowrap text-sm font-medium">
-                          <div className="flex justify-end items-center space-x-3">
+                        <td className="px-2 sm:px-3 md:px-5 py-3 sm:py-4 whitespace-nowrap text-sm font-medium">
+                          <div className="flex justify-end items-center gap-2 sm:gap-3">
                             {/* Bouton Voir les détails */}
                             <button
                               onClick={() => handleViewDetails(user)}
-                              className="inline-flex items-center p-2 border border-transparent rounded-full shadow-md text-white bg-gradient-to-r from-indigo-500 to-indigo-700 hover:from-indigo-600 hover:to-indigo-800 dark:from-indigo-600 dark:to-indigo-800 dark:hover:from-indigo-700 dark:hover:to-indigo-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 dark:focus:ring-offset-gray-800 transition-all duration-300 ease-in-out hover:scale-110 hover:shadow-lg animate__animated animate__fadeIn"
+                              className="inline-flex items-center p-1.5 sm:p-2 border border-transparent rounded-full shadow-md text-white bg-gradient-to-r from-indigo-500 to-indigo-700 hover:from-indigo-600 hover:to-indigo-800 dark:from-indigo-600 dark:to-indigo-800 dark:hover:from-indigo-700 dark:hover:to-indigo-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 dark:focus:ring-offset-gray-800 transition-all duration-300 ease-in-out hover:scale-110 hover:shadow-lg animate__animated animate__fadeIn"
                               title="Voir les détails"
                               style={{ animationDelay: `${index * 30}ms` }}
                             >
-                              <InfoIcon fontSize="small" className="h-4 w-4" />
+                              <InfoIcon
+                                fontSize="small"
+                                className="h-3.5 w-3.5 sm:h-4 sm:w-4"
+                              />
                             </button>
 
                             {/* Bouton Réinitialiser mot de passe */}
                             <button
                               onClick={() => handleOpenResetPassword(user)}
-                              className="inline-flex items-center p-2 border border-transparent rounded-full shadow-md text-white bg-gradient-to-r from-blue-500 to-blue-700 hover:from-blue-600 hover:to-blue-800 dark:from-blue-600 dark:to-blue-800 dark:hover:from-blue-700 dark:hover:to-blue-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-offset-gray-800 transition-all duration-300 ease-in-out hover:scale-110 hover:shadow-lg animate__animated animate__fadeIn"
+                              className="inline-flex items-center p-1.5 sm:p-2 border border-transparent rounded-full shadow-md text-white bg-gradient-to-r from-blue-500 to-blue-700 hover:from-blue-600 hover:to-blue-800 dark:from-blue-600 dark:to-blue-800 dark:hover:from-blue-700 dark:hover:to-blue-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-offset-gray-800 transition-all duration-300 ease-in-out hover:scale-110 hover:shadow-lg animate__animated animate__fadeIn"
                               title="Réinitialiser mot de passe"
                               style={{
                                 animationDelay: `${index * 30 + 100}ms`,
@@ -849,14 +853,14 @@ const Users = () => {
                             >
                               <LockResetIcon
                                 fontSize="small"
-                                className="h-4 w-4"
+                                className="h-3.5 w-3.5 sm:h-4 sm:w-4"
                               />
                             </button>
 
                             {/* Bouton Activer/Désactiver utilisateur */}
                             <button
                               onClick={() => toggleUserStatus(user.id)}
-                              className={`inline-flex items-center p-2 border border-transparent rounded-full shadow-md text-white focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition-all duration-300 ease-in-out hover:scale-110 hover:shadow-lg animate__animated animate__fadeIn ${
+                              className={`inline-flex items-center p-1.5 sm:p-2 border border-transparent rounded-full shadow-md text-white focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition-all duration-300 ease-in-out hover:scale-110 hover:shadow-lg animate__animated animate__fadeIn ${
                                 user.status === "active"
                                   ? "bg-gradient-to-r from-red-500 to-red-700 hover:from-red-600 hover:to-red-800 dark:from-red-600 dark:to-red-800 dark:hover:from-red-700 dark:hover:to-red-900 focus:ring-red-500"
                                   : "bg-gradient-to-r from-green-500 to-green-700 hover:from-green-600 hover:to-green-800 dark:from-green-600 dark:to-green-800 dark:hover:from-green-700 dark:hover:to-green-900 focus:ring-green-500"
@@ -873,12 +877,12 @@ const Users = () => {
                               {user.status === "active" ? (
                                 <ToggleOnIcon
                                   fontSize="small"
-                                  className="h-4 w-4"
+                                  className="h-3.5 w-3.5 sm:h-4 sm:w-4"
                                 />
                               ) : (
                                 <ToggleOffIcon
                                   fontSize="small"
-                                  className="h-4 w-4"
+                                  className="h-3.5 w-3.5 sm:h-4 sm:w-4"
                                 />
                               )}
                             </button>
@@ -892,12 +896,12 @@ const Users = () => {
             </div>
 
             {/* Pagination */}
-            <div className="mt-6 animate__animated animate__fadeIn">
-              <div className="flex flex-col md:flex-row justify-between items-center bg-white dark:bg-gray-800 p-5 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 transition-all duration-300 hover:shadow-xl">
-                <div className="text-sm text-gray-600 dark:text-gray-300 mb-4 md:mb-0 flex items-center">
+            <div className="mt-4 sm:mt-6 animate__animated animate__fadeIn">
+              <div className="flex flex-col sm:flex-row justify-between items-center gap-4 bg-white dark:bg-gray-800 p-4 sm:p-5 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 transition-all duration-300 hover:shadow-xl">
+                <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-300 flex items-center">
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
-                    className="h-5 w-5 mr-2 text-blue-500 dark:text-blue-400"
+                    className="h-4 w-4 sm:h-5 sm:w-5 mr-1.5 sm:mr-2 text-blue-500 dark:text-blue-400 flex-shrink-0"
                     viewBox="0 0 20 20"
                     fill="currentColor"
                   >
@@ -908,25 +912,27 @@ const Users = () => {
                       clipRule="evenodd"
                     />
                   </svg>
-                  <span>
-                    Affichage de{" "}
+                  <span className="whitespace-nowrap">
+                    <span className="hidden sm:inline">Affichage de </span>
                     <span className="font-semibold text-blue-600 dark:text-blue-400">
                       {users.length}
-                    </span>{" "}
-                    utilisateurs sur{" "}
+                    </span>
+                    <span className="hidden sm:inline"> utilisateurs</span>
+                    <span className="sm:hidden">/</span>
+                    <span className="hidden sm:inline"> sur </span>
                     <span className="font-semibold text-blue-600 dark:text-blue-400">
                       {pagination.totalItems}
                     </span>
                   </span>
                 </div>
 
-                <div className="flex items-center space-x-1 md:space-x-2">
+                <div className="flex items-center gap-1 sm:gap-2">
                   {/* Bouton Première page */}
                   <Button
                     variant="outlined"
                     disabled={pagination.currentPage <= 1}
                     onClick={() => handlePageChange(1)}
-                    className="min-w-[40px] h-[36px] p-0"
+                    className="min-w-[32px] sm:min-w-[40px] h-[32px] sm:h-[36px] p-0 hidden xs:flex"
                     sx={{
                       borderRadius: "8px",
                       minWidth: { xs: "36px", sm: "40px" },
@@ -952,7 +958,7 @@ const Users = () => {
                   >
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
-                      className="h-5 w-5"
+                      className="h-4 w-4 sm:h-5 sm:w-5"
                       viewBox="0 0 20 20"
                       fill="currentColor"
                     >
@@ -972,6 +978,9 @@ const Users = () => {
                     className="transition-all duration-300"
                     sx={{
                       borderRadius: "8px",
+                      minWidth: { xs: "32px", sm: "auto" },
+                      height: { xs: "32px", sm: "36px" },
+                      padding: { xs: "4px", sm: "6px 16px" },
                       border: isDarkMode
                         ? "1px solid rgba(59, 130, 246, 0.5)"
                         : undefined,
@@ -995,7 +1004,7 @@ const Users = () => {
                   >
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
-                      className="h-5 w-5 mr-1"
+                      className="h-4 w-4 sm:h-5 sm:w-5 sm:mr-1"
                       viewBox="0 0 20 20"
                       fill="currentColor"
                     >
@@ -1005,11 +1014,11 @@ const Users = () => {
                         clipRule="evenodd"
                       />
                     </svg>
-                    <span className="hidden sm:inline">Précédent</span>
+                    <span className="hidden md:inline">Précédent</span>
                   </Button>
 
                   {/* Affichage des pages */}
-                  <div className="flex items-center space-x-1">
+                  <div className="flex items-center gap-1">
                     {pagination.totalPages > 0 && (
                       <>
                         {pagination.currentPage > 2 &&
@@ -1017,10 +1026,11 @@ const Users = () => {
                             <Button
                               variant="outlined"
                               onClick={() => handlePageChange(1)}
-                              className="hidden sm:flex"
+                              className="hidden md:flex"
                               sx={{
                                 borderRadius: "8px",
-                                minWidth: "36px",
+                                minWidth: { xs: "32px", sm: "36px" },
+                                height: { xs: "32px", sm: "36px" },
                                 padding: "6px",
                                 border: isDarkMode
                                   ? "1px solid rgba(59, 130, 246, 0.5)"
@@ -1034,7 +1044,7 @@ const Users = () => {
 
                         {pagination.currentPage > 3 &&
                           pagination.totalPages > 4 && (
-                            <span className="text-gray-500 dark:text-gray-400 px-1">
+                            <span className="text-gray-500 dark:text-gray-400 px-0.5 sm:px-1 text-xs sm:text-sm hidden md:inline">
                               ...
                             </span>
                           )}
@@ -1045,9 +1055,11 @@ const Users = () => {
                             onClick={() =>
                               handlePageChange(pagination.currentPage - 1)
                             }
+                            className="hidden sm:flex"
                             sx={{
                               borderRadius: "8px",
-                              minWidth: "36px",
+                              minWidth: { xs: "32px", sm: "36px" },
+                              height: { xs: "32px", sm: "36px" },
                               padding: "6px",
                               border: isDarkMode
                                 ? "1px solid rgba(59, 130, 246, 0.5)"
@@ -1064,9 +1076,11 @@ const Users = () => {
                           disableElevation
                           sx={{
                             borderRadius: "8px",
-                            minWidth: "36px",
-                            padding: "6px",
+                            minWidth: { xs: "32px", sm: "36px" },
+                            height: { xs: "32px", sm: "36px" },
+                            padding: { xs: "4px", sm: "6px" },
                             fontWeight: "bold",
+                            fontSize: { xs: "0.75rem", sm: "0.875rem" },
                             background: isDarkMode
                               ? "linear-gradient(45deg, #1e40af 30%, #3b82f6 90%)"
                               : "linear-gradient(45deg, #3b82f6 30%, #60a5fa 90%)",
@@ -1082,9 +1096,11 @@ const Users = () => {
                             onClick={() =>
                               handlePageChange(pagination.currentPage + 1)
                             }
+                            className="hidden sm:flex"
                             sx={{
                               borderRadius: "8px",
-                              minWidth: "36px",
+                              minWidth: { xs: "32px", sm: "36px" },
+                              height: { xs: "32px", sm: "36px" },
                               padding: "6px",
                               border: isDarkMode
                                 ? "1px solid rgba(59, 130, 246, 0.5)"
@@ -1098,7 +1114,7 @@ const Users = () => {
 
                         {pagination.currentPage < pagination.totalPages - 2 &&
                           pagination.totalPages > 4 && (
-                            <span className="text-gray-500 dark:text-gray-400 px-1">
+                            <span className="text-gray-500 dark:text-gray-400 px-0.5 sm:px-1 text-xs sm:text-sm hidden md:inline">
                               ...
                             </span>
                           )}
@@ -1110,10 +1126,11 @@ const Users = () => {
                               onClick={() =>
                                 handlePageChange(pagination.totalPages)
                               }
-                              className="hidden sm:flex"
+                              className="hidden md:flex"
                               sx={{
                                 borderRadius: "8px",
-                                minWidth: "36px",
+                                minWidth: { xs: "32px", sm: "36px" },
+                                height: { xs: "32px", sm: "36px" },
                                 padding: "6px",
                                 border: isDarkMode
                                   ? "1px solid rgba(59, 130, 246, 0.5)"
@@ -1136,6 +1153,9 @@ const Users = () => {
                     className="transition-all duration-300"
                     sx={{
                       borderRadius: "8px",
+                      minWidth: { xs: "32px", sm: "auto" },
+                      height: { xs: "32px", sm: "36px" },
+                      padding: { xs: "4px", sm: "6px 16px" },
                       border: isDarkMode
                         ? "1px solid rgba(59, 130, 246, 0.5)"
                         : undefined,
@@ -1157,10 +1177,10 @@ const Users = () => {
                       },
                     }}
                   >
-                    <span className="hidden sm:inline">Suivant</span>
+                    <span className="hidden md:inline">Suivant</span>
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
-                      className="h-5 w-5 ml-1"
+                      className="h-4 w-4 sm:h-5 sm:w-5 sm:ml-1"
                       viewBox="0 0 20 20"
                       fill="currentColor"
                     >
@@ -1177,10 +1197,11 @@ const Users = () => {
                     variant="outlined"
                     disabled={pagination.currentPage >= pagination.totalPages}
                     onClick={() => handlePageChange(pagination.totalPages)}
-                    className="min-w-[40px] h-[36px] p-0"
+                    className="min-w-[32px] sm:min-w-[40px] h-[32px] sm:h-[36px] p-0 hidden xs:flex"
                     sx={{
                       borderRadius: "8px",
-                      minWidth: { xs: "36px", sm: "40px" },
+                      minWidth: { xs: "32px", sm: "40px" },
+                      height: { xs: "32px", sm: "36px" },
                       border: isDarkMode
                         ? "1px solid rgba(59, 130, 246, 0.5)"
                         : undefined,
@@ -1203,7 +1224,7 @@ const Users = () => {
                   >
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
-                      className="h-5 w-5"
+                      className="h-4 w-4 sm:h-5 sm:w-5"
                       viewBox="0 0 20 20"
                       fill="currentColor"
                     >

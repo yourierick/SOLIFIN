@@ -1331,12 +1331,12 @@ export default function UserDetails({ userId }) {
           {/* En-tête avec les informations de base de l'utilisateur */}
           <div className="px-6 py-5 border-b border-gray-200 dark:border-gray-700 flex flex-col md:flex-row md:items-center md:justify-between">
             <div className="flex items-center mb-4 md:mb-0">
-              <div className="h-16 w-16 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center">
+              <div className="h-16 w-16 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center overflow-hidden flex-shrink-0">
                 {user?.profile_picture ? (
                   <img
-                    className="rounded-full object-cover"
+                    className="h-full w-full rounded-full object-cover"
                     src={user.profile_picture}
-                    alt="img"
+                    alt={user.name || "Photo de profil"}
                   />
                 ) : (
                   <span className="text-2xl font-bold text-blue-700 dark:text-blue-300">

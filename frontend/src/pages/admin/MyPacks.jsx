@@ -59,7 +59,6 @@ import Tree from "react-d3-tree";
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
 import { Link, useNavigate } from "react-router-dom";
-import RenewPackForm from "../../components/RenewPackForm";
 import PackStatsModal from "../../components/PackStatsModal";
 import { motion, AnimatePresence } from "framer-motion";
 import { Fade } from "@mui/material";
@@ -1280,6 +1279,13 @@ export default function MyPacks() {
         maxWidth="lg"
         fullWidth
         fullScreen={isFullScreen}
+        BackdropProps={{
+          style: {
+            backdropFilter: "blur(8px)",
+            WebkitBackdropFilter: "blur(8px)",
+            backgroundColor: "rgba(0, 0, 0, 0.6)",
+          },
+        }}
         PaperProps={{
           sx: {
             minHeight: isFullScreen ? "100vh" : "80vh",
