@@ -1,0 +1,153 @@
+/* Styles personnalisés pour React Quill */
+
+/* Thème clair */
+.quill-container .ql-toolbar {
+  border-radius: 8px 8px 0 0 !important;
+  border-color: #d1d5db !important;
+  background-color: #ffffff !important;
+}
+
+.quill-container .ql-container {
+  border-radius: 0 0 8px 8px !important;
+  border-color: #d1d5db !important;
+  background-color: #ffffff !important;
+}
+
+.quill-container .ql-editor {
+  background-color: #ffffff !important;
+  color: #111827 !important;
+  min-height: 300px !important;
+}
+
+.quill-container .ql-toolbar button {
+  color: #374151 !important;
+}
+
+.quill-container .ql-toolbar button:hover {
+  color: #111827 !important;
+}
+
+.quill-container .ql-toolbar button.ql-active {
+  color: #3b82f6 !important;
+}
+
+.quill-container .ql-stroke {
+  stroke: #374151 !important;
+}
+
+.quill-container .ql-stroke:hover {
+  stroke: #111827 !important;
+}
+
+.quill-container .ql-fill {
+  fill: #374151 !important;
+}
+
+.quill-container .ql-fill:hover {
+  fill: #111827 !important;
+}
+
+.quill-container .ql-picker {
+  color: #374151 !important;
+}
+
+.quill-container .ql-picker-options {
+  background-color: #ffffff !important;
+  border-color: #d1d5db !important;
+}
+
+.quill-container .ql-picker-item {
+  color: #111827 !important;
+}
+
+.quill-container .ql-picker-item:hover {
+  background-color: #f3f4f6 !important;
+}
+
+.quill-container .ql-tooltip {
+  background-color: #ffffff !important;
+  border-color: #d1d5db !important;
+  color: #111827 !important;
+}
+
+.quill-container .ql-tooltip input {
+  background-color: #ffffff !important;
+  border-color: #d1d5db !important;
+  color: #111827 !important;
+}
+
+/* Thème sombre */
+.quill-container.dark .ql-toolbar {
+  border-radius: 8px 8px 0 0 !important;
+  border-color: #4b5563 !important;
+  background-color: #1f2937 !important;
+}
+
+.quill-container.dark .ql-container {
+  border-radius: 0 0 8px 8px !important;
+  border-color: #4b5563 !important;
+  background-color: #1f2937 !important;
+}
+
+.quill-container.dark .ql-editor {
+  background-color: #1f2937 !important;
+  color: #f3f4f6 !important;
+  min-height: 300px !important;
+}
+
+.quill-container.dark .ql-toolbar button {
+  color: #9ca3af !important;
+}
+
+.quill-container.dark .ql-toolbar button:hover {
+  color: #f3f4f6 !important;
+}
+
+.quill-container.dark .ql-toolbar button.ql-active {
+  color: #3b82f6 !important;
+}
+
+.quill-container.dark .ql-stroke {
+  stroke: #9ca3af !important;
+}
+
+.quill-container.dark .ql-stroke:hover {
+  stroke: #f3f4f6 !important;
+}
+
+.quill-container.dark .ql-fill {
+  fill: #9ca3af !important;
+}
+
+.quill-container.dark .ql-fill:hover {
+  fill: #f3f4f6 !important;
+}
+
+.quill-container.dark .ql-picker {
+  color: #9ca3af !important;
+}
+
+.quill-container.dark .ql-picker-options {
+  background-color: #1f2937 !important;
+  border-color: #4b5563 !important;
+}
+
+.quill-container.dark .ql-picker-item {
+  color: #f3f4f6 !important;
+}
+
+.quill-container.dark .ql-picker-item:hover {
+  background-color: #374151 !important;
+}
+
+.quill-container.dark .ql-tooltip {
+  background-color: #1f2937 !important;
+  border-color: #4b5563 !important;
+  color: #f3f4f6 !important;
+}
+
+.quill-container.dark .ql-tooltip input {
+  background-color: #374151 !important;
+  border-color: #4b5563 !important;
+  color: #f3f4f6 !important;
+}

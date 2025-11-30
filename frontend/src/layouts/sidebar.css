@@ -1,0 +1,33 @@
+/* Styles pour la sidebar */
+
+/* Masquer la scrollbar par défaut */
+.sidebar-container::-webkit-scrollbar {
+  width: 0;
+  background: transparent; /* Chrome/Safari/Webkit */
+  display: none;
+}
+
+/* Afficher la scrollbar au survol */
+.sidebar-container.show-scrollbar::-webkit-scrollbar {
+  width: 4px;
+  display: block;
+}
+
+.sidebar-container.show-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.sidebar-container.show-scrollbar::-webkit-scrollbar-thumb {
+  background-color: rgba(156, 163, 175, 0.5);
+  border-radius: 20px;
+}
+
+/* Pour Firefox */
+.sidebar-container {
+  scrollbar-width: none;
+}
+
+.sidebar-container.show-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(156, 163, 175, 0.5) transparent;
+}

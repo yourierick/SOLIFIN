@@ -1,0 +1,61 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    /**
+     * Run the migrations.
+     */
+    public function up(): void
+    {
+        Schema::create('wallet_systems', function (Blueprint $table) {
+            $table->id();
+            $table->decimal('balance_usd', 10, 2)->default(0);
+            $table->decimal('balance_cdf', 10, 2)->default(0);
+            $table->decimal('total_in_usd', 10, 2)->default(0);
+            $table->decimal('total_in_cdf', 10, 2)->default(0);
+            $table->decimal('total_out_usd', 10, 2)->default(0);
+            $table->decimal('total_out_cdf', 10, 2)->default(0);
+            $table->timestamps();
+        });
+
+        // Créer le wallet système par défaut
+        DB::table('wallet_systems')->insert([
+            [
+                'balance_usd' => 0,
+                'balance_cdf' => 0,
+                'total_in_usd' => 0,
+                'total_in_cdf' => 0,
+                'total_out_usd' => 0,
+                'total_out_cdf' => 0,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]
+        ]);
+
+        Schema::create('wallet_system_transactions', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('wallet_system_id')->constrained()->onDelete('cascade');
+            $table->enum('mouvment', ['in', 'out']);
+            $table->enum('type', ['pack_sale', 'boost_sale', 'renew_pack_sale', 'digital_product_sale', 'withdrawal', 'commission de retrait', 'commission de parrainage', 'commission de transfert', 'virtual_sale', 'transfer']);
+            $table->decimal('amount', 10, 2);
+            $table->enum('currency', ['USD', 'CDF'])->default('USD');
+            $table->enum('status', ['pending', 'completed', 'failed'])->default('pending');
+            $table->json('metadata')->nullable();
+            $table->timestamps();
+
+        });
+    }
+
+    /**
+     * Reverse the migrations.
+     */
+    public function down(): void
+    {
+        Schema::dropIfExists('wallet_system_transactions');
+        Schema::dropIfExists('wallet_systems');
+    }
+};

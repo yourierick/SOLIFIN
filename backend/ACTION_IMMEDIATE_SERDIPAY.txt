@@ -1,0 +1,120 @@
+╔════════════════════════════════════════════════════════════════════════════╗
+║                    ACTION IMMÉDIATE REQUISE - SERDIPAY                     ║
+╚════════════════════════════════════════════════════════════════════════════╝
+
+PROBLÈME :
+----------
+SerdiPay rejette vos requêtes avec l'erreur :
+"This domain or IP is not whitelisted"
+
+CAUSE IDENTIFIÉE :
+------------------
+Votre serveur PlanetHoster utilise 2 adresses IP différentes :
+• IP INTERNE (vue par PHP/Laravel) : 10.123.3.57  ← CELLE-CI EST LE PROBLÈME
+• IP PUBLIQUE (vue par curl)        : 185.22.110.179
+
+SerdiPay voit l'IP interne 10.123.3.57 qui n'est PAS dans votre whitelist.
+
+TENTATIVE DE SOLUTION PAR CODE :
+---------------------------------
+❌ ÉCHEC - Impossible de forcer l'utilisation de l'IP publique depuis PHP
+   Erreur : cURL error 45 (Cannot assign requested address)
+   Raison : L'IP publique n'est pas directement assignée au serveur
+
+SOLUTION UNIQUE ET OBLIGATOIRE :
+---------------------------------
+Vous DEVEZ ajouter l'IP interne à la whitelist SerdiPay.
+Il n'y a PAS d'autre solution possible.
+
+╔════════════════════════════════════════════════════════════════════════════╗
+║                         ÉTAPES À SUIVRE MAINTENANT                         ║
+╚════════════════════════════════════════════════════════════════════════════╝
+
+1. Connectez-vous à votre dashboard SerdiPay
+   → https://serdipay.com (ou votre URL de dashboard)
+
+2. Allez dans la section "Whitelist" ou "Configuration IP"
+
+3. Ajoutez ces IP :
+   ✅ 10.123.3.57        ← IMPORTANT : Celle-ci est OBLIGATOIRE
+   ✅ 185.22.110.179     ← Celle-ci aussi (probablement déjà ajoutée)
+
+4. Ajoutez ces domaines :
+   ✅ www.solifinexpress.com
+   ✅ solifinexpress.com
+   ✅ Ou utilisez : *.solifinexpress.com (recommandé)
+
+5. Cliquez sur "Sauvegarder" / "Save"
+
+6. Attendez 15 minutes pour la propagation des changements
+
+7. Testez avec cette commande :
+   php artisan serdipay:test
+
+8. Vérifiez les logs :
+   tail -f storage/logs/laravel.log
+
+╔════════════════════════════════════════════════════════════════════════════╗
+║                          RÉSULTAT ATTENDU                                  ║
+╚════════════════════════════════════════════════════════════════════════════╝
+
+Après avoir ajouté l'IP 10.123.3.57, vous devriez voir dans les logs :
+
+✅ [production.INFO: SerdiPay authentication response {"status_code":200, ...}
+✅ [production.INFO: SerdiPay token cached successfully
+
+Au lieu de :
+
+❌ [production.ERROR: SerdiPay authentication failed 
+   {"status":400,"response":{"message":"This domain or IP is not whitelisted "}}
+
+╔════════════════════════════════════════════════════════════════════════════╗
+║                     SI ÇA NE FONCTIONNE TOUJOURS PAS                       ║
+╚════════════════════════════════════════════════════════════════════════════╝
+
+1. Vérifiez que l'IP 10.123.3.57 est bien visible dans votre dashboard SerdiPay
+2. Attendez 30 minutes au lieu de 15 (propagation peut être plus lente)
+3. Videz le cache Laravel :
+   php artisan cache:clear
+   php artisan config:clear
+4. Contactez le support SerdiPay avec ces informations :
+   • IP interne : 10.123.3.57
+   • IP publique : 185.22.110.179
+   • Domaine : www.solifinexpress.com
+   • Message d'erreur : "This domain or IP is not whitelisted"
+   • Timestamp : 2025-10-28 00:08:23
+
+╔════════════════════════════════════════════════════════════════════════════╗
+║                           INFORMATIONS TECHNIQUES                          ║
+╚════════════════════════════════════════════════════════════════════════════╝
+
+Architecture de votre serveur PlanetHoster :
+┌─────────────────────────────────────────────────────────────────────────┐
+│ Internet                                                                │
+│    ↓                                                                    │
+│ Reverse Proxy (IP publique : 185.22.110.179)                          │
+│    ↓                                                                    │
+│ Votre serveur Laravel (IP interne : 10.123.3.57)                      │
+│    ↓                                                                    │
+│ Requête vers SerdiPay (source IP : 10.123.3.57)  ← SerdiPay voit ça  │
+└─────────────────────────────────────────────────────────────────────────┘
+
+C'est pour cette raison que SerdiPay voit 10.123.3.57 et non 185.22.110.179.
+
+╔════════════════════════════════════════════════════════════════════════════╗
+║                              CHECKLIST FINALE                              ║
+╚════════════════════════════════════════════════════════════════════════════╝
+
+□ IP 10.123.3.57 ajoutée à la whitelist SerdiPay
+□ IP 185.22.110.179 ajoutée à la whitelist SerdiPay
+□ Domaine *.solifinexpress.com ajouté à la whitelist SerdiPay
+□ Changements sauvegardés dans le dashboard SerdiPay
+□ Attendu 15 minutes minimum
+□ Testé avec : php artisan serdipay:test
+□ Vérifié les logs : tail -f storage/logs/laravel.log
+□ Authentification réussie (status_code: 200)
+
+═══════════════════════════════════════════════════════════════════════════════
+                    Bonne chance ! Le problème sera résolu
+                    une fois l'IP 10.123.3.57 ajoutée.
+═══════════════════════════════════════════════════════════════════════════════

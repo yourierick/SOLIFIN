@@ -1,0 +1,74 @@
+/* Custom scrollbar styles */
+.overflow-x-auto {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(156, 163, 175, 0.7) transparent;
+  overflow-x: auto !important;
+  max-width: 100%;
+}
+
+.overflow-x-auto::-webkit-scrollbar {
+  height: 8px;
+  width: 8px;
+  display: block !important;
+}
+
+.overflow-x-auto::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.05);
+  border-radius: 20px;
+}
+
+.overflow-x-auto::-webkit-scrollbar-thumb {
+  background-color: rgba(156, 163, 175, 0.7);
+  border-radius: 20px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+/* Dark mode scrollbar */
+.dark .overflow-x-auto {
+  scrollbar-color: rgba(75, 85, 99, 0.7) transparent;
+}
+
+.dark .overflow-x-auto::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.dark .overflow-x-auto::-webkit-scrollbar-thumb {
+  background-color: rgba(75, 85, 99, 0.7);
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+/* Force scrollbar display */
+.table-container {
+  overflow: hidden;
+  position: relative;
+}
+
+.force-overflow {
+  min-width: 800px;
+  width: 100%;
+}
+
+/* Table responsiveness */
+@media (max-width: 640px) {
+  .responsive-table {
+    font-size: 0.875rem;
+  }
+
+  .responsive-table th,
+  .responsive-table td {
+    padding: 0.5rem 0.75rem;
+  }
+}
+
+/* Table container with shadow and border */
+.table-container {
+  border-radius: 0.5rem;
+  overflow: hidden;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+}
+
+.dark .table-container {
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.3), 0 1px 2px 0 rgba(0, 0, 0, 0.2);
+}
