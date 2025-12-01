@@ -68,19 +68,20 @@ const creditCardOptions = PAYMENT_METHODS[PAYMENT_TYPES.CREDIT_CARD];
 
 export default function VirtualPurchaseForm({ onClose, updateWalletBalance }) {
   const { isDarkMode } = useTheme();
-  const { isCDFEnabled, canUseCDF, availableCurrencies } = useCurrency();
+  const { isCDFEnabled, canUseCDF, selectedCurrency } = useCurrency();
+
+  // Fonction pour obtenir le symbole de devise
+  const getCurrencySymbol = (currency) => {
+    return currency === "USD" ? " $" : " FC";
+  };
+
   const [selectedPaymentOption, setSelectedPaymentOption] = useState(null);
   const [selectedPaymentType, setSelectedPaymentType] = useState(null);
-  const [selectedCurrency, setSelectedCurrency] = useState(
-    canUseCDF() ? currencies[0] : currencies.find((c) => c.code === "USD")
-  ); // USD par défaut si CDF non disponible
-  const [exchangeRate, setExchangeRate] = useState(2500); // Valeur par défaut en attendant l'API
-  const [isLoadingRate, setIsLoadingRate] = useState(false);
   const [formData, setFormData] = useState({
     amount: "",
     phoneNumber: "",
     phoneCode: "+243", // Indicatif téléphonique par défaut (RDC)
-    currency: "USD", // Devise par défaut
+    currency: selectedCurrency, // Utiliser la devise globale
     cardNumber: "",
     cardHolder: "",
     expiryDate: "",
@@ -114,20 +115,24 @@ export default function VirtualPurchaseForm({ onClose, updateWalletBalance }) {
     fetchFeePercentage();
   }, []);
 
-  // Calculer les frais en fonction du montant
+  // Synchroniser la devise avec le contexte global
   useEffect(() => {
-    const calculateFees = () => {
-      if (formData.amount && !isNaN(parseFloat(formData.amount))) {
-        const amount = parseFloat(formData.amount);
-        const fee = amount * (feePercentage / 100);
-        setPurchaseFee(fee);
-      } else {
-        setPurchaseFee(0);
-      }
-    };
+    setFormData(prev => ({
+      ...prev,
+      currency: selectedCurrency
+    }));
+  }, [selectedCurrency]);
 
-    calculateFees();
-  }, [formData.amount, feePercentage]);
+  // Recalculer les frais quand la devise change
+  useEffect(() => {
+    if (formData.amount && !isNaN(parseFloat(formData.amount))) {
+      const amount = parseFloat(formData.amount);
+      const fee = amount * (feePercentage / 100);
+      setPurchaseFee(fee);
+    } else {
+      setPurchaseFee(0);
+    }
+  }, [selectedCurrency, formData.amount, feePercentage]);
 
   // Valider le formulaire
   useEffect(() => {
@@ -189,20 +194,6 @@ export default function VirtualPurchaseForm({ onClose, updateWalletBalance }) {
     if (name === "amount") {
       const numericValue = value.replace(/[^0-9.]/g, "");
       setFormData({ ...formData, [name]: numericValue });
-
-      // Si la devise est CDF, mettre à jour le taux de change avec le nouveau montant
-      if (
-        selectedCurrency.code === "CDF" &&
-        numericValue &&
-        parseFloat(numericValue) > 0
-      ) {
-        // Attendre un peu pour éviter trop d'appels API lors de la saisie rapide
-        const timeoutId = setTimeout(() => {
-          fetchExchangeRate("USD", "CDF", parseFloat(numericValue));
-        }, 500);
-
-        return () => clearTimeout(timeoutId);
-      }
     } else {
       setFormData({ ...formData, [name]: value });
     }
@@ -217,52 +208,6 @@ export default function VirtualPurchaseForm({ onClose, updateWalletBalance }) {
   // Sélectionner une option de paiement
   const handlePaymentOptionSelect = (option) => {
     setSelectedPaymentOption(option);
-  };
-
-  // Récupérer le taux de change depuis l'API
-  const fetchExchangeRate = async (from = "USD", to = "CDF", amount = null) => {
-    try {
-      setIsLoadingRate(true);
-      const requestData = {
-        amount: amount || formData.amount || 1,
-        from: from,
-        to: to,
-        originalAmount: amount || formData.amount || 1, // Envoyer le montant original pour le cas des CDF
-      };
-
-      const response = await axios.post("/api/currency/convert", requestData);
-
-      if (response.data.success) {
-        setExchangeRate(response.data.rate);
-      } else {
-        console.error(
-          "Erreur lors de la récupération du taux de change:",
-          response.data.message
-        );
-        // Conserver la valeur par défaut
-      }
-    } catch (error) {
-      console.error("Erreur lors de la récupération du taux de change:", error);
-      // Conserver la valeur par défaut
-    } finally {
-      setIsLoadingRate(false);
-    }
-  };
-
-  // Récupérer le taux de change au chargement du composant
-  useEffect(() => {
-    fetchExchangeRate();
-  }, []);
-
-  // Sélectionner une devise
-  const handleCurrencySelect = (currency) => {
-    setSelectedCurrency(currency);
-    setFormData({ ...formData, currency: currency.code });
-
-    // Si on passe à CDF, s'assurer que le taux de change est à jour
-    if (currency.code === "CDF") {
-      fetchExchangeRate();
-    }
   };
 
   // Passer à l'étape suivante
@@ -617,49 +562,6 @@ export default function VirtualPurchaseForm({ onClose, updateWalletBalance }) {
                     Montant à acheter
                   </h3>
 
-                  {/* Sélection de la devise - uniquement si CDF est disponible */}
-                  {canUseCDF() && (
-                    <div className="mb-4">
-                      <label
-                        className={`block mb-2 text-sm font-medium ${
-                          isDarkMode ? "text-gray-300" : "text-gray-700"
-                        }`}
-                      >
-                        Devise
-                      </label>
-                      <div className="grid grid-cols-2 gap-3">
-                        {currencies
-                          .filter(
-                            (currency) =>
-                              currency.code === "USD" ||
-                              (currency.code === "CDF" && canUseCDF())
-                          )
-                          .map((currency) => (
-                            <div
-                              key={currency.code}
-                              className={`cursor-pointer p-3 rounded-md border ${
-                                selectedCurrency.code === currency.code
-                                  ? isDarkMode
-                                    ? "border-blue-500 bg-blue-900 bg-opacity-20"
-                                    : "border-blue-500 bg-blue-50"
-                                  : isDarkMode
-                                  ? "border-gray-600 hover:border-gray-500"
-                                  : "border-gray-300 hover:border-gray-400"
-                              } transition-colors`}
-                              onClick={() => handleCurrencySelect(currency)}
-                            >
-                              <div className="flex items-center justify-center">
-                                <span className="text-lg font-semibold mr-2">
-                                  {currency.symbol}
-                                </span>
-                                <span>{currency.code}</span>
-                              </div>
-                            </div>
-                          ))}
-                      </div>
-                    </div>
-                  )}
-
                   {/* Saisie du montant */}
                   <div className="mb-4">
                     <label
@@ -668,7 +570,6 @@ export default function VirtualPurchaseForm({ onClose, updateWalletBalance }) {
                         isDarkMode ? "text-gray-300" : "text-gray-700"
                       }`}
                     >
-                      Montant ({selectedCurrency.code})
                     </label>
                     <div className="relative">
                       <span
@@ -676,7 +577,7 @@ export default function VirtualPurchaseForm({ onClose, updateWalletBalance }) {
                           isDarkMode ? "text-gray-400" : "text-gray-500"
                         }`}
                       >
-                        {selectedCurrency.symbol}
+                        {getCurrencySymbol(selectedCurrency)}
                       </span>
                       <input
                         type="number"
@@ -694,32 +595,6 @@ export default function VirtualPurchaseForm({ onClose, updateWalletBalance }) {
                         step="0.01"
                       />
                     </div>
-
-                    {/* Affichage du taux de change si CDF est sélectionné */}
-                    {selectedCurrency.code === "CDF" && (
-                      <div
-                        className={`mt-2 text-xs ${
-                          isDarkMode ? "text-gray-400" : "text-gray-600"
-                        }`}
-                      >
-                        {isLoadingRate ? (
-                          <span>Chargement du taux de change...</span>
-                        ) : (
-                          <span>
-                            Taux de change: 1 USD = {exchangeRate} CDF
-                          </span>
-                        )}
-                        {formData.amount &&
-                          !isNaN(parseFloat(formData.amount)) && (
-                            <div className="mt-1">
-                              Équivalent en USD: $
-                              {(
-                                parseFloat(formData.amount) / exchangeRate
-                              ).toFixed(2)}
-                            </div>
-                          )}
-                      </div>
-                    )}
                   </div>
 
                   {/* Affichage des frais */}
@@ -732,38 +607,23 @@ export default function VirtualPurchaseForm({ onClose, updateWalletBalance }) {
                       <div className="flex justify-between mb-2">
                         <span>Montant:</span>
                         <span>
-                          {selectedCurrency.symbol}
-                          {parseFloat(formData.amount).toFixed(2)}
+                          {parseFloat(formData.amount).toFixed(2)}{" "}{getCurrencySymbol(selectedCurrency)}
                         </span>
                       </div>
                       <div className="flex justify-between mb-2">
                         <span>Frais ({feePercentage}%):</span>
                         <span>
-                          {selectedCurrency.symbol}
-                          {purchaseFee.toFixed(2)}
+                          {purchaseFee.toFixed(2)}{" "}{getCurrencySymbol(selectedCurrency)}
                         </span>
                       </div>
                       <div className="flex justify-between font-semibold">
                         <span>Total à payer:</span>
                         <span>
-                          {selectedCurrency.symbol}
                           {(parseFloat(formData.amount) + purchaseFee).toFixed(
                             2
-                          )}
+                          )}{" "}{getCurrencySymbol(selectedCurrency)}
                         </span>
                       </div>
-
-                      {/* Affichage de la conversion si en CDF */}
-                      {selectedCurrency.code === "CDF" && (
-                        <div className="mt-2 pt-2 border-t border-gray-500">
-                          <div className="text-xs text-center">
-                            Équivalent en USD: $
-                            {(
-                              parseFloat(formData.amount) / exchangeRate
-                            ).toFixed(2)}
-                          </div>
-                        </div>
-                      )}
                     </div>
                   )}
                 </div>
@@ -1134,42 +994,24 @@ export default function VirtualPurchaseForm({ onClose, updateWalletBalance }) {
                     <div className="flex justify-between mb-2">
                       <span>Montant:</span>
                       <span>
-                        {selectedCurrency.symbol}
                         {parseFloat(formData.amount).toFixed(2)}
+                        {" "}{getCurrencySymbol(selectedCurrency)}
                       </span>
                     </div>
                     <div className="flex justify-between mb-2">
                       <span>Frais ({feePercentage}%):</span>
                       <span>
-                        {selectedCurrency.symbol}
                         {purchaseFee.toFixed(2)}
+                        {" "}{getCurrencySymbol(selectedCurrency)}
                       </span>
                     </div>
                     <div className="flex justify-between font-semibold">
                       <span>Total à payer:</span>
                       <span>
-                        {selectedCurrency.symbol}
                         {(parseFloat(formData.amount) + purchaseFee).toFixed(2)}
+                        {" "}{getCurrencySymbol(selectedCurrency)}
                       </span>
                     </div>
-
-                    {/* Affichage de la conversion si en CDF */}
-                    {selectedCurrency.code === "CDF" && (
-                      <div className="mt-2 pt-2 border-t border-gray-500">
-                        <div className="text-xs text-center">
-                          {isLoadingRate ? (
-                            <span>Chargement du taux de change...</span>
-                          ) : (
-                            <>
-                              Taux de change: 1 USD = {exchangeRate} CDF
-                              <br />
-                              Équivalent en USD: $
-                              {(formData.amount / exchangeRate).toFixed(2)}
-                            </>
-                          )}
-                        </div>
-                      </div>
-                    )}
                   </div>
 
                   <div
@@ -1239,7 +1081,7 @@ export default function VirtualPurchaseForm({ onClose, updateWalletBalance }) {
                     En cliquant sur "Confirmer", vous autorisez le prélèvement
                     de{" "}
                     <strong>
-                      {selectedCurrency.symbol}
+                      {getCurrencySymbol(selectedCurrency)}
                       {(parseFloat(formData.amount) + purchaseFee).toFixed(2)}
                     </strong>{" "}
                     {selectedPaymentType === paymentTypes.MOBILE_MONEY
@@ -1277,10 +1119,8 @@ export default function VirtualPurchaseForm({ onClose, updateWalletBalance }) {
                           <span>Montant crédité:</span>
                           <span>
                             {selectedCurrency.code === "USD"
-                              ? `$${transactionResult.amount}`
-                              : `FC ${(
-                                  transactionResult.amount * exchangeRate
-                                ).toFixed(2)}`}
+                              ? `$ ${transactionResult.amount}`
+                              : `FC ${transactionResult.amount}`}
                           </span>
                         </div>
                         <div className="flex justify-between mb-2">

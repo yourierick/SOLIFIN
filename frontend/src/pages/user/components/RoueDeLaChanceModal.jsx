@@ -320,99 +320,163 @@ const RoueDeLaChanceModal = ({ open, onClose, jeton, onResult }) => {
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       {/* Overlay avec effet de flou */}
       <div
-        className="fixed inset-0 bg-black/60 backdrop-blur-sm transition-opacity duration-300"
+        className="fixed inset-0 bg-black/60 backdrop-blur-md transition-opacity duration-300"
         onClick={!spinning ? handleClose : undefined}
       />
 
       {/* Conteneur du modal */}
       <div
-        className={`${
-          isDarkMode ? "bg-gray-800 text-white" : "bg-white text-gray-900"
-        } rounded-xl shadow-2xl w-full max-w-lg max-h-[90vh] flex flex-col z-10 m-4 overflow-hidden transition-all duration-300 transform`}
+        className={`relative w-full max-w-lg max-h-[90vh] flex flex-col z-10 m-4 overflow-hidden transition-all duration-300 transform`}
+        style={{
+          background: isDarkMode 
+            ? "linear-gradient(145deg, rgba(30, 41, 59, 0.95), rgba(51, 65, 85, 0.95))"
+            : "linear-gradient(145deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.98))",
+          backdropFilter: "blur(20px)",
+          border: `1px solid ${isDarkMode ? "rgba(148, 163, 184, 0.2)" : "rgba(203, 213, 225, 0.6)"}`,
+          borderRadius: "20px",
+          boxShadow: isDarkMode 
+            ? "0 25px 50px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.1)"
+            : "0 25px 50px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.9)",
+        }}
       >
+        {/* En-tête moderne */}
         <div
-          className={`flex justify-between items-center px-6 py-5 border-b ${
-            isDarkMode ? "border-gray-700" : "border-gray-200"
-          } bg-gradient-to-r ${
-            isDarkMode ? "from-gray-800 to-gray-700" : "from-gray-50 to-white"
-          }`}
+          className="relative px-6 py-5 border-b"
+          style={{
+            background: isDarkMode 
+              ? "linear-gradient(135deg, rgba(139, 92, 246, 0.1), rgba(124, 58, 237, 0.05))"
+              : "linear-gradient(135deg, rgba(124, 58, 237, 0.08), rgba(139, 92, 246, 0.02))",
+            borderColor: isDarkMode ? "rgba(148, 163, 184, 0.1)" : "rgba(203, 213, 225, 0.5)",
+          }}
         >
-          <h3 className="text-lg font-bold flex items-center">
-            <div className="bg-primary-100 dark:bg-primary-900/30 p-2 rounded-full mr-3">
-              <SparklesIcon className="h-5 w-5 text-primary-600 dark:text-primary-400" />
-            </div>
-            Roue de la Chance
-          </h3>
-          <button
-            onClick={!spinning ? handleClose : undefined}
-            className={`p-2 rounded-full ${
-              isDarkMode ? "hover:bg-gray-700" : "hover:bg-gray-100"
-            } transition-colors duration-150`}
-            disabled={spinning}
-            aria-label="Fermer"
-          >
-            <XMarkIcon className="h-5 w-5 text-gray-400 hover:text-gray-500 dark:text-gray-500 dark:hover:text-gray-400" />
-          </button>
+          <div className="flex justify-between items-center">
+            <h3 className="text-xl font-bold flex items-center" style={{ color: isDarkMode ? "#fff" : "#1a202c" }}>
+              <div 
+                className="p-2.5 rounded-xl mr-3 transition-all duration-300 hover:scale-110"
+                style={{
+                  background: `linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(124, 58, 237, 0.1))`,
+                }}
+              >
+                <SparklesIcon className="h-5 w-5" style={{ color: "#8b5cf6" }} />
+              </div>
+              Roue de la Chance
+            </h3>
+            <button
+              onClick={!spinning ? handleClose : undefined}
+              className="p-2.5 rounded-xl transition-all duration-300 hover:scale-110"
+              style={{
+                background: isDarkMode ? "rgba(148, 163, 184, 0.1)" : "rgba(100, 116, 139, 0.08)",
+                border: `1px solid ${isDarkMode ? "rgba(148, 163, 184, 0.15)" : "rgba(100, 116, 139, 0.1)"}`,
+              }}
+              disabled={spinning}
+              aria-label="Fermer"
+            >
+              <XMarkIcon className="h-5 w-5" style={{ color: isDarkMode ? "#94a3b8" : "#64748b" }} />
+            </button>
+          </div>
         </div>
 
-        <div className="px-6 py-4 flex-1 overflow-y-auto">
+        <div className="px-6 py-4 flex-1 overflow-y-auto" style={{ color: isDarkMode ? "#fff" : "#1a202c" }}>
           {loading ? (
             <div className="flex flex-col justify-center items-center h-64">
-              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-600 mb-4"></div>
-              <p className="text-gray-500 dark:text-gray-400">
+              <div 
+                className="animate-spin rounded-full h-12 w-12 border-2 border-t-transparent mb-4"
+                style={{ borderColor: "#8b5cf6", borderTopColor: "transparent" }}
+              ></div>
+              <p style={{ color: isDarkMode ? "#94a3b8" : "#64748b" }}>
                 Chargement des cadeaux...
               </p>
             </div>
           ) : error ? (
-            <div className="mb-4 p-4 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 rounded-lg flex items-center shadow-sm">
-              <div className="bg-red-200 dark:bg-red-800 p-2 rounded-full mr-3">
-                <ExclamationCircleIcon className="h-5 w-5 text-red-600 dark:text-red-400" />
+            <div className="mb-4 p-4 rounded-xl flex items-center shadow-sm" style={{
+              background: isDarkMode 
+                ? "linear-gradient(135deg, rgba(239, 68, 68, 0.15), rgba(220, 38, 38, 0.08))"
+                : "linear-gradient(135deg, rgba(252, 165, 165, 0.2), rgba(248, 113, 113, 0.1))",
+              border: `1px solid ${isDarkMode ? "rgba(239, 68, 68, 0.2)" : "rgba(252, 165, 165, 0.3)"}`,
+            }}>
+              <div 
+                className="p-2 rounded-xl mr-3"
+                style={{
+                  background: isDarkMode 
+                    ? "linear-gradient(135deg, rgba(239, 68, 68, 0.2), rgba(220, 38, 38, 0.1))"
+                    : "linear-gradient(135deg, rgba(252, 165, 165, 0.3), rgba(248, 113, 113, 0.15))",
+                }}
+              >
+                <ExclamationCircleIcon className="h-5 w-5" style={{ color: "#ef4444" }} />
               </div>
-              <p>{error}</p>
+              <p style={{ color: isDarkMode ? "#fca5a5" : "#dc2626" }}>{error}</p>
             </div>
           ) : (
             <div className="overflow-y-auto">
               {jeton && (
                 <div
-                  className={`mb-6 p-4 rounded-lg ${
-                    isDarkMode ? "bg-gray-700/50" : "bg-gray-50"
-                  } border ${
-                    isDarkMode ? "border-gray-600" : "border-gray-200"
-                  }`}
+                  className="mb-6 p-5 rounded-xl border"
+                  style={{
+                    background: isDarkMode 
+                      ? "linear-gradient(135deg, rgba(30, 41, 59, 0.6), rgba(51, 65, 85, 0.4))"
+                      : "linear-gradient(135deg, rgba(248, 250, 252, 0.8), rgba(241, 245, 249, 0.6))",
+                    borderColor: isDarkMode ? "rgba(148, 163, 184, 0.15)" : "rgba(203, 213, 225, 0.5)",
+                  }}
                 >
-                  <div className="flex items-center mb-2">
-                    <GiftIcon className="h-5 w-5 mr-2 text-primary-600 dark:text-primary-400" />
-                    <h4 className="font-semibold">Informations du jeton</h4>
+                  <div className="flex items-center mb-3">
+                    <div 
+                      className="p-2 rounded-xl mr-3"
+                      style={{
+                        background: `linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(124, 58, 237, 0.1))`,
+                      }}
+                    >
+                      <GiftIcon className="h-5 w-5" style={{ color: "#8b5cf6" }} />
+                    </div>
+                    <h4 className="font-semibold text-lg" style={{ color: isDarkMode ? "#fff" : "#1a202c" }}>
+                      Informations du jeton
+                    </h4>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
-                    <div className="space-y-1">
-                      <p className="text-xs uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                    <div className="space-y-2">
+                      <p className="text-xs uppercase tracking-wider" style={{ color: isDarkMode ? "#94a3b8" : "#64748b" }}>
                         Code unique
                       </p>
-                      <p className="font-mono font-medium text-sm bg-gray-100 dark:bg-gray-800 p-2 rounded border border-gray-200 dark:border-gray-600">
+                      <div 
+                        className="font-mono font-medium text-sm p-3 rounded-xl border"
+                        style={{
+                          background: isDarkMode 
+                            ? "linear-gradient(135deg, rgba(15, 23, 42, 0.8), rgba(30, 41, 59, 0.8))"
+                            : "linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(248, 250, 252, 0.9))",
+                          borderColor: isDarkMode ? "rgba(148, 163, 184, 0.2)" : "rgba(203, 213, 225, 0.5)",
+                          color: isDarkMode ? "#fff" : "#1a202c",
+                          letterSpacing: "0.05em",
+                        }}
+                      >
                         {jeton.code_unique}
-                      </p>
+                      </div>
                     </div>
 
                     {jeton.date_expiration && (
-                      <div className="space-y-1">
-                        <p className="text-xs uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                      <div className="space-y-2">
+                        <p className="text-xs uppercase tracking-wider" style={{ color: isDarkMode ? "#94a3b8" : "#64748b" }}>
                           Expire le
                         </p>
-                        <p className="font-medium flex items-center">
-                          <ClockIcon className="h-4 w-4 mr-1 text-amber-500" />
+                        <p className="font-medium flex items-center" style={{ color: isDarkMode ? "#fff" : "#1a202c" }}>
+                          <ClockIcon className="h-4 w-4 mr-2" style={{ color: "#f59e0b" }} />
                           {formatDate(jeton.date_expiration)}
                         </p>
                       </div>
                     )}
                   </div>
 
-                  <div className="mt-4 bg-primary-50 dark:bg-primary-900/20 p-3 rounded-lg border border-primary-100 dark:border-primary-900/30 flex items-center">
-                    <SparklesIcon className="h-5 w-5 text-primary-500 mr-2 flex-shrink-0" />
-                    <p className="text-sm text-primary-700 dark:text-primary-300">
-                      Cliquez sur "Tourner la roue" pour tenter votre chance et
-                      gagner un cadeau !
+                  <div 
+                    className="mt-4 p-3 rounded-xl border flex items-center"
+                    style={{
+                      background: isDarkMode 
+                        ? "linear-gradient(135deg, rgba(139, 92, 246, 0.1), rgba(124, 58, 237, 0.05))"
+                        : "linear-gradient(135deg, rgba(124, 58, 237, 0.08), rgba(139, 92, 246, 0.02))",
+                      borderColor: isDarkMode ? "rgba(139, 92, 246, 0.2)" : "rgba(124, 58, 237, 0.15)",
+                    }}
+                  >
+                    <SparklesIcon className="h-5 w-5 mr-2 flex-shrink-0" style={{ color: "#8b5cf6" }} />
+                    <p className="text-sm" style={{ color: isDarkMode ? "#c4b5fd" : "#6d28d9" }}>
+                      Cliquez sur "Tourner la roue" pour tenter votre chance et gagner un cadeau !
                     </p>
                   </div>
                 </div>
@@ -420,85 +484,170 @@ const RoueDeLaChanceModal = ({ open, onClose, jeton, onResult }) => {
 
               <div className="flex justify-center my-6" ref={wheelRef}>
                 <div className="relative">
-                  <canvas
-                    ref={canvasRef}
-                    width="300"
-                    height="300"
-                    className={`border-4 ${
-                      isDarkMode ? "border-gray-700" : "border-gray-200"
-                    } rounded-full shadow-lg ${
-                      spinning ? "animate-pulse" : ""
-                    }`}
-                  ></canvas>
+                  <div 
+                    className="relative rounded-full shadow-2xl overflow-hidden"
+                    style={{
+                      background: isDarkMode 
+                        ? "linear-gradient(145deg, rgba(30, 41, 59, 0.9), rgba(51, 65, 85, 0.9))"
+                        : "linear-gradient(145deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.98))",
+                      border: `4px solid ${isDarkMode ? "rgba(139, 92, 246, 0.3)" : "rgba(124, 58, 237, 0.2)"}`,
+                      backdropFilter: "blur(10px)",
+                    }}
+                  >
+                    <canvas
+                      ref={canvasRef}
+                      width="300"
+                      height="300"
+                      className={`rounded-full ${spinning ? "animate-pulse" : ""}`}
+                      style={{
+                        filter: spinning ? "brightness(1.1)" : "brightness(1)",
+                        transition: "filter 0.3s ease",
+                      }}
+                    ></canvas>
+                  </div>
 
-                  {/* Indicateur de position */}
+                  {/* Indicateur de position modernisé */}
                   <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
-                    <div className="w-0 h-0 border-l-8 border-r-8 border-t-12 border-l-transparent border-r-transparent border-t-red-500"></div>
+                    <div 
+                      className="relative"
+                      style={{
+                        filter: "drop-shadow(0 4px 6px rgba(0, 0, 0, 0.3))",
+                      }}
+                    >
+                      <div className="w-0 h-0 border-l-[16px] border-r-[16px] border-t-[24px] border-l-transparent border-r-transparent" 
+                           style={{ borderTopColor: "#ef4444" }}></div>
+                      <div className="absolute top-1 left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-[12px] border-r-[12px] border-t-[18px] border-l-transparent border-r-transparent" 
+                           style={{ borderTopColor: "#ffffff" }}></div>
+                    </div>
                   </div>
                 </div>
               </div>
 
               {result && (
-                <div className="mt-6 p-5 bg-green-50 dark:bg-green-900/20 text-green-800 dark:text-green-200 rounded-lg shadow-sm border border-green-200 dark:border-green-900/30">
-                  <div className="flex items-center justify-center mb-4">
-                    <div className="bg-green-100 dark:bg-green-800/50 p-3 rounded-full">
-                      <TrophyIcon className="h-8 w-8 text-green-600 dark:text-green-400" />
+                <div 
+                  className="mt-6 p-6 rounded-2xl shadow-lg border relative overflow-hidden"
+                  style={{
+                    background: isDarkMode 
+                      ? "linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(5, 150, 105, 0.08))"
+                      : "linear-gradient(135deg, rgba(134, 239, 172, 0.3), rgba(74, 222, 128, 0.15))",
+                    borderColor: isDarkMode ? "rgba(16, 185, 129, 0.2)" : "rgba(134, 239, 172, 0.4)",
+                  }}
+                >
+                  {/* Effet de brillance */}
+                  <div 
+                    className="absolute inset-0 opacity-50"
+                    style={{
+                      background: "linear-gradient(135deg, rgba(255,255,255,0.1), transparent)",
+                    }}
+                  ></div>
+                  
+                  <div className="relative z-10">
+                    <div className="flex items-center justify-center mb-4">
+                      <div 
+                        className="p-3 rounded-2xl"
+                        style={{
+                          background: isDarkMode 
+                            ? "linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(5, 150, 105, 0.1))"
+                            : "linear-gradient(135deg, rgba(134, 239, 172, 0.4), rgba(74, 222, 128, 0.2))",
+                        }}
+                      >
+                        <TrophyIcon className="h-8 w-8" style={{ color: "#10b981" }} />
+                      </div>
                     </div>
-                  </div>
 
-                  <h4 className="font-bold text-xl mb-3 text-center">
-                    Félicitations !
-                  </h4>
+                    <h4 className="font-bold text-2xl mb-3 text-center" style={{ color: isDarkMode ? "#fff" : "#064e3b" }}>
+                      Félicitations !
+                    </h4>
 
-                  <div className="text-center mb-4">
-                    <p className="text-lg mb-2">Vous avez gagné :</p>
-                    <p className="font-bold text-xl text-primary-700 dark:text-primary-400">
-                      {result.cadeau?.nom}
-                    </p>
-                  </div>
+                    <div className="text-center mb-4">
+                      <p className="text-lg mb-2" style={{ color: isDarkMode ? "#d1fae5" : "#047857" }}>
+                        Vous avez gagné :
+                      </p>
+                      <p 
+                        className="font-bold text-xl"
+                        style={{ color: isDarkMode ? "#a7f3d0" : "#059669" }}
+                      >
+                        {result.cadeau?.nom}
+                      </p>
+                    </div>
 
-                  {result.cadeau?.image_url && (
-                    <div className="flex justify-center my-4">
-                      <div className="relative">
-                        <img
-                          src={result.cadeau.image_url}
-                          alt={result.cadeau.nom}
-                          className="h-24 w-24 object-cover rounded-lg shadow-md border-2 border-white dark:border-gray-700"
-                        />
-                        <div className="absolute -bottom-2 -right-2 bg-green-100 dark:bg-green-800 p-1 rounded-full border-2 border-white dark:border-gray-700">
-                          <CheckCircleIcon className="h-5 w-5 text-green-600 dark:text-green-400" />
+                    {result.cadeau?.image_url && (
+                      <div className="flex justify-center my-4">
+                        <div className="relative">
+                          <img
+                            src={result.cadeau.image_url}
+                            alt={result.cadeau.nom}
+                            className="h-24 w-24 object-cover rounded-2xl shadow-md border-2"
+                            style={{
+                              borderColor: isDarkMode ? "rgba(16, 185, 129, 0.3)" : "rgba(134, 239, 172, 0.5)",
+                            }}
+                          />
+                          <div 
+                            className="absolute -bottom-2 -right-2 p-1 rounded-full border-2"
+                            style={{
+                              background: isDarkMode 
+                                ? "linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(5, 150, 105, 0.1))"
+                                : "linear-gradient(135deg, rgba(134, 239, 172, 0.4), rgba(74, 222, 128, 0.2))",
+                              borderColor: isDarkMode ? "rgba(16, 185, 129, 0.3)" : "rgba(134, 239, 172, 0.5)",
+                            }}
+                          >
+                            <CheckCircleIcon className="h-5 w-5" style={{ color: "#10b981" }} />
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  )}
+                    )}
 
-                  <div className="bg-white dark:bg-gray-800 rounded-lg p-4 mt-4 border border-gray-200 dark:border-gray-700">
-                    <div className="space-y-3">
-                      <div>
-                        <p className="text-xs uppercase tracking-wider text-gray-500 dark:text-gray-400">
-                          Code de vérification
-                        </p>
-                        <p className="font-mono font-bold text-lg bg-gray-50 dark:bg-gray-900 p-2 rounded border border-gray-200 dark:border-gray-700 text-center">
-                          {result.code_verification}
-                        </p>
+                    <div 
+                      className="rounded-2xl p-4 mt-4 border"
+                      style={{
+                        background: isDarkMode 
+                          ? "linear-gradient(135deg, rgba(30, 41, 59, 0.8), rgba(51, 65, 85, 0.8))"
+                          : "linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(248, 250, 252, 0.9))",
+                        borderColor: isDarkMode ? "rgba(148, 163, 184, 0.2)" : "rgba(203, 213, 225, 0.5)",
+                      }}
+                    >
+                      <div className="space-y-4">
+                        <div>
+                          <p className="text-xs uppercase tracking-wider mb-2" style={{ color: isDarkMode ? "#94a3b8" : "#64748b" }}>
+                            Code de vérification
+                          </p>
+                          <div 
+                            className="font-mono font-bold text-lg p-3 rounded-xl border text-center"
+                            style={{
+                              background: isDarkMode 
+                                ? "linear-gradient(135deg, rgba(15, 23, 42, 0.8), rgba(30, 41, 59, 0.8))"
+                                : "linear-gradient(135deg, rgba(248, 250, 252, 0.9), rgba(241, 245, 249, 0.9))",
+                              borderColor: isDarkMode ? "rgba(148, 163, 184, 0.2)" : "rgba(203, 213, 225, 0.5)",
+                              color: isDarkMode ? "#fff" : "#1a202c",
+                              letterSpacing: "0.05em",
+                            }}
+                          >
+                            {result.code_verification}
+                          </div>
+                        </div>
+
+                        <div>
+                          <p className="text-xs uppercase tracking-wider mb-2" style={{ color: isDarkMode ? "#94a3b8" : "#64748b" }}>
+                            Date d'expiration
+                          </p>
+                          <p className="font-medium flex items-center justify-center" style={{ color: isDarkMode ? "#fff" : "#1a202c" }}>
+                            <CalendarIcon className="h-4 w-4 mr-2" style={{ color: "#ef4444" }} />
+                            {formatDate(result.date_expiration)}
+                          </p>
+                        </div>
                       </div>
 
-                      <div>
-                        <p className="text-xs uppercase tracking-wider text-gray-500 dark:text-gray-400">
-                          Date d'expiration
-                        </p>
-                        <p className="font-medium flex items-center justify-center">
-                          <CalendarIcon className="h-4 w-4 mr-1 text-red-500" />
-                          {formatDate(result.date_expiration)}
+                      <div 
+                        className="mt-4 pt-4 border-t text-center text-sm"
+                        style={{
+                          borderColor: isDarkMode ? "rgba(148, 163, 184, 0.2)" : "rgba(203, 213, 225, 0.5)",
+                          color: isDarkMode ? "#94a3b8" : "#64748b",
+                        }}
+                      >
+                        <p>
+                          Veuillez présenter ce code au personnel avant sa date d'expiration
                         </p>
                       </div>
-                    </div>
-
-                    <div className="mt-4 pt-3 border-t border-gray-200 dark:border-gray-700 text-center text-sm text-gray-600 dark:text-gray-400">
-                      <p>
-                        Veuillez présenter ce code au personnel avant sa date
-                        d'expiration
-                      </p>
                     </div>
                   </div>
                 </div>
@@ -508,45 +657,65 @@ const RoueDeLaChanceModal = ({ open, onClose, jeton, onResult }) => {
         </div>
 
         <div
-          className={`px-6 py-5 ${
-            isDarkMode ? "bg-gray-700" : "bg-gray-50"
-          } flex justify-center border-t ${
-            isDarkMode ? "border-gray-600" : "border-gray-200"
-          }`}
+          className="px-6 py-5 flex justify-center border-t"
+          style={{
+            background: isDarkMode 
+              ? "linear-gradient(135deg, rgba(30, 41, 59, 0.6), rgba(51, 65, 85, 0.4))"
+              : "linear-gradient(135deg, rgba(248, 250, 252, 0.8), rgba(241, 245, 249, 0.6))",
+            borderColor: isDarkMode ? "rgba(148, 163, 184, 0.15)" : "rgba(203, 213, 225, 0.5)",
+          }}
         >
           <button
             onClick={spinWheel}
-            disabled={spinning || loading || !jeton || result}
-            className={`px-5 py-2.5 rounded-lg flex items-center justify-center font-medium shadow-sm transition-all duration-200 ${
-              spinning || loading || !jeton || result
+            disabled={spinning || loading || !jeton || result || cadeaux.length < 2}
+            className={`px-6 py-3 rounded-2xl flex items-center justify-center font-medium shadow-lg transition-all duration-300 relative overflow-hidden group/btn ${
+              spinning || loading || !jeton || result || cadeaux.length < 2
                 ? "opacity-50 cursor-not-allowed"
-                : "hover:shadow transform hover:-translate-y-0.5"
-            } ${
-              isDarkMode
-                ? result
-                  ? "bg-green-600 text-white"
-                  : "bg-primary-600 hover:bg-primary-700 text-white"
-                : result
-                ? "bg-green-600 text-white"
-                : "bg-primary-600 hover:bg-primary-700 text-white"
+                : "hover:shadow-xl hover:scale-105"
             }`}
+            style={{
+              background: result
+                ? "linear-gradient(135deg, #10b981, #059669)"
+                : cadeaux.length < 2
+                ? isDarkMode 
+                  ? "linear-gradient(135deg, #6b7280, #4b5563)"
+                  : "linear-gradient(135deg, #9ca3af, #6b7280)"
+                : "linear-gradient(135deg, #8b5cf6, #7c3aed)",
+              color: "white",
+              minWidth: "180px",
+            }}
           >
-            {spinning ? (
-              <>
-                <div className="animate-spin rounded-full h-5 w-5 border-2 border-white mr-2"></div>
-                <span>La roue tourne...</span>
-              </>
-            ) : result ? (
-              <>
-                <CheckCircleIcon className="h-5 w-5 mr-2" />
-                <span>Cadeau gagné !</span>
-              </>
-            ) : (
-              <>
-                <SparklesIcon className="h-5 w-5 mr-2" />
-                <span>Tourner la roue</span>
-              </>
-            )}
+            <span className="relative z-10 flex items-center justify-center gap-2">
+              {spinning ? (
+                <>
+                  <div className="animate-spin rounded-full h-5 w-5 border-2 border-white mr-2" style={{ borderTopColor: "transparent" }}></div>
+                  <span>La roue tourne...</span>
+                </>
+              ) : result ? (
+                <>
+                  <CheckCircleIcon className="h-5 w-5" />
+                  <span>Cadeau gagné !</span>
+                </>
+              ) : cadeaux.length < 2 ? (
+                <>
+                  <ExclamationCircleIcon className="h-5 w-5" />
+                  <span>Pas assez de cadeaux</span>
+                </>
+              ) : (
+                <>
+                  <SparklesIcon className="h-5 w-5" />
+                  <span>Tourner la roue</span>
+                </>
+              )}
+            </span>
+            
+            {/* Effet de brillance au hover */}
+            <div 
+              className="absolute inset-0 opacity-0 group-hover/btn:opacity-20 transition-opacity duration-300 pointer-events-none"
+              style={{
+                background: "linear-gradient(135deg, rgba(255,255,255,0.3), transparent)",
+              }}
+            ></div>
           </button>
         </div>
       </div>

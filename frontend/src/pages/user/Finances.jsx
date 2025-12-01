@@ -94,7 +94,7 @@ const Finances = () => {
   const isDarkMode = theme.palette.mode === "dark";
   const isSmallScreen = useMediaQuery(theme.breakpoints.down("md"));
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
-  const { isCDFEnabled, canUseCDF } = useCurrency();
+  const { isCDFEnabled, canUseCDF, selectedCurrency } = useCurrency();
 
   // Références
   const tabsRef = useRef(null);
@@ -148,7 +148,6 @@ const Finances = () => {
   const [statsFilters, setStatsFilters] = useState({
     date_from: "",
     date_to: "",
-    currency: "", // Ajout du filtre de devise
   });
 
   // États pour la fenêtre modale des détails de transaction
@@ -163,11 +162,6 @@ const Finances = () => {
     "commission de parrainage",
     "commission de retrait",
     "purchase",
-  ];
-
-  const currencyOptions = [
-    { value: "USD", label: "USD" },
-    ...(canUseCDF() ? [{ value: "CDF", label: "CDF" }] : []),
   ];
 
   // État pour stocker les packs distincts
@@ -256,7 +250,15 @@ const Finances = () => {
       setLoading((prev) => ({ ...prev, summary: true }));
       setError((prev) => ({ ...prev, summary: null }));
 
-      const response = await axios.get("/api/user/finances/summary");
+      // Inclure la devise dans les paramètres de l'API
+      const params = new URLSearchParams();
+      if (isCDFEnabled) {
+        params.append('currency', selectedCurrency);
+      } else {
+        params.append('currency', 'USD');
+      }
+
+      const response = await axios.get(`/api/user/finances/summary?${params.toString()}`);
 
       if (!response.data || !response.data.success) {
         throw new Error(
@@ -299,6 +301,13 @@ const Finances = () => {
         ...statsFilters,
       };
 
+      // Inclure la devise dans les paramètres
+      if (isCDFEnabled) {
+        params.currency = selectedCurrency;
+      } else {
+        params.currency = 'USD';
+      }
+
       const response = await axios.get("/api/user/finances/stats-by-type", {
         params,
       });
@@ -323,7 +332,7 @@ const Finances = () => {
     } finally {
       setLoading((prev) => ({ ...prev, transactionStats: false }));
     }
-  }, [statsFilters]);
+  }, [statsFilters, selectedCurrency, isCDFEnabled]);
 
   // Gestionnaire de changement de filtre pour les statistiques
   const handleStatsFilterChange = useCallback((name, value) => {
@@ -357,14 +366,14 @@ const Finances = () => {
   useEffect(() => {
     fetchSummary();
     fetchTransactionStatsByType();
-  }, [fetchSummary, fetchTransactionStatsByType]);
+  }, [fetchSummary, fetchTransactionStatsByType, selectedCurrency]); // Recharger quand la devise change
 
   // Effet pour charger les statistiques lorsque les filtres changent
   useEffect(() => {
     if (activeTab === 2) {
       fetchTransactionStatsByType();
     }
-  }, [activeTab, statsFilters, fetchTransactionStatsByType]);
+  }, [activeTab, statsFilters, fetchTransactionStatsByType, selectedCurrency]);
 
   // Données pour le graphique des transactions
   const transactionChartData = useMemo(() => {
@@ -392,8 +401,8 @@ const Finances = () => {
 
     return transactionStats
       .filter((stat) => {
-        // Si CDF n'est pas disponible et que la statistique est en CDF, l'ignorer
-        return canUseCDF() || stat.currency !== "CDF";
+        // Filtrer selon la devise sélectionnée
+        return stat.currency === selectedCurrency;
       })
       .map((stat) => {
         const typeName =
@@ -406,7 +415,7 @@ const Finances = () => {
             : stat.type === "reception"
             ? "Réception"
             : stat.type === "commission de parrainage"
-            ? "Com. Parrainage"
+            ? "Parrainage"
             : stat.type === "commission de retrait"
             ? "Com. Retrait"
             : stat.type === "commission de transfert"
@@ -418,13 +427,13 @@ const Finances = () => {
             : stat.type;
 
         return {
-          name: `${typeName} (${stat.currency || ""})`,
+          name: `${typeName}`,
           montant: parseFloat(stat.total_amount || 0),
           count: parseInt(stat.count || 0),
           currency: stat.currency || "",
         };
       });
-  }, [transactionStats, canUseCDF]);
+  }, [transactionStats, selectedCurrency]);
 
   // Composant pour afficher les détails d'une transaction dans une fenêtre modale
   const TransactionDetailsModal = () => {
@@ -712,8 +721,8 @@ const Finances = () => {
       }
 
       const groupedByType = transactionStats.reduce((acc, stat) => {
-        // Si CDF n'est pas disponible et que la statistique est en CDF, l'ignorer
-        if (!canUseCDF() && stat.currency === "CDF") {
+        // Filtrer selon la devise sélectionnée
+        if (stat.currency !== selectedCurrency) {
           return acc;
         }
 
@@ -742,12 +751,15 @@ const Finances = () => {
           case "virtual_purchase":
             displayName = "Virtuels";
             break;
+          case "digital_product_sale":
+            displayName = "Vente";
+            break;
           default:
             displayName = stat.type;
         }
 
         // Ajouter la devise au nom pour la distinction
-        const nameWithCurrency = `${displayName} (${stat.currency || ""})`;
+        const nameWithCurrency = `${displayName}`;
 
         // Déterminer si c'est une dépense (rouge) ou un revenu (vert)
         const isExpense = ["withdrawal", "transfer", "purchase"].includes(
@@ -770,7 +782,7 @@ const Finances = () => {
       }, {});
 
       return Object.values(groupedByType);
-    }, [transactionStats, canUseCDF]);
+    }, [transactionStats, selectedCurrency]);
 
     return (
       <Paper
@@ -994,8 +1006,7 @@ const Finances = () => {
         </Box>
         <Box sx={{ mt: 2, display: "flex", justifyContent: "center" }}>
           <Typography variant="caption" color="text.secondary" align="center">
-            Les montants sont affichés par devise (USD
-            {canUseCDF() ? " et CDF" : ""}) selon le filtre sélectionné
+            Les montants sont affichés en {selectedCurrency} selon la sélection globale
           </Typography>
         </Box>
       </Paper>
@@ -1294,17 +1305,19 @@ const Finances = () => {
                   </Box>
                 </Box>
 
-                {/* Solde USD */}
+                {/* Solde selon devise sélectionnée */}
                 <Box sx={{ mb: 2 }}>
                   <Typography
                     variant="caption"
                     sx={{
-                      color: isDarkMode ? "#60a5fa" : "#2563eb",
+                      color: selectedCurrency === "USD" 
+                        ? (isDarkMode ? "#60a5fa" : "#2563eb")
+                        : (isDarkMode ? "#34d399" : "#059669"),
                       fontWeight: 600,
                       fontSize: "0.75rem",
                     }}
                   >
-                    Dollars Américains (USD)
+                    {selectedCurrency === "USD" ? "Dollars Américains (USD)" : "Francs Congolais (CDF)"}
                   </Typography>
                   <Typography
                     variant="h5"
@@ -1312,11 +1325,18 @@ const Finances = () => {
                     sx={{
                       fontSize: "1.4rem",
                       fontWeight: 700,
-                      color: isDarkMode ? "#60a5fa" : "#2563eb",
+                      color: selectedCurrency === "USD" 
+                        ? (isDarkMode ? "#60a5fa" : "#2563eb")
+                        : (isDarkMode ? "#34d399" : "#059669"),
                       mb: 1,
                     }}
                   >
-                    {formatAmount(walletBalance.balance_usd)}
+                    {selectedCurrency === "USD" 
+                      ? formatAmount(walletBalance.balance_usd)
+                      : new Intl.NumberFormat("fr-FR", {
+                          style: "currency",
+                          currency: "CDF",
+                        }).format(walletBalance.balance_cdf)}
                   </Typography>
                   <Box sx={{ display: "flex", gap: 2, fontSize: "0.85rem" }}>
                     <Typography
@@ -1324,74 +1344,27 @@ const Finances = () => {
                       color="success.main"
                       fontWeight={500}
                     >
-                      +{formatAmount(walletBalance.totalEarned_usd)}
+                      +{selectedCurrency === "USD" 
+                        ? formatAmount(walletBalance.totalEarned_usd)
+                        : new Intl.NumberFormat("fr-FR", {
+                            style: "currency",
+                            currency: "CDF",
+                          }).format(walletBalance.totalEarned_cdf)}
                     </Typography>
                     <Typography
                       variant="body2"
                       color="error.main"
                       fontWeight={500}
                     >
-                      -{formatAmount(walletBalance.totalWithdrawn_usd)}
+                      -{selectedCurrency === "USD" 
+                        ? formatAmount(walletBalance.totalWithdrawn_usd)
+                        : new Intl.NumberFormat("fr-FR", {
+                            style: "currency",
+                            currency: "CDF",
+                          }).format(walletBalance.totalWithdrawn_cdf)}
                     </Typography>
                   </Box>
                 </Box>
-
-                <Divider sx={{ my: 2 }} />
-
-                {/* Solde CDF */}
-                {canUseCDF() && (
-                  <Box>
-                    <Typography
-                      variant="caption"
-                      sx={{
-                        color: isDarkMode ? "#34d399" : "#059669",
-                        fontWeight: 600,
-                        fontSize: "0.75rem",
-                      }}
-                    >
-                      Francs Congolais (CDF)
-                    </Typography>
-                    <Typography
-                      variant="h5"
-                      component="div"
-                      sx={{
-                        fontSize: "1.4rem",
-                        fontWeight: 700,
-                        color: isDarkMode ? "#34d399" : "#059669",
-                        mb: 1,
-                      }}
-                    >
-                      {new Intl.NumberFormat("fr-FR", {
-                        style: "currency",
-                        currency: "CDF",
-                      }).format(walletBalance.balance_cdf)}
-                    </Typography>
-                    <Box sx={{ display: "flex", gap: 2, fontSize: "0.85rem" }}>
-                      <Typography
-                        variant="body2"
-                        color="success.main"
-                        fontWeight={500}
-                      >
-                        +
-                        {new Intl.NumberFormat("fr-FR", {
-                          style: "currency",
-                          currency: "CDF",
-                        }).format(walletBalance.totalEarned_cdf)}
-                      </Typography>
-                      <Typography
-                        variant="body2"
-                        color="error.main"
-                        fontWeight={500}
-                      >
-                        -
-                        {new Intl.NumberFormat("fr-FR", {
-                          style: "currency",
-                          currency: "CDF",
-                        }).format(walletBalance.totalWithdrawn_cdf)}
-                      </Typography>
-                    </Box>
-                  </Box>
-                )}
               </CardContent>
             </Card>
           </Grid>
@@ -1834,31 +1807,7 @@ const Finances = () => {
                       }}
                     />
                   </Grid>
-                  <Grid item xs={12} sm={6} md={3}>
-                    <FormControl fullWidth size="small">
-                      <InputLabel>Devise</InputLabel>
-                      <Select
-                        value={statsFilters.currency || ""}
-                        onChange={(e) =>
-                          handleStatsFilterChange("currency", e.target.value)
-                        }
-                        label="Devise"
-                        sx={{
-                          "& .MuiOutlinedInput-root": {
-                            borderRadius: 2,
-                          },
-                        }}
-                      >
-                        <MenuItem value="">Toutes</MenuItem>
-                        {currencyOptions.map((option) => (
-                          <MenuItem key={option.value} value={option.value}>
-                            {option.label}
-                          </MenuItem>
-                        ))}
-                      </Select>
-                    </FormControl>
-                  </Grid>
-                  <Grid item xs={12} sm={12} md={3}>
+                  <Grid item xs={12} sm={12} md={6}>
                     <Button
                       variant="contained"
                       color="primary"
@@ -1937,8 +1886,15 @@ const Finances = () => {
                   }}
                 >
                   {isMobile
-                    ? "Statistiques"
-                    : "Statistiques par type de transaction"}
+                    ? `Statistiques (${selectedCurrency})`
+                    : `Statistiques par type de transaction (${selectedCurrency})`}
+                </Typography>
+              </Box>
+              
+              {/* Indication de la devise utilisée */}
+              <Box sx={{ mb: 2, display: "flex", justifyContent: "center" }}>
+                <Typography variant="caption" color="text.secondary" align="center">
+                  Les statistiques sont affichées en {selectedCurrency} selon la sélection globale
                 </Typography>
               </Box>
 
@@ -2320,8 +2276,8 @@ const Finances = () => {
                     ) : (
                       transactionStats
                         .filter((stat) => {
-                          // Si CDF n'est pas disponible et que la statistique est en CDF, l'ignorer
-                          return canUseCDF() || stat.currency !== "CDF";
+                          // Filtrer selon la devise sélectionnée
+                          return stat.currency === selectedCurrency;
                         })
                         .map((stat, index) => (
                           <TableRow key={index} hover>

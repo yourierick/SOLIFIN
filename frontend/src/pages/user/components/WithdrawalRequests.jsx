@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import axios from "axios";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
+import { useCurrency } from "../../../contexts/CurrencyContext";
 import {
   Box,
   Typography,
@@ -42,6 +43,7 @@ import {
   Slide,
   Zoom,
   alpha,
+  ButtonGroup,
 } from "@mui/material";
 import {
   Delete as DeleteIcon,
@@ -70,6 +72,9 @@ const WithdrawalRequests = () => {
   const isDarkMode = theme.palette.mode === "dark";
   const isSmallScreen = useMediaQuery(theme.breakpoints.down("md"));
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+  
+  // Context de devise
+  const { selectedCurrency, isCDFEnabled } = useCurrency();
 
   // États pour les données
   const [withdrawalRequests, setWithdrawalRequests] = useState([]);
@@ -87,15 +92,30 @@ const WithdrawalRequests = () => {
     page: 0,
     totalPages: 0,
     totalItems: 0,
-    perPage: 10,
+    perPage: 25,
   });
+
+  // États pour la pagination Material-UI
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(25);
+
+  const handleChangePage = (event, newPage) => {
+    setPage(newPage);
+    setPagination(prev => ({ ...prev, page: newPage }));
+  };
+
+  const handleChangeRowsPerPage = (event) => {
+    const newRowsPerPage = parseInt(event.target.value, 10);
+    setRowsPerPage(newRowsPerPage);
+    setPagination(prev => ({ ...prev, perPage: newRowsPerPage, page: 0 }));
+    setPage(0);
+  };
 
   // États pour les filtres
   const [filters, setFilters] = useState({
     status: "",
     payment_status: "",
     payment_method: "",
-    currency: "", // Ajout du filtre de monnaie
     start_date: "", // Changé de date_from
     end_date: "", // Changé de date_to
     search: "",
@@ -133,11 +153,6 @@ const WithdrawalRequests = () => {
     { value: "visa", label: "Visa" },
     { value: "mastercard", label: "Mastercard" },
     { value: "americanexpress", label: "American Express" },
-  ];
-
-  const currencyOptions = [
-    { value: "USD", label: "USD" },
-    { value: "CDF", label: "CDF" },
   ];
 
   const getPaymentMethodIcon = (paymentMethod) => {
@@ -200,12 +215,13 @@ const WithdrawalRequests = () => {
       setError(null);
 
       const params = {
-        page: pagination.page + 1,
-        per_page: pagination.perPage,
+        page: page + 1, // Utiliser la page Material-UI
+        per_page: rowsPerPage, // Utiliser rowsPerPage Material-UI
+        currency: selectedCurrency, // Utiliser la devise du contexte
         ...filters,
       };
 
-      console.log("Filters envoyés à l'API:", filters);
+      console.log("Filters envoyés à l'API:", { ...params, currency: selectedCurrency });
 
       const response = await axios.get("/api/withdrawal/requests", { params });
 
@@ -241,7 +257,7 @@ const WithdrawalRequests = () => {
     } finally {
       setLoading(false);
     }
-  }, [filters, pagination.page, pagination.perPage]);
+  }, [page, rowsPerPage, filters, selectedCurrency]); // Utiliser les états Material-UI
 
   // Fonction pour annuler une demande de retrait
   const cancelWithdrawalRequest = async () => {
@@ -295,13 +311,8 @@ const WithdrawalRequests = () => {
     }
   };
 
-  // Gestionnaire de changement de page
-  const handlePageChange = (event, newPage) => {
-    setPagination((prev) => ({
-      ...prev,
-      page: newPage,
-    }));
-  };
+  // Gestionnaire de changement de page (remplacé par les gestionnaires Material-UI)
+  // La fonction handleChangePage est déjà déclarée plus haut
 
   // Gestionnaire de changement de filtre
   const handleFilterChange = (name, value) => {
@@ -390,6 +401,23 @@ const WithdrawalRequests = () => {
   useEffect(() => {
     fetchWithdrawalRequests();
   }, [fetchWithdrawalRequests]);
+
+  // Effet pour recharger les données lorsque la devise change
+  useEffect(() => {
+    // Réinitialiser la pagination Material-UI et recharger les données
+    setPage(0);
+    setRowsPerPage(25); // Corrigé: 25 au lieu de 10
+    setPagination(prev => ({ ...prev, page: 0, perPage: 25 })); // Corrigé: 25 au lieu de 10
+    fetchWithdrawalRequests();
+  }, [selectedCurrency]);
+
+  // Effet pour recharger les données lorsque les filtres changent
+  useEffect(() => {
+    // Réinitialiser la page à 0 quand les filtres changent
+    setPage(0);
+    setPagination(prev => ({ ...prev, page: 0 }));
+    fetchWithdrawalRequests();
+  }, [filters]);
 
   // Rendu des filtres
   const renderFilters = () => {
@@ -577,38 +605,7 @@ const WithdrawalRequests = () => {
                   </Select>
                 </FormControl>
               </Grid>
-              <Grid item xs={12} sm={6} md={2}>
-                <FormControl fullWidth size="small">
-                  <InputLabel>Monnaie</InputLabel>
-                  <Select
-                    value={filters.currency}
-                    onChange={(e) =>
-                      handleFilterChange("currency", e.target.value)
-                    }
-                    label="Monnaie"
-                    sx={{
-                      borderRadius: 2,
-                      "& .MuiOutlinedInput-root": {
-                        transition: "all 0.3s ease",
-                        "&:hover": {
-                          boxShadow: `0 4px 12px ${alpha(
-                            theme.palette.primary.main,
-                            0.15
-                          )}`,
-                        },
-                      },
-                    }}
-                  >
-                    <MenuItem value="">Toutes</MenuItem>
-                    {currencyOptions.map((option) => (
-                      <MenuItem key={option.value} value={option.value}>
-                        {option.label}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-              </Grid>
-              <Grid item xs={12} sm={6} md={2}>
+                            <Grid item xs={12} sm={6} md={2}>
                 <TextField
                   fullWidth
                   label="Date de début"
@@ -659,58 +656,6 @@ const WithdrawalRequests = () => {
                     },
                   }}
                 />
-              </Grid>
-              <Grid item xs={12} sm={8} md={4}>
-                <TextField
-                  fullWidth
-                  label="Rechercher"
-                  size="small"
-                  value={filters.search}
-                  onChange={(e) => handleFilterChange("search", e.target.value)}
-                  InputProps={{
-                    startAdornment: (
-                      <SearchIcon sx={{ color: "action.active", mr: 1 }} />
-                    ),
-                  }}
-                  variant="outlined"
-                  placeholder="Rechercher par ID, montant..."
-                  sx={{
-                    "& .MuiOutlinedInput-root": {
-                      borderRadius: 2,
-                      transition: "all 0.3s ease",
-                      "&:hover": {
-                        boxShadow: `0 4px 12px ${alpha(
-                          theme.palette.primary.main,
-                          0.15
-                        )}`,
-                      },
-                    },
-                  }}
-                />
-              </Grid>
-              <Grid item xs={12} sm={4} md={2}>
-                <Button
-                  variant="contained"
-                  color="primary"
-                  onClick={fetchWithdrawalRequests}
-                  fullWidth
-                  sx={{
-                    height: "40px",
-                    borderRadius: 2,
-                    textTransform: "none",
-                    fontWeight: 600,
-                    background:
-                      "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-                    "&:hover": {
-                      background:
-                        "linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%)",
-                      transform: "translateY(-1px)",
-                    },
-                  }}
-                  startIcon={<RefreshIcon />}
-                >
-                  Appliquer
-                </Button>
               </Grid>
             </Grid>
           </CardContent>
@@ -787,7 +732,7 @@ const WithdrawalRequests = () => {
                 WebkitTextFillColor: "transparent",
               }}
             >
-              Aucune demande de retrait
+              Aucune demande de retrait {selectedCurrency}
             </Typography>
             <Typography
               variant="body1"
@@ -1062,12 +1007,13 @@ const WithdrawalRequests = () => {
               <TablePagination
                 component="div"
                 count={pagination.totalItems}
-                page={pagination.page}
-                onPageChange={handlePageChange}
-                rowsPerPage={pagination.perPage}
-                rowsPerPageOptions={[10]}
+                page={page}
+                onPageChange={handleChangePage}
+                rowsPerPage={rowsPerPage}
+                onRowsPerPageChange={handleChangeRowsPerPage}
+                rowsPerPageOptions={[5, 10, 25, 50]}
                 labelDisplayedRows={({ from, to, count }) =>
-                  `${from}-${to} sur ${count}`
+                  `${from}-${to} sur ${count} ${selectedCurrency}`
                 }
                 sx={{
                   "& .MuiTablePagination-toolbar": {
@@ -1131,133 +1077,67 @@ const WithdrawalRequests = () => {
           )}
           <TableContainer
             sx={{
-              background: isDarkMode
-                ? "linear-gradient(135deg, rgba(31, 41, 55, 0.9) 0%, rgba(17, 24, 39, 0.9) 100%)"
-                : "linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(249, 250, 251, 0.9) 100%)",
-              backdropFilter: "blur(20px)",
-              border: `1px solid ${alpha(theme.palette.primary.main, 0.1)}`,
               boxShadow: isDarkMode
-                ? "0 8px 32px rgba(0, 0, 0, 0.3)"
-                : "0 8px 32px rgba(0, 0, 0, 0.1)",
-              overflowX: "auto",
+                ? "none"
+                : "0 2px 10px rgba(0, 0, 0, 0.05)",
+              borderRadius: { xs: 1.5, sm: 2 },
+              overflow: "auto",
+              maxWidth: "100%",
               "&::-webkit-scrollbar": {
-                height: 8,
+                height: { xs: 4, sm: 6 },
+                width: { xs: 4, sm: 6 },
               },
               "&::-webkit-scrollbar-track": {
-                background: "transparent",
-                borderRadius: 10,
+                backgroundColor: isDarkMode
+                  ? "rgba(55, 65, 81, 0.4)"
+                  : "rgba(0, 0, 0, 0.06)",
+                borderRadius: { xs: 2, sm: 3 },
               },
               "&::-webkit-scrollbar-thumb": {
-                background: isDarkMode
-                  ? alpha(theme.palette.grey[600], 0.5)
-                  : alpha(theme.palette.grey[400], 0.5),
-                borderRadius: 10,
-                border: "2px solid transparent",
+                backgroundColor: isDarkMode
+                  ? "rgba(156, 163, 175, 0.6)"
+                  : "rgba(156, 163, 175, 0.4)",
+                borderRadius: { xs: 2, sm: 3 },
                 "&:hover": {
-                  background: isDarkMode
-                    ? alpha(theme.palette.grey[500], 0.7)
-                    : alpha(theme.palette.grey[500], 0.7),
+                  backgroundColor: isDarkMode
+                    ? "rgba(156, 163, 175, 0.8)"
+                    : "rgba(156, 163, 175, 0.6)",
                 },
               },
             }}
           >
-            <Table
-              aria-label="Tableau des demandes de retrait"
-              sx={{ minWidth: { xs: 800, md: "auto" } }}
+            <Table 
+              size="small" 
+              sx={{ 
+                minWidth: { xs: "900px", sm: "1000px" },
+                tableLayout: "fixed"
+              }}
             >
               <TableHead>
                 <TableRow
                   sx={{
-                    background: isDarkMode
-                      ? "linear-gradient(135deg, rgba(55, 65, 81, 0.8) 0%, rgba(31, 41, 55, 0.8) 100%)"
-                      : "linear-gradient(135deg, rgba(249, 250, 251, 0.8) 0%, rgba(243, 244, 246, 0.8) 100%)",
+                    bgcolor: isDarkMode ? "#111827" : "#f0f4f8",
+                    "& th": {
+                      fontWeight: "bold",
+                      color: isDarkMode ? "#fff" : "#334155",
+                      fontSize: { xs: "0.75rem", sm: "0.85rem" },
+                      padding: { xs: "8px 10px", sm: "12px 16px" },
+                      borderBottom: isDarkMode
+                        ? "1px solid #374151"
+                        : "2px solid #e2e8f0",
+                      textTransform: "uppercase",
+                      letterSpacing: "0.05em",
+                      whiteSpace: "nowrap",
+                    },
                   }}
                 >
-                  <TableCell
-                    sx={{
-                      fontWeight: 700,
-                      color: "primary.main",
-                      px: { xs: 2, sm: 3 },
-                      py: { xs: 2, sm: 2.5 },
-                      fontSize: { xs: "0.75rem", sm: "0.875rem" },
-                    }}
-                    scope="col"
-                  >
-                    ID
-                  </TableCell>
-                  <TableCell
-                    sx={{
-                      fontWeight: 700,
-                      color: "primary.main",
-                      px: { xs: 2, sm: 3 },
-                      py: { xs: 2, sm: 2.5 },
-                      fontSize: { xs: "0.75rem", sm: "0.875rem" },
-                    }}
-                    scope="col"
-                  >
-                    Date
-                  </TableCell>
-                  <TableCell
-                    sx={{
-                      fontWeight: 700,
-                      color: "primary.main",
-                      px: { xs: 2, sm: 3 },
-                      py: { xs: 2, sm: 2.5 },
-                      fontSize: { xs: "0.75rem", sm: "0.875rem" },
-                    }}
-                    scope="col"
-                  >
-                    Montant
-                  </TableCell>
-                  <TableCell
-                    sx={{
-                      fontWeight: 700,
-                      color: "primary.main",
-                      px: { xs: 2, sm: 3 },
-                      py: { xs: 2, sm: 2.5 },
-                      fontSize: { xs: "0.75rem", sm: "0.875rem" },
-                    }}
-                    scope="col"
-                  >
-                    Méthode
-                  </TableCell>
-                  <TableCell
-                    sx={{
-                      fontWeight: 700,
-                      color: "primary.main",
-                      px: { xs: 2, sm: 3 },
-                      py: { xs: 2, sm: 2.5 },
-                      fontSize: { xs: "0.75rem", sm: "0.875rem" },
-                    }}
-                    scope="col"
-                  >
-                    Statut
-                  </TableCell>
-                  <TableCell
-                    sx={{
-                      fontWeight: 700,
-                      color: "primary.main",
-                      px: { xs: 2, sm: 3 },
-                      py: { xs: 2, sm: 2.5 },
-                      fontSize: { xs: "0.75rem", sm: "0.875rem" },
-                    }}
-                    scope="col"
-                  >
-                    Statut du paiement
-                  </TableCell>
-                  <TableCell
-                    align="right"
-                    sx={{
-                      fontWeight: 700,
-                      color: "primary.main",
-                      px: { xs: 2, sm: 3 },
-                      py: { xs: 2, sm: 2.5 },
-                      fontSize: { xs: "0.75rem", sm: "0.875rem" },
-                    }}
-                    scope="col"
-                  >
-                    Actions
-                  </TableCell>
+                  <TableCell sx={{ width: { xs: "60px", sm: "80px" } }}>ID</TableCell>
+                  <TableCell sx={{ width: { xs: "120px", sm: "140px" } }}>Date</TableCell>
+                  <TableCell sx={{ width: { xs: "120px", sm: "140px" } }}>Montant</TableCell>
+                  <TableCell sx={{ width: { xs: "140px", sm: "160px" } }}>Méthode</TableCell>
+                  <TableCell sx={{ width: { xs: "100px", sm: "120px" } }}>Statut</TableCell>
+                  <TableCell sx={{ width: { xs: "100px", sm: "120px" } }}>Statut paiement</TableCell>
+                  <TableCell sx={{ width: { xs: "120px", sm: "140px" } }} align="center">Actions</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -1269,138 +1149,83 @@ const WithdrawalRequests = () => {
                     key={request.id}
                   >
                     <TableRow
-                      hover
+                      key={request.id}
                       sx={{
-                        transition: "all 0.3s ease",
                         "&:hover": {
-                          backgroundColor: alpha(
-                            theme.palette.primary.main,
-                            0.05
-                          ),
-                          transform: "scale(1.01)",
+                          bgcolor: isDarkMode ? "#374151" : "#f8fafc",
                         },
+                        borderBottom: `1px solid ${
+                          isDarkMode ? "#374151" : "#e2e8f0"
+                        }`,
+                        "& td": {
+                          padding: { xs: "6px 10px", sm: "10px 16px" },
+                          color: isDarkMode ? "#fff" : "#475569",
+                          fontSize: { xs: "0.75rem", sm: "0.875rem" },
+                          whiteSpace: "nowrap",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                        },
+                        bgcolor: isDarkMode ? "#1d2432" : "#fff",
                       }}
                     >
-                      <TableCell
-                        sx={{
-                          fontWeight: 600,
-                          px: { xs: 2, sm: 3 },
-                          py: { xs: 2, sm: 3 },
-                          fontSize: { xs: "0.75rem", sm: "0.875rem" },
-                        }}
-                      >
-                        {request.id}
-                      </TableCell>
-                      <TableCell
-                        sx={{
-                          px: { xs: 2, sm: 3 },
-                          py: { xs: 2, sm: 3 },
-                          fontSize: { xs: "0.75rem", sm: "0.875rem" },
-                        }}
-                      >
-                        <Box sx={{ display: "flex", alignItems: "center" }}>
-                          <ScheduleIcon
-                            sx={{
-                              mr: 1,
-                              color: "text.secondary",
-                              fontSize: 18,
-                            }}
-                          />
-                          {formatDate(request.created_at)}
-                        </Box>
-                      </TableCell>
-                      <TableCell
-                        sx={{
-                          px: { xs: 2, sm: 3 },
-                          py: { xs: 2, sm: 3 },
-                          fontSize: { xs: "0.75rem", sm: "0.875rem" },
-                        }}
-                      >
-                        <Typography
-                          variant="body2"
-                          fontWeight={700}
+                      <TableCell>
+                        <Box
                           sx={{
-                            background:
-                              "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-                            backgroundClip: "text",
-                            WebkitBackgroundClip: "text",
-                            WebkitTextFillColor: "transparent",
-                            fontSize: { xs: "0.75rem", sm: "0.875rem" },
+                            display: "inline-flex",
+                            alignItems: "center",
+                            px: { xs: 0.75, sm: 1 },
+                            py: { xs: 0.4, sm: 0.5 },
+                            borderRadius: { xs: 0.75, sm: 1 },
+                            background: isDarkMode
+                              ? "rgba(59, 130, 246, 0.2)"
+                              : "rgba(59, 130, 246, 0.1)",
+                            border: `1px solid ${isDarkMode ? "rgba(59, 130, 246, 0.3)" : "rgba(59, 130, 246, 0.2)"}`,
+                            fontSize: { xs: "0.7rem", sm: "0.8rem" },
+                            fontWeight: 600,
+                            color: isDarkMode ? "#60a5fa" : "#2563eb",
                           }}
                         >
-                          {formatAmount(request.amount, request.currency)}
-                        </Typography>
-                      </TableCell>
-                      <TableCell
-                        sx={{
-                          px: { xs: 2, sm: 3 },
-                          py: { xs: 2, sm: 3 },
-                          fontSize: { xs: "0.75rem", sm: "0.875rem" },
-                        }}
-                      >
-                        <Box sx={{ display: "flex", alignItems: "center" }}>
-                          {getPaymentMethodIcon(request.payment_method)}
-                          {getPaymentMethodLabel(request.payment_method)}
+                          #{request.id}
                         </Box>
                       </TableCell>
-                      <TableCell
-                        sx={{
-                          px: { xs: 2, sm: 3 },
-                          py: { xs: 2, sm: 3 },
-                        }}
-                      >
+                      <TableCell>
+                        {formatDate(request.created_at)}
+                      </TableCell>
+                      <TableCell>
+                        {formatAmount(request.amount, request.currency)}
+                      </TableCell>
+                      <TableCell>
+                        {getPaymentMethodLabel(request.payment_method)}
+                      </TableCell>
+                      <TableCell>
                         <Chip
                           label={getStatusLabel(request.status)}
                           color={getStatusColor(request.status)}
                           size="small"
-                          variant="filled"
                           sx={{
-                            fontWeight: 600,
-                            borderRadius: 2,
                             fontSize: { xs: "0.65rem", sm: "0.75rem" },
-                            height: { xs: 24, sm: 28 },
-                            boxShadow: `0 2px 8px ${alpha(
-                              theme.palette[getStatusColor(request.status)]
-                                ?.main || theme.palette.grey[500],
-                              0.3
-                            )}`,
+                            height: { xs: 20, sm: 24 },
+                            fontWeight: 600,
+                            borderRadius: { xs: 1, sm: 1.5 },
                           }}
                         />
                       </TableCell>
-                      <TableCell
-                        sx={{
-                          px: { xs: 2, sm: 3 },
-                          py: { xs: 2, sm: 3 },
-                        }}
-                      >
+                      <TableCell>
                         <Chip
                           label={getStatusLabel(request.payment_status)}
                           color={getStatusColor(request.payment_status)}
                           size="small"
-                          variant="filled"
                           sx={{
-                            fontWeight: 600,
-                            borderRadius: 2,
                             fontSize: { xs: "0.65rem", sm: "0.75rem" },
-                            height: { xs: 24, sm: 28 },
-                            boxShadow: `0 2px 8px ${alpha(
-                              theme.palette[
-                                getStatusColor(request.payment_status)
-                              ]?.main || theme.palette.grey[500],
-                              0.3
-                            )}`,
+                            height: { xs: 20, sm: 24 },
+                            fontWeight: 600,
+                            borderRadius: { xs: 1, sm: 1.5 },
                           }}
                         />
                       </TableCell>
-                      <TableCell
-                        align="right"
-                        sx={{
-                          px: { xs: 1, sm: 2, md: 3 },
-                          py: { xs: 2, sm: 3 },
-                        }}
-                      >
+                      <TableCell align="center">
                         <Box
-                          sx={{ display: "flex", gap: { xs: 0.5, sm: 1 } }}
+                          sx={{ display: "flex", gap: { xs: 0.5, sm: 1 }, justifyContent: "center" }}
                           role="group"
                           aria-label={`Actions pour la demande ${request.id}`}
                         >
@@ -1526,12 +1351,13 @@ const WithdrawalRequests = () => {
             <TablePagination
               component="div"
               count={pagination.totalItems}
-              page={pagination.page}
-              onPageChange={handlePageChange}
-              rowsPerPage={pagination.perPage}
-              rowsPerPageOptions={[10]}
+              page={page}
+              onPageChange={handleChangePage}
+              rowsPerPage={rowsPerPage}
+              onRowsPerPageChange={handleChangeRowsPerPage}
+              rowsPerPageOptions={[5, 10, 25, 50]}
               labelDisplayedRows={({ from, to, count }) =>
-                `${from}-${to} sur ${count}`
+                `${from}-${to} sur ${count} ${selectedCurrency}`
               }
               sx={{
                 "& .MuiTablePagination-toolbar": {
@@ -2147,8 +1973,9 @@ const WithdrawalRequests = () => {
               </Avatar>
               <Box>
                 <Typography
-                  variant={isMobile ? "h6" : "h5"}
+                  variant="h4"
                   fontWeight={700}
+                  gutterBottom
                   sx={{
                     background:
                       "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",

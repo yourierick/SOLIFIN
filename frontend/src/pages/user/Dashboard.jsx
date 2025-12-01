@@ -138,7 +138,6 @@ export default function UserDashboard() {
       }
       
       const response = await axios.get(`/api/stats/global?${params.toString()}`);
-      console.log(response.data);
       if (response.data.success) {
         setStats(response.data.data);
       }
@@ -566,20 +565,17 @@ export default function UserDashboard() {
                   }`}
                 />
               }
-              title="Commissions mensuelles"
+              title={`Commissions mensuelles (${selectedCurrency})`}
               value={
                 <div className="space-y-1">
                   <div className="text-sm">
-                    USD: $
-                    {parseFloat(
-                      stats?.financial_info?.commission_by_currency?.usd
-                        ?.completed || "0"
-                    ).toFixed(2) || "0.00"}
-                  </div>
-                  {canUseCDF() && (
-                    <div className="text-sm">
-                      CDF:{" "}
-                      {new Intl.NumberFormat("fr-CD", {
+                    {selectedCurrency === "USD" ? (
+                      <>USD: ${parseFloat(
+                        stats?.financial_info?.commission_by_currency?.usd
+                          ?.completed || "0"
+                      ).toFixed(2) || "0.00"}</>
+                    ) : (
+                      <>CDF: {new Intl.NumberFormat("fr-CD", {
                         style: "currency",
                         currency: "CDF",
                         minimumFractionDigits: 0,
@@ -589,9 +585,9 @@ export default function UserDashboard() {
                           stats?.financial_info?.commission_by_currency?.cdf
                             ?.completed || "0"
                         )
-                      )}
-                    </div>
-                  )}
+                      )}</>
+                    )}
+                  </div>
                 </div>
               }
               isDarkMode={isDarkMode}
@@ -676,16 +672,17 @@ export default function UserDashboard() {
                   isDarkMode ? "text-white" : "text-gray-900"
                 }`}
               >
-                Évolution des commissions
+                Évolution des commissions ({selectedCurrency})
               </h3>
-              <p
-                className={`text-sm mb-4 ${
-                  isDarkMode ? "text-gray-400" : "text-gray-600"
-                }`}
-              >
-                {canUseCDF() &&
-                  "* Les montants CDF sont affichés en milliers (K CDF)"}
-              </p>
+              {selectedCurrency === "CDF" && (
+                <p
+                  className={`text-sm mb-4 ${
+                    isDarkMode ? "text-gray-400" : "text-gray-600"
+                  }`}
+                >
+                  * Les montants CDF sont affichés en milliers (K CDF)
+                </p>
+              )}
               {stats?.progression?.monthly_commissions && (
                 <div className="h-64">
                   <Line
@@ -695,31 +692,24 @@ export default function UserDashboard() {
                       ).reverse(),
                       datasets: [
                         {
-                          label: "Commissions USD ($)",
+                          label: selectedCurrency === "USD" 
+                            ? "Commissions USD ($)" 
+                            : "Commissions CDF (K)",
                           data: Object.values(
                             stats.progression.monthly_commissions
                           )
-                            .map((item) => item.usd || 0)
+                            .map((item) => 
+                              selectedCurrency === "USD" 
+                                ? (item.usd || 0)
+                                : (item.cdf || 0) / 1000 // Convertir en milliers pour CDF
+                            )
                             .reverse(),
-                          borderColor: "#3b82f6",
-                          backgroundColor: "rgba(59, 130, 246, 0.5)",
+                          borderColor: selectedCurrency === "USD" ? "#3b82f6" : "#10b981",
+                          backgroundColor: selectedCurrency === "USD" 
+                            ? "rgba(59, 130, 246, 0.5)" 
+                            : "rgba(16, 185, 129, 0.5)",
                           tension: 0.3,
                         },
-                        ...(canUseCDF()
-                          ? [
-                              {
-                                label: "Commissions CDF",
-                                data: Object.values(
-                                  stats.progression.monthly_commissions
-                                )
-                                  .map((item) => (item.cdf || 0) / 1000)
-                                  .reverse(), // Convertir en milliers pour l'échelle
-                                borderColor: "#10b981",
-                                backgroundColor: "rgba(16, 185, 129, 0.5)",
-                                tension: 0.3,
-                              },
-                            ]
-                          : []),
                       ],
                     }}
                     options={{
@@ -737,6 +727,12 @@ export default function UserDashboard() {
                         y: {
                           ticks: {
                             color: isDarkMode ? "#9ca3af" : "#6b7280",
+                            callback: function(value) {
+                              if (selectedCurrency === "CDF") {
+                                return value + 'K';
+                              }
+                              return '$' + value;
+                            }
                           },
                           grid: {
                             color: isDarkMode
@@ -1108,15 +1104,6 @@ export default function UserDashboard() {
               ((weeklyReferrals % requiredReferrals) / requiredReferrals) * 100;
             const tokensPerThreshold = pack?.bonus_rates?.points_attribues || 1;
             const totalTokensEarned = tokensEarned * tokensPerThreshold;
-
-            // Debug: afficher les valeurs dans la console
-            console.log(`Pack ${pack?.name}:`, {
-              weeklyReferrals,
-              requiredReferrals,
-              tokensEarned,
-              totalTokensEarned,
-              bonusRates: pack?.bonus_rates,
-            });
 
             return (
               <motion.div

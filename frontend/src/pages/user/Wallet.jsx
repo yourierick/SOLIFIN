@@ -22,6 +22,16 @@ import {
   DocumentArrowDownIcon,
 } from "@heroicons/react/24/outline";
 import { FaFilter, FaTimes, FaExchangeAlt, FaFileExcel } from "react-icons/fa";
+import {
+  TableContainer,
+  Table,
+  TableHead,
+  TableRow,
+  TableCell,
+  TableBody,
+  Alert,
+  TablePagination,
+} from "@mui/material";
 
 const getStatusColor = (status, isDarkMode) => {
   switch (status) {
@@ -92,7 +102,7 @@ const formatDate = (dateString) => {
 
 export default function Wallets() {
   const { isDarkMode } = useTheme();
-  const { isCDFEnabled, canUseCDF } = useCurrency();
+  const { isCDFEnabled, canUseCDF, selectedCurrency } = useCurrency();
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -102,14 +112,14 @@ export default function Wallets() {
   const [transactions, setTransactions] = useState([]);
   const [transactionsUSD, setTransactionsUSD] = useState([]);
   const [transactionsCDF, setTransactionsCDF] = useState([]);
-  const [activeCurrency, setActiveCurrency] = useState("USD");
   const [userWallet, setuserWallet] = useState(null);
   const [showWithdrawalForm, setShowWithdrawalForm] = useState(false);
   const [showVirtualPurchaseForm, setShowVirtualPurchaseForm] = useState(false);
   const [selectedWalletForWithdrawal, setSelectedWalletForWithdrawal] =
     useState(null);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [transactionsPerPage] = useState(5);
+  const [currentPage, setCurrentPage] = useState(0); // Material-UI utilise 0-based
+  const [rowsPerPage, setRowsPerPage] = useState(25); // Par défaut 25 éléments
+  const [totalTransactions, setTotalTransactions] = useState(0);
   const [showFilters, setShowFilters] = useState(false);
   const [selectedTransaction, setSelectedTransaction] = useState(null);
   const [showTransactionDetails, setShowTransactionDetails] = useState(false);
@@ -200,11 +210,11 @@ export default function Wallets() {
 
   useEffect(() => {
     fetchWalletData();
-  }, []);
+  }, [selectedCurrency]);
 
   useEffect(() => {
-    setCurrentPage(1);
-  }, [searchQuery, statusFilter, typeFilter, dateFilter]);
+    fetchTransactions();
+  }, [currentPage, rowsPerPage, searchQuery, statusFilter, typeFilter, dateFilter, selectedCurrency]);
 
   const fetchWalletData = async () => {
     try {
@@ -216,14 +226,50 @@ export default function Wallets() {
         setTransactionsCDF(response.data.transactions_cdf || []);
         // Définir les transactions actives selon la devise sélectionnée
         setTransactions(
-          activeCurrency === "USD"
+          selectedCurrency === "USD"
             ? response.data.transactions_usd || []
             : response.data.transactions_cdf || []
         );
         setUser(response.data.user);
       }
     } catch (error) {
-      toast.error("Erreur lors du chargement des données");
+      console.error("Erreur lors de la récupération des données du portefeuille:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchTransactions = async () => {
+    try {
+      setLoading(true);
+      const params = {};
+
+      // Pagination backend
+      params.per_page = rowsPerPage;
+      params.page = currentPage + 1; // Laravel pagination commence à 1
+
+      // Filtrer par devise
+      params.currency = selectedCurrency;
+
+      // Ajouter les filtres de recherche
+      if (searchQuery) params.search = searchQuery;
+      if (statusFilter !== "all") params.status = statusFilter;
+      if (typeFilter !== "all") params.type = typeFilter;
+      if (dateFilter.startDate) params.date_from = dateFilter.startDate;
+      if (dateFilter.endDate) params.date_to = dateFilter.endDate;
+
+      const response = await axios.get("/api/userwallet/data", { params });
+
+      if (response.data.success) {
+        setTransactions(response.data.data.data);
+        setTotalTransactions(
+          response.data.total_count || response.data.data.total
+        );
+      } else {
+        console.error("Erreur lors du chargement des transactions:", response.data.message);
+      }
+    } catch (error) {
+      console.error("Erreur lors du chargement des transactions:", error);
     } finally {
       setLoading(false);
     }
@@ -231,25 +277,37 @@ export default function Wallets() {
 
   const handleRefresh = () => {
     fetchWalletData();
+    fetchTransactions();
   };
 
   const handleSearch = (e) => {
     setSearchQuery(e.target.value);
+    setCurrentPage(0); // Réinitialiser la pagination lors de la recherche
   };
 
   const handleStatusFilter = (e) => {
     setStatusFilter(e.target.value);
-    setCurrentPage(1); // Réinitialiser la pagination lors du changement de filtre
+    setCurrentPage(0); // Réinitialiser la pagination lors du changement de filtre
   };
 
   const handleTypeFilter = (e) => {
     setTypeFilter(e.target.value);
-    setCurrentPage(1); // Réinitialiser la pagination lors du changement de filtre
+    setCurrentPage(0); // Réinitialiser la pagination lors du changement de filtre
   };
 
   const handleDateFilter = (field) => (e) => {
     setDateFilter((prev) => ({ ...prev, [field]: e.target.value }));
-    setCurrentPage(1); // Réinitialiser la pagination lors du changement de filtre
+    setCurrentPage(0); // Réinitialiser la pagination lors du changement de filtre
+  };
+
+  // Gestionnaires pour la pagination Material-UI
+  const handleChangePage = (event, newPage) => {
+    setCurrentPage(newPage);
+  };
+
+  const handleChangeRowsPerPage = (event) => {
+    setRowsPerPage(parseInt(event.target.value, 10));
+    setCurrentPage(0);
   };
 
   const getTransactionStatusColor = (status) => {
@@ -258,11 +316,15 @@ export default function Wallets() {
         return isDarkMode
           ? "bg-green-900/50 text-green-300"
           : "bg-green-100 text-green-800";
+      case "completed":
+        return isDarkMode
+          ? "bg-green-900/50 text-green-300"
+          : "bg-green-100 text-green-800";
       case "pending":
         return isDarkMode
           ? "bg-yellow-900/50 text-yellow-300"
           : "bg-yellow-100 text-yellow-800";
-      case "rejected":
+      case "failed":
         return isDarkMode
           ? "bg-red-900/50 text-red-300"
           : "bg-red-100 text-red-800";
@@ -295,18 +357,6 @@ export default function Wallets() {
     // Ouvrir le modal d'achat de virtuel
     setShowVirtualPurchaseForm(true);
   };
-
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [searchQuery, statusFilter, typeFilter, dateFilter, activeCurrency]);
-
-  // Mettre à jour les transactions quand la devise change
-  useEffect(() => {
-    setTransactions(
-      activeCurrency === "USD" ? transactionsUSD : transactionsCDF
-    );
-    setCurrentPage(1);
-  }, [activeCurrency, transactionsUSD, transactionsCDF]);
 
   const filteredTransactions = transactions.filter((transaction) => {
     const matchesSearch = JSON.stringify(transaction.metadata)
@@ -385,33 +435,70 @@ export default function Wallets() {
     return matchesSearch && matchesStatus && matchesType && matchesDate;
   });
 
-  const indexOfLastTransaction = currentPage * transactionsPerPage;
-  const indexOfFirstTransaction = indexOfLastTransaction - transactionsPerPage;
-  const currentTransactions = filteredTransactions.slice(
-    indexOfFirstTransaction,
-    indexOfLastTransaction
-  );
-  const totalPages = Math.ceil(
-    filteredTransactions.length / transactionsPerPage
-  );
-
   // Fonction d'exportation Excel améliorée
   const exportToExcel = (exportAll = false) => {
     // Fermer le menu d'exportation
     setShowExportMenu(false);
 
     // Afficher un message si l'export concerne beaucoup de données
-    if (exportAll && filteredTransactions.length > 100) {
+    if (exportAll && totalTransactions > 100) {
       toast.info(
-        `Préparation de l'export de ${filteredTransactions.length} transactions...`
+        `Préparation de l'export de ${totalTransactions} transactions...`
       );
     }
 
     // Déterminer quelles données exporter (filtrées ou toutes)
-    const dataToExport = exportAll ? filteredTransactions : currentTransactions;
+    if (exportAll) {
+      // Exporter toutes les transactions filtrées via le backend
+      exportAllTransactions();
+    } else {
+      // Exporter les transactions de la page actuelle
+      exportCurrentPageTransactions();
+    }
+  };
+
+  // Exporter les transactions de la page actuelle
+  const exportCurrentPageTransactions = () => {
+    const dataToExport = transactions;
 
     // Formater les données pour l'export
     const formattedData = dataToExport.map((transaction) => {
+      // Traduire le type en français
+      const typeTraduction = 
+        transaction.mouvment === "withdrawal"
+          ? "Retrait"
+          : transaction.type === "purchase"
+          ? "Achat"
+          : transaction.type === "virtual_purchase"
+          ? "Virtuels"
+          : transaction.type === "reception"
+          ? "Réception des fonds"
+          : transaction.type === "transfer"
+          ? "Transfert des fonds"
+          : transaction.type === "remboursement"
+          ? "Remboursement"
+          : transaction.type === "digital_product_sale"
+          ? "Vente de produit numérique"
+          : transaction.type === "commission de parrainage"
+          ? "Commission de parrainage"
+          : transaction.type === "commission de transfert"
+          ? "Commission de transfert"
+          : transaction.type === "commission de retrait"
+          ? "Commission de retrait"
+          : transaction.type;
+
+      // Traduire le statut en français
+      const getStatusText = (status) =>
+        status === "pending"
+          ? "en attente"
+          : status === "completed"
+          ? "completé"
+          : status === "failed"
+          ? "failed"
+          : status === "cancelled"
+          ? "annulé"
+          : status;
+
       // Formater les métadonnées pour une meilleure lisibilité
       let formattedMetadata = "";
       if (transaction.metadata) {
@@ -419,64 +506,39 @@ export default function Wallets() {
           // Si les métadonnées sont déjà un objet
           if (typeof transaction.metadata === "object") {
             // Parcourir les propriétés et les formater
-            Object.entries(transaction.metadata).forEach(([key, value]) => {
-              // Traduire les clés en français
-              let frenchKey = key;
-              if (key === "withdrawal_request_id")
-                frenchKey = "demande_retrait_id";
-              if (key === "pack_id") frenchKey = "pack_id";
-              if (key === "referral_id") frenchKey = "filleul_id";
-              if (key === "referral_code") frenchKey = "code_parrainage";
-              if (key === "amount") frenchKey = "montant";
-              if (key === "currency") frenchKey = "devise";
-              if (key === "status") frenchKey = "statut";
-              if (key === "created_at") frenchKey = "date_creation";
-              if (key === "updated_at") frenchKey = "date_modification";
-
-              formattedMetadata += `${frenchKey}: ${value}\n`;
-            });
+            formattedMetadata = Object.entries(transaction.metadata)
+              .map(([key, value]) => `${key}: ${value}`)
+              .join(" | ");
           } else {
-            // Si les métadonnées sont une chaîne JSON, les parser
-            const metadataObj = JSON.parse(transaction.metadata);
-            Object.entries(metadataObj).forEach(([key, value]) => {
-              // Traduire les clés en français
-              let frenchKey = key;
-              if (key === "withdrawal_request_id")
-                frenchKey = "demande_retrait_id";
-              if (key === "pack_id") frenchKey = "pack_id";
-              if (key === "referral_id") frenchKey = "filleul_id";
-              if (key === "referral_code") frenchKey = "code_parrainage";
-              if (key === "amount") frenchKey = "montant";
-              if (key === "currency") frenchKey = "devise";
-              if (key === "status") frenchKey = "statut";
-              if (key === "created_at") frenchKey = "date_creation";
-              if (key === "updated_at") frenchKey = "date_modification";
-
-              formattedMetadata += `${frenchKey}: ${value}\n`;
-            });
+            // Si les métadonnées sont une chaîne JSON
+            const parsed = JSON.parse(transaction.metadata);
+            formattedMetadata = Object.entries(parsed)
+              .map(([key, value]) => `${key}: ${value}`)
+              .join(" | ");
           }
         } catch (error) {
-          // Si le parsing échoue, utiliser les métadonnées brutes
-          formattedMetadata = transaction.metadata.toString();
+          formattedMetadata = transaction.metadata;
         }
       }
 
-      // Traduire le type de transaction
-      let typeTraduction = transaction.type;
-      if (transaction.type === "deposit") typeTraduction = "Dépôt";
-      if (transaction.type === "withdrawal") typeTraduction = "Retrait";
-      if (transaction.type === "transfer") typeTraduction = "Transfert";
-      if (transaction.type === "payment") typeTraduction = "Paiement";
-      if (transaction.type === "refund") typeTraduction = "Remboursement";
-      if (transaction.type === "commission") typeTraduction = "Commission";
-      if (transaction.type === "conversion") typeTraduction = "Conversion";
+      // Formater le montant avec le signe et la devise
+      const montantFormate = (transaction.mouvment === "in" ? "+" : "-") + 
+                             parseFloat(transaction.amount).toFixed(2) + 
+                             (selectedCurrency === "USD" ? " $" : " FC");
 
       // Retourner l'objet formaté avec des en-têtes en français
       return {
         Type: typeTraduction,
-        Montant: transaction.amount,
+        Montant: montantFormate,
         Statut: getStatusText(transaction.status),
-        "Date de création": transaction.created_at,
+        "Date de création": new Date(transaction.created_at).toLocaleDateString('fr-FR', {
+          day: '2-digit',
+          month: '2-digit',
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit'
+        }),
+        "Méthode de paiement": transaction.metadata?.["Méthode de paiement"] || "-",
         Métadonnées: formattedMetadata,
       };
     });
@@ -659,35 +721,47 @@ export default function Wallets() {
                       isDarkMode ? "text-gray-400" : "text-gray-600"
                     }`}
                   >
-                    Gérez vos fonds en USD{canUseCDF() ? " et CDF" : ""}
+                    Gérez vos fonds en {selectedCurrency}
                   </p>
                 </div>
               </div>
 
-              {/* Informations des devises en colonne */}
-              <div
-                className={`grid gap-4 sm:gap-6 ${
-                  canUseCDF() ? "grid-cols-1 sm:grid-cols-2" : "grid-cols-1"
-                }`}
-              >
-                {/* Carte USD */}
+              {/* Informations de la devise sélectionnée */}
+              <div className="grid gap-4 sm:gap-6 grid-cols-1">
+                {/* Carte de la devise sélectionnée */}
                 <div
                   className={`p-4 rounded-xl border ${
-                    isDarkMode
-                      ? "bg-blue-900/20 border-blue-700/30"
-                      : "bg-blue-50 border-blue-200"
+                    selectedCurrency === "USD"
+                      ? isDarkMode
+                        ? "bg-blue-900/20 border-blue-700/30"
+                        : "bg-blue-50 border-blue-200"
+                      : isDarkMode
+                      ? "bg-green-900/20 border-green-700/30"
+                      : "bg-green-50 border-green-200"
                   }`}
                 >
                   <div className="flex items-center gap-2 mb-3">
-                    <div className="p-1.5 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600">
-                      <CurrencyDollarIcon className="h-4 w-4 text-white" />
+                    <div
+                      className={`p-1.5 rounded-lg bg-gradient-to-br ${
+                        selectedCurrency === "USD"
+                          ? "from-blue-500 to-blue-600"
+                          : "from-green-500 to-green-600"
+                      }`}
+                    >
+                      <BanknotesIcon className="h-4 w-4 text-white" />
                     </div>
                     <h4
                       className={`text-sm font-semibold ${
-                        isDarkMode ? "text-blue-300" : "text-blue-700"
+                        selectedCurrency === "USD"
+                          ? isDarkMode
+                            ? "text-blue-300"
+                            : "text-blue-700"
+                          : isDarkMode
+                          ? "text-green-300"
+                          : "text-green-700"
                       }`}
                     >
-                      Dollars Américains
+                      {selectedCurrency === "USD" ? "Dollars Américains" : "Francs Congolais"}
                     </h4>
                   </div>
 
@@ -700,12 +774,26 @@ export default function Wallets() {
                       >
                         Solde disponible
                       </p>
-                      <p className="text-xl font-bold bg-gradient-to-r from-blue-600 to-blue-700 bg-clip-text text-transparent">
-                        {userWallet.balance_usd} $
+                      <p
+                        className={`text-xl font-bold bg-gradient-to-r bg-clip-text text-transparent ${
+                          selectedCurrency === "USD"
+                            ? "from-blue-600 to-blue-700"
+                            : "from-green-600 to-green-700"
+                        }`}
+                      >
+                        {selectedCurrency === "USD"
+                          ? `${userWallet.balance_usd} $`
+                          : `${userWallet.balance_cdf} FC`}
                       </p>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-3 pt-2 border-t border-blue-700/20">
+                    <div
+                      className={`grid grid-cols-2 gap-3 pt-2 border-t ${
+                        selectedCurrency === "USD"
+                          ? "border-blue-700/20"
+                          : "border-green-700/20"
+                      }`}
+                    >
                       <div>
                         <p
                           className={`text-xs ${
@@ -716,10 +804,18 @@ export default function Wallets() {
                         </p>
                         <p
                           className={`text-sm font-semibold ${
-                            isDarkMode ? "text-blue-300" : "text-blue-700"
+                            selectedCurrency === "USD"
+                              ? isDarkMode
+                                ? "text-blue-300"
+                                : "text-blue-700"
+                              : isDarkMode
+                              ? "text-green-300"
+                              : "text-green-700"
                           }`}
                         >
-                          + {userWallet.total_earned_usd} $
+                          + {selectedCurrency === "USD"
+                            ? `${userWallet.total_earned_usd} $`
+                            : `${userWallet.total_earned_cdf} FC`}
                         </p>
                       </div>
                       <div>
@@ -735,87 +831,14 @@ export default function Wallets() {
                             isDarkMode ? "text-red-300" : "text-red-700"
                           }`}
                         >
-                          - {userWallet.total_withdrawn_usd} $
+                          - {selectedCurrency === "USD"
+                            ? `${userWallet.total_withdrawn_usd} $`
+                            : `${userWallet.total_withdrawn_cdf} FC`}
                         </p>
                       </div>
                     </div>
                   </div>
                 </div>
-
-                {/* Carte CDF */}
-                {canUseCDF() && (
-                  <div
-                    className={`p-4 rounded-xl border ${
-                      isDarkMode
-                        ? "bg-green-900/20 border-green-700/30"
-                        : "bg-green-50 border-green-200"
-                    }`}
-                  >
-                    <div className="flex items-center gap-2 mb-3">
-                      <div className="p-1.5 rounded-lg bg-gradient-to-br from-green-500 to-green-600">
-                        <BanknotesIcon className="h-4 w-4 text-white" />
-                      </div>
-                      <h4
-                        className={`text-sm font-semibold ${
-                          isDarkMode ? "text-green-300" : "text-green-700"
-                        }`}
-                      >
-                        Francs Congolais
-                      </h4>
-                    </div>
-
-                    <div className="space-y-2">
-                      <div>
-                        <p
-                          className={`text-xs font-medium ${
-                            isDarkMode ? "text-gray-400" : "text-gray-600"
-                          }`}
-                        >
-                          Solde disponible
-                        </p>
-                        <p className="text-xl font-bold bg-gradient-to-r from-green-600 to-green-700 bg-clip-text text-transparent">
-                          {userWallet.balance_cdf} FC
-                        </p>
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-3 pt-2 border-t border-green-700/20">
-                        <div>
-                          <p
-                            className={`text-xs ${
-                              isDarkMode ? "text-gray-400" : "text-gray-600"
-                            }`}
-                          >
-                            Total gagné
-                          </p>
-                          <p
-                            className={`text-sm font-semibold ${
-                              isDarkMode ? "text-green-300" : "text-green-700"
-                            }`}
-                          >
-                            + {userWallet.total_earned_cdf} FC
-                          </p>
-                        </div>
-                        <div>
-                          <p
-                            className={`text-xs ${
-                              isDarkMode ? "text-gray-400" : "text-gray-600"
-                            }`}
-                          >
-                            Total retiré
-                          </p>
-                          <p
-                            className={`text-sm font-semibold ${
-                              isDarkMode ? "text-red-300" : "text-red-700"
-                            }`}
-                          >
-                            - {userWallet.total_withdrawn_cdf} FC
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
             </div>
 
             {/* Boutons d'action */}
@@ -862,6 +885,7 @@ export default function Wallets() {
                 <span className="tooltip-text">Transférer des fonds</span>
               </div>
             </div>
+            </div>
           </motion.div>
         )}
       </div>
@@ -884,37 +908,8 @@ export default function Wallets() {
                     isDarkMode ? "text-white" : "text-gray-900"
                   }`}
                 >
-                  Historique des transactions
+                  Historique des transactions ({selectedCurrency})
                 </h2>
-                {/* Onglets de devise */}
-                <div className="flex gap-1 bg-gray-200 dark:bg-gray-700 p-1 rounded-lg">
-                  <button
-                    onClick={() => setActiveCurrency("USD")}
-                    className={`px-3 py-1.5 text-xs sm:text-sm font-medium rounded-md transition-all duration-200 ${
-                      activeCurrency === "USD"
-                        ? "bg-blue-500 text-white shadow-md"
-                        : isDarkMode
-                        ? "text-gray-300 hover:bg-gray-600"
-                        : "text-gray-700 hover:bg-gray-300"
-                    }`}
-                  >
-                    USD
-                  </button>
-                  {canUseCDF() && (
-                    <button
-                      onClick={() => setActiveCurrency("CDF")}
-                      className={`px-3 py-1.5 text-xs sm:text-sm font-medium rounded-md transition-all duration-200 ${
-                        activeCurrency === "CDF"
-                          ? "bg-green-500 text-white shadow-md"
-                          : isDarkMode
-                          ? "text-gray-300 hover:bg-gray-600"
-                          : "text-gray-700 hover:bg-gray-300"
-                      }`}
-                    >
-                      CDF
-                    </button>
-                  )}
-                </div>
               </div>
               <div className="flex items-center space-x-1 sm:space-x-2">
                 <button
@@ -1007,38 +1002,6 @@ export default function Wallets() {
                   )}
                 </div>
               </div>
-            </div>
-
-            {/* Barre de recherche */}
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-2.5 sm:pl-3 flex items-center pointer-events-none">
-                <svg
-                  className={`h-4 w-4 sm:h-5 sm:w-5 ${
-                    isDarkMode ? "text-gray-400" : "text-gray-500"
-                  }`}
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 20 20"
-                  fill="currentColor"
-                  aria-hidden="true"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-              </div>
-              <input
-                type="text"
-                placeholder="Rechercher..."
-                value={searchQuery}
-                onChange={handleSearch}
-                className={`w-full pl-9 sm:pl-10 pr-3 py-2 sm:py-2.5 rounded-lg border text-sm sm:text-base shadow-sm ${
-                  isDarkMode
-                    ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:ring-blue-500 focus:border-blue-500"
-                    : "bg-white border-gray-300 text-gray-900 placeholder-gray-500 focus:ring-blue-500 focus:border-blue-500"
-                } transition-all duration-200 focus:outline-none focus:ring-2`}
-              />
             </div>
 
             {/* Filtres */}
@@ -1146,294 +1109,206 @@ export default function Wallets() {
             )}
           </div>
 
-          <div className="overflow-x-auto mt-4">
-            {currentTransactions.length > 0 ? (
-              <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                <thead className={isDarkMode ? "bg-gray-700/50" : "bg-gray-50"}>
-                  <tr>
-                    <th
-                      className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${
-                        isDarkMode ? "text-gray-400" : "text-gray-500"
-                      }`}
-                    >
-                      Type
-                    </th>
-                    <th
-                      className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${
-                        isDarkMode ? "text-gray-400" : "text-gray-500"
-                      }`}
-                    >
-                      Montant
-                    </th>
-                    <th
-                      className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${
-                        isDarkMode ? "text-gray-400" : "text-gray-500"
-                      }`}
-                    >
-                      Statut
-                    </th>
-                    <th
-                      className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${
-                        isDarkMode ? "text-gray-400" : "text-gray-500"
-                      }`}
-                    >
-                      Date
-                    </th>
-                    <th
-                      className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${
-                        isDarkMode ? "text-gray-400" : "text-gray-500"
-                      }`}
-                    >
-                      Méthode de paiement
-                    </th>
-                  </tr>
-                </thead>
-                <tbody
-                  className={`divide-y ${
-                    isDarkMode ? "divide-gray-700" : "divide-gray-200"
-                  }`}
+          <div className="mt-4">
+            {transactions.length > 0 ? (
+              <TableContainer
+                sx={{
+                  boxShadow: isDarkMode
+                    ? "none"
+                    : "0 2px 10px rgba(0, 0, 0, 0.05)",
+                  borderRadius: { xs: 1.5, sm: 2 },
+                  overflow: "auto",
+                  maxWidth: "100%",
+                  "&::-webkit-scrollbar": {
+                    height: { xs: 4, sm: 6 },
+                    width: { xs: 4, sm: 6 },
+                  },
+                  "&::-webkit-scrollbar-track": {
+                    backgroundColor: isDarkMode
+                      ? "rgba(55, 65, 81, 0.4)"
+                      : "rgba(0, 0, 0, 0.06)",
+                    borderRadius: { xs: 2, sm: 3 },
+                  },
+                  "&::-webkit-scrollbar-thumb": {
+                    backgroundColor: isDarkMode
+                      ? "rgba(156, 163, 175, 0.6)"
+                      : "rgba(156, 163, 175, 0.4)",
+                    borderRadius: { xs: 2, sm: 3 },
+                    "&:hover": {
+                      backgroundColor: isDarkMode
+                        ? "rgba(156, 163, 175, 0.8)"
+                        : "rgba(156, 163, 175, 0.6)",
+                    },
+                  },
+                }}
+              >
+                <Table 
+                  size="small" 
+                  sx={{ 
+                    minWidth: { xs: "800px", sm: "900px" },
+                    tableLayout: "fixed"
+                  }}
                 >
-                  {currentTransactions.map((transaction) => (
-                    <tr
-                      key={transaction.id}
-                      className={`${
-                        isDarkMode ? "hover:bg-gray-700/50" : "hover:bg-gray-50"
-                      } transition-colors duration-150`}
+                  <TableHead>
+                    <TableRow
+                      sx={{
+                        bgcolor: isDarkMode ? "#111827" : "#f0f4f8",
+                        "& th": {
+                          fontWeight: "bold",
+                          color: isDarkMode ? "#fff" : "#334155",
+                          fontSize: { xs: "0.75rem", sm: "0.85rem" },
+                          padding: { xs: "8px 10px", sm: "12px 16px" },
+                          borderBottom: isDarkMode
+                            ? "1px solid #374151"
+                            : "2px solid #e2e8f0",
+                          textTransform: "uppercase",
+                          letterSpacing: "0.05em",
+                          whiteSpace: "nowrap",
+                        },
+                      }}
                     >
-                      <td
-                        className={`px-6 py-4 whitespace-nowrap text-sm ${
-                          isDarkMode ? "text-gray-200" : "text-gray-900"
-                        } cursor-pointer`}
+                      <TableCell sx={{ width: { xs: "150px", sm: "180px" } }}>Type</TableCell>
+                      <TableCell sx={{ width: { xs: "120px", sm: "140px" } }}>Montant</TableCell>
+                      <TableCell sx={{ width: { xs: "100px", sm: "120px" } }}>Statut</TableCell>
+                      <TableCell sx={{ width: { xs: "120px", sm: "140px" } }}>Date</TableCell>
+                      <TableCell sx={{ width: { xs: "150px", sm: "180px" } }}>Méthode de paiement</TableCell>
+                    </TableRow>
+                  </TableHead>
+                <TableBody>
+                    {transactions.map((transaction) => (
+                      <TableRow
+                        key={transaction.id}
+                        sx={{
+                          "&:hover": {
+                            bgcolor: isDarkMode ? "#374151" : "#f8fafc",
+                          },
+                          borderBottom: `1px solid ${
+                            isDarkMode ? "#374151" : "#e2e8f0"
+                          }`,
+                          "& td": {
+                            padding: { xs: "6px 10px", sm: "10px 16px" },
+                            color: isDarkMode ? "#fff" : "#475569",
+                            fontSize: { xs: "0.75rem", sm: "0.875rem" },
+                            whiteSpace: "nowrap",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            cursor: "pointer",
+                          },
+                        }}
                         onClick={() => handleTransactionClick(transaction)}
                       >
-                        {transaction.mouvment === "withdrawal"
-                          ? "Retrait"
-                          : transaction.type === "purchase"
-                          ? "Achat"
-                          : transaction.type === "virtual_purchase"
-                          ? "Virtuels"
-                          : transaction.type === "reception"
-                          ? "Réception des fonds"
-                          : transaction.type === "transfer"
-                          ? "Transfert des fonds"
-                          : transaction.type === "remboursement"
-                          ? "Remboursement"
-                          : transaction.type === "digital_product_sale"
-                          ? "Vente de produit numérique"
-                          : transaction.type}
-                      </td>
-                      <td
-                        className={`px-6 py-4 whitespace-nowrap text-sm ${
-                          transaction.mouvment === "out"
-                            ? "text-red-500"
-                            : "text-green-500"
-                        } cursor-pointer`}
-                        onClick={() => handleTransactionClick(transaction)}
-                      >
-                        {transaction.mouvment === "out" ? "-" : "+"}
-                        {transaction.amount}
-                      </td>
-                      <td
-                        className="px-6 py-4 whitespace-nowrap cursor-pointer"
-                        onClick={() => handleTransactionClick(transaction)}
-                      >
-                        <span
-                          className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getTransactionStatusColor(
-                            transaction.status
-                          )}`}
-                        >
-                          {transaction.status === "pending"
-                            ? "en attente"
-                            : transaction.status === "completed"
-                            ? "completé"
-                            : transaction.status === "failed"
-                            ? "failed"
-                            : transaction.status === "cancelled"
-                            ? "annulé"
-                            : transaction.status === "completed"
-                            ? "completé"
-                            : "inconnu"}
-                        </span>
-                      </td>
-                      <td
-                        className={`px-6 py-4 whitespace-nowrap text-sm ${
-                          isDarkMode ? "text-gray-200" : "text-gray-900"
-                        } cursor-pointer`}
-                        onClick={() => handleTransactionClick(transaction)}
-                      >
-                        {formatDate(transaction.created_at)}
-                      </td>
-                      <td>{transaction.metadata["Méthode de paiement"]}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                        <TableCell>
+                          {transaction.mouvment === "withdrawal"
+                            ? "Retrait"
+                            : transaction.type === "purchase"
+                            ? "Achat"
+                            : transaction.type === "virtual_purchase"
+                            ? "Virtuels"
+                            : transaction.type === "reception"
+                            ? "Réception des fonds"
+                            : transaction.type === "transfer"
+                            ? "Transfert des fonds"
+                            : transaction.type === "remboursement"
+                            ? "Remboursement"
+                            : transaction.type === "digital_product_sale"
+                            ? "Vente de produit numérique"
+                            : transaction.type === "commission de parrainage"
+                            ? "Commission de parrainage"
+                            : transaction.type === "commission de transfert"
+                            ? "Commission de transfert"
+                            : transaction.type === "commission de retrait"
+                            ? "Commission de retrait"
+                            : transaction.type}
+                        </TableCell>
+                        <TableCell>
+                          <span className="font-medium" 
+                          style={{
+                            color: transaction.mouvment === "in" ? "black" : "red"
+                          }}>
+                            {transaction.mouvment === "in" ? "+" : "-"}{selectedCurrency === "USD"
+                              ? `${parseFloat(transaction.amount).toFixed(2)} $`
+                              : `${parseFloat(transaction.amount).toFixed(2)} FC`}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          <span
+                            className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getTransactionStatusColor(
+                              transaction.status
+                            )}`}
+                          >
+                            {transaction.status === "pending"
+                              ? "en attente"
+                              : transaction.status === "completed"
+                              ? "completé"
+                              : transaction.status === "failed"
+                              ? "failed"
+                              : transaction.status}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          {formatDate(transaction.created_at)}
+                        </TableCell>
+                        <TableCell>
+                          {transaction.metadata["Méthode de paiement"] || "-"}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
             ) : (
-              <div className="text-center py-8">
+              <Alert severity="info" sx={{ mb: 2 }}>
                 {transactions.length === 0
-                  ? "Aucune transaction n'a été trouvée"
+                  ? `Aucune transaction ${selectedCurrency} n'a été trouvée`
                   : "Aucune transaction ne correspond aux filtres sélectionnés"}
-              </div>
+              </Alert>
             )}
           </div>
 
-          {/* Pagination */}
-          {totalPages > 1 && filteredTransactions.length > 0 && (
-            <div className="flex flex-wrap justify-center items-center gap-1 sm:gap-2 p-2 sm:p-4">
-              {/* Bouton Précédent */}
-              <button
-                onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
-                disabled={currentPage === 1}
-                className={`px-2 sm:px-3 py-1 rounded-md text-xs sm:text-sm font-medium transition-colors ${
-                  currentPage === 1
-                    ? `${
-                        isDarkMode
-                          ? "bg-gray-700 text-gray-500"
-                          : "bg-gray-100 text-gray-400"
-                      } cursor-not-allowed`
-                    : `${
-                        isDarkMode
-                          ? "bg-blue-600 hover:bg-blue-700"
-                          : "bg-blue-500 hover:bg-blue-600"
-                      } text-white`
-                }`}
-                aria-label="Page précédente"
-              >
-                <span className="hidden sm:inline">Précédent</span>
-                <span className="sm:hidden">&laquo;</span>
-              </button>
-
-              {/* Pagination adaptative */}
-              {(() => {
-                // Logique pour afficher un nombre limité de boutons de page sur mobile
-                const maxButtonsToShow = window.innerWidth < 640 ? 3 : 7;
-                let startPage = 1;
-                let endPage = totalPages;
-
-                if (totalPages > maxButtonsToShow) {
-                  // Calculer la plage de pages à afficher
-                  const halfButtons = Math.floor(maxButtonsToShow / 2);
-                  startPage = Math.max(1, currentPage - halfButtons);
-                  endPage = Math.min(
-                    totalPages,
-                    startPage + maxButtonsToShow - 1
-                  );
-
-                  // Ajuster si on est proche de la fin
-                  if (endPage - startPage + 1 < maxButtonsToShow) {
-                    startPage = Math.max(1, endPage - maxButtonsToShow + 1);
-                  }
-                }
-
-                const pageButtons = [];
-
-                // Première page si nécessaire
-                if (startPage > 1) {
-                  pageButtons.push(
-                    <button
-                      key="first"
-                      onClick={() => setCurrentPage(1)}
-                      className={`w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center rounded-md text-xs sm:text-sm font-medium transition-colors ${
-                        isDarkMode
-                          ? "bg-gray-700 text-gray-300 hover:bg-gray-600"
-                          : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                      }`}
-                      aria-label="Première page"
-                    >
-                      1
-                    </button>
-                  );
-
-                  // Ellipsis si nécessaire
-                  if (startPage > 2) {
-                    pageButtons.push(
-                      <span key="ellipsis1" className="px-1 text-gray-500">
-                        ...
-                      </span>
-                    );
-                  }
-                }
-
-                // Pages numériques
-                for (let i = startPage; i <= endPage; i++) {
-                  pageButtons.push(
-                    <button
-                      key={i}
-                      onClick={() => setCurrentPage(i)}
-                      className={`w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center rounded-md text-xs sm:text-sm font-medium transition-colors ${
-                        currentPage === i
-                          ? `${
-                              isDarkMode ? "bg-blue-600" : "bg-blue-500"
-                            } text-white`
-                          : `${
-                              isDarkMode
-                                ? "bg-gray-700 text-gray-300 hover:bg-gray-600"
-                                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                            }`
-                      }`}
-                      aria-label={`Page ${i}`}
-                      aria-current={currentPage === i ? "page" : undefined}
-                    >
-                      {i}
-                    </button>
-                  );
-                }
-
-                // Ellipsis et dernière page si nécessaire
-                if (endPage < totalPages) {
-                  if (endPage < totalPages - 1) {
-                    pageButtons.push(
-                      <span key="ellipsis2" className="px-1 text-gray-500">
-                        ...
-                      </span>
-                    );
-                  }
-
-                  pageButtons.push(
-                    <button
-                      key="last"
-                      onClick={() => setCurrentPage(totalPages)}
-                      className={`w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center rounded-md text-xs sm:text-sm font-medium transition-colors ${
-                        isDarkMode
-                          ? "bg-gray-700 text-gray-300 hover:bg-gray-600"
-                          : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                      }`}
-                      aria-label={`Dernière page (${totalPages})`}
-                    >
-                      {totalPages}
-                    </button>
-                  );
-                }
-
-                return pageButtons;
-              })()}
-
-              {/* Bouton Suivant */}
-              <button
-                onClick={() =>
-                  setCurrentPage((prev) => Math.min(prev + 1, totalPages))
-                }
-                disabled={currentPage === totalPages}
-                className={`px-2 sm:px-3 py-1 rounded-md text-xs sm:text-sm font-medium transition-colors ${
-                  currentPage === totalPages
-                    ? `${
-                        isDarkMode
-                          ? "bg-gray-700 text-gray-500"
-                          : "bg-gray-100 text-gray-400"
-                      } cursor-not-allowed`
-                    : `${
-                        isDarkMode
-                          ? "bg-blue-600 hover:bg-blue-700"
-                          : "bg-blue-500 hover:bg-blue-600"
-                      } text-white`
-                }`}
-                aria-label="Page suivante"
-              >
-                <span className="hidden sm:inline">Suivant</span>
-                <span className="sm:hidden">&raquo;</span>
-              </button>
-            </div>
-          )}
+          {/* Pagination Material-UI */}
+          <TablePagination
+            component="div"
+            count={totalTransactions}
+            page={currentPage}
+            onPageChange={handleChangePage}
+            rowsPerPage={rowsPerPage}
+            onRowsPerPageChange={handleChangeRowsPerPage}
+            rowsPerPageOptions={[5, 10, 25, 50]}
+            labelRowsPerPage="Lignes par page:"
+            labelDisplayedRows={({ from, to, count }) =>
+              `${from}-${to} sur ${count !== -1 ? count : `plus de ${to}`}`
+            }
+            sx={{
+              color: isDarkMode ? "#fff" : "#475569",
+              fontSize: { xs: "0.75rem", sm: "0.875rem" },
+              "& .MuiTablePagination-toolbar": {
+                minHeight: { xs: "40px", sm: "52px" },
+                padding: { xs: "8px", sm: "16px" },
+              },
+              "& .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows": {
+                fontSize: { xs: "0.75rem", sm: "0.875rem" },
+              },
+              "& .MuiTablePagination-selectIcon": {
+                color: isDarkMode ? "#fff" : "#475569",
+              },
+              "& .MuiTablePagination-select": {
+                backgroundColor: isDarkMode ? "#1f2937" : "#f8fafc",
+                borderRadius: 1,
+                padding: "4px 8px",
+                border: isDarkMode
+                  ? "1px solid #374151"
+                  : "1px solid #e2e8f0",
+                fontSize: { xs: "0.75rem", sm: "0.875rem" },
+              },
+              "& .MuiTablePagination-actions button": {
+                color: isDarkMode ? "#fff" : "#475569",
+                fontSize: { xs: "0.75rem", sm: "0.875rem" },
+                "&:hover": {
+                  backgroundColor: isDarkMode ? "#374151" : "#f1f5f9",
+                },
+              },
+            }}
+          />
         </div>
       </div>
 

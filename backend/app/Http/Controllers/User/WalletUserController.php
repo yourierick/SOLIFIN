@@ -25,7 +25,7 @@ class WalletUserController extends Controller
     const STATUS_COMPLETED = 'completed';
     const TYPE_VIRTUAL_SALE = 'virtual_sale';
     // Récupérer les données du wallet de l'utilisateur connecté
-    public function getWalletData()
+    public function getWalletData(Request $request)
     {
         try {
 
@@ -42,47 +42,113 @@ class WalletUserController extends Controller
                 'total_withdrawn_cdf' => number_format($userWallet->total_withdrawn_cdf, 2) . ' FC',
             ] : null;
 
-            // Récupérer les transactions usd du wallet
-            $transactions_usd = WalletTransaction::with('wallet')->where('wallet_id', $userWallet->id)
-                ->where('currency', 'usd')
-                ->orderBy('created_at', 'desc')
-                ->get()
-                ->map(function ($transaction) {
-                    return [
-                        'id' => $transaction->id,
-                        'amount' => number_format($transaction->amount, 2) . ' $',
-                        'mouvment' => $transaction->mouvment,
-                        'type' => $transaction->type,
-                        'status' => $transaction->status,
-                        'metadata' => $transaction->metadata,
-                        'created_at' => $transaction->created_at->format('d/m/Y H:i:s')
-                    ];
-                });
+            // Construire la requête de base pour les transactions
+            $query = WalletTransaction::with('wallet')
+                ->where('wallet_id', $userWallet->id)
+                ->orderBy('created_at', 'desc');
 
-            // Récupérer les transactions cdf du wallet
-            $transactions_cdf = WalletTransaction::with('wallet')->where('wallet_id', $userWallet->id)
-                ->where('currency', 'cdf')
-                ->orderBy('created_at', 'desc')
-                ->get()
-                ->map(function ($transaction) {
-                    return [
-                        'id' => $transaction->id,
-                        'amount' => number_format($transaction->amount, 2) . ' FC',
-                        'mouvment' => $transaction->mouvment,
-                        'type' => $transaction->type,
-                        'status' => $transaction->status,
-                        'metadata' => $transaction->metadata,
-                        'created_at' => $transaction->created_at->format('d/m/Y H:i:s')
-                    ];
+            // Filtrer par devise si spécifié
+            if ($request->has('currency') && !empty($request->currency)) {
+                $query->where('currency', strtolower($request->currency));
+            }
+
+            // Filtrer par recherche (recherche dans les métadonnées)
+            if ($request->has('search') && !empty($request->search)) {
+                $searchTerm = $request->search;
+                $query->where(function($q) use ($searchTerm) {
+                    $q->where('type', 'LIKE', "%{$searchTerm}%")
+                      ->orWhere('status', 'LIKE', "%{$searchTerm}%")
+                      ->orWhere('mouvment', 'LIKE', "%{$searchTerm}%")
+                      ->orWhereJsonContains('metadata', $searchTerm);
                 });
+            }
+
+            // Filtrer par statut si spécifié
+            if ($request->has('status') && !empty($request->status) && $request->status !== 'all') {
+                $query->where('status', $request->status);
+            }
+
+            // Filtrer par type si spécifié
+            if ($request->has('type') && !empty($request->type) && $request->type !== 'all') {
+                $query->where('type', $request->type);
+            }
+
+            // Filtrer par date de début si spécifiée
+            if ($request->has('date_from') && !empty($request->date_from)) {
+                $query->whereDate('created_at', '>=', $request->date_from);
+            }
+
+            // Filtrer par date de fin si spécifiée
+            if ($request->has('date_to') && !empty($request->date_to)) {
+                $query->whereDate('created_at', '<=', $request->date_to);
+            }
+
+            // Pagination : par défaut 25, mais configurable via le paramètre per_page
+            $perPage = $request->get('per_page', 25);
+            $transactions = $query->paginate($perPage);
+
+            // Formater les transactions pour le frontend
+            $formattedTransactions = $transactions->getCollection()->map(function ($transaction) {
+                $currency = strtoupper($transaction->currency);
+                return [
+                    'id' => $transaction->id,
+                    'amount' => (float) $transaction->amount, // Envoyer comme nombre pour le frontend
+                    'mouvment' => $transaction->mouvment,
+                    'type' => $transaction->type,
+                    'status' => $transaction->status,
+                    'metadata' => $transaction->metadata,
+                    'created_at' => $transaction->created_at->toISOString(),
+                    'currency' => $currency
+                ];
+            });
+
+            // Créer la réponse paginée personnalisée
+            $responseData = [
+                'data' => $formattedTransactions,
+                'total' => $transactions->total(),
+                'per_page' => $transactions->perPage(),
+                'current_page' => $transactions->currentPage(),
+                'last_page' => $transactions->lastPage()
+            ];
+
+            // Récupérer le nombre total de transactions avec les mêmes filtres (sans pagination)
+            $countQuery = WalletTransaction::where('wallet_id', $userWallet->id);
+            
+            // Appliquer les mêmes filtres pour le comptage
+            if ($request->has('currency') && !empty($request->currency)) {
+                $countQuery->where('currency', strtolower($request->currency));
+            }
+            if ($request->has('search') && !empty($request->search)) {
+                $searchTerm = $request->search;
+                $countQuery->where(function($q) use ($searchTerm) {
+                    $q->where('type', 'LIKE', "%{$searchTerm}%")
+                      ->orWhere('status', 'LIKE', "%{$searchTerm}%")
+                      ->orWhere('mouvment', 'LIKE', "%{$searchTerm}%")
+                      ->orWhereJsonContains('metadata', $searchTerm);
+                });
+            }
+            if ($request->has('status') && !empty($request->status) && $request->status !== 'all') {
+                $countQuery->where('status', $request->status);
+            }
+            if ($request->has('type') && !empty($request->type) && $request->type !== 'all') {
+                $countQuery->where('type', $request->type);
+            }
+            if ($request->has('date_from') && !empty($request->date_from)) {
+                $countQuery->whereDate('created_at', '>=', $request->date_from);
+            }
+            if ($request->has('date_to') && !empty($request->date_to)) {
+                $countQuery->whereDate('created_at', '<=', $request->date_to);
+            }
+            
+            $totalCount = $countQuery->count();
 
             $user = Auth::user();
 
             return response()->json([
                 'success' => true,
                 'userWallet' => $userWallet,
-                'transactions_usd' => $transactions_usd,
-                'transactions_cdf' => $transactions_cdf,
+                'data' => $responseData,
+                'total_count' => $totalCount,
                 'user' => $user
             ]);
         } catch (\Exception $e) {

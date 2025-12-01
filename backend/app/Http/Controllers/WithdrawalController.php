@@ -137,6 +137,7 @@ class WithdrawalController extends Controller
             $startDate = $request->query('start_date');
             $endDate = $request->query('end_date');
             $search = $request->query('search');
+            $perPage = $request->query('per_page', 25); // 25 par défaut
             
             // Construire la requête de base
             $query = WithdrawalRequest::with(['user', 'processor'])
@@ -184,7 +185,7 @@ class WithdrawalController extends Controller
             }
             
             // Récupérer les demandes paginées
-            $withdrawalRequests = $query->paginate(15);
+            $withdrawalRequests = $query->paginate($perPage);
             
             // Calculer les statistiques
             // Créer une requête de base pour les statistiques avec le filtre de devise
@@ -587,8 +588,8 @@ class WithdrawalController extends Controller
                 });
             }
             
-            // Paginer les résultats (15 par page par défaut)
-            $perPage = $request->query('per_page', 15);
+            // Paginer les résultats (25 par page par défaut)
+            $perPage = $request->query('per_page', 25);
             $requests = $query->paginate($perPage);
             
             // Transformer les données pour inclure les informations du wallet
