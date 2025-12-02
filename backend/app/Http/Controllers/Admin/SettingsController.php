@@ -294,8 +294,19 @@ class SettingsController extends Controller
             $direction = $request->input('direction');
             $date_from = $request->input('date_from');
             $date_to = $request->input('date_to');
+            $currency = $request->input('currency'); // Ajout du filtre currency
             $stats_only = $request->input('stats_only', false);
             $include_stats = $request->input('include_stats', true);
+            
+            // Debug: afficher les paramètres reçus
+            \Log::info('Paramètres reçus:', [
+                'search' => $search,
+                'date_from' => $date_from,
+                'date_to' => $date_to,
+                'status' => $status,
+                'payment_method' => $payment_method,
+                'type' => $type
+            ]);
             
             // Construire la requête de base
             $query = SerdiPayTransaction::query();
@@ -306,7 +317,7 @@ class SettingsController extends Controller
                     $q->where('id', 'like', "%{$search}%")
                       ->orWhere('reference', 'like', "%{$search}%")
                       ->orWhere('email', 'like', "%{$search}%")
-                      ->orWhere('phone', 'like', "%{$search}%")
+                      ->orWhere('phone_number', 'like', "%{$search}%")
                       ->orWhereHas('user', function($userQuery) use ($search) {
                           $userQuery->where('name', 'like', "%{$search}%")
                                    ->orWhere('email', 'like', "%{$search}%");
@@ -340,6 +351,10 @@ class SettingsController extends Controller
             
             if ($date_to) {
                 $query->whereDate('created_at', '<=', $date_to);
+            }
+            
+            if ($currency) {
+                $query->where('currency', strtoupper($currency));
             }
             
             // Préparer la réponse
@@ -462,6 +477,7 @@ class SettingsController extends Controller
             $direction = $request->input('direction');
             $date_from = $request->input('date_from');
             $date_to = $request->input('date_to');
+            $currency = $request->input('currency'); // Ajout du filtre currency
             
             // Construire la requête de base
             $query = SerdiPayTransaction::with('user');
@@ -472,7 +488,7 @@ class SettingsController extends Controller
                     $q->where('id', 'like', "%{$search}%")
                       ->orWhere('reference', 'like', "%{$search}%")
                       ->orWhere('email', 'like', "%{$search}%")
-                      ->orWhere('phone', 'like', "%{$search}%")
+                      ->orWhere('phone_number', 'like', "%{$search}%")
                       ->orWhereHas('user', function($userQuery) use ($search) {
                           $userQuery->where('name', 'like', "%{$search}%")
                                    ->orWhere('email', 'like', "%{$search}%");
@@ -508,6 +524,10 @@ class SettingsController extends Controller
                 $query->whereDate('created_at', '<=', $date_to);
             }
             
+            if ($currency) {
+                $query->where('currency', strtoupper($currency));
+            }
+            
             // Récupérer les transactions
             $transactions = $query->orderBy('created_at', 'desc')->get();
             
@@ -523,64 +543,51 @@ class SettingsController extends Controller
             foreach ($transactions as $transaction) {
                 $data[] = [
                     $transaction->id,
-                    $transaction->reference,
-                    $transaction->user ? $transaction->user->name : 'N/A',
-                    $transaction->email,
-                    $transaction->phone,
-                    $transaction->amount,
-                    $transaction->currency,
-                    $transaction->payment_method,
-                    $transaction->type,
-                    $transaction->payment_type,
-                    $transaction->direction,
-                    $transaction->status,
-                    $transaction->created_at,
-                    $transaction->updated_at
+                    $transaction->reference ?? 'Non défini',
+                    $transaction->user ? $transaction->user->name : 'Non défini',
+                    $transaction->email ?? 'Non défini',
+                    $transaction->phone_number ?? 'Non défini',
+                    number_format($transaction->amount, 2, '.', ','),
+                    strtoupper($transaction->currency ?? 'USD'),
+                    $this->getPaymentMethodName($transaction->payment_method),
+                    $this->getTransactionTypeName($transaction->type),
+                    $transaction->payment_type ?? 'Non défini',
+                    $transaction->direction ?? 'Non défini',
+                    $this->getTransactionStatusName($transaction->status),
+                    \Carbon\Carbon::parse($transaction->created_at)->format('d/m/Y H:i:s'),
+                    \Carbon\Carbon::parse($transaction->updated_at)->format('d/m/Y H:i:s')
                 ];
             }
             
-            // Générer le fichier CSV
-            $filename = 'serdipay_transactions_' . date('Y-m-d_H-i-s');
+            // Générer le fichier CSV lisible par Excel
+            $filename = 'serdipay_transactions_' . date('Y-m-d_H-i-s') . '.csv';
             
-            if ($format === 'csv') {
-                $callback = function() use ($data, $headers) {
-                    $file = fopen('php://output', 'w');
-                    fputcsv($file, $headers);
-                    
-                    foreach ($data as $row) {
-                        fputcsv($file, $row);
-                    }
-                    
-                    fclose($file);
-                };
+            $callback = function() use ($data, $headers) {
+                $file = fopen('php://output', 'w');
                 
-                $headers = [
-                    'Content-Type' => 'text/csv',
-                    'Content-Disposition' => 'attachment; filename="' . $filename . '.csv"',
-                ];
+                // Ajouter BOM UTF-8 pour Excel
+                fwrite($file, "\xEF\xBB\xBF");
                 
-                return response()->stream($callback, 200, $headers);
-            } elseif ($format === 'excel') {
-                // Pour Excel, nous utilisons une bibliothèque comme PhpSpreadsheet
-                // Mais pour simplifier, nous retournons un CSV pour l'instant
-                $callback = function() use ($data, $headers) {
-                    $file = fopen('php://output', 'w');
-                    fputcsv($file, $headers);
-                    
-                    foreach ($data as $row) {
-                        fputcsv($file, $row);
-                    }
-                    
-                    fclose($file);
-                };
+                // Écrire les en-têtes avec point-virgule (standard Excel français)
+                fputcsv($file, $headers, ';');
                 
-                $headers = [
-                    'Content-Type' => 'text/csv',
-                    'Content-Disposition' => 'attachment; filename="' . $filename . '.csv"',
-                ];
+                // Écrire les données avec point-virgule
+                foreach ($data as $row) {
+                    fputcsv($file, $row, ';');
+                }
                 
-                return response()->stream($callback, 200, $headers);
-            }
+                fclose($file);
+            };
+            
+            $headers = [
+                'Content-Type' => 'text/csv; charset=utf-8',
+                'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+                'Cache-Control' => 'max-age=0',
+                'Expires' => '0',
+                'Pragma' => 'public'
+            ];
+            
+            return response()->stream($callback, 200, $headers);
             
         } catch (\Exception $e) {
             return response()->json([
@@ -588,5 +595,51 @@ class SettingsController extends Controller
                 'message' => 'Erreur lors de l\'export des transactions: ' . $e->getMessage()
             ], 500);
         }
+    }
+    
+    /**
+     * Formate le nom de la méthode de paiement
+     */
+    private function getPaymentMethodName($method)
+    {
+        $methods = [
+            'OM' => 'Orange Money',
+            'AM' => 'Airtel Money',
+            'MC' => 'Mastercard',
+            'VISA' => 'Visa',
+            'AE' => 'American Express',
+            'MP' => 'M-Pesa',
+            'AF' => 'Afrimoney'
+        ];
+        
+        return $methods[$method] ?? $method ?? 'Non défini';
+    }
+    
+    /**
+     * Formate le nom du type de transaction
+     */
+    private function getTransactionTypeName($type)
+    {
+        $types = [
+            'payment' => 'Paiement',
+            'withdrawal' => 'Retrait'
+        ];
+        
+        return $types[$type] ?? $type ?? 'Non défini';
+    }
+    
+    /**
+     * Formate le nom du statut de transaction
+     */
+    private function getTransactionStatusName($status)
+    {
+        $statuses = [
+            'completed' => 'Complétée',
+            'pending' => 'En attente',
+            'failed' => 'Échouée',
+            'expired' => 'Expirée'
+        ];
+        
+        return $statuses[$status] ?? $status ?? 'Non défini';
     }
 }

@@ -18,8 +18,6 @@ import {
   alpha,
   useMediaQuery,
   Container,
-  FormControlLabel,
-  Switch,
   Fade,
   Slide,
   Zoom,
@@ -62,40 +60,11 @@ export default function Stats() {
   const theme = useTheme();
   const isDarkMode = theme.palette.mode === "dark";
   const isSmallScreen = useMediaQuery(theme.breakpoints.down("md"));
-  const { isCDFEnabled, canUseCDF } = useCurrency();
+  const { isCDFEnabled, canUseCDF, selectedCurrency } = useCurrency();
   const [currentTab, setCurrentTab] = useState(0);
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [selectedCurrency, setSelectedCurrency] = useState("USD");
-
-  // Sélecteur de devise compact
-  const CurrencySelector = () =>
-    canUseCDF() && (
-      <FormControlLabel
-        control={
-          <Switch
-            checked={selectedCurrency === "USD"}
-            onChange={(e) =>
-              setSelectedCurrency(e.target.checked ? "USD" : "CDF")
-            }
-            color="primary"
-            size="small"
-          />
-        }
-        label={selectedCurrency === "USD" ? "USD" : "CDF"}
-        sx={{
-          "& .MuiFormControlLabel-label": {
-            fontSize: "0.75rem",
-            fontWeight: 600,
-            color:
-              selectedCurrency === "USD"
-                ? theme.palette.success.main
-                : theme.palette.info.main,
-          },
-        }}
-      />
-    );
 
   // Style glassmorphism moderne et subtil
   const glassmorphismStyle = {
@@ -118,6 +87,11 @@ export default function Stats() {
   useEffect(() => {
     fetchStats();
   }, []);
+
+  // Effet pour recharger les données lorsque la devise change
+  useEffect(() => {
+    fetchStats();
+  }, [selectedCurrency]);
 
   const fetchStats = async () => {
     try {
@@ -1463,18 +1437,6 @@ export default function Stats() {
         transition={{ delay: 0.2, duration: 0.5 }}
       >
         <Box sx={{ ...glassmorphismStyle, p: 4, mb: 4, position: "relative" }}>
-          {/* Sélecteur de devise dans le coin supérieur droit */}
-          <Box
-            sx={{
-              position: "relative",
-              top: 2,
-              right: 0,
-              zIndex: 1,
-            }}
-          >
-            <CurrencySelector />
-          </Box>
-
           <Grid container spacing={3} className="mt-4">
             {[
               {

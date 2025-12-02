@@ -36,8 +36,6 @@ class TransactionFeeController extends Controller
         $validator = Validator::make($request->all(), [
             'payment_method' => 'required|string|max:255|unique:transaction_fees',
             'payment_type' => 'required|string|max:255',
-            'transfer_fee_percentage' => 'required|numeric|min:0|max:100',
-            'withdrawal_fee_percentage' => 'required|numeric|min:0|max:100',
             'is_active' => 'boolean'
         ]);
 
@@ -56,8 +54,6 @@ class TransactionFeeController extends Controller
             $transactionFee = TransactionFee::create([
                 'payment_method' => $request->payment_method,
                 'payment_type' => $request->payment_type,
-                'transfer_fee_percentage' => $request->transfer_fee_percentage,
-                'withdrawal_fee_percentage' => $request->withdrawal_fee_percentage,
                 'is_active' => $request->is_active ?? true
             ]);
 
@@ -119,8 +115,6 @@ class TransactionFeeController extends Controller
 
         $validator = Validator::make($request->all(), [
             'payment_type' => 'required|string|max:255',
-            'transfer_fee_percentage' => 'required|numeric|min:0|max:100',
-            'withdrawal_fee_percentage' => 'required|numeric|min:0|max:100',
             'is_active' => 'boolean'
         ]);
 
@@ -135,8 +129,6 @@ class TransactionFeeController extends Controller
         try {
             $transactionFee->update([
                 'payment_type' => $request->payment_type,
-                'transfer_fee_percentage' => $request->transfer_fee_percentage,
-                'withdrawal_fee_percentage' => $request->withdrawal_fee_percentage,
                 'is_active' => $request->is_active ?? $transactionFee->is_active
             ]);
 
@@ -205,31 +197,6 @@ class TransactionFeeController extends Controller
             return response()->json([
                 'status' => 'error',
                 'message' => 'Une erreur est survenue lors de la mise à jour du statut des frais de transaction'
-            ], 500);
-        }
-    }
-
-    /**
-     * Update transaction fees from external API
-     *
-     * @return \Illuminate\Http\Response
-     */
-    public function updateFromApi()
-    {
-        try {
-            // Logique pour mettre à jour les frais depuis une API externe
-            // Cette méthode serait implémentée selon les besoins spécifiques
-            
-            return response()->json([
-                'status' => 'success',
-                'message' => 'Frais de transaction mis à jour depuis l\'API avec succès'
-            ]);
-        } catch (\Exception $e) {
-            Log::error('Erreur lors de la mise à jour des frais de transaction depuis l\'API: ' . $e->getMessage());
-            
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Une erreur est survenue lors de la mise à jour des frais de transaction depuis l\'API'
             ], 500);
         }
     }

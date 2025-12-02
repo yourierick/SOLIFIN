@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { useChat } from "../../contexts/ChatContext";
+import { useCurrency } from "../../contexts/CurrencyContext";
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 import {
   Container,
   Grid,
@@ -167,6 +170,7 @@ const Packs = () => {
   const theme = useMuiTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const { createChatRoom, setActiveRoom, setIsChatExpanded, fetchChatRooms } = useChat();
+  const { selectedCurrency } = useCurrency();
 
   const [packs, setPacks] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -201,6 +205,12 @@ const Packs = () => {
   }, []);
 
   const handlePurchaseClick = (pack) => {
+    // Vérifier si la devise est CDF et que le pack n'a pas de prix CDF
+    if (selectedCurrency === "CDF" && (!pack.cdf_price || pack.cdf_price === null || pack.cdf_price === 0)) {
+      toast.error("Ce pack n'est pas disponible en devise CDF");
+      return;
+    }
+    
     setSelectedPack(pack);
     setPurchaseDialogOpen(true);
   };
@@ -638,6 +648,20 @@ const Packs = () => {
         open={purchaseDialogOpen}
         onClose={handlePurchaseClose}
         pack={selectedPack}
+      />
+      
+      <ToastContainer
+        position="top-right"
+        autoClose={5000}
+        hideProgressBar={false}
+        newestOnTop
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        zIndex={9999}
+        pauseOnHover
+        theme={isDarkMode ? "dark" : "light"}
       />
     </Container>
   );

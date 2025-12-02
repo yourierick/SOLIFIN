@@ -459,24 +459,49 @@ const GeneralSettings = () => {
     }
   };
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h3 className="text-lg font-medium">Paramètres du système</h3>
-        <button
-          onClick={() => setRefreshKey((prev) => prev + 1)}
-          className="flex items-center gap-2 px-4 py-2 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 rounded-lg transition-colors"
-        >
-          <ArrowPathIcon className="h-5 w-5" />
-          Actualiser
-        </button>
+    <div className="space-y-8">
+      {/* Header */}
+      <div className="relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl opacity-10 blur-xl"></div>
+        <div className="relative flex flex-col sm:flex-row sm:justify-between sm:items-center p-4 sm:p-6 bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700">
+          <div className="flex items-center gap-3 sm:gap-4 mb-4 sm:mb-0">
+            <div className="relative">
+              <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl blur-lg opacity-30"></div>
+              <div className="relative w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
+                <svg className="h-5 w-5 sm:h-6 sm:w-6 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+              </div>
+            </div>
+            <div>
+              <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
+                Paramètres du système
+              </h2>
+              <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 mt-1">
+                Configurez les paramètres essentiels de votre plateforme
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={() => setRefreshKey((prev) => prev + 1)}
+            className="flex items-center justify-center gap-2 px-3 py-2 sm:px-4 sm:py-2 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-xl font-medium transition-all duration-200 transform hover:scale-105 w-full sm:w-auto"
+          >
+            <ArrowPathIcon className="h-4 w-4 sm:h-5 sm:w-5" />
+            <span className="text-sm sm:text-base">Actualiser</span>
+          </button>
+        </div>
       </div>
 
       {loading ? (
-        <div className="flex justify-center items-center py-8">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+        <div className="flex justify-center items-center py-16">
+          <div className="relative">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+            <div className="absolute inset-0 animate-spin rounded-full h-12 w-12 border-t-2 border-purple-600 border-opacity-30"></div>
+          </div>
         </div>
       ) : (
-        <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 p-6">
           {/* Onglets de catégories */}
           <div className="relative mb-8">
             <div className="flex space-x-1 overflow-x-auto pb-2 border-b border-gray-200 dark:border-gray-700">
@@ -486,14 +511,14 @@ const GeneralSettings = () => {
                   onClick={() => setActiveTab(category.id)}
                   className={`px-5 py-2.5 rounded-t-lg font-medium text-sm transition-all duration-200 relative ${
                     activeTab === category.id
-                      ? "text-primary-600 dark:text-primary-400"
+                      ? "text-blue-600 dark:text-blue-400"
                       : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
                   }`}
                 >
                   <span className="relative z-10">{category.label}</span>
                   {activeTab === category.id && (
                     <motion.div
-                      className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary-600 dark:bg-primary-400 transform -translate-y-0"
+                      className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 dark:bg-blue-400 transform -translate-y-0"
                       layoutId="activeTab"
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
@@ -508,34 +533,36 @@ const GeneralSettings = () => {
           <div className="overflow-x-auto">
             {activeTab === "legal" ? (
               // Affichage amélioré pour les documents légaux (texte long)
-              <div className="space-y-8">
+              <div className="space-y-6">
                 {getSettingsByCategory("legal").map((fixedSetting) => {
                   const setting = settings[fixedSetting.key];
                   return (
                     <div
                       key={fixedSetting.key}
-                      className="border dark:border-gray-700 rounded-lg overflow-hidden shadow-sm"
+                      className="relative overflow-hidden rounded-2xl border border-gray-200 dark:border-gray-700 shadow-lg"
                     >
-                      <div className="bg-gray-50 dark:bg-gray-700 p-4 border-b dark:border-gray-600 flex justify-between items-center">
-                        <div>
-                          <h5 className="font-medium text-gray-900 dark:text-white text-lg">
-                            {fixedSetting.label}
-                          </h5>
-                          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                            {fixedSetting.description}
-                          </p>
+                      <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 p-6 border-b border-gray-200 dark:border-gray-700">
+                        <div className="flex justify-between items-center">
+                          <div>
+                            <h5 className="font-bold text-gray-900 dark:text-white text-xl mb-2">
+                              {fixedSetting.label}
+                            </h5>
+                            <p className="text-sm text-gray-600 dark:text-gray-400">
+                              {fixedSetting.description}
+                            </p>
+                          </div>
+                          <button
+                            onClick={() => handleOpenEditModal(fixedSetting.key)}
+                            className="p-3 rounded-xl bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-md transition-all duration-200 transform hover:scale-105"
+                            title="Modifier"
+                          >
+                            <PencilIcon className="h-5 w-5" />
+                          </button>
                         </div>
-                        <button
-                          onClick={() => handleOpenEditModal(fixedSetting.key)}
-                          className="text-primary-600 hover:text-primary-900 dark:text-primary-400 dark:hover:text-primary-300 p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-600"
-                          title="Modifier"
-                        >
-                          <PencilIcon className="h-5 w-5" />
-                        </button>
                       </div>
 
                       {setting && setting.value ? (
-                        <div className="bg-white dark:bg-gray-800 p-5 rounded">
+                        <div className="bg-white dark:bg-gray-800 p-6">
                           <div className="prose dark:prose-invert max-w-none prose-sm overflow-y-auto max-h-96 legal-document">
                             <ReactMarkdown
                               rehypePlugins={[rehypeSanitize]}
@@ -646,10 +673,17 @@ const GeneralSettings = () => {
                           </div>
                         </div>
                       ) : (
-                        <div className="bg-white dark:bg-gray-800 p-5 text-center">
-                          <span className="text-gray-400 italic block py-8">
-                            Aucun contenu défini
-                          </span>
+                        <div className="bg-white dark:bg-gray-800 p-12 text-center">
+                          <div className="flex flex-col items-center">
+                            <div className="w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mb-4">
+                              <svg className="h-8 w-8 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                              </svg>
+                            </div>
+                            <span className="text-gray-400 italic text-lg">
+                              Aucun contenu défini
+                            </span>
+                          </div>
                         </div>
                       )}
                     </div>
@@ -664,35 +698,44 @@ const GeneralSettings = () => {
                   return (
                     <div
                       key={fixedSetting.key}
-                      className="border dark:border-gray-700 rounded-lg p-4"
+                      className="relative overflow-hidden rounded-2xl border border-gray-200 dark:border-gray-700 shadow-lg p-6"
                     >
-                      <div className="flex justify-between items-center mb-2">
-                        <h5 className="font-medium text-gray-900 dark:text-white">
-                          {fixedSetting.label}
-                        </h5>
+                      <div className="flex justify-between items-center mb-4">
+                        <div>
+                          <h5 className="font-bold text-gray-900 dark:text-white text-xl mb-2">
+                            {fixedSetting.label}
+                          </h5>
+                          <p className="text-sm text-gray-600 dark:text-gray-400">
+                            {fixedSetting.description}
+                          </p>
+                        </div>
                         <button
                           onClick={() => handleOpenEditModal(fixedSetting.key)}
-                          className="text-primary-600 hover:text-primary-900 dark:text-primary-400 dark:hover:text-primary-300"
+                          className="p-3 rounded-xl bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-md transition-all duration-200 transform hover:scale-105"
                         >
                           <PencilIcon className="h-5 w-5" />
                         </button>
                       </div>
-                      <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">
-                        {fixedSetting.description}
-                      </p>
                       {setting && setting.value ? (
-                        <div className="flex justify-center">
+                        <div className="flex justify-center bg-gray-50 dark:bg-gray-700/30 rounded-xl p-8">
                           <img
                             src={setting.value}
                             alt="Photo du fondateur"
-                            className="max-h-64 object-cover rounded-lg shadow-md"
+                            className="max-h-64 object-cover rounded-xl shadow-lg"
                           />
                         </div>
                       ) : (
-                        <div className="bg-gray-100 dark:bg-gray-700 h-40 flex items-center justify-center rounded-lg">
-                          <span className="text-gray-400 italic">
-                            Aucune image définie
-                          </span>
+                        <div className="bg-gray-50 dark:bg-gray-700/30 h-40 flex items-center justify-center rounded-xl">
+                          <div className="text-center">
+                            <div className="w-12 h-12 bg-gray-200 dark:bg-gray-600 rounded-full flex items-center justify-center mx-auto mb-2">
+                              <svg className="h-6 w-6 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                              </svg>
+                            </div>
+                            <span className="text-gray-400 italic">
+                              Aucune image définie
+                            </span>
+                          </div>
                         </div>
                       )}
                     </div>
@@ -700,90 +743,143 @@ const GeneralSettings = () => {
                 })}
               </div>
             ) : (
-              // Affichage standard en tableau pour les autres catégories
-              <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                <thead className="bg-gray-100 dark:bg-gray-700">
-                  <tr>
-                    <th
-                      scope="col"
-                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
-                    >
-                      Paramètre
-                    </th>
-                    <th
-                      scope="col"
-                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
-                    >
-                      Valeur
-                    </th>
-                    <th
-                      scope="col"
-                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
-                    >
-                      Description
-                    </th>
-                    <th
-                      scope="col"
-                      className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
-                    >
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+              // Affichage responsive : cards sur mobile, tableau sur desktop
+              <>
+                <div className="space-y-4 sm:hidden">
+                  {/* Cards pour mobile */}
                   {getSettingsByCategory(activeTab).map((fixedSetting) => {
                     const setting = settings[fixedSetting.key];
                     return (
-                      <tr
+                      <div
                         key={fixedSetting.key}
-                        className="hover:bg-gray-50 dark:hover:bg-gray-700"
+                        className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 shadow-sm hover:shadow-md transition-all duration-200"
                       >
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
-                          {fixedSetting.label}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">
-                          {setting ? setting.value : "Non défini"}{" "}
-                          {fixedSetting.isNumber ? "%" : ""}{" "}
-                        </td>
-                        <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-300">
-                          {setting
-                            ? setting.description
-                            : fixedSetting.description}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        <div className="flex justify-between items-start mb-3">
+                          <h3 className="text-sm font-semibold text-gray-900 dark:text-white">
+                            {fixedSetting.label}
+                          </h3>
                           <button
-                            onClick={() =>
-                              handleOpenEditModal(fixedSetting.key)
-                            }
-                            className="text-primary-600 hover:text-primary-900 dark:text-primary-400 dark:hover:text-primary-300"
+                            onClick={() => handleEditSetting(fixedSetting.key, fixedSetting.label, fixedSetting.type)}
+                            className="inline-flex items-center justify-center p-2 rounded-lg bg-blue-100 hover:bg-blue-200 text-blue-700 dark:bg-blue-900 dark:hover:bg-blue-800 dark:text-blue-300 transition-all duration-200"
                           >
-                            <PencilIcon className="h-5 w-5" />
+                            <PencilIcon className="h-4 w-4" />
                           </button>
-                        </td>
-                      </tr>
+                        </div>
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                              Valeur
+                            </span>
+                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200">
+                              {setting ? setting.value : "Non défini"}{" "}
+                              {fixedSetting.isNumber ? "%" : ""}
+                            </span>
+                          </div>
+                          <div className="pt-2 border-t border-gray-100 dark:border-gray-700">
+                            <p className="text-xs text-gray-600 dark:text-gray-400">
+                              {fixedSetting.description}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
                     );
                   })}
-                </tbody>
-              </table>
+                </div>
+
+                <div className="hidden sm:block overflow-hidden rounded-2xl border border-gray-200 dark:border-gray-700 shadow-lg">
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full">
+                      <thead className="bg-gray-50 dark:bg-gray-700">
+                        <tr>
+                          <th
+                            scope="col"
+                            className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-gray-900 dark:text-white"
+                          >
+                            Paramètre
+                          </th>
+                          <th
+                            scope="col"
+                            className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-gray-900 dark:text-white"
+                          >
+                            Valeur
+                          </th>
+                          <th
+                            scope="col"
+                            className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-gray-900 dark:text-white"
+                          >
+                            Description
+                          </th>
+                          <th
+                            scope="col"
+                            className="px-6 py-4 text-right text-xs font-bold uppercase tracking-wider text-gray-900 dark:text-white"
+                          >
+                            Actions
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                        {getSettingsByCategory(activeTab).map((fixedSetting) => {
+                          const setting = settings[fixedSetting.key];
+                          return (
+                            <tr
+                              key={fixedSetting.key}
+                              className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-150"
+                            >
+                              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
+                                {fixedSetting.label}
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap">
+                                <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200">
+                                  {setting ? setting.value : "Non défini"}{" "}
+                                  {fixedSetting.isNumber ? "%" : ""}
+                                </span>
+                              </td>
+                              <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">
+                                {fixedSetting.description}
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                <button
+                                  onClick={() => handleEditSetting(fixedSetting.key, fixedSetting.label, fixedSetting.type)}
+                                  className="inline-flex items-center justify-center p-2 rounded-xl bg-blue-100 hover:bg-blue-200 text-blue-700 dark:bg-blue-900 dark:hover:bg-blue-800 dark:text-blue-300 transition-all duration-200 transform hover:scale-105"
+                                >
+                                  <PencilIcon className="h-4 w-4" />
+                                </button>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </>
             )}
           </div>
         </div>
       )}
       {/* Modal pour modifier un paramètre */}
       <ModalPortal isOpen={showModal} onClose={handleCloseModal}>
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-4xl w-full max-h-[95vh] flex flex-col">
-          <div className="flex justify-between items-center p-4 border-b dark:border-gray-700">
-            <h3 className="text-lg font-medium text-gray-900 dark:text-white">
-              {currentSetting
-                ? "Modifier un paramètre"
-                : "Ajouter un paramètre"}
-            </h3>
-            <button
-              onClick={handleCloseModal}
-              className="text-gray-400 hover:text-gray-500 dark:text-gray-300 dark:hover:text-gray-200"
-            >
-              <XMarkIcon className="h-6 w-6" />
-            </button>
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-4xl w-full max-h-[95vh] flex flex-col border border-gray-200 dark:border-gray-700">
+          <div className="relative overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-purple-600 opacity-10"></div>
+            <div className="relative flex justify-between items-center p-6 border-b border-gray-200 dark:border-gray-700">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl flex items-center justify-center">
+                  <PencilIcon className="h-5 w-5 text-white" />
+                </div>
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white">
+                  {currentSetting
+                    ? "Modifier un paramètre"
+                    : "Ajouter un paramètre"}
+                </h3>
+              </div>
+              <button
+                onClick={handleCloseModal}
+                className="p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-600 dark:text-gray-300 dark:hover:text-gray-200 transition-colors"
+              >
+                <XMarkIcon className="h-6 w-6" />
+              </button>
+            </div>
           </div>
           <div className="overflow-y-auto flex-1">
             <form onSubmit={handleSubmit} className="p-6">
@@ -811,40 +907,8 @@ const GeneralSettings = () => {
                     htmlFor="value"
                     className="block text-sm font-medium text-gray-700 dark:text-gray-300"
                   >
-                    Valeur{" "}
-                    {currentSetting &&
-                      currentSetting.category === "legal" &&
-                      "(Supporte le format Markdown)"}
+                    Valeur
                   </label>
-
-                  {/* Guide Markdown pour les documents légaux */}
-                  {currentSetting && currentSetting.category === "legal" && (
-                    <div className="mb-2 p-2 bg-gray-50 dark:bg-gray-800 rounded text-xs text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700">
-                      <p className="font-medium mb-1">Formatage Markdown :</p>
-                      <ul className="list-disc pl-4 space-y-1">
-                        <li>
-                          <code># Titre</code> pour les grands titres
-                        </li>
-                        <li>
-                          <code>## Sous-titre</code> pour les sous-titres
-                        </li>
-                        <li>
-                          <code>**texte**</code> pour du{" "}
-                          <strong>texte en gras</strong>
-                        </li>
-                        <li>
-                          <code>*texte*</code> pour du{" "}
-                          <em>texte en italique</em>
-                        </li>
-                        <li>
-                          <code>- élément</code> pour des listes à puces
-                        </li>
-                        <li>
-                          <code>[texte](url)</code> pour des liens
-                        </li>
-                      </ul>
-                    </div>
-                  )}
 
                   {/* Éditeur de texte riche avec React Quill */}
                   {currentSetting && currentSetting.isLongText && (
@@ -1163,30 +1227,38 @@ const GeneralSettings = () => {
                 </div>
               </div>
 
-              <div className="mt-6 flex justify-end space-x-3">
+              <div className="mt-8 flex justify-end gap-3 pt-6 border-t border-gray-200 dark:border-gray-700">
                 <button
                   type="button"
                   onClick={handleCloseModal}
-                  className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+                  className="px-6 py-3 border border-gray-300 dark:border-gray-600 rounded-xl font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-all duration-200 transform hover:scale-105"
                 >
                   Annuler
                 </button>
                 <button
                   type="submit"
                   disabled={submitting}
-                  className={`px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 ${
-                    submitting ? "opacity-70 cursor-not-allowed" : ""
+                  className={`px-6 py-3 rounded-xl font-medium text-white bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200 transform hover:scale-105 shadow-lg ${
+                    submitting ? "opacity-70 cursor-not-allowed scale-100" : ""
                   }`}
                 >
                   {submitting ? (
-                    <span className="flex items-center">
-                      <span className="animate-spin h-4 w-4 mr-2 border-t-2 border-b-2 border-white rounded-full"></span>
+                    <span className="flex items-center gap-2">
+                      <span className="animate-spin h-4 w-4 border-t-2 border-b-2 border-white rounded-full"></span>
                       Traitement...
                     </span>
                   ) : currentSetting ? (
-                    "Mettre à jour"
+                    <span className="flex items-center gap-2">
+                      <PencilIcon className="h-4 w-4" />
+                      Mettre à jour
+                    </span>
                   ) : (
-                    "Ajouter"
+                    <span className="flex items-center gap-2">
+                      <svg className="h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                      </svg>
+                      Ajouter
+                    </span>
                   )}
                 </button>
               </div>

@@ -34,10 +34,19 @@ import {
   InputLabel,
   Select,
   MenuItem,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  TablePagination,
+  Alert,
 } from "@mui/material";
 import { DataGrid } from "@mui/x-data-grid";
 import axios from "../../utils/axios";
 import { useTheme } from "../../contexts/ThemeContext";
+import { useCurrency } from "../../contexts/CurrencyContext";
 import {
   ArrowDownTrayIcon,
   ChartBarIcon,
@@ -65,8 +74,23 @@ import { Fade } from "@mui/material";
 import { toast } from "react-toastify";
 import { ChevronUpIcon, ChevronDownIcon } from "@heroicons/react/24/solid";
 
-const CustomNode = ({ nodeDatum, isDarkMode, toggleNode }) => {
+const CustomNode = ({ nodeDatum, isDarkMode, toggleNode, selectedCurrency }) => {
   const [isHovered, setIsHovered] = useState(false);
+
+  // Fonction pour extraire uniquement la devise sélectionnée
+  const getCommissionForSelectedCurrency = (commissionString) => {
+    if (!commissionString) return "0";
+    
+    if (selectedCurrency === "USD") {
+      // Extraire la valeur USD: "USD: $25.50 | CDF: 50,000 FC" -> "$25.50"
+      const usdMatch = commissionString.match(/USD:\s*(\$[\d,.-]+)/);
+      return usdMatch ? usdMatch[1] : "$0.00";
+    } else {
+      // Extraire la valeur CDF: "USD: $25.50 | CDF: 50,000 FC" -> "50,000 FC"
+      const cdfMatch = commissionString.match(/CDF:\s*([\d\s.,]+FC)/);
+      return cdfMatch ? cdfMatch[1] : "0 FC";
+    }
+  };
 
   const colors = {
     background: isDarkMode
@@ -178,7 +202,7 @@ const CustomNode = ({ nodeDatum, isDarkMode, toggleNode }) => {
               transition: "transform 0.2s cubic-bezier(0.4, 0, 0.2, 1) 0.1s",
             }}
           >
-            Commission: {nodeDatum.attributes.commission}
+            {selectedCurrency}: {getCommissionForSelectedCurrency(nodeDatum.attributes.commission)}
           </div>
           <div
             style={{
@@ -207,6 +231,12 @@ export default function MyPacks() {
   const [duration, setDuration] = useState(1);
   const [renewing, setRenewing] = useState(false);
   const { isDarkMode } = useTheme();
+  const { selectedCurrency, setSelectedCurrency, canUseCDF } = useCurrency();
+  
+  // États pour la pagination backend
+  const [referralsPage, setReferralsPage] = useState(0);
+  const [referralsRowsPerPage, setReferralsRowsPerPage] = useState(25);
+  const [referralsPaginationMeta, setReferralsPaginationMeta] = useState([]);
   const [statsDialog, setStatsDialog] = useState(false);
   const [referralsDialog, setReferralsDialog] = useState(false);
   const [currentPackStats, setCurrentPackStats] = useState(null);
@@ -222,6 +252,7 @@ export default function MyPacks() {
     startDate: "",
     endDate: "",
   });
+  const [showFilters, setShowFilters] = useState(false);
   const treeRef = useRef(null);
   const [isFullScreen, setIsFullScreen] = useState(false);
   const [selectedPackId, setSelectedPackId] = useState(null);
@@ -252,67 +283,6 @@ export default function MyPacks() {
       );
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleRenewClick = (pack) => {
-    setSelectedPack(pack);
-    setDuration(1);
-    setRenewDialog(true);
-  };
-
-  const handleRenewClose = () => {
-    setRenewDialog(false);
-    setSelectedPack(null);
-    setDuration(1);
-  };
-
-  const calculateTotalPrice = () => {
-    if (!selectedPack?.pack) return 0;
-    return selectedPack.pack.price * duration;
-  };
-
-  const handleRenew = async () => {
-    try {
-      setRenewing(true);
-      const response = await axios.post(
-        `/api/packs/${selectedPack.pack_id}/renew`,
-        {
-          duration_months: duration,
-        }
-      );
-
-      if (response.data.success) {
-        Notification.success("Pack renouvelé avec succès");
-        fetchUserPacks();
-        handleRenewClose();
-      }
-    } catch (error) {
-      console.error("Erreur lors du renouvellement:", error);
-      Notification.error(
-        error.response?.data?.message || "Erreur lors du renouvellement du pack"
-      );
-    } finally {
-      setRenewing(false);
-    }
-  };
-
-  const handleDownload = async (packId) => {
-    try {
-      const response = await axios.get(`/api/packs/${packId}/download`, {
-        responseType: "blob",
-      });
-
-      const url = window.URL.createObjectURL(new Blob([response.data]));
-      const link = document.createElement("a");
-      link.href = url;
-      link.setAttribute("download", `pack-${packId}.zip`);
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      window.URL.revokeObjectURL(url);
-    } catch (error) {
-      Notification.error("Erreur lors du téléchargement du pack");
     }
   };
 
@@ -347,26 +317,106 @@ export default function MyPacks() {
     setStatsDialog(true);
   };
 
-  const handleReferralsClick = async (packId) => {
+  const handleReferralsClick = async (packId, newPage = 1, filters = {}) => {
     try {
-      const response = await axios.get(`/api/packs/${packId}/referrals`);
-      //console.log('Données reçues du backend:', JSON.stringify(response.data.data, null, 2));
+      // Définir le pack sélectionné
+      setSelectedPackId(packId);
 
-      // Vérification des données
-      if (response.data.data && Array.isArray(response.data.data)) {
-        response.data.data.forEach((generation, index) => {
-          //console.log(`Génération ${index + 1}:`, generation);
-        });
+      // Pagination backend (comme dans Wallet.jsx)
+      const paginationParams = {
+        per_page: referralsRowsPerPage,
+        page: newPage, // Laravel pagination commence à 1
+        ...filters,
+      };
+
+      // Ajouter les filtres de génération
+      paginationParams.generation_tab = currentTab;
+
+      // Construction des paramètres de requête
+      const queryParams = new URLSearchParams();
+      Object.entries(paginationParams).forEach(([key, value]) => {
+        if (value !== "" && value !== undefined && value !== null) {
+          queryParams.append(key, value);
+        }
+      });
+
+      // Appel API avec paramètres de pagination backend
+      const response = await axios.get(
+        `/api/packs/${packId}/referrals?${queryParams.toString()}`
+      );
+      console.log(response);
+      if (response.data && response.data.success) {
+        setCurrentPackReferrals(response.data.data);
+        setReferralsPaginationMeta(response.data.pagination || []);
+        
+        // Mettre à jour la page UI (Material-UI utilise 0-based)
+        setReferralsPage(newPage - 1);
+        
+        if (!filters.generation_tab) {
+          setCurrentTab(0);
+        }
+        
+        // Ne réinitialiser le searchTerm que si ce n'est pas un filtre de recherche
+        if (!filters.search) {
+          setSearchTerm("");
+        }
+        
+        setReferralsDialog(true);
+      } else {
+        toast.error("Erreur lors du chargement des filleuls");
       }
-
-      setCurrentPackReferrals(response.data.data);
-      setCurrentTab(0);
-      setSearchTerm("");
-      setReferralsDialog(true);
     } catch (error) {
-      console.error("Erreur complète:", error);
-      Notification.error("Erreur lors du chargement des filleuls");
+      console.error("Erreur lors du chargement des filleuls:", error);
+      toast.error("Impossible de charger les filleuls");
     }
+  };
+
+  // Effet pour recharger les données lorsque la pagination ou les filtres changent (comme dans Wallet.jsx)
+  useEffect(() => {
+    if (referralsDialog && selectedPackId) {
+      handleReferralsClick(selectedPackId, referralsPage + 1);
+    }
+  }, [referralsPage, referralsRowsPerPage, selectedCurrency]);
+
+  // Fonction pour appliquer les filtres manuellement
+  const applyFilters = () => {
+    if (referralsDialog && selectedPackId) {
+      const filters = {
+        search: searchTerm,
+        status: statusFilter,
+        start_date: dateFilter.startDate,
+        end_date: dateFilter.endDate,
+        date_type: dateFilter.type,
+      };
+      handleReferralsClick(selectedPackId, 1, filters);
+    }
+  };
+
+  // Fonction pour réinitialiser les filtres
+  const resetFilters = () => {
+    setSearchTerm("");
+    setStatusFilter("all");
+    setDateFilter({
+      type: "purchase",
+      startDate: "",
+      endDate: "",
+    });
+    if (referralsDialog && selectedPackId) {
+      handleReferralsClick(selectedPackId, 1);
+    }
+  };
+
+  // Gestionnaires de pagination pour la table (comme dans Wallet.jsx)
+  const handleReferralsPageChangeUI = (event, newPage) => {
+    // Material-UI utilise 0-based, mais le backend utilise 1-based
+    handleReferralsClick(selectedPackId, newPage + 1);
+  };
+
+  const handleReferralsRowsPerPageChange = (event) => {
+    const newRowsPerPage = parseInt(event.target.value, 10);
+    setReferralsRowsPerPage(newRowsPerPage);
+    setReferralsPage(0); // Réinitialiser à la première page
+    handleReferralsClick(selectedPackId, 1, { per_page: newRowsPerPage });
   };
 
   // Fonction pour normaliser une date (convertir en objet Date valide)
@@ -489,7 +539,7 @@ export default function MyPacks() {
     const rootNode = {
       name: "Vous",
       attributes: {
-        commission: "0$",
+        commission: "USD: $0.00 | CDF: 0 FC",
         status: "active",
         generation: 0,
       },
@@ -501,7 +551,12 @@ export default function MyPacks() {
       rootNode.children = referrals[0].map((ref) => ({
         name: ref.name,
         attributes: {
-          commission: `${parseFloat(ref.total_commission || 0).toFixed(2)}$`,
+          commission: `USD: $${parseFloat(ref.total_commission_usd || 0).toFixed(2)} | CDF: ${new Intl.NumberFormat("fr-CD", {
+            style: "currency",
+            currency: "CDF",
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 0,
+          }).format(parseFloat(ref.total_commission_cdf || 0))}`,
           status: ref.pack_status,
           generation: 1,
           userId: ref.id,
@@ -539,9 +594,12 @@ export default function MyPacks() {
               parentNode.children.push({
                 name: ref.name,
                 attributes: {
-                  commission: `${parseFloat(ref.total_commission || 0).toFixed(
-                    2
-                  )}$`,
+                  commission: `USD: $${parseFloat(ref.total_commission_usd || 0).toFixed(2)} | CDF: ${new Intl.NumberFormat("fr-CD", {
+                    style: "currency",
+                    currency: "CDF",
+                    minimumFractionDigits: 0,
+                    maximumFractionDigits: 0,
+                  }).format(parseFloat(ref.total_commission_cdf || 0))}`,
                   status: ref.pack_status,
                   generation: gen,
                   userId: ref.id,
@@ -1033,18 +1091,6 @@ export default function MyPacks() {
                   }}
                 >
                   <Box sx={{ display: "flex", gap: 1 }}>
-                    {userPack.pack.formations ? (
-                      <Tooltip title="Télécharger" placement="top">
-                        <IconButton
-                          size="small"
-                          onClick={() => handleDownload(userPack.pack.id)}
-                        >
-                          <ArrowDownTrayIcon className="h-5 w-5" />
-                        </IconButton>
-                      </Tooltip>
-                    ) : (
-                      ""
-                    )}
 
                     <Tooltip title="Statistiques" placement="top">
                       <IconButton
@@ -1064,205 +1110,13 @@ export default function MyPacks() {
                       </IconButton>
                     </Tooltip>
                   </Box>
-
-                  {userPack.status !== "active" && (
-                    <Button
-                      variant="contained"
-                      size="small"
-                      onClick={() => handleRenewClick(userPack)}
-                      startIcon={<Cached />}
-                      sx={{
-                        borderRadius: "6px",
-                        textTransform: "none",
-                        fontWeight: 600,
-                      }}
-                    >
-                      Renouveler
-                    </Button>
-                  )}
                 </Box>
               </Paper>
             </Grid>
           ))}
         </Grid>
       )}
-      <Dialog
-        open={renewDialog}
-        onClose={handleRenewClose}
-        maxWidth="sm"
-        fullWidth
-        PaperProps={{
-          sx: {
-            borderRadius: "12px",
-            bgcolor: isDarkMode ? "#1f2937" : "background.paper",
-            backdropFilter: "blur(10px)",
-            border: isDarkMode ? "1px solid rgba(255, 255, 255, 0.1)" : "none",
-            boxShadow: "0 10px 40px rgba(0, 0, 0, 0.2)",
-          },
-        }}
-      >
-        <DialogTitle
-          sx={{
-            borderBottom: 1,
-            borderColor: "divider",
-            py: 2.5,
-            px: 3,
-            display: "flex",
-            alignItems: "center",
-            gap: 1.5,
-          }}
-        >
-          <Cached
-            sx={{ color: isDarkMode ? "primary.light" : "primary.main" }}
-          />
-          <Typography variant="h6" component="div" sx={{ fontWeight: 600 }}>
-            Renouveler {selectedPack?.pack?.name}
-          </Typography>
-        </DialogTitle>
-        <DialogContent sx={{ p: 3 }}>
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3 }}
-          >
-            <Box
-              sx={{
-                p: 2,
-                mb: 3,
-                borderRadius: 2,
-                bgcolor: isDarkMode
-                  ? "rgba(25, 118, 210, 0.1)"
-                  : "rgba(25, 118, 210, 0.05)",
-                border: isDarkMode
-                  ? "1px solid rgba(25, 118, 210, 0.2)"
-                  : "1px solid rgba(25, 118, 210, 0.1)",
-                display: "flex",
-                alignItems: "center",
-                gap: 2,
-              }}
-            >
-              <Box
-                sx={{
-                  width: 48,
-                  height: 48,
-                  borderRadius: "50%",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  bgcolor: isDarkMode
-                    ? "rgba(25, 118, 210, 0.2)"
-                    : "rgba(25, 118, 210, 0.1)",
-                }}
-              >
-                <Info
-                  sx={{ color: isDarkMode ? "primary.light" : "primary.main" }}
-                />
-              </Box>
-              <Box>
-                <Typography
-                  variant="subtitle2"
-                  sx={{ fontWeight: 600, mb: 0.5 }}
-                >
-                  Prix mensuel : {selectedPack?.pack?.price}$
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Le renouvellement prolonge la durée de votre pack
-                </Typography>
-              </Box>
-            </Box>
 
-            <TextField
-              fullWidth
-              type="number"
-              label="Durée (mois)"
-              value={duration}
-              onChange={(e) =>
-                setDuration(Math.max(1, parseInt(e.target.value) || 1))
-              }
-              inputProps={{ min: 1 }}
-              margin="normal"
-              required
-              sx={{
-                "& .MuiOutlinedInput-root": {
-                  borderRadius: "8px",
-                  "&:hover .MuiOutlinedInput-notchedOutline": {
-                    borderColor: isDarkMode
-                      ? "rgba(255, 255, 255, 0.3)"
-                      : "rgba(0, 0, 0, 0.3)",
-                  },
-                  "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
-                    borderColor: isDarkMode ? "primary.light" : "primary.main",
-                    borderWidth: "2px",
-                  },
-                },
-                "& .MuiInputLabel-root.Mui-focused": {
-                  color: isDarkMode ? "primary.light" : "primary.main",
-                },
-              }}
-            />
-
-            <Box
-              sx={{
-                mt: 3,
-                p: 2,
-                borderRadius: 2,
-                bgcolor: isDarkMode ? "#1a2433" : "rgba(0, 0, 0, 0.03)",
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-              }}
-            >
-              <Typography variant="subtitle1" sx={{ fontWeight: 500 }}>
-                Prix total :
-              </Typography>
-              <Typography
-                variant="h5"
-                sx={{
-                  fontWeight: 700,
-                  color: isDarkMode ? "primary.light" : "primary.main",
-                }}
-              >
-                {calculateTotalPrice()}$
-              </Typography>
-            </Box>
-          </motion.div>
-        </DialogContent>
-        <DialogActions
-          sx={{ px: 3, py: 2, borderTop: 1, borderColor: "divider" }}
-        >
-          <Button
-            onClick={handleRenewClose}
-            sx={{
-              color: isDarkMode ? "#1f2937" : "grey.700",
-              "&:hover": {
-                bgcolor: isDarkMode
-                  ? "rgba(255, 255, 255, 0.05)"
-                  : "rgba(0, 0, 0, 0.05)",
-              },
-            }}
-          >
-            Annuler
-          </Button>
-          <Button
-            variant="contained"
-            onClick={handleRenew}
-            disabled={renewing}
-            startIcon={renewing ? <CircularProgress size={20} /> : <Cached />}
-            sx={{
-              borderRadius: "8px",
-              boxShadow: "0 4px 12px rgba(0, 0, 0, 0.15)",
-              bgcolor: isDarkMode ? "primary.dark" : "primary.main",
-              "&:hover": {
-                bgcolor: isDarkMode ? "primary.main" : "primary.dark",
-              },
-            }}
-          >
-            {renewing
-              ? "Traitement en cours..."
-              : "Confirmer le renouvellement"}
-          </Button>
-        </DialogActions>
-      </Dialog>
       {/* Dialogs for Stats and Referrals */}
       <PackStatsModal
         open={statsDialog}
@@ -1314,145 +1168,421 @@ export default function MyPacks() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3, delay: 0.1 }}
           sx={{
-            bgcolor: isDarkMode ? "#1a2433" : "rgba(0, 0, 0, 0.05)",
-            color: isDarkMode ? "grey.100" : "text.primary",
-            borderBottom: 1,
-            borderColor: "divider",
+            background: isDarkMode
+              ? "linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(30, 41, 59, 0.95) 50%, rgba(51, 65, 85, 0.95) 100%)"
+              : "linear-gradient(135deg, rgba(248, 250, 252, 0.98) 0%, rgba(241, 245, 249, 0.98) 50%, rgba(226, 232, 240, 0.98) 100%)",
+            color: isDarkMode ? "#f1f5f9" : "#1e293b",
+            borderBottom: "none",
             display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            py: 2,
-            px: 3,
+            flexDirection: { xs: "column", sm: "row" },
+            alignItems: { xs: "stretch", sm: "center" },
+            justifyContent: { xs: "flex-start", sm: "space-between" },
+            px: { xs: 2, sm: 3.5 },
+            py: { xs: 2.5, sm: 3 },
+            backdropFilter: "blur(20px)",
+            WebkitBackdropFilter: "blur(20px)",
+            position: "relative",
+            "&::before": {
+              content: '""',
+              position: "absolute",
+              top: 0,
+              left: 0,
+              right: 0,
+              height: "1px",
+              background: isDarkMode
+                ? "linear-gradient(90deg, transparent, rgba(59, 130, 246, 0.5), transparent)"
+                : "linear-gradient(90deg, transparent, rgba(59, 130, 246, 0.3), transparent)",
+            },
+            "&::after": {
+              content: '""',
+              position: "absolute",
+              bottom: 0,
+              left: 0,
+              right: 0,
+              height: "2px",
+              background: isDarkMode
+                ? "linear-gradient(90deg, rgba(59, 130, 246, 0.8), rgba(147, 51, 234, 0.8), rgba(59, 130, 246, 0.8))"
+                : "linear-gradient(90deg, rgba(59, 130, 246, 0.6), rgba(147, 51, 234, 0.6), rgba(59, 130, 246, 0.6))",
+            },
           }}
         >
-          <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-            <UsersIcon
-              className="h-6 w-6"
-              style={{ color: isDarkMode ? "#4dabf5" : "#1976d2" }}
-            />
-            <Typography variant="h6" component="div" sx={{ fontWeight: 600 }}>
-              Arbre des filleuls
-            </Typography>
-          </Box>
-          <Box sx={{ display: "flex", gap: 1 }}>
-            <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-              <Button
-                variant={viewMode === "table" ? "contained" : "outlined"}
-                onClick={() => setViewMode("table")}
-                size="small"
-                startIcon={
-                  <Box
-                    component="span"
-                    sx={{ display: "flex", alignItems: "center" }}
-                  >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="18"
-                      height="18"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <rect
-                        x="3"
-                        y="3"
-                        width="18"
-                        height="18"
-                        rx="2"
-                        ry="2"
-                      ></rect>
-                      <line x1="3" y1="9" x2="21" y2="9"></line>
-                      <line x1="3" y1="15" x2="21" y2="15"></line>
-                      <line x1="9" y1="3" x2="9" y2="21"></line>
-                      <line x1="15" y1="3" x2="15" y2="21"></line>
-                    </svg>
-                  </Box>
-                }
+          {/* Header Section - Titre et devise */}
+          <Box
+            sx={{
+              display: "flex",
+              flexDirection: { xs: "column", sm: "row" },
+              alignItems: { xs: "flex-start", sm: "center" },
+              gap: { xs: 2, sm: 1.5 },
+              width: { xs: "100%", sm: "auto" },
+              order: { xs: 1, sm: 1 },
+              mb: { xs: 2, sm: 0 },
+            }}
+          >
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+              <Box
                 sx={{
-                  borderRadius: "8px",
-                  textTransform: "none",
-                  fontWeight: 500,
-                  boxShadow:
-                    viewMode === "table"
-                      ? "0 4px 8px rgba(0, 0, 0, 0.15)"
-                      : "none",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  width: { xs: "44px", sm: "40px" },
+                  height: { xs: "44px", sm: "40px" },
+                  borderRadius: "14px",
+                  background: isDarkMode
+                    ? "linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(147, 51, 234, 0.2))"
+                    : "linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(147, 51, 234, 0.1))",
+                  border: isDarkMode
+                    ? "1px solid rgba(59, 130, 246, 0.3)"
+                    : "1px solid rgba(59, 130, 246, 0.2)",
                 }}
               >
-                Vue tableau
-              </Button>
-            </motion.div>
-            <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-              <Button
-                variant={viewMode === "tree" ? "contained" : "outlined"}
-                onClick={() => setViewMode("tree")}
-                size="small"
-                startIcon={
-                  <Box
-                    component="span"
-                    sx={{ display: "flex", alignItems: "center" }}
-                  >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="18"
-                      height="18"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                      <circle cx="9" cy="7" r="4"></circle>
-                      <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
-                      <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-                    </svg>
-                  </Box>
-                }
-                sx={{
-                  borderRadius: "8px",
-                  textTransform: "none",
-                  fontWeight: 500,
-                  boxShadow:
-                    viewMode === "tree"
-                      ? "0 4px 8px rgba(0, 0, 0, 0.15)"
-                      : "none",
-                }}
-              >
-                Vue arbre
-              </Button>
-            </motion.div>
-            <Tooltip
-              title={
-                isFullScreen ? "Quitter le mode plein écran" : "Plein écran"
-              }
-              arrow
+                <UsersIcon
+                  sx={{
+                    fontSize: { xs: "24px", sm: "22px" },
+                    color: isDarkMode ? "#60a5fa" : "#3b82f6",
+                  }}
+                />
+              </Box>
+              <Box>
+                <Typography
+                  variant="h6"
+                  component="div"
+                  sx={{
+                    fontWeight: 700,
+                    fontSize: { xs: "1.1rem", sm: "1.25rem" },
+                    lineHeight: 1.2,
+                    background: isDarkMode
+                      ? "linear-gradient(135deg, #60a5fa 0%, #a78bfa 100%)"
+                      : "linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)",
+                    WebkitBackgroundClip: "text",
+                    WebkitTextFillColor: "transparent",
+                    backgroundClip: "text",
+                  }}
+                >
+                  Arbre des filleuls
+                </Typography>
+                <Typography
+                  variant="body2"
+                  sx={{
+                    fontSize: { xs: "0.75rem", sm: "0.8rem" },
+                    color: isDarkMode ? "#94a3b8" : "#64748b",
+                    mt: 0.5,
+                    fontWeight: 500,
+                  }}
+                >
+                  Génération 1 à 4 • {selectedCurrency === "USD" ? "Dollars" : "Francs Congolais"}
+                </Typography>
+              </Box>
+            </Box>
+            
+            {/* Badge devise - desktop only */}
+            <Box
+              sx={{
+                display: { xs: "none", sm: "flex" },
+                alignItems: "center",
+                gap: 1,
+                px: 2.5,
+                py: 1.2,
+                borderRadius: "16px",
+                background: isDarkMode
+                  ? "linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(59, 130, 246, 0.15))"
+                  : "linear-gradient(135deg, rgba(16, 185, 129, 0.08), rgba(59, 130, 246, 0.08))",
+                border: isDarkMode
+                  ? "1px solid rgba(16, 185, 129, 0.3)"
+                  : "1px solid rgba(16, 185, 129, 0.2)",
+                backdropFilter: "blur(8px)",
+                boxShadow: isDarkMode
+                  ? "0 2px 8px rgba(16, 185, 129, 0.2)"
+                  : "0 2px 8px rgba(16, 185, 129, 0.1)",
+              }}
             >
-              <IconButton
-                onClick={() => setIsFullScreen(!isFullScreen)}
+              <Typography
+                variant="body2"
                 sx={{
-                  ml: 1,
-                  color: isDarkMode ? "grey.300" : "grey.700",
-                  bgcolor: isDarkMode
-                    ? "rgba(255, 255, 255, 0.05)"
-                    : "rgba(0, 0, 0, 0.05)",
-                  "&:hover": {
-                    bgcolor: isDarkMode
-                      ? "rgba(255, 255, 255, 0.1)"
-                      : "rgba(0, 0, 0, 0.1)",
-                  },
+                  fontWeight: 700,
+                  fontSize: "0.8rem",
+                  color:
+                    selectedCurrency === "USD"
+                      ? isDarkMode ? "#34d399" : "#10b981"
+                      : isDarkMode ? "#fbbf24" : "#f59e0b",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.8px",
                 }}
               >
-                {isFullScreen ? (
-                  <FullscreenExit sx={{ fontSize: 22 }} />
-                ) : (
-                  <Fullscreen sx={{ fontSize: 22 }} />
-                )}
-              </IconButton>
-            </Tooltip>
+                {selectedCurrency}
+              </Typography>
+            </Box>
+          </Box>
+
+          {/* Controls Section - Boutons et actions */}
+          <Box
+            sx={{
+              display: "flex",
+              flexDirection: { xs: "column", sm: "row" },
+              alignItems: { xs: "stretch", sm: "center" },
+              gap: { xs: 2, sm: 2 },
+              width: { xs: "100%", sm: "auto" },
+              order: { xs: 2, sm: 2 },
+            }}
+          >
+            {/* View Mode Buttons */}
+            <Box
+              sx={{
+                display: "flex",
+                flexDirection: { xs: "row", sm: "row" },
+                gap: { xs: 1, sm: 1.5 },
+                width: { xs: "100%", sm: "auto" },
+              }}
+            >
+              <motion.div
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                style={{ flex: { xs: 1, sm: "none" } }}
+              >
+                <Button
+                  variant={viewMode === "table" ? "contained" : "outlined"}
+                  onClick={() => setViewMode("table")}
+                  size="small"
+                  startIcon={
+                    <Box
+                      component="span"
+                      sx={{ 
+                        display: "flex", 
+                        alignItems: "center",
+                        mr: { xs: 1, sm: 0 }
+                      }}
+                    >
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="20"
+                        height="20"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                        <line x1="3" y1="9" x2="21" y2="9"></line>
+                        <line x1="3" y1="15" x2="21" y2="15"></line>
+                        <line x1="9" y1="3" x2="9" y2="21"></line>
+                        <line x1="15" y1="3" x2="15" y2="21"></line>
+                      </svg>
+                    </Box>
+                  }
+                  sx={{
+                    borderRadius: "16px",
+                    height: { xs: "52px", sm: "42px" },
+                    minWidth: { xs: "100%", sm: "48px" },
+                    width: { xs: "100%", sm: "auto" },
+                    textTransform: "none",
+                    fontWeight: 700,
+                    fontSize: { xs: "0.9rem", sm: "0.875rem" },
+                    boxShadow:
+                      viewMode === "table"
+                        ? "0 6px 20px rgba(59, 130, 246, 0.3)"
+                        : "0 2px 8px rgba(0, 0, 0, 0.1)",
+                    px: { xs: 2.5, sm: 2 },
+                    py: 1,
+                    justifyContent: { xs: "flex-start", sm: "center" },
+                    gap: { xs: 1.5, sm: 0 },
+                    background: viewMode === "table"
+                      ? (isDarkMode 
+                          ? "linear-gradient(135deg, rgba(59, 130, 246, 0.9), rgba(147, 51, 234, 0.9))"
+                          : "linear-gradient(135deg, rgba(59, 130, 246, 0.95), rgba(147, 51, 234, 0.95))")
+                      : (isDarkMode 
+                          ? "linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.05))"
+                          : "linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(248, 250, 252, 0.9))"),
+                    border: isDarkMode
+                      ? "1px solid rgba(59, 130, 246, 0.2)"
+                      : "1px solid rgba(59, 130, 246, 0.3)",
+                    color: viewMode === "table" 
+                      ? "#ffffff"
+                      : (isDarkMode ? "#e2e8f0" : "#1e293b"),
+                    "&:hover": {
+                      background: viewMode === "table"
+                        ? (isDarkMode 
+                            ? "linear-gradient(135deg, rgba(59, 130, 246, 1), rgba(147, 51, 234, 1))"
+                            : "linear-gradient(135deg, rgba(59, 130, 246, 1), rgba(147, 51, 234, 1))")
+                        : (isDarkMode 
+                            ? "linear-gradient(135deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.08))"
+                            : "linear-gradient(135deg, rgba(255, 255, 255, 1), rgba(248, 250, 252, 1))"),
+                      boxShadow: viewMode === "table"
+                        ? "0 8px 25px rgba(59, 130, 246, 0.4)"
+                        : "0 4px 12px rgba(0, 0, 0, 0.15)",
+                    },
+                  }}
+                >
+                </Button>
+              </motion.div>
+
+              <motion.div
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                style={{ flex: { xs: 1, sm: "none" } }}
+              >
+                <Button
+                  variant={viewMode === "tree" ? "contained" : "outlined"}
+                  onClick={() => setViewMode("tree")}
+                  size="small"
+                  startIcon={
+                    <Box
+                      component="span"
+                      sx={{ 
+                        display: "flex", 
+                        alignItems: "center",
+                        mr: { xs: 1, sm: 0 }
+                      }}
+                    >
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="20"
+                        height="20"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="9" cy="7" r="4"></circle>
+                        <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                        <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                      </svg>
+                    </Box>
+                  }
+                  sx={{
+                    borderRadius: "16px",
+                    height: { xs: "52px", sm: "42px" },
+                    minWidth: { xs: "100%", sm: "48px" },
+                    width: { xs: "100%", sm: "auto" },
+                    textTransform: "none",
+                    fontWeight: 700,
+                    fontSize: { xs: "0.9rem", sm: "0.875rem" },
+                    boxShadow:
+                      viewMode === "tree"
+                        ? "0 6px 20px rgba(16, 185, 129, 0.3)"
+                        : "0 2px 8px rgba(0, 0, 0, 0.1)",
+                    px: { xs: 2.5, sm: 2 },
+                    py: 1,
+                    justifyContent: { xs: "flex-start", sm: "center" },
+                    gap: { xs: 1.5, sm: 0 },
+                    background: viewMode === "tree"
+                      ? (isDarkMode 
+                          ? "linear-gradient(135deg, rgba(16, 185, 129, 0.9), rgba(59, 130, 246, 0.9))"
+                          : "linear-gradient(135deg, rgba(16, 185, 129, 0.95), rgba(59, 130, 246, 0.95))")
+                      : (isDarkMode 
+                          ? "linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.05))"
+                          : "linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(248, 250, 252, 0.9))"),
+                    border: isDarkMode
+                      ? "1px solid rgba(16, 185, 129, 0.2)"
+                      : "1px solid rgba(16, 185, 129, 0.3)",
+                    color: viewMode === "tree" 
+                      ? "#ffffff"
+                      : (isDarkMode ? "#e2e8f0" : "#1e293b"),
+                    "&:hover": {
+                      background: viewMode === "tree"
+                        ? (isDarkMode 
+                            ? "linear-gradient(135deg, rgba(16, 185, 129, 1), rgba(59, 130, 246, 1))"
+                            : "linear-gradient(135deg, rgba(16, 185, 129, 1), rgba(59, 130, 246, 1))")
+                        : (isDarkMode 
+                            ? "linear-gradient(135deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.08))"
+                            : "linear-gradient(135deg, rgba(255, 255, 255, 1), rgba(248, 250, 252, 1))"),
+                      boxShadow: viewMode === "tree"
+                        ? "0 8px 25px rgba(16, 185, 129, 0.4)"
+                        : "0 4px 12px rgba(0, 0, 0, 0.15)",
+                    },
+                  }}
+                >
+                </Button>
+              </motion.div>
+            </Box>
+
+            {/* Action Controls */}
+            <Box
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: { xs: "space-between", sm: "flex-end" },
+                gap: 1.5,
+              }}
+            >
+              {/* Mobile Currency Badge */}
+              <Box
+                sx={{
+                  display: { xs: "flex", sm: "none" },
+                  alignItems: "center",
+                  gap: 1,
+                  px: 2.5,
+                  py: 1.2,
+                  borderRadius: "20px",
+                  background: isDarkMode
+                    ? "linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(59, 130, 246, 0.15))"
+                    : "linear-gradient(135deg, rgba(16, 185, 129, 0.08), rgba(59, 130, 246, 0.08))",
+                  border: isDarkMode
+                    ? "1px solid rgba(16, 185, 129, 0.3)"
+                    : "1px solid rgba(16, 185, 129, 0.2)",
+                  backdropFilter: "blur(10px)",
+                  boxShadow: isDarkMode
+                    ? "0 4px 12px rgba(16, 185, 129, 0.2)"
+                    : "0 4px 12px rgba(16, 185, 129, 0.1)",
+                }}
+              >
+                <Typography
+                  variant="body2"
+                  sx={{
+                    fontWeight: 800,
+                    fontSize: "0.85rem",
+                    color:
+                      selectedCurrency === "USD"
+                        ? isDarkMode ? "#34d399" : "#10b981"
+                        : isDarkMode ? "#fbbf24" : "#f59e0b",
+                    textTransform: "uppercase",
+                    letterSpacing: "1px",
+                  }}
+                >
+                  {selectedCurrency}
+                </Typography>
+              </Box>
+
+              {/* Fullscreen Button */}
+              <Tooltip
+                title={
+                  isFullScreen ? "Quitter le mode plein écran" : "Plein écran"
+                }
+                arrow
+              >
+                <IconButton
+                  onClick={() => setIsFullScreen(!isFullScreen)}
+                  sx={{
+                    color: isDarkMode ? "#cbd5e1" : "#475569",
+                    background: isDarkMode
+                      ? "linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05))"
+                      : "linear-gradient(135deg, rgba(255, 255, 255, 0.8), rgba(248, 250, 252, 0.8))",
+                    border: isDarkMode
+                      ? "1px solid rgba(255, 255, 255, 0.15)"
+                      : "1px solid rgba(0, 0, 0, 0.1)",
+                    "&:hover": {
+                      background: isDarkMode
+                        ? "linear-gradient(135deg, rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 0.1))"
+                        : "linear-gradient(135deg, rgba(255, 255, 255, 1), rgba(248, 250, 252, 1))",
+                      color: isDarkMode ? "#f1f5f9" : "#1e293b",
+                    },
+                    width: { xs: "48px", sm: "44px" },
+                    height: { xs: "48px", sm: "44px" },
+                    borderRadius: "16px",
+                    boxShadow: "0 4px 12px rgba(0, 0, 0, 0.1)",
+                  }}
+                >
+                  {isFullScreen ? (
+                    <FullscreenExit sx={{ fontSize: 24 }} />
+                  ) : (
+                    <Fullscreen sx={{ fontSize: 24 }} />
+                  )}
+                </IconButton>
+              </Tooltip>
+            </Box>
           </Box>
         </DialogTitle>
         <DialogContent
@@ -1514,95 +1644,290 @@ export default function MyPacks() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.3, delay: 0.2 }}
                 >
-                  <Box
+                  {/* Bouton pour afficher/masquer les filtres */}
+                  <Button
+                    onClick={() => setShowFilters(!showFilters)}
+                    variant="outlined"
+                    size="small"
+                    startIcon={
+                      <svg
+                        width="16"
+                        height="16"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
+                      </svg>
+                    }
                     sx={{
-                      display: "flex",
-                      flexDirection: { xs: "column", md: "row" },
-                      justifyContent: "space-between",
-                      alignItems: { xs: "flex-start", md: "center" },
-                      gap: 2,
-                      mb: 3,
+                      borderRadius: "12px",
+                      textTransform: "none",
+                      fontWeight: 500,
+                      fontSize: "0.875rem",
+                      px: 2.5,
+                      py: 1,
+                      borderColor: isDarkMode
+                        ? "rgba(255, 255, 255, 0.2)"
+                        : "rgba(0, 0, 0, 0.2)",
+                      color: isDarkMode ? "grey.200" : "text.primary",
+                      background: isDarkMode
+                        ? "rgba(255, 255, 255, 0.05)"
+                        : "rgba(0, 0, 0, 0.02)",
+                      backdropFilter: "blur(5px)",
+                      WebkitBackdropFilter: "blur(5px)",
+                      transition: "all 0.3s ease",
+                      "&:hover": {
+                        borderColor: isDarkMode
+                          ? "rgba(255, 255, 255, 0.3)"
+                          : "rgba(0, 0, 0, 0.3)",
+                        background: isDarkMode
+                          ? "rgba(255, 255, 255, 0.1)"
+                          : "rgba(0, 0, 0, 0.05)",
+                        transform: "translateY(-1px)",
+                        boxShadow: isDarkMode
+                          ? "0 4px 12px rgba(0, 0, 0, 0.3)"
+                          : "0 4px 12px rgba(0, 0, 0, 0.1)",
+                      },
                     }}
                   >
+                    {showFilters
+                      ? "Masquer les filtres"
+                      : "Afficher les filtres"}
+                  </Button>
+
+                  {/* Section des filtres avec design moderne - conditionnellement affichée */}
+                  {showFilters && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      exit={{ opacity: 0, height: 0 }}
+                      transition={{ duration: 0.3, ease: "easeOut" }}
+                    >
+                      <Box
+                        sx={{
+                          background: isDarkMode
+                            ? "linear-gradient(135deg, rgba(30, 41, 59, 0.8) 0%, rgba(15, 23, 42, 0.9) 100%)"
+                            : "linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(248, 250, 252, 0.98) 100%)",
+                          borderRadius: "20px",
+                          border: isDarkMode
+                            ? "1px solid rgba(255, 255, 255, 0.1)"
+                            : "1px solid rgba(0, 0, 0, 0.08)",
+                          boxShadow: isDarkMode
+                            ? "0 8px 32px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.1)"
+                            : "0 8px 32px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.8)",
+                          backdropFilter: "blur(20px)",
+                          WebkitBackdropFilter: "blur(20px)",
+                          p: 3,
+                          mt: 2,
+                          position: "relative",
+                          overflow: "hidden",
+                          "&::before": {
+                            content: '""',
+                            position: "absolute",
+                            top: 0,
+                            left: 0,
+                            right: 0,
+                            height: "3px",
+                            background: isDarkMode
+                              ? "linear-gradient(90deg, #3b82f6, #8b5cf6, #3b82f6)"
+                              : "linear-gradient(90deg, #3b82f6, #8b5cf6, #3b82f6)",
+                            borderRadius: "20px 20px 0 0",
+                          },
+                        }}
+                      >
+                    {/* Header de la section filtres */}
+                    <Box
+                      sx={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 2,
+                        mb: 3,
+                        pb: 2,
+                        borderBottom: isDarkMode
+                          ? "1px solid rgba(255, 255, 255, 0.08)"
+                          : "1px solid rgba(0, 0, 0, 0.06)",
+                      }}
+                    >
+                      <Box
+                        sx={{
+                          width: "40px",
+                          height: "40px",
+                          borderRadius: "12px",
+                          background: isDarkMode
+                            ? "linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(147, 51, 234, 0.2))"
+                            : "linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(147, 51, 234, 0.1))",
+                          border: isDarkMode
+                            ? "1px solid rgba(59, 130, 246, 0.3)"
+                            : "1px solid rgba(59, 130, 246, 0.2)",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                        }}
+                      >
+                        <svg
+                          width="20"
+                          height="20"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          style={{ color: isDarkMode ? "#60a5fa" : "#3b82f6" }}
+                        >
+                          <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
+                        </svg>
+                      </Box>
+                      <Box>
+                        <Typography
+                          variant="h6"
+                          sx={{
+                            fontWeight: 700,
+                            fontSize: "1.1rem",
+                            background: isDarkMode
+                              ? "linear-gradient(135deg, #60a5fa 0%, #a78bfa 100%)"
+                              : "linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)",
+                            WebkitBackgroundClip: "text",
+                            WebkitTextFillColor: "transparent",
+                            backgroundClip: "text",
+                          }}
+                        >
+                          Filtres avancés
+                        </Typography>
+                        <Typography
+                          variant="body2"
+                          sx={{
+                            fontSize: "0.85rem",
+                            color: isDarkMode ? "#94a3b8" : "#64748b",
+                            mt: 0.25,
+                          }}
+                        >
+                          Recherchez et filtrez les filleuls
+                        </Typography>
+                      </Box>
+                    </Box>
+
+                    {/* Champ de recherche */}
                     <TextField
-                      placeholder="Rechercher un filleul..."
+                      placeholder="Rechercher par nom, code ou pack..."
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
-                      size="small"
+                      size="medium"
                       fullWidth
                       sx={{
-                        width: { xs: "100%", md: "300px" },
-                        bgcolor: isDarkMode
-                          ? "#1a2433"
-                          : "rgba(255, 255, 255, 0.9)",
-                        borderRadius: "8px",
+                        mb: 3,
                         "& .MuiOutlinedInput-root": {
-                          borderRadius: "8px",
+                          borderRadius: "16px",
                           bgcolor: isDarkMode
-                            ? "#1a2433"
-                            : "rgba(255, 255, 255, 0.9)",
+                            ? "rgba(15, 23, 42, 0.6)"
+                            : "rgba(255, 255, 255, 0.8)",
+                          border: isDarkMode
+                            ? "1px solid rgba(255, 255, 255, 0.1)"
+                            : "1px solid rgba(0, 0, 0, 0.08)",
+                          boxShadow: isDarkMode
+                            ? "0 4px 12px rgba(0, 0, 0, 0.2)"
+                            : "0 4px 12px rgba(0, 0, 0, 0.05)",
                           "&:hover": {
+                            borderColor: isDarkMode
+                              ? "rgba(59, 130, 246, 0.5)"
+                              : "rgba(59, 130, 246, 0.3)",
+                            boxShadow: isDarkMode
+                              ? "0 6px 16px rgba(0, 0, 0, 0.3)"
+                              : "0 6px 16px rgba(0, 0, 0, 0.1)",
+                          },
+                          "&.Mui-focused": {
+                            borderColor: isDarkMode
+                              ? "#60a5fa"
+                              : "#3b82f6",
+                            boxShadow: isDarkMode
+                              ? "0 0 0 3px rgba(96, 165, 250, 0.2)"
+                              : "0 0 0 3px rgba(59, 130, 246, 0.2)",
                             bgcolor: isDarkMode
-                              ? "#1a2433"
-                              : "rgba(255, 255, 255, 1)",
-                          },
-                          "&:hover .MuiOutlinedInput-notchedOutline": {
-                            borderColor: isDarkMode
-                              ? "rgba(255, 255, 255, 0.3)"
-                              : "rgba(0, 0, 0, 0.3)",
-                          },
-                          "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
-                            borderColor: isDarkMode
-                              ? "primary.light"
-                              : "primary.main",
-                            borderWidth: "2px",
+                              ? "rgba(15, 23, 42, 0.8)"
+                              : "rgba(255, 255, 255, 0.95)",
                           },
                         },
                         "& .MuiInputLabel-root": {
-                          color: isDarkMode ? "grey.400" : undefined,
+                          color: isDarkMode ? "#94a3b8" : "#64748b",
+                          fontWeight: 500,
                         },
-                        "& .MuiInputLabel-root.Mui-focused": {
-                          color: isDarkMode ? "primary.light" : "primary.main",
+                        "& .MuiOutlinedInput-input": {
+                          color: isDarkMode ? "#f1f5f9" : "#1e293b",
+                          fontWeight: 500,
+                          py: 1.5,
                         },
                       }}
                       InputProps={{
                         startAdornment: (
                           <InputAdornment position="start">
-                            <MagnifyingGlassIcon
-                              className="h-5 w-5"
-                              style={{
-                                color: isDarkMode ? "grey.400" : "inherit",
-                              }}
-                            />
+                            <svg
+                              width="20"
+                              height="20"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              style={{ color: isDarkMode ? "#60a5fa" : "#3b82f6" }}
+                            >
+                              <circle cx="11" cy="11" r="8"></circle>
+                              <path d="m21 21-4.35-4.35"></path>
+                            </svg>
                           </InputAdornment>
                         ),
                       }}
                     />
 
+                    {/* Filtres secondaires */}
                     <Box
                       sx={{
-                        display: "flex",
-                        flexDirection: { xs: "column", sm: "row" },
+                        display: "grid",
+                        gridTemplateColumns: { xs: "1fr", sm: "repeat(3, 1fr)" },
                         gap: 2,
-                        width: { xs: "100%", sm: "auto" },
-                        alignItems: { xs: "stretch", sm: "flex-start" },
+                        mb: 3,
                       }}
                     >
                       <FormControl
-                        size="small"
+                        size="medium"
                         sx={{
-                          minWidth: { xs: "100%", sm: 120 },
-                          flex: { xs: 1, sm: "none" },
+                          "& .MuiOutlinedInput-root": {
+                            borderRadius: "16px",
+                            bgcolor: isDarkMode
+                              ? "rgba(15, 23, 42, 0.6)"
+                              : "rgba(255, 255, 255, 0.8)",
+                            border: isDarkMode
+                              ? "1px solid rgba(255, 255, 255, 0.1)"
+                              : "1px solid rgba(0, 0, 0, 0.08)",
+                            boxShadow: isDarkMode
+                              ? "0 4px 12px rgba(0, 0, 0, 0.2)"
+                              : "0 4px 12px rgba(0, 0, 0, 0.05)",
+                            "&:hover": {
+                              borderColor: isDarkMode
+                                ? "rgba(59, 130, 246, 0.5)"
+                                : "rgba(59, 130, 246, 0.3)",
+                            },
+                            "&.Mui-focused": {
+                              borderColor: isDarkMode
+                                ? "#60a5fa"
+                                : "#3b82f6",
+                              boxShadow: isDarkMode
+                                ? "0 0 0 3px rgba(96, 165, 250, 0.2)"
+                                : "0 0 0 3px rgba(59, 130, 246, 0.2)",
+                            },
+                          },
                         }}
                       >
                         <InputLabel
-                          id="status-filter-label"
                           sx={{
-                            color: isDarkMode ? "grey.300" : undefined,
+                            color: isDarkMode ? "#94a3b8" : "#64748b",
+                            fontWeight: 500,
                             "&.Mui-focused": {
-                              color: isDarkMode
-                                ? "primary.light"
-                                : "primary.main",
+                              color: isDarkMode ? "#60a5fa" : "#3b82f6",
                             },
                           }}
                         >
@@ -1614,142 +1939,223 @@ export default function MyPacks() {
                           onChange={(e) => setStatusFilter(e.target.value)}
                           label="Statut"
                           sx={{
-                            bgcolor: isDarkMode
-                              ? "#1f2937"
-                              : "rgba(255, 255, 255, 0.9)",
-                            color: isDarkMode ? "grey.300" : undefined,
-                            borderRadius: "8px",
-                            "& .MuiOutlinedInput-notchedOutline": {
-                              borderColor: isDarkMode
-                                ? "rgba(255, 255, 255, 0.2)"
-                                : "rgba(0, 0, 0, 0.2)",
-                            },
-                            "&:hover .MuiOutlinedInput-notchedOutline": {
-                              borderColor: isDarkMode
-                                ? "rgba(255, 255, 255, 0.3)"
-                                : "rgba(0, 0, 0, 0.3)",
-                            },
-                            "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
-                              borderColor: isDarkMode
-                                ? "primary.light"
-                                : "primary.main",
-                            },
-                            "& .MuiSelect-icon": {
-                              color: isDarkMode ? "grey.400" : undefined,
-                            },
-                          }}
-                          MenuProps={{
-                            PaperProps: {
-                              sx: {
-                                bgcolor: isDarkMode ? "#1f2937" : "white",
-                                color: isDarkMode ? "grey.300" : undefined,
-                                "& .MuiMenuItem-root": {
-                                  "&:hover": {
-                                    bgcolor: isDarkMode
-                                      ? "rgba(255, 255, 255, 0.08)"
-                                      : undefined,
-                                  },
-                                  "&.Mui-selected": {
-                                    bgcolor: isDarkMode
-                                      ? "rgba(255, 255, 255, 0.15)"
-                                      : undefined,
-                                    "&:hover": {
-                                      bgcolor: isDarkMode
-                                        ? "rgba(255, 255, 255, 0.2)"
-                                        : undefined,
-                                    },
-                                  },
-                                },
-                              },
-                            },
+                            color: isDarkMode ? "#f1f5f9" : "#1e293b",
+                            fontWeight: 500,
                           }}
                         >
-                          <MenuItem value="all">Tous</MenuItem>
+                          <MenuItem value="all">Tous les statuts</MenuItem>
                           <MenuItem value="active">Actif</MenuItem>
                           <MenuItem value="inactive">Inactif</MenuItem>
                           <MenuItem value="expired">Expiré</MenuItem>
                         </Select>
                       </FormControl>
 
-                      <Box
+                      <TextField
+                        label="Date début"
+                        type="date"
+                        size="medium"
+                        value={dateFilter.startDate}
+                        onChange={(e) =>
+                          setDateFilter((prev) => ({
+                            ...prev,
+                            startDate: e.target.value,
+                          }))
+                        }
+                        InputLabelProps={{ shrink: true }}
                         sx={{
-                          display: "flex",
-                          flexDirection: { xs: "row", sm: "row" },
-                          gap: 1,
-                          width: { xs: "100%", sm: "auto" },
-                          justifyContent: {
-                            xs: "space-between",
-                            sm: "flex-start",
+                          "& .MuiOutlinedInput-root": {
+                            borderRadius: "16px",
+                            bgcolor: isDarkMode
+                              ? "rgba(15, 23, 42, 0.6)"
+                              : "rgba(255, 255, 255, 0.8)",
+                            border: isDarkMode
+                              ? "1px solid rgba(255, 255, 255, 0.1)"
+                              : "1px solid rgba(0, 0, 0, 0.08)",
+                            boxShadow: isDarkMode
+                              ? "0 4px 12px rgba(0, 0, 0, 0.2)"
+                              : "0 4px 12px rgba(0, 0, 0, 0.05)",
+                            "&:hover": {
+                              borderColor: isDarkMode
+                                ? "rgba(59, 130, 246, 0.5)"
+                                : "rgba(59, 130, 246, 0.3)",
+                            },
+                            "&.Mui-focused": {
+                              borderColor: isDarkMode
+                                ? "#60a5fa"
+                                : "#3b82f6",
+                              boxShadow: isDarkMode
+                                ? "0 0 0 3px rgba(96, 165, 250, 0.2)"
+                                : "0 0 0 3px rgba(59, 130, 246, 0.2)",
+                            },
+                          },
+                          "& .MuiInputLabel-root": {
+                            color: isDarkMode ? "#94a3b8" : "#64748b",
+                            fontWeight: 500,
+                            "&.Mui-focused": {
+                              color: isDarkMode ? "#60a5fa" : "#3b82f6",
+                            },
+                          },
+                          "& .MuiOutlinedInput-input": {
+                            color: isDarkMode ? "#f1f5f9" : "#1e293b",
+                            fontWeight: 500,
+                          },
+                        }}
+                      />
+
+                      <TextField
+                        label="Date fin"
+                        type="date"
+                        size="medium"
+                        value={dateFilter.endDate}
+                        onChange={(e) =>
+                          setDateFilter((prev) => ({
+                            ...prev,
+                            endDate: e.target.value,
+                          }))
+                        }
+                        InputLabelProps={{ shrink: true }}
+                        sx={{
+                          "& .MuiOutlinedInput-root": {
+                            borderRadius: "16px",
+                            bgcolor: isDarkMode
+                              ? "rgba(15, 23, 42, 0.6)"
+                              : "rgba(255, 255, 255, 0.8)",
+                            border: isDarkMode
+                              ? "1px solid rgba(255, 255, 255, 0.1)"
+                              : "1px solid rgba(0, 0, 0, 0.08)",
+                            boxShadow: isDarkMode
+                              ? "0 4px 12px rgba(0, 0, 0, 0.2)"
+                              : "0 4px 12px rgba(0, 0, 0, 0.05)",
+                            "&:hover": {
+                              borderColor: isDarkMode
+                                ? "rgba(59, 130, 246, 0.5)"
+                                : "rgba(59, 130, 246, 0.3)",
+                            },
+                            "&.Mui-focused": {
+                              borderColor: isDarkMode
+                                ? "#60a5fa"
+                                : "#3b82f6",
+                              boxShadow: isDarkMode
+                                ? "0 0 0 3px rgba(96, 165, 250, 0.2)"
+                                : "0 0 0 3px rgba(59, 130, 246, 0.2)",
+                            },
+                          },
+                          "& .MuiInputLabel-root": {
+                            color: isDarkMode ? "#94a3b8" : "#64748b",
+                            fontWeight: 500,
+                            "&.Mui-focused": {
+                              color: isDarkMode ? "#60a5fa" : "#3b82f6",
+                            },
+                          },
+                          "& .MuiOutlinedInput-input": {
+                            color: isDarkMode ? "#f1f5f9" : "#1e293b",
+                            fontWeight: 500,
+                          },
+                        }}
+                      />
+                    </Box>
+
+                    {/* Boutons d'action */}
+                    <Box
+                      sx={{
+                        display: "flex",
+                        gap: 2,
+                        justifyContent: "flex-end",
+                      }}
+                    >
+                      <Button
+                        variant="outlined"
+                        size="large"
+                        onClick={resetFilters}
+                        startIcon={
+                          <svg
+                            width="18"
+                            height="18"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          >
+                            <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
+                            <path d="M3 3v5h5"></path>
+                          </svg>
+                        }
+                        sx={{
+                          borderRadius: "16px",
+                          textTransform: "none",
+                          fontWeight: 600,
+                          px: 3,
+                          py: 1.5,
+                          height: "48px",
+                          borderColor: isDarkMode
+                            ? "rgba(255, 255, 255, 0.2)"
+                            : "rgba(0, 0, 0, 0.15)",
+                          color: isDarkMode ? "#cbd5e1" : "#475569",
+                          background: isDarkMode
+                            ? "rgba(255, 255, 255, 0.05)"
+                            : "rgba(255, 255, 255, 0.8)",
+                          "&:hover": {
+                            borderColor: isDarkMode
+                              ? "rgba(255, 255, 255, 0.3)"
+                              : "rgba(0, 0, 0, 0.25)",
+                            background: isDarkMode
+                              ? "rgba(255, 255, 255, 0.1)"
+                              : "rgba(255, 255, 255, 1)",
+                            color: isDarkMode ? "#f1f5f9" : "#1e293b",
                           },
                         }}
                       >
-                        <TextField
-                          label="Date début"
-                          type="date"
-                          size="small"
-                          value={dateFilter.startDate}
-                          onChange={(e) =>
-                            setDateFilter((prev) => ({
-                              ...prev,
-                              startDate: e.target.value,
-                            }))
-                          }
-                          InputLabelProps={{ shrink: true }}
-                          sx={{
-                            width: { xs: "calc(50% - 4px)", sm: "140px" },
-                            bgcolor: isDarkMode
-                              ? "#1f2937"
-                              : "rgba(255, 255, 255, 0.9)",
-                            borderRadius: "8px",
-                            "& .MuiOutlinedInput-root": {
-                              borderRadius: "8px",
-                              color: isDarkMode ? "grey.300" : undefined,
-                            },
-                            "& .MuiInputLabel-root": {
-                              color: isDarkMode ? "grey.400" : undefined,
-                            },
-                            "& .MuiInputLabel-root.Mui-focused": {
-                              color: isDarkMode
-                                ? "primary.light"
-                                : "primary.main",
-                            },
-                          }}
-                        />
-                        <TextField
-                          label="Date fin"
-                          type="date"
-                          size="small"
-                          value={dateFilter.endDate}
-                          onChange={(e) =>
-                            setDateFilter((prev) => ({
-                              ...prev,
-                              endDate: e.target.value,
-                            }))
-                          }
-                          InputLabelProps={{ shrink: true }}
-                          sx={{
-                            width: { xs: "calc(50% - 4px)", sm: "140px" },
-                            bgcolor: isDarkMode
-                              ? "#1f2937"
-                              : "rgba(255, 255, 255, 0.9)",
-                            borderRadius: "8px",
-                            "& .MuiOutlinedInput-root": {
-                              borderRadius: "8px",
-                              color: isDarkMode ? "grey.300" : undefined,
-                            },
-                            "& .MuiInputLabel-root": {
-                              color: isDarkMode ? "grey.400" : undefined,
-                            },
-                            "& .MuiInputLabel-root.Mui-focused": {
-                              color: isDarkMode
-                                ? "primary.light"
-                                : "primary.main",
-                            },
-                          }}
-                        />
-                      </Box>
+                        Réinitialiser
+                      </Button>
+                      <Button
+                        variant="contained"
+                        size="large"
+                        onClick={applyFilters}
+                        startIcon={
+                          <svg
+                            width="18"
+                            height="18"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          >
+                            <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
+                          </svg>
+                        }
+                        sx={{
+                          borderRadius: "16px",
+                          textTransform: "none",
+                          fontWeight: 700,
+                          px: 3,
+                          py: 1.5,
+                          height: "48px",
+                          background: isDarkMode
+                            ? "linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)"
+                            : "linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)",
+                          boxShadow: isDarkMode
+                            ? "0 8px 24px rgba(59, 130, 246, 0.4)"
+                            : "0 8px 24px rgba(59, 130, 246, 0.3)",
+                          "&:hover": {
+                            background: isDarkMode
+                              ? "linear-gradient(135deg, #2563eb 0%, #7c3aed 100%)"
+                              : "linear-gradient(135deg, #2563eb 0%, #7c3aed 100%)",
+                            boxShadow: isDarkMode
+                              ? "0 12px 32px rgba(59, 130, 246, 0.5)"
+                              : "0 12px 32px rgba(59, 130, 246, 0.4)",
+                          },
+                        }}
+                      >
+                        Appliquer les filtres
+                      </Button>
                     </Box>
                   </Box>
+                    </motion.div>
+                  )}
                 </motion.div>
 
                 <motion.div
@@ -1809,26 +2215,44 @@ export default function MyPacks() {
                           color="text.secondary"
                           gutterBottom
                         >
-                          Commission totale générée
+                          Total commission générée
                         </Typography>
                         <Typography
-                          variant="h5"
-                          sx={{
-                            fontWeight: 600,
-                            color: isDarkMode
-                              ? "primary.light"
-                              : "primary.main",
-                          }}
-                        >
-                          {(currentPackReferrals[currentTab] || [])
-                            .reduce(
-                              (sum, ref) =>
-                                sum + parseFloat(ref.total_commission || 0),
-                              0
-                            )
-                            .toFixed(2)}
-                          $
-                        </Typography>
+                            variant="h5"
+                            sx={{
+                              fontWeight: 600,
+                              color: isDarkMode
+                                ? "primary.light"
+                                : "primary.main",
+                            }}
+                          >
+                            {(() => {
+                              const total = (
+                                currentPackReferrals[currentTab] || []
+                              ).reduce((sum, ref) => {
+                                if (selectedCurrency === "USD") {
+                                  return (
+                                    sum +
+                                    parseFloat(ref.total_commission_usd || 0)
+                                  );
+                                } else {
+                                  return (
+                                    sum +
+                                    parseFloat(ref.total_commission_cdf || 0)
+                                  );
+                                }
+                              }, 0);
+  
+                              return selectedCurrency === "USD"
+                                ? `${total.toFixed(2)} $`
+                                : new Intl.NumberFormat("fr-CD", {
+                                    style: "currency",
+                                    currency: "CDF",
+                                    minimumFractionDigits: 0,
+                                    maximumFractionDigits: 0,
+                                  }).format(total);
+                            })()}
+                          </Typography>
                       </Box>
                     </Box>
                     {viewMode === "table" && (
@@ -1923,66 +2347,169 @@ export default function MyPacks() {
                   transition={{ duration: 0.4, delay: 0.3 }}
                 >
                   {viewMode === "table" ? (
-                    <DataGrid
-                      getRowId={(row) => row.id}
-                      rows={filteredReferrals}
-                      columns={getColumnsForGeneration(currentTab)}
-                      autoHeight
-                      disableColumnMenu
-                      disableSelectionOnClick
-                      pageSize={10}
-                      rowsPerPageOptions={[10, 25, 50]}
-                      initialState={{
-                        pagination: {
-                          pageSize: 10,
-                        },
-                      }}
-                      sx={{
-                        border: "none",
-                        borderRadius: 2,
-                        bgcolor: isDarkMode
-                          ? "#1a2433"
-                          : "rgba(255, 255, 255, 0.9)",
-                        boxShadow: "0 2px 10px rgba(0, 0, 0, 0.1)",
-                        "& .MuiDataGrid-cell": {
-                          color: isDarkMode ? "grey.300" : "inherit",
-                          borderColor: isDarkMode
-                            ? "rgba(255, 255, 255, 0.1)"
-                            : "grey.200",
-                          fontSize: "0.875rem",
-                          py: 1.5,
-                        },
-                        "& .MuiDataGrid-columnHeaders": {
-                          bgcolor: isDarkMode
-                            ? "#1a2433"
-                            : "rgba(0, 0, 0, 0.05)",
-                          borderColor: isDarkMode
-                            ? "rgba(255, 255, 255, 0.1)"
-                            : "grey.200",
-                          "& .MuiDataGrid-columnHeaderTitle": {
-                            fontWeight: 600,
-                          },
-                        },
-                        "& .MuiDataGrid-row": {
-                          "&:hover": {
-                            bgcolor: isDarkMode
-                              ? "rgba(255, 255, 255, 0.05)"
-                              : "rgba(0, 0, 0, 0.02)",
-                          },
-                        },
-                        "& .MuiDataGrid-footerContainer": {
-                          borderTop: isDarkMode
-                            ? "1px solid rgba(255, 255, 255, 0.1)"
-                            : "1px solid rgba(0, 0, 0, 0.1)",
-                          bgcolor: isDarkMode
-                            ? "#1a2433"
-                            : "rgba(0, 0, 0, 0.02)",
-                        },
-                        "& .MuiTablePagination-root": {
-                          color: isDarkMode ? "grey.400" : "text.secondary",
-                        },
-                      }}
-                    />
+                    <>
+                      {/* Tableau des filleuls */}
+                      {!currentPackReferrals[currentTab] || currentPackReferrals[currentTab].length === 0 ? (
+                        <Alert severity="info" sx={{ mb: 2 }}>
+                          Aucun filleul trouvé
+                        </Alert>
+                      ) : (
+                        <TableContainer component={Paper} sx={{ maxHeight: 400 }}>
+                          <Table stickyHeader aria-label="referrals table">
+                            <TableHead>
+                              <TableRow
+                                sx={{
+                                  bgcolor: isDarkMode ? "#111827" : "#f0f4f8",
+                                  "& th": {
+                                    fontWeight: "bold",
+                                    color: isDarkMode ? "#fff" : "#334155",
+                                    fontSize: "0.875rem",
+                                    padding: "12px 16px",
+                                    borderBottom: isDarkMode
+                                      ? "1px solid #374151"
+                                      : "2px solid #e2e8f0",
+                                    textTransform: "uppercase",
+                                    letterSpacing: "0.05em",
+                                    whiteSpace: "nowrap",
+                                  },
+                                }}
+                              >
+                                <TableCell sx={{ width: "80px" }}>ID</TableCell>
+                                {currentTab >= 1 && <TableCell sx={{ width: "180px" }}>Parrain</TableCell>}
+                                <TableCell sx={{ width: "180px" }}>Nom</TableCell>
+                                <TableCell sx={{ width: "140px" }}>Date d'achat</TableCell>
+                                <TableCell sx={{ width: "140px" }}>Pack acheté</TableCell>
+                                <TableCell sx={{ width: "140px" }}>Expiration</TableCell>
+                                <TableCell sx={{ width: "140px" }}>Code parrain</TableCell>
+                                <TableCell sx={{ width: "100px" }}>Statut</TableCell>
+                                <TableCell sx={{ width: "140px" }}>Commission</TableCell>
+                              </TableRow>
+                            </TableHead>
+                            <TableBody>
+                              {currentPackReferrals[currentTab].map((referral) => (
+                                <TableRow
+                                  key={referral.id}
+                                  sx={{
+                                    "&:nth-of-type(odd)": {
+                                      backgroundColor: isDarkMode ? "#0f172a" : "#f9fafb",
+                                    },
+                                    "&:hover": {
+                                      backgroundColor: isDarkMode ? "#1e293b" : "#f3f4f6",
+                                    },
+                                  }}
+                                >
+                                  <TableCell
+                                    sx={{
+                                      color: isDarkMode ? "#e2e8f0" : "#1f2937",
+                                      borderBottom: isDarkMode ? "1px solid #334155" : "1px solid #e2e8f0",
+                                    }}
+                                  >
+                                    {referral.id || "-"}
+                                  </TableCell>
+                                  {currentTab >= 1 && (
+                                    <TableCell
+                                      sx={{
+                                        color: isDarkMode ? "#e2e8f0" : "#1f2937",
+                                        borderBottom: isDarkMode ? "1px solid #334155" : "1px solid #e2e8f0",
+                                      }}
+                                    >
+                                      {referral.sponsor_name || "-"}
+                                    </TableCell>
+                                  )}
+                                  <TableCell
+                                    sx={{
+                                      color: isDarkMode ? "#e2e8f0" : "#1f2937",
+                                      borderBottom: isDarkMode ? "1px solid #334155" : "1px solid #e2e8f0",
+                                    }}
+                                  >
+                                    {referral.name || "-"}
+                                  </TableCell>
+                                  <TableCell
+                                    sx={{
+                                      color: isDarkMode ? "#e2e8f0" : "#1f2937",
+                                      borderBottom: isDarkMode ? "1px solid #334155" : "1px solid #e2e8f0",
+                                    }}
+                                  >
+                                    {referral.purchase_date || "-"}
+                                  </TableCell>
+                                  <TableCell
+                                    sx={{
+                                      color: isDarkMode ? "#e2e8f0" : "#1f2937",
+                                      borderBottom: isDarkMode ? "1px solid #334155" : "1px solid #e2e8f0",
+                                    }}
+                                  >
+                                    {referral.pack_name || "-"}
+                                  </TableCell>
+                                  <TableCell
+                                    sx={{
+                                      color: isDarkMode ? "#e2e8f0" : "#1f2937",
+                                      borderBottom: isDarkMode ? "1px solid #334155" : "1px solid #e2e8f0",
+                                    }}
+                                  >
+                                    {referral.expiry_date || "-"}
+                                  </TableCell>
+                                  <TableCell
+                                    sx={{
+                                      color: isDarkMode ? "#e2e8f0" : "#1f2937",
+                                      borderBottom: isDarkMode ? "1px solid #334155" : "1px solid #e2e8f0",
+                                    }}
+                                  >
+                                    {referral.referral_code || "-"}
+                                  </TableCell>
+                                  <TableCell
+                                    sx={{
+                                      color: isDarkMode ? "#e2e8f0" : "#1f2937",
+                                      borderBottom: isDarkMode ? "1px solid #334155" : "1px solid #e2e8f0",
+                                    }}
+                                  >
+                                    <span style={{ 
+                                      backgroundColor: referral?.pack_status === "active" ? "#10B981" : "#F59E0B", 
+                                      color: referral?.pack_status === "active" ? "#FFFFFF" : "#000000", 
+                                      borderRadius: "4px", 
+                                      padding: "4px 8px" 
+                                    }}>
+                                      {referral?.pack_status === "active" ? "Actif" : "Inactif"}
+                                    </span>
+                                  </TableCell>
+                                  <TableCell
+                                    sx={{
+                                      color: isDarkMode ? "#e2e8f0" : "#1f2937",
+                                      borderBottom: isDarkMode ? "1px solid #334155" : "1px solid #e2e8f0",
+                                    }}
+                                  >
+                                    {selectedCurrency === "USD"
+                                      ? referral.total_commission_usd || "0"
+                                      : referral.total_commission_cdf || "0"}{" "}{selectedCurrency === "USD" ? "$" : "FC"}
+                                  </TableCell>
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
+                        </TableContainer>
+                      )}
+
+                      {/* Pagination */}
+                      {referralsPaginationMeta &&
+                        referralsPaginationMeta[currentTab] && (
+                        <TablePagination
+                          rowsPerPageOptions={[1, 5, 10, 25, 50]}
+                          component="div"
+                          count={referralsPaginationMeta[currentTab]?.total || 0}
+                          rowsPerPage={referralsRowsPerPage}
+                          page={referralsPage}
+                          onPageChange={handleReferralsPageChangeUI}
+                          onRowsPerPageChange={handleReferralsRowsPerPageChange}
+                          labelRowsPerPage="Lignes par page:"
+                          labelDisplayedRows={({ from, to, count }) =>
+                            `Affichage de ${from} à ${to} sur ${count} filleuls`
+                          }
+                          sx={{
+                            backgroundColor: isDarkMode ? "#1e293b" : "#ffffff",
+                            color: isDarkMode ? "#e2e8f0" : "#1f2937",
+                          }}
+                        />
+                      )}
+                    </>
                   ) : (
                     <Box
                       sx={{
@@ -2004,7 +2531,7 @@ export default function MyPacks() {
                         data={transformDataToTree(currentPackReferrals || [])}
                         orientation="vertical"
                         renderCustomNodeElement={(props) => (
-                          <CustomNode {...props} isDarkMode={isDarkMode} />
+                          <CustomNode {...props} isDarkMode={isDarkMode} selectedCurrency={selectedCurrency} />
                         )}
                         pathFunc="step"
                         separation={{ siblings: 1, nonSiblings: 1.2 }}

@@ -294,7 +294,7 @@ class PackController extends Controller
         try {
             // Récupérer les paramètres de pagination
             $page = $request->input('page', 1);
-            $perPage = $request->input('per_page', 10);
+            $perPage = $request->input('per_page', 25);
             $searchTerm = $request->input('search', '');
             $statusFilter = $request->input('status', 'all');
             $startDate = $request->input('start_date');

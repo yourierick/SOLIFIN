@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 import axios from "../utils/axios";
+import { useCurrency } from "../contexts/CurrencyContext";
 import {
   Dialog,
   DialogTitle,
@@ -32,8 +33,6 @@ import {
   FormControl,
   InputLabel,
   Tooltip,
-  Switch,
-  FormControlLabel,
 } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import { Line, Bar, Doughnut } from "react-chartjs-2";
@@ -74,6 +73,7 @@ ChartJS.register(
 const PackStatsModal = ({ open, onClose, packId }) => {
   const theme = useTheme();
   const isDarkMode = theme.palette.mode === "dark";
+  const { selectedCurrency, isCDFEnabled } = useCurrency(); // Utiliser le contexte global
   const [currentTab, setCurrentTab] = useState(0);
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -81,7 +81,6 @@ const PackStatsModal = ({ open, onClose, packId }) => {
   const [filterPeriod, setFilterPeriod] = useState("month");
   const [filterGeneration, setFilterGeneration] = useState("all");
   const [isFullScreen, setIsFullScreen] = useState(false);
-  const [selectedCurrency, setSelectedCurrency] = useState("USD"); // Ajout du sélecteur de devise - USD par défaut
 
   // Animation variants
   const containerVariants = {
@@ -146,6 +145,13 @@ const PackStatsModal = ({ open, onClose, packId }) => {
       fetchStats(1, 10); // Charger la première page avec 10 éléments par défaut
     }
   }, [open, packId]);
+
+  // Effet pour recharger les données lorsque la devise change
+  useEffect(() => {
+    if (open && packId) {
+      fetchStats(1, 10);
+    }
+  }, [selectedCurrency, open, packId]);
 
   const fetchStats = async (
     page = 1,
@@ -1512,48 +1518,6 @@ const PackStatsModal = ({ open, onClose, packId }) => {
           </Box>
         ) : (
           <Box sx={{ width: "100%" }}>
-            {/* Commutateur de devise visible indépendamment des onglets */}
-            <Box
-              sx={{
-                p: 2,
-                borderBottom: 1,
-                borderColor: "divider",
-                bgcolor: isDarkMode ? "#1f2937" : "#f8f9fa",
-              }}
-            >
-              <Box
-                sx={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                }}
-              >
-                <Typography variant="h6" fontWeight={600}>
-                  Sélection de la devise
-                </Typography>
-                <FormControlLabel
-                  control={
-                    <Switch
-                      checked={selectedCurrency === "USD"}
-                      onChange={(e) =>
-                        setSelectedCurrency(e.target.checked ? "USD" : "CDF")
-                      }
-                      color="primary"
-                    />
-                  }
-                  label={selectedCurrency === "USD" ? "USD ($)" : "CDF (FC)"}
-                  sx={{
-                    "& .MuiFormControlLabel-label": {
-                      fontWeight: 600,
-                      color:
-                        selectedCurrency === "USD"
-                          ? theme.palette.success.main
-                          : theme.palette.info.main,
-                    },
-                  }}
-                />
-              </Box>
-            </Box>
             <Tabs
               value={currentTab}
               onChange={handleTabChange}

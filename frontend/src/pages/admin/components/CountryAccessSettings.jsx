@@ -342,7 +342,7 @@ const CountryAccessSettings = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <ToastContainer
         position="top-right"
         autoClose={5000}
@@ -355,267 +355,522 @@ const CountryAccessSettings = () => {
         pauseOnHover
         theme={isDarkMode ? "dark" : "light"}
       />
-      <div className="flex justify-between items-center">
-        <h2 className="text-xl font-semibold">Gestion des accès par pays</h2>
-        <button
-          onClick={saveSettings}
-          disabled={saving}
-          className={`px-4 py-2 rounded-md ${
-            isDarkMode 
-              ? 'bg-blue-600 hover:bg-blue-700 text-white' 
-              : 'bg-blue-500 hover:bg-blue-600 text-white'
-          } ${saving ? 'opacity-70 cursor-not-allowed' : ''}`}
-        >
-          {saving ? 'Sauvegarde...' : 'Sauvegarder'}
-        </button>
+      
+      {/* Header */}
+      <div className="relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-r from-green-600 to-emerald-600 rounded-2xl opacity-10 blur-xl"></div>
+        <div className="relative flex flex-col sm:flex-row sm:justify-between sm:items-center p-4 sm:p-6 bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700">
+          <div className="flex items-center gap-3 sm:gap-4 mb-4 sm:mb-0">
+            <div className="relative">
+              <div className="absolute inset-0 bg-gradient-to-r from-green-600 to-emerald-600 rounded-xl blur-lg opacity-30"></div>
+              <div className="relative w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-r from-green-600 to-emerald-600 rounded-xl flex items-center justify-center shadow-lg">
+                <GlobeAltIcon className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
+              </div>
+            </div>
+            <div>
+              <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
+                Gestion des accès par pays
+              </h2>
+              <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 mt-1">
+                Configurez les restrictions géographiques pour votre plateforme
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={saveSettings}
+            disabled={saving}
+            className={`px-3 py-2 sm:px-6 sm:py-3 rounded-xl font-medium transition-all duration-200 transform hover:scale-105 w-full sm:w-auto ${
+              isDarkMode 
+                ? 'bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white shadow-lg' 
+                : 'bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white shadow-lg'
+            } ${saving ? 'opacity-70 cursor-not-allowed scale-100' : ''}`}
+          >
+            {saving ? (
+              <div className="flex items-center gap-2">
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                Sauvegarde...
+              </div>
+            ) : (
+              <div className="flex items-center gap-2">
+                <ShieldCheckIcon className="h-4 w-4" />
+                Sauvegarder
+              </div>
+            )}
+          </button>
+        </div>
       </div>
 
       {loading ? (
-        <div className="flex justify-center py-8">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+        <div className="flex justify-center py-16">
+          <div className="relative">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600"></div>
+            <div className="absolute inset-0 animate-spin rounded-full h-12 w-12 border-t-2 border-emerald-600 border-opacity-30"></div>
+          </div>
         </div>
       ) : (
         <>
-          <div className={`p-4 rounded-lg ${
-            isDarkMode ? 'bg-gray-800' : 'bg-gray-100'
-          }`}>
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center space-x-2">
-                <GlobeAltIcon className="h-6 w-6 text-blue-500" />
-                <h3 className="text-lg font-medium">Mode de restriction</h3>
+          {/* Section Mode de restriction */}
+          <div className="relative overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl opacity-5 blur-xl"></div>
+            <div className={`relative p-6 rounded-2xl shadow-xl border ${
+              isDarkMode 
+                ? 'bg-gray-800 border-gray-700' 
+                : 'bg-white border-gray-200'
+            }`}>
+              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-6 gap-4 sm:gap-0">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl flex items-center justify-center">
+                    <GlobeAltIcon className="h-6 w-6 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold text-gray-900 dark:text-white">
+                      Mode de restriction
+                    </h3>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                      Activez ou désactivez les restrictions géographiques
+                    </p>
+                  </div>
+                </div>
+                {/* Toggle custom pour mobile */}
+                <div className="flex items-center">
+                  <button
+                    onClick={toggleGlobalRestriction}
+                    className={`relative inline-flex h-10 w-16 sm:h-8 sm:w-14 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 ${
+                      isGlobalRestrictionEnabled 
+                        ? 'bg-gradient-to-r from-green-600 to-emerald-600' 
+                        : 'bg-gradient-to-r from-gray-400 to-gray-500'
+                    }`}
+                  >
+                    <span className="sr-only">Activer les restrictions par pays</span>
+                    <span
+                      className={`${
+                        isGlobalRestrictionEnabled 
+                          ? 'translate-x-8 sm:translate-x-7' 
+                          : 'translate-x-1'
+                      } inline-block h-8 w-8 sm:h-6 sm:w-6 transform rounded-full bg-white shadow-lg transition-transform`}
+                    />
+                  </button>
+                  <span className="ml-3 text-sm font-medium text-gray-700 dark:text-gray-300">
+                    {isGlobalRestrictionEnabled ? 'Activé' : 'Désactivé'}
+                  </span>
+                </div>
               </div>
-              <Switch
-                checked={isGlobalRestrictionEnabled}
-                onChange={toggleGlobalRestriction}
-                className={`${
-                  isGlobalRestrictionEnabled ? 'bg-blue-600' : 'bg-gray-400'
-                } relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none`}
-              >
-                <span className="sr-only">Activer les restrictions par pays</span>
-                <span
-                  className={`${
-                    isGlobalRestrictionEnabled ? 'translate-x-6' : 'translate-x-1'
-                  } inline-block h-4 w-4 transform rounded-full bg-white transition-transform`}
-                />
-              </Switch>
+              
+              <div className={`p-4 rounded-xl ${
+                isGlobalRestrictionEnabled 
+                  ? 'bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800' 
+                  : 'bg-gray-50 dark:bg-gray-700/30 border border-gray-200 dark:border-gray-600'
+              }`}>
+                <div className="flex items-start gap-3">
+                  <div className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 ${
+                    isGlobalRestrictionEnabled 
+                      ? 'bg-green-100 dark:bg-green-800' 
+                      : 'bg-gray-100 dark:bg-gray-600'
+                  }`}>
+                    {isGlobalRestrictionEnabled ? (
+                      <CheckCircleIcon className="h-4 w-4 text-green-600 dark:text-green-400" />
+                    ) : (
+                      <XCircleIcon className="h-4 w-4 text-gray-600 dark:text-gray-400" />
+                    )}
+                  </div>
+                  <div className="flex-1">
+                    <p className={`text-sm font-medium ${
+                      isGlobalRestrictionEnabled 
+                        ? 'text-green-800 dark:text-green-200' 
+                        : 'text-gray-800 dark:text-gray-200'
+                    }`}>
+                      {isGlobalRestrictionEnabled 
+                        ? "Restrictions activées" 
+                        : "Restrictions désactivées"}
+                    </p>
+                    <p className={`text-sm mt-1 ${
+                      isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                    }`}>
+                      {isGlobalRestrictionEnabled 
+                        ? "Le système vérifiera l'origine des utilisateurs et restreindra l'accès selon les règles ci-dessous." 
+                        : "Les restrictions par pays sont actuellement désactivées. Tous les pays peuvent accéder à l'application."}
+                    </p>
+                  </div>
+                </div>
+              </div>
             </div>
-            <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-              {isGlobalRestrictionEnabled 
-                ? "Le système vérifiera l'origine des utilisateurs et restreindra l'accès selon les règles ci-dessous." 
-                : "Les restrictions par pays sont actuellement désactivées. Tous les pays peuvent accéder à l'application."}
-            </p>
           </div>
 
           {isGlobalRestrictionEnabled && (
             <>
-              <div className="flex justify-between items-center">
-                <h3 className="text-lg font-medium flex items-center">
-                  <ShieldCheckIcon className="h-5 w-5 mr-2 text-blue-500" />
-                  Liste des pays configurés
-                </h3>
-                <button
-                  onClick={() => setShowAddForm(!showAddForm)}
-                  className={`flex items-center px-3 py-1 rounded-md text-sm ${
-                    isDarkMode 
-                      ? 'bg-gray-700 hover:bg-gray-600 text-white' 
-                      : 'bg-gray-200 hover:bg-gray-300 text-gray-800'
-                  }`}
-                >
-                  <PlusCircleIcon className="h-4 w-4 mr-1" />
-                  {showAddForm ? 'Masquer' : 'Ajouter un pays'}
-                </button>
-              </div>
-
-              {showAddForm && (
-                <div className={`p-4 rounded-lg mb-4 ${
-                  isDarkMode ? 'bg-gray-800' : 'bg-gray-100'
+              {/* Section Liste des pays */}
+              <div className="relative overflow-hidden">
+                <div className="absolute inset-0 bg-gradient-to-r from-purple-600 to-pink-600 rounded-2xl opacity-5 blur-xl"></div>
+                <div className={`relative p-6 rounded-2xl shadow-xl border ${
+                  isDarkMode 
+                    ? 'bg-gray-800 border-gray-700' 
+                    : 'bg-white border-gray-200'
                 }`}>
-                  <div className="mb-4">
-                    <label htmlFor="country-search" className="block text-sm font-medium mb-1">
-                      Rechercher un pays
-                    </label>
-                    <input
-                      type="text"
-                      id="country-search"
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      placeholder="Nom ou code du pays"
-                      className={`w-full px-3 py-2 rounded-md ${
-                        isDarkMode
-                          ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400'
-                          : 'border-gray-300 text-gray-900 placeholder-gray-500'
+                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-6 gap-4 sm:gap-0">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-gradient-to-r from-purple-600 to-pink-600 rounded-xl flex items-center justify-center">
+                        <ShieldCheckIcon className="h-6 w-6 text-white" />
+                      </div>
+                      <div>
+                        <h3 className="text-lg font-bold text-gray-900 dark:text-white">
+                          Liste des pays configurés
+                        </h3>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">
+                          {countries.length} pays configurés
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => setShowAddForm(!showAddForm)}
+                      className={`flex items-center justify-center gap-2 px-3 py-2 sm:px-4 sm:py-2 rounded-xl font-medium transition-all duration-200 transform hover:scale-105 w-full sm:w-auto ${
+                        isDarkMode 
+                          ? 'bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white shadow-lg' 
+                          : 'bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white shadow-lg'
                       }`}
-                    />
+                    >
+                      <PlusCircleIcon className="h-4 w-4 sm:h-5 sm:w-5" />
+                      <span className="text-sm sm:text-base">{showAddForm ? 'Masquer' : 'Ajouter un pays'}</span>
+                    </button>
                   </div>
 
-                  {filteredCountries.length > 0 && (
-                    <div className={`max-h-60 overflow-y-auto rounded-md ${
-                      isDarkMode ? 'bg-gray-700' : 'bg-white'
+                  {showAddForm && (
+                    <div className={`p-6 rounded-xl mb-6 border ${
+                      isDarkMode 
+                        ? 'bg-gray-700 border-gray-600' 
+                        : 'bg-gray-50 border-gray-200'
                     }`}>
-                      {filteredCountries.slice(0, 10).map(country => (
-                        <div 
-                          key={country.code}
-                          className={`flex justify-between items-center p-2 hover:bg-opacity-10 hover:bg-blue-500 cursor-pointer ${
-                            isDarkMode ? 'border-gray-700' : 'border-gray-200'
-                          } ${filteredCountries.indexOf(country) !== filteredCountries.length - 1 ? 'border-b' : ''}`}
-                          onClick={() => addCountry(country)}
-                        >
-                          <div className="flex items-center">
-                            <img 
-                              src={country.flag} 
-                              alt={country.name} 
-                              className="h-4 w-4 mr-2"
-                              onError={(e) => {
-                                // Fallback vers emoji en cas d'erreur de chargement de l'image
-                                e.target.style.display = 'none';
-                                e.target.nextSibling.style.display = 'inline';
-                              }}
-                            />
-                            <span style={{ display: 'none' }}>{country.emoji || '🌍'}</span>
-                            <span>{country.name}</span>
+                      <div className="mb-4">
+                        <label htmlFor="country-search" className="block text-sm font-semibold mb-2 text-gray-900 dark:text-white">
+                          Rechercher un pays
+                        </label>
+                        <div className="relative">
+                          <input
+                            type="text"
+                            id="country-search"
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            placeholder="Nom ou code du pays"
+                            className={`w-full px-4 py-3 rounded-xl border-2 transition-colors duration-200 ${
+                              isDarkMode
+                                ? 'bg-gray-800 border-gray-600 text-white placeholder-gray-400 focus:border-purple-500 focus:outline-none'
+                                : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500 focus:border-purple-500 focus:outline-none'
+                            }`}
+                          />
+                          <div className="absolute right-3 top-3.5">
+                            <GlobeAltIcon className="h-5 w-5 text-gray-400" />
                           </div>
-                          <span className={`text-xs px-2 py-1 rounded ${
-                            isDarkMode ? 'bg-gray-600' : 'bg-gray-200'
-                          }`}>
-                            {country.code}
-                          </span>
                         </div>
-                      ))}
-                      {filteredCountries.length > 10 && (
-                        <div className={`p-2 text-center text-sm ${
-                          isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                      </div>
+
+                      {filteredCountries.length > 0 && (
+                        <div className={`max-h-80 overflow-y-auto rounded-xl border ${
+                          isDarkMode ? 'bg-gray-800 border-gray-600' : 'bg-white border-gray-200'
                         }`}>
-                          + {filteredCountries.length - 10} autres résultats
+                          {filteredCountries.slice(0, 10).map(country => (
+                            <div 
+                              key={country.code}
+                              className={`flex justify-between items-center p-4 hover:bg-opacity-10 hover:bg-purple-500 cursor-pointer transition-colors duration-200 ${
+                                isDarkMode ? 'border-gray-700' : 'border-gray-200'
+                              } ${filteredCountries.indexOf(country) !== filteredCountries.length - 1 ? 'border-b' : ''}`}
+                              onClick={() => addCountry(country)}
+                            >
+                              <div className="flex items-center gap-3">
+                                <div className="relative">
+                                  <img 
+                                    src={country.flag} 
+                                    alt={country.name} 
+                                    className="h-6 w-8 rounded shadow-sm"
+                                    onError={(e) => {
+                                      e.target.style.display = 'none';
+                                      e.target.nextSibling.style.display = 'inline';
+                                    }}
+                                  />
+                                  <span style={{ display: 'none' }} className="text-lg">{country.emoji || '🌍'}</span>
+                                </div>
+                                <div>
+                                  <div className="font-medium text-gray-900 dark:text-white">{country.name}</div>
+                                  <div className="text-sm text-gray-500 dark:text-gray-400">{country.code}</div>
+                                </div>
+                              </div>
+                              <div className={`px-3 py-1 rounded-lg text-xs font-semibold ${
+                                isDarkMode ? 'bg-gray-600 text-gray-200' : 'bg-gray-100 text-gray-700'
+                              }`}>
+                                {country.code}
+                              </div>
+                            </div>
+                          ))}
+                          {filteredCountries.length > 10 && (
+                            <div className={`p-4 text-center text-sm font-medium ${
+                              isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                            }`}>
+                              + {filteredCountries.length - 10} autres résultats
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {searchTerm && filteredCountries.length === 0 && (
+                        <div className={`p-6 text-center rounded-xl ${
+                          isDarkMode ? 'bg-gray-700 text-gray-300' : 'bg-gray-100 text-gray-600'
+                        }`}>
+                          <GlobeAltIcon className="h-12 w-12 mx-auto mb-3 text-gray-400" />
+                          <p className="font-medium">Aucun pays trouvé</p>
+                          <p className="text-sm mt-1">Essayez avec d'autres termes de recherche</p>
                         </div>
                       )}
                     </div>
                   )}
 
-                  {searchTerm && filteredCountries.length === 0 && (
-                    <div className={`p-3 text-center rounded-md ${
-                      isDarkMode ? 'bg-gray-700 text-gray-300' : 'bg-gray-200 text-gray-600'
+                  {/* Liste des pays - Cards sur mobile, Tableau sur desktop */}
+                  {countries.length > 0 ? (
+                    <>
+                      {/* Cards pour mobile */}
+                      <div className="sm:hidden space-y-3">
+                        {countries.map((country) => (
+                          <div 
+                            key={country.code}
+                            className={`p-4 rounded-xl border transition-all duration-200 ${
+                              isDarkMode 
+                                ? 'bg-gray-700 border-gray-600 hover:bg-gray-600' 
+                                : 'bg-white border-gray-200 hover:bg-gray-50'
+                            }`}
+                          >
+                            <div className="flex items-start justify-between mb-3">
+                              <div className="flex items-center gap-3">
+                                <div className="relative">
+                                  <img 
+                                    src={country.flag} 
+                                    alt={country.name} 
+                                    className="h-8 w-10 rounded shadow-sm"
+                                    onError={(e) => {
+                                      e.target.style.display = 'none';
+                                      e.target.nextSibling.style.display = 'inline';
+                                    }}
+                                  />
+                                  <span style={{ display: 'none' }} className="text-xl">{country.emoji || '🌍'}</span>
+                                </div>
+                                <div>
+                                  <div className="font-semibold text-gray-900 dark:text-white">
+                                    {country.name}
+                                  </div>
+                                  <div className="text-sm text-gray-500 dark:text-gray-400">
+                                    {country.code}
+                                  </div>
+                                </div>
+                              </div>
+                              
+                              <span className={`px-2 py-1 inline-flex text-xs leading-5 font-bold rounded-full ${
+                                country.is_allowed
+                                  ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 border border-green-200 dark:border-green-700'
+                                  : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200 border border-red-200 dark:border-red-700'
+                              }`}>
+                                {country.is_allowed ? (
+                                  <div className="flex items-center gap-1">
+                                    <CheckCircleIcon className="h-3 w-3" />
+                                    Autorisé
+                                  </div>
+                                ) : (
+                                  <div className="flex items-center gap-1">
+                                    <XCircleIcon className="h-3 w-3" />
+                                    Bloqué
+                                  </div>
+                                )}
+                              </span>
+                            </div>
+                            
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => toggleCountryStatus(country.code)}
+                                className={`flex-1 inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg font-medium transition-all duration-200 transform hover:scale-105 ${
+                                  country.is_allowed
+                                    ? 'bg-red-100 hover:bg-red-200 text-red-700 dark:bg-red-900 dark:hover:bg-red-800 dark:text-red-300 border border-red-200 dark:border-red-700'
+                                    : 'bg-green-100 hover:bg-green-200 text-green-700 dark:bg-green-900 dark:hover:bg-green-800 dark:text-green-300 border border-green-200 dark:border-green-700'
+                                }`}
+                              >
+                                {country.is_allowed ? (
+                                  <>
+                                    <XCircleIcon className="h-4 w-4" />
+                                    <span className="text-xs">Bloquer</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <CheckCircleIcon className="h-4 w-4" />
+                                    <span className="text-xs">Autoriser</span>
+                                  </>
+                                )}
+                              </button>
+                              <button
+                                onClick={() => removeCountry(country.code)}
+                                className="inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg font-medium bg-gray-100 hover:bg-gray-200 text-gray-700 dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-600 transition-all duration-200 transform hover:scale-105"
+                              >
+                                <TrashIcon className="h-4 w-4" />
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Tableau pour desktop */}
+                      <div className="hidden sm:block overflow-hidden rounded-xl border border-gray-200 dark:border-gray-700">
+                        <div className="overflow-x-auto">
+                          <table className="min-w-full">
+                            <thead className={isDarkMode ? 'bg-gray-700' : 'bg-gray-50'}>
+                              <tr>
+                                <th scope="col" className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-gray-900 dark:text-white">
+                                  Pays
+                                </th>
+                                <th scope="col" className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-gray-900 dark:text-white">
+                                  Code
+                                </th>
+                                <th scope="col" className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-gray-900 dark:text-white">
+                                  Statut
+                                </th>
+                                <th scope="col" className="px-6 py-4 text-right text-xs font-bold uppercase tracking-wider text-gray-900 dark:text-white">
+                                  Actions
+                                </th>
+                              </tr>
+                            </thead>
+                            <tbody className={`divide-y ${
+                              isDarkMode ? 'divide-gray-700' : 'divide-gray-200'
+                            }`}>
+                              {countries.map((country) => (
+                                <tr key={country.code} className={isDarkMode ? 'bg-gray-800 hover:bg-gray-700' : 'bg-white hover:bg-gray-50'} style={{transition: 'background-color 0.2s'}}>
+                                  <td className="px-6 py-4 whitespace-nowrap">
+                                    <div className="flex items-center gap-3">
+                                      <div className="relative">
+                                        <img 
+                                          src={country.flag} 
+                                          alt={country.name} 
+                                          className="h-6 w-8 rounded shadow-sm"
+                                          onError={(e) => {
+                                            e.target.style.display = 'none';
+                                            e.target.nextSibling.style.display = 'inline';
+                                          }}
+                                        />
+                                        <span style={{ display: 'none' }} className="text-lg">{country.emoji || '🌍'}</span>
+                                      </div>
+                                      <span className="font-medium text-gray-900 dark:text-white">{country.name}</span>
+                                    </div>
+                                  </td>
+                                  <td className="px-6 py-4 whitespace-nowrap">
+                                    <span className={`px-3 py-1 rounded-lg text-xs font-semibold ${
+                                      isDarkMode ? 'bg-gray-700 text-gray-300' : 'bg-gray-100 text-gray-700'
+                                    }`}>
+                                      {country.code}
+                                    </span>
+                                  </td>
+                                  <td className="px-6 py-4 whitespace-nowrap">
+                                    <span className={`px-3 py-1 inline-flex text-xs leading-5 font-bold rounded-full ${
+                                      country.is_allowed
+                                        ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 border border-green-200 dark:border-green-700'
+                                        : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200 border border-red-200 dark:border-red-700'
+                                    }`}>
+                                      {country.is_allowed ? (
+                                        <div className="flex items-center gap-1">
+                                          <CheckCircleIcon className="h-3 w-3" />
+                                          Autorisé
+                                        </div>
+                                      ) : (
+                                        <div className="flex items-center gap-1">
+                                          <XCircleIcon className="h-3 w-3" />
+                                          Bloqué
+                                        </div>
+                                      )}
+                                    </span>
+                                  </td>
+                                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                    <div className="flex items-center justify-end gap-2">
+                                      <button
+                                        onClick={() => toggleCountryStatus(country.code)}
+                                        className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg font-medium transition-all duration-200 transform hover:scale-105 ${
+                                          country.is_allowed
+                                            ? 'bg-red-100 hover:bg-red-200 text-red-700 dark:bg-red-900 dark:hover:bg-red-800 dark:text-red-300 border border-red-200 dark:border-red-700'
+                                            : 'bg-green-100 hover:bg-green-200 text-green-700 dark:bg-green-900 dark:hover:bg-green-800 dark:text-green-300 border border-green-200 dark:border-green-700'
+                                        }`}
+                                      >
+                                        {country.is_allowed ? (
+                                          <>
+                                            <XCircleIcon className="h-4 w-4" />
+                                            Bloquer
+                                          </>
+                                        ) : (
+                                          <>
+                                            <CheckCircleIcon className="h-4 w-4" />
+                                            Autoriser
+                                          </>
+                                        )}
+                                      </button>
+                                      <button
+                                        onClick={() => removeCountry(country.code)}
+                                        className="inline-flex items-center gap-2 px-3 py-2 rounded-lg font-medium bg-gray-100 hover:bg-gray-200 text-gray-700 dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-600 transition-all duration-200 transform hover:scale-105"
+                                      >
+                                        <TrashIcon className="h-4 w-4" />
+                                        Supprimer
+                                      </button>
+                                    </div>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    </>
+                  ) : (
+                    <div className={`p-8 rounded-xl border text-center ${
+                      isDarkMode 
+                        ? 'bg-gray-700 border-gray-600' 
+                        : 'bg-gray-50 border-gray-200'
                     }`}>
-                      Aucun pays trouvé
+                      <GlobeAltIcon className="h-16 w-16 mx-auto mb-4 text-gray-400" />
+                      <div className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+                        Aucun pays configuré
+                      </div>
+                      <div className="text-sm text-gray-500 dark:text-gray-400">
+                        Ajoutez des pays pour définir des restrictions d'accès
+                      </div>
                     </div>
                   )}
-                </div>
-              )}
 
-              <div className="overflow-x-auto">
-                <table className={`min-w-full divide-y ${
-                  isDarkMode ? 'divide-gray-700' : 'divide-gray-200'
-                }`}>
-                  <thead className={isDarkMode ? 'bg-gray-800' : 'bg-gray-50'}>
-                    <tr>
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
-                        Pays
-                      </th>
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
-                        Code
-                      </th>
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
-                        Statut
-                      </th>
-                      <th scope="col" className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider">
-                        Actions
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className={`divide-y ${
-                    isDarkMode ? 'divide-gray-700' : 'divide-gray-200'
+                  {/* Section Informations */}
+                  <div className={`mt-6 p-6 rounded-xl border ${
+                    isDarkMode 
+                      ? 'bg-yellow-900/20 border-yellow-700/30 text-yellow-200' 
+                      : 'bg-yellow-50 border-yellow-200 text-yellow-800'
                   }`}>
-                    {countries.length > 0 ? (
-                      countries.map((country) => (
-                        <tr key={country.code} className={isDarkMode ? 'bg-gray-800' : 'bg-white'}>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="flex items-center">
-                              <img 
-                                src={country.flag} 
-                                alt={country.name} 
-                                className="h-5 w-auto mr-2"
-                                onError={(e) => {
-                                  // Fallback vers emoji en cas d'erreur de chargement de l'image
-                                  e.target.style.display = 'none';
-                                  e.target.nextSibling.style.display = 'inline';
-                                }}
-                              />
-                              <span style={{ display: 'none' }}>{country.emoji || '🌍'}</span>
-                              <span>{country.name}</span>
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            {country.code}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                              country.is_allowed
-                                ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-                                : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
-                            }`}>
-                              {country.is_allowed ? 'Autorisé' : 'Bloqué'}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
-                            <button
-                              onClick={() => toggleCountryStatus(country.code)}
-                              className={`inline-flex items-center px-2 py-1 rounded ${
-                                country.is_allowed
-                                  ? 'text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300'
-                                  : 'text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300'
-                              }`}
-                            >
-                              {country.is_allowed ? (
-                                <>
-                                  <XCircleIcon className="h-4 w-4 mr-1" />
-                                  Bloquer
-                                </>
-                              ) : (
-                                <>
-                                  <CheckCircleIcon className="h-4 w-4 mr-1" />
-                                  Autoriser
-                                </>
-                              )}
-                            </button>
-                            <button
-                              onClick={() => removeCountry(country.code)}
-                              className="inline-flex items-center px-2 py-1 rounded text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-300"
-                            >
-                              <TrashIcon className="h-4 w-4 mr-1" />
-                              Supprimer
-                            </button>
-                          </td>
-                        </tr>
-                      ))
-                    ) : (
-                      <tr>
-                        <td colSpan="4" className="px-6 py-4 text-center">
-                          <div className="text-sm text-gray-500 dark:text-gray-400">
-                            Aucun pays configuré. Ajoutez des pays pour définir des restrictions d'accès.
+                    <div className="flex items-start gap-4">
+                      <div className="flex-shrink-0">
+                        <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                          isDarkMode ? 'bg-yellow-800' : 'bg-yellow-100'
+                        }`}>
+                          <svg className="h-6 w-6 text-yellow-600 dark:text-yellow-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                            <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                          </svg>
+                        </div>
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="text-lg font-bold mb-3">Informations importantes</h3>
+                        <div className="space-y-2">
+                          <div className="flex items-start gap-2">
+                            <div className="w-1.5 h-1.5 rounded-full bg-yellow-600 dark:bg-yellow-400 mt-2 flex-shrink-0"></div>
+                            <p className="text-sm">
+                              Les restrictions par pays sont basées sur la géolocalisation des adresses IP.
+                            </p>
                           </div>
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-
-              <div className={`p-4 rounded-lg mt-4 ${
-                isDarkMode ? 'bg-yellow-900 bg-opacity-30 text-yellow-200' : 'bg-yellow-50 text-yellow-800'
-              }`}>
-                <div className="flex items-start">
-                  <div className="flex-shrink-0">
-                    <svg className="h-5 w-5 text-yellow-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                      <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                    </svg>
-                  </div>
-                  <div className="ml-3">
-                    <h3 className="text-sm font-medium">Informations importantes</h3>
-                    <div className="mt-2 text-sm">
-                      <ul className="list-disc pl-5 space-y-1">
-                        <li>Les restrictions par pays sont basées sur la géolocalisation des adresses IP.</li>
-                        <li>Si aucun pays n'est configuré, tous les pays seront {isGlobalRestrictionEnabled ? 'bloqués' : 'autorisés'} par défaut.</li>
-                        <li>Les utilisateurs des pays bloqués recevront un message d'erreur leur indiquant que le service n'est pas disponible dans leur région.</li>
-                      </ul>
+                          <div className="flex items-start gap-2">
+                            <div className="w-1.5 h-1.5 rounded-full bg-yellow-600 dark:bg-yellow-400 mt-2 flex-shrink-0"></div>
+                            <p className="text-sm">
+                              Si aucun pays n'est configuré, tous les pays seront {isGlobalRestrictionEnabled ? 'bloqués' : 'autorisés'} par défaut.
+                            </p>
+                          </div>
+                          <div className="flex items-start gap-2">
+                            <div className="w-1.5 h-1.5 rounded-full bg-yellow-600 dark:bg-yellow-400 mt-2 flex-shrink-0"></div>
+                            <p className="text-sm">
+                              Les utilisateurs des pays bloqués recevront un message d'erreur leur indiquant que le service n'est pas disponible dans leur région.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>

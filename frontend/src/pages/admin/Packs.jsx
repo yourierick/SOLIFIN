@@ -1132,7 +1132,7 @@ export default function Packs() {
                               </td>
                               <td className="px-4 py-4">
                                 <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
-                                  Mensuel
+                                  {rate.frequence === "weekly" ? 'Hebdomadaire' : rate.frequence === "monthly" ? 'Mensuelle' : 'Annuelle'}
                                 </span>
                               </td>
                               <td className="px-4 py-4">
@@ -1230,7 +1230,7 @@ export default function Packs() {
                           <span className="bg-amber-200 dark:bg-amber-800 px-2 py-1 rounded font-medium">
                             10 filleuls
                           </span>
-                          , un utilisateur qui parraine 10 filleuls dans le mois
+                          , un utilisateur qui parraine 10 filleuls à la fin de la semaine, il
                           recevra 2 jetons Esengo.
                         </p>
                       </div>
@@ -1246,7 +1246,7 @@ export default function Packs() {
                         <div className="w-1.5 h-1.5 bg-amber-500 rounded-full mt-2 flex-shrink-0"></div>
                         <p>
                           <strong>Fréquence :</strong> Les bonus sont calculés
-                          mensuellement selon les critères définis.
+                          hebdomadairement selon les critères définis.
                         </p>
                       </div>
                     </div>

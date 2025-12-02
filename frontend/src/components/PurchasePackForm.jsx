@@ -574,7 +574,7 @@ export default function PurchasePackForm({
   isRenewal = false, // Nouvelle prop pour différencier achat et renouvellement
 }) {
   const { isDarkMode } = useTheme();
-  const { isCDFEnabled, canUseCDF } = useCurrency();
+  const { isCDFEnabled, canUseCDF, selectedCurrency } = useCurrency();
   const { toast } = useToast();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
@@ -588,9 +588,6 @@ export default function PurchasePackForm({
   const [formIsValid, setFormIsValid] = useState(false);
   const [months, setMonths] = useState(1);
   const [referralCode, setReferralCode] = useState("");
-  const [selectedCurrency, setSelectedCurrency] = useState(
-    canUseCDF() ? null : "USD"
-  );
   const [transactionFees, setTransactionFees] = useState(0);
   const [feePercentage, setFeePercentage] = useState(null);
   const [prix_du_pack, setPrixDuPack] = useState(0); // Prix du pack dans la devise sélectionnée
@@ -617,23 +614,10 @@ export default function PurchasePackForm({
       setMonths(step);
 
       // Initialiser la devise et le prix du pack
-      if (!selectedCurrency) {
-        // Vérifier si pack.cdf_price existe et n'est pas null
-        if (
-          pack.cdf_price !== null &&
-          pack.cdf_price !== undefined &&
-          pack.cdf_price > 0 &&
-          canUseCDF()
-        ) {
-          setSelectedCurrency("USD"); // Commencer avec USD comme défaut (utilisateur pourra choisir)
-        } else {
-          setSelectedCurrency("USD"); // Forcer USD si cdf_price n'existe pas ou CDF désactivé
-        }
-
-        // Calculer le prix initial selon la devise disponible
-        const prixInitial = pack.price * step;
-        setPrixDuPack(prixInitial);
-      }
+      // La devise est maintenant gérée globalement via useCurrency
+      // Calculer le prix initial selon la devise disponible
+      const prixInitial = pack.price * step;
+      setPrixDuPack(prixInitial);
     }
   }, [pack]);
 
@@ -654,6 +638,14 @@ export default function PurchasePackForm({
       setPrixDuPack(prixDeBase);
     }
   }, [selectedCurrency, pack]);
+
+  // Effet pour recharger les données lorsque la devise change
+  useEffect(() => {
+    if (open && pack) {
+      // Recharger le solde du wallet quand la devise change
+      getUserWalletBalance();
+    }
+  }, [selectedCurrency]);
 
   // Récupérer le solde du wallet et les frais initiaux à l'ouverture du modal
   useEffect(() => {
@@ -831,19 +823,7 @@ export default function PurchasePackForm({
         });
         setFeesError(false);
 
-        // Initialiser la devise par défaut après avoir récupéré les frais
-        if (!selectedCurrency && pack) {
-          // Vérifier si pack.cdf_price existe et n'est pas null
-          if (
-            pack.cdf_price !== null &&
-            pack.cdf_price !== undefined &&
-            canUseCDF()
-          ) {
-            setSelectedCurrency("USD"); // Commencer avec USD comme défaut
-          } else {
-            setSelectedCurrency("USD"); // Forcer USD si cdf_price n'existe pas ou CDF désactivé
-          }
-        }
+        // La devise est maintenant gérée globalement via useCurrency
 
         // Calculer les frais
         calculateFees();
@@ -858,10 +838,7 @@ export default function PurchasePackForm({
         });
         setFeesError(true);
 
-        // Initialiser la devise par défaut même en cas d'erreur
-        if (!selectedCurrency && pack) {
-          setSelectedCurrency("USD");
-        }
+        // La devise est maintenant gérée globalement via useCurrency
 
         calculateFees();
 
@@ -876,10 +853,7 @@ export default function PurchasePackForm({
       });
       setFeesError(true);
 
-      // Initialiser la devise par défaut même en cas d'erreur
-      if (!selectedCurrency && pack) {
-        setSelectedCurrency("USD");
-      }
+      // La devise est maintenant gérée globalement via useCurrency
 
       calculateFees();
 
@@ -1091,46 +1065,7 @@ export default function PurchasePackForm({
   };
 
   // Le getUserWalletBalance est déjà appelé dans un autre useEffect lors de l'ouverture du modal
-
-  const handleCurrencyChange = async (currency) => {
-    setSelectedCurrency(currency);
-
-    // Réinitialiser certains états quand la devise change
-    setTransactionFees(0);
-    setTotalAmount(0);
-    setFormFields({});
-    setFormIsValid(false);
-
-    // Utiliser directement le prix du pack selon la devise
-    // Calculer le prix de base selon le pas d'abonnement
-    const step = getSubscriptionStep(pack.abonnement);
-
-    let prixDeBase;
-    if (currency === "USD") {
-      prixDeBase = pack.price * step; // Prix mensuel USD × nombre de mois du pas
-    } else if (currency === "CDF") {
-      prixDeBase = pack.cdf_price * step; // Prix mensuel CDF × nombre de mois du pas
-    } else {
-      prixDeBase = pack.price * step; // Par défaut, utiliser USD
-    }
-
-    console.log("Calcul du prix de base:", {
-      prix_mensuel_usd: pack.price,
-      prix_mensuel_cdf: pack.cdf_price,
-      type_abonnement: pack.abonnement,
-      pas_mois: step,
-      devise_selectionnee: currency,
-      prix_de_base: prixDeBase,
-      explication: `Prix mensuel (${
-        currency === "CDF" ? pack.cdf_price : pack.price
-      } ${currency}) × pas (${step} mois) = ${prixDeBase} ${currency}`,
-    });
-
-    setPrixDuPack(prixDeBase);
-
-    // Récupérer le solde du wallet pour la nouvelle devise
-    getUserWalletBalance(currency);
-  };
+  // La devise est maintenant gérée globalement via useCurrency, donc handleCurrencyChange n'est plus nécessaire
 
   const handleFieldChange = (fieldName, value) => {
     const selectedMethod = paymentMethods.find((m) => m.id === paymentMethod);
@@ -1659,94 +1594,6 @@ export default function PurchasePackForm({
 
         <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
           <div className="modal-scrollable-content p-4 sm:p-6 pt-4 custom-scrollbar">
-            {/* Sélecteur de devise - uniquement si pack.cdf_price est défini et CDF activé */}
-            {pack &&
-              pack.cdf_price !== null &&
-              pack.cdf_price !== undefined &&
-              pack.cdf_price > 0 &&
-              canUseCDF() && (
-                <div className="slide-in" style={{ animationDelay: "0.1s" }}>
-                  <div className="flex items-center gap-2 mb-3">
-                    <BanknotesIcon className="h-4 w-4 sm:h-5 sm:w-5 text-primary-600 dark:text-primary-400" />
-                    <Typography
-                      variant="subtitle1"
-                      className="font-bold text-primary-600 dark:text-primary-400 text-sm sm:text-base"
-                    >
-                      Sélectionnez la devise
-                    </Typography>
-                  </div>
-
-                  <div className="flex justify-center mb-8">
-                    <div
-                      className={`inline-flex rounded-full p-1 shadow-sm border ${
-                        isDarkMode
-                          ? "bg-gray-800 border-gray-700"
-                          : "bg-white border-gray-200"
-                      }`}
-                    >
-                      {/* USD Button */}
-                      <button
-                        onClick={() => handleCurrencyChange("USD")}
-                        disabled={loadingBalance}
-                        className={`relative px-6 py-2 rounded-full text-sm font-medium transition-all duration-300 ${
-                          selectedCurrency === "USD"
-                            ? isDarkMode
-                              ? "bg-blue-600 text-white shadow-md"
-                              : "bg-blue-500 text-white shadow-md"
-                            : isDarkMode
-                            ? "text-gray-300 hover:text-white hover:bg-gray-700"
-                            : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
-                        } ${
-                          loadingBalance
-                            ? "opacity-50 cursor-not-allowed"
-                            : "cursor-pointer"
-                        }`}
-                      >
-                        {loadingBalance && selectedCurrency === "USD" ? (
-                          <CircularProgress size={14} className="text-white" />
-                        ) : (
-                          <span className="flex items-center space-x-1">
-                            <span className="font-semibold">USD</span>
-                          </span>
-                        )}
-                      </button>
-
-                      {/* CDF Button */}
-                      {canUseCDF() && (
-                        <button
-                          onClick={() => handleCurrencyChange("CDF")}
-                          disabled={loadingBalance}
-                          className={`relative px-6 py-2 rounded-full text-sm font-medium transition-all duration-300 ${
-                            selectedCurrency === "CDF"
-                              ? isDarkMode
-                                ? "bg-green-600 text-white shadow-md"
-                                : "bg-green-500 text-white shadow-md"
-                              : isDarkMode
-                              ? "text-gray-300 hover:text-white hover:bg-gray-700"
-                              : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
-                          } ${
-                            loadingBalance
-                              ? "opacity-50 cursor-not-allowed"
-                              : "cursor-pointer"
-                          }`}
-                        >
-                          {loadingBalance && selectedCurrency === "CDF" ? (
-                            <CircularProgress
-                              size={14}
-                              className="text-white"
-                            />
-                          ) : (
-                            <span className="flex items-center space-x-1">
-                              <span className="font-semibold">CDF</span>
-                            </span>
-                          )}
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              )}
-
             {/* Le reste du contenu n'est affiché que si une devise est sélectionnée */}
             {selectedCurrency && (
               <>
