@@ -489,7 +489,15 @@ const Finances = () => {
   };
 
   return (
-    <Box sx={{ p: { xs: 2, sm: 3 } }}>
+    <Box 
+      sx={{ 
+        p: { xs: 2, sm: 3 },
+        minHeight: "100vh",
+        background: isDarkMode 
+          ? "linear-gradient(135deg, #0f172a 0%, #1e293b 100%)" 
+          : "linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)",
+      }}
+    >
       <Box
         sx={{
           display: "flex",
@@ -500,19 +508,6 @@ const Finances = () => {
       >
         <Box>
           <Typography
-            variant="h4"
-            gutterBottom
-            sx={{ fontSize: { xs: "1.5rem", sm: "2.125rem" } }}
-          >
-            <Box
-              component="span"
-              sx={{ display: { xs: "none", sm: "inline" } }}
-            >
-              Gestion des{" "}
-            </Box>
-            Finances
-          </Typography>
-          <Typography
             variant="subtitle1"
             color="text.secondary"
             paragraph
@@ -521,93 +516,115 @@ const Finances = () => {
               display: { xs: "none", sm: "block" },
             }}
           >
-            Consultez et analysez les transactions financières du système
+            Consultez et analysez les transactions financières, gérez les démandes de retrait, gérez les commissions de parrainage
           </Typography>
         </Box>
       </Box>
-      {/* Cartes de résumé financier */}
+      {/* Cartes de résumé financier - Design moderne professionnel */}
       <Grid container spacing={{ xs: 2, sm: 3 }} sx={{ mb: { xs: 3, sm: 4 } }}>
         {/* Carte 1: Solde actuel */}
         <Grid item xs={12} sm={6} md={3}>
           <Card
             sx={{
-              bgcolor: isDarkMode
-                ? "rgba(59, 130, 246, 0.1)"
-                : "rgba(59, 130, 246, 0.05)",
-              boxShadow: "none",
-              border: `1px solid ${
-                isDarkMode
-                  ? "rgba(59, 130, 246, 0.2)"
-                  : "rgba(59, 130, 246, 0.1)"
-              }`,
-              borderRadius: 3,
               height: "100%",
+              background: isDarkMode ? "#1e293b" : "#ffffff",
+              border: isDarkMode ? "1px solid #334155" : "1px solid #e2e8f0",
+              borderRadius: "16px",
               position: "relative",
               overflow: "hidden",
-              transition: "all 0.3s ease",
+              transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+              "&::before": {
+                content: '""',
+                position: "absolute",
+                top: 0,
+                left: 0,
+                right: 0,
+                height: "3px",
+                background: "linear-gradient(90deg, #3b82f6 0%, #1d4ed8 50%, #3b82f6 100%)",
+                backgroundSize: "200% 100%",
+                animation: "gradient 3s ease infinite",
+              },
               "&:hover": {
-                transform: "translateY(-3px)",
-                boxShadow: isDarkMode
-                  ? "0 8px 20px rgba(0, 0, 0, 0.3)"
-                  : "0 8px 20px rgba(0, 0, 0, 0.1)",
+                transform: "translateY(-4px)",
+                border: isDarkMode ? "1px solid #475569" : "1px solid #cbd5e1",
+                background: isDarkMode ? "#1f2937" : "#f8fafc",
+              },
+              "@keyframes gradient": {
+                "0%": { backgroundPosition: "0% 50%" },
+                "50%": { backgroundPosition: "100% 50%" },
+                "100%": { backgroundPosition: "0% 50%" },
               },
             }}
           >
-            <Box
-              sx={{
-                position: "absolute",
-                top: -15,
-                right: -15,
-                width: 80,
-                height: 80,
-                borderRadius: "50%",
-                bgcolor: "primary.main",
-                opacity: 0.1,
-              }}
-            />
-            <CardContent sx={{ position: "relative", p: { xs: 2, sm: 3 } }}>
+            <CardContent sx={{ p: { xs: 3, sm: 4 } }}>
               <Box
                 sx={{
                   display: "flex",
                   justifyContent: "space-between",
                   alignItems: "flex-start",
-                  mb: 2,
+                  mb: 3,
                 }}
               >
-                <Typography
-                  variant="subtitle1"
-                  color="primary"
-                  sx={{
-                    fontWeight: 600,
-                    fontSize: { xs: "0.75rem", sm: "0.9rem" },
-                  }}
-                >
-                  Solde actuel
-                </Typography>
+                <Box>
+                  <Typography
+                    variant="body2"
+                    sx={{
+                      color: isDarkMode ? "#94a3b8" : "#64748b",
+                      fontWeight: 600,
+                      fontSize: "0.875rem",
+                      textTransform: "uppercase",
+                      letterSpacing: "0.05em",
+                      mb: 1,
+                    }}
+                  >
+                    Solde Actuel
+                  </Typography>
+                  <Typography
+                    variant="caption"
+                    sx={{
+                      color: isDarkMode ? "#64748b" : "#94a3b8",
+                      fontSize: "0.75rem",
+                    }}
+                  >
+                    Balance disponible
+                  </Typography>
+                </Box>
                 <Box
                   sx={{
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
-                    bgcolor: "primary.main",
+                    background: "linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)",
                     color: "white",
-                    width: { xs: 32, sm: 36 },
-                    height: { xs: 32, sm: 36 },
-                    borderRadius: "50%",
+                    width: 30,
+                    height: 30,
+                    borderRadius: "12px",
+                    position: "relative",
+                    "&::after": {
+                      content: '""',
+                      position: "absolute",
+                      inset: "-2px",
+                      borderRadius: "12px",
+                      padding: "2px",
+                      background: "linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%)",
+                      mask: "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
+                      maskComposite: "xor",
+                      opacity: 0.3,
+                    },
                   }}
                 >
-                  <AccountBalanceIcon
-                    sx={{ fontSize: { xs: "1rem", sm: "1.2rem" } }}
-                  />
+                  <AccountBalanceIcon sx={{ fontSize: "1rem" }} />
                 </Box>
               </Box>
               <Typography
-                variant="h5"
+                variant="h3"
                 component="div"
                 sx={{
-                  fontSize: { xs: "1.1rem", sm: "1.4rem" },
-                  fontWeight: 700,
-                  color: isDarkMode ? "#fff" : "text.primary",
+                  fontSize: { xs: "1rem", sm: "1.5rem" },
+                  fontWeight: 500,
+                  color: isDarkMode ? "#ffffff" : "#0f172a",
+                  lineHeight: 1.1,
+                  letterSpacing: "-0.02em",
                 }}
               >
                 {userPermissions.includes("view-transactions") ||
@@ -625,78 +642,100 @@ const Finances = () => {
         <Grid item xs={12} sm={6} md={3}>
           <Card
             sx={{
-              bgcolor: isDarkMode
-                ? "rgba(16, 185, 129, 0.1)"
-                : "rgba(16, 185, 129, 0.05)",
-              boxShadow: "none",
-              border: `1px solid ${
-                isDarkMode
-                  ? "rgba(16, 185, 129, 0.2)"
-                  : "rgba(16, 185, 129, 0.1)"
-              }`,
-              borderRadius: 3,
               height: "100%",
+              background: isDarkMode ? "#1e293b" : "#ffffff",
+              border: isDarkMode ? "1px solid #334155" : "1px solid #e2e8f0",
+              borderRadius: "16px",
               position: "relative",
               overflow: "hidden",
-              transition: "all 0.3s ease",
+              transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+              "&::before": {
+                content: '""',
+                position: "absolute",
+                top: 0,
+                left: 0,
+                right: 0,
+                height: "3px",
+                background: "linear-gradient(90deg, #10b981 0%, #059669 50%, #10b981 100%)",
+                backgroundSize: "200% 100%",
+                animation: "gradient 3s ease infinite",
+              },
               "&:hover": {
-                transform: "translateY(-3px)",
-                boxShadow: isDarkMode
-                  ? "0 8px 20px rgba(0, 0, 0, 0.3)"
-                  : "0 8px 20px rgba(0, 0, 0, 0.1)",
+                transform: "translateY(-4px)",
+                border: isDarkMode ? "1px solid #475569" : "1px solid #cbd5e1",
+                background: isDarkMode ? "#1f2937" : "#f8fafc",
               },
             }}
           >
-            <Box
-              sx={{
-                position: "absolute",
-                top: -15,
-                right: -15,
-                width: 80,
-                height: 80,
-                borderRadius: "50%",
-                bgcolor: "success.main",
-                opacity: 0.1,
-              }}
-            />
-            <CardContent sx={{ position: "relative", p: { xs: 2, sm: 3 } }}>
+            <CardContent sx={{ p: { xs: 3, sm: 4 } }}>
               <Box
                 sx={{
                   display: "flex",
                   justifyContent: "space-between",
                   alignItems: "flex-start",
-                  mb: 2,
+                  mb: 3,
                 }}
               >
-                <Typography
-                  variant="subtitle1"
-                  color="success.main"
-                  sx={{ fontWeight: 600, fontSize: "0.9rem" }}
-                >
-                  Total des entrées
-                </Typography>
+                <Box>
+                  <Typography
+                    variant="body2"
+                    sx={{
+                      color: isDarkMode ? "#94a3b8" : "#64748b",
+                      fontWeight: 600,
+                      fontSize: "0.875rem",
+                      textTransform: "uppercase",
+                      letterSpacing: "0.05em",
+                      mb: 1,
+                    }}
+                  >
+                    Entrées
+                  </Typography>
+                  <Typography
+                    variant="caption"
+                    sx={{
+                      color: isDarkMode ? "#64748b" : "#94a3b8",
+                      fontSize: "0.75rem",
+                    }}
+                  >
+                    Total recettes
+                  </Typography>
+                </Box>
                 <Box
                   sx={{
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
-                    bgcolor: "success.main",
+                    background: "linear-gradient(135deg, #10b981 0%, #059669 100%)",
                     color: "white",
-                    width: 36,
-                    height: 36,
-                    borderRadius: "50%",
+                    width: 30,
+                    height: 30,
+                    borderRadius: "12px",
+                    position: "relative",
+                    "&::after": {
+                      content: '""',
+                      position: "absolute",
+                      inset: "-2px",
+                      borderRadius: "12px",
+                      padding: "2px",
+                      background: "linear-gradient(135deg, #34d399 0%, #10b981 100%)",
+                      mask: "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
+                      maskComposite: "xor",
+                      opacity: 0.3,
+                    },
                   }}
                 >
-                  <AttachMoneyIcon sx={{ fontSize: "1.2rem" }} />
+                  <AttachMoneyIcon sx={{ fontSize: "1rem" }} />
                 </Box>
               </Box>
               <Typography
-                variant="h5"
+                variant="h3"
                 component="div"
                 sx={{
-                  fontSize: { xs: "1.1rem", sm: "1.4rem" },
-                  fontWeight: 700,
-                  color: isDarkMode ? "#fff" : "text.primary",
+                  fontSize: { xs: "1rem", sm: "1.5rem" },
+                  fontWeight: 500,
+                  color: isDarkMode ? "#ffffff" : "#0f172a",
+                  lineHeight: 1.1,
+                  letterSpacing: "-0.02em",
                 }}
               >
                 {userPermissions.includes("view-transactions") ||
@@ -714,76 +753,100 @@ const Finances = () => {
         <Grid item xs={12} sm={6} md={3}>
           <Card
             sx={{
-              bgcolor: isDarkMode
-                ? "rgba(239, 68, 68, 0.1)"
-                : "rgba(239, 68, 68, 0.05)",
-              boxShadow: "none",
-              border: `1px solid ${
-                isDarkMode ? "rgba(239, 68, 68, 0.2)" : "rgba(239, 68, 68, 0.1)"
-              }`,
-              borderRadius: 3,
               height: "100%",
+              background: isDarkMode ? "#1e293b" : "#ffffff",
+              border: isDarkMode ? "1px solid #334155" : "1px solid #e2e8f0",
+              borderRadius: "16px",
               position: "relative",
               overflow: "hidden",
-              transition: "all 0.3s ease",
+              transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+              "&::before": {
+                content: '""',
+                position: "absolute",
+                top: 0,
+                left: 0,
+                right: 0,
+                height: "3px",
+                background: "linear-gradient(90deg, #ef4444 0%, #dc2626 50%, #ef4444 100%)",
+                backgroundSize: "200% 100%",
+                animation: "gradient 3s ease infinite",
+              },
               "&:hover": {
-                transform: "translateY(-3px)",
-                boxShadow: isDarkMode
-                  ? "0 8px 20px rgba(0, 0, 0, 0.3)"
-                  : "0 8px 20px rgba(0, 0, 0, 0.1)",
+                transform: "translateY(-4px)",
+                border: isDarkMode ? "1px solid #475569" : "1px solid #cbd5e1",
+                background: isDarkMode ? "#1f2937" : "#f8fafc",
               },
             }}
           >
-            <Box
-              sx={{
-                position: "absolute",
-                top: -15,
-                right: -15,
-                width: 80,
-                height: 80,
-                borderRadius: "50%",
-                bgcolor: "error.main",
-                opacity: 0.1,
-              }}
-            />
-            <CardContent sx={{ position: "relative", p: { xs: 2, sm: 3 } }}>
+            <CardContent sx={{ p: { xs: 3, sm: 4 } }}>
               <Box
                 sx={{
                   display: "flex",
                   justifyContent: "space-between",
                   alignItems: "flex-start",
-                  mb: 2,
+                  mb: 3,
                 }}
               >
-                <Typography
-                  variant="subtitle1"
-                  color="error.main"
-                  sx={{ fontWeight: 600, fontSize: "0.9rem" }}
-                >
-                  Total des sorties
-                </Typography>
+                <Box>
+                  <Typography
+                    variant="body2"
+                    sx={{
+                      color: isDarkMode ? "#94a3b8" : "#64748b",
+                      fontWeight: 600,
+                      fontSize: "0.875rem",
+                      textTransform: "uppercase",
+                      letterSpacing: "0.05em",
+                      mb: 1,
+                    }}
+                  >
+                    Sorties
+                  </Typography>
+                  <Typography
+                    variant="caption"
+                    sx={{
+                      color: isDarkMode ? "#64748b" : "#94a3b8",
+                      fontSize: "0.75rem",
+                    }}
+                  >
+                    Total dépenses
+                  </Typography>
+                </Box>
                 <Box
                   sx={{
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
-                    bgcolor: "error.main",
+                    background: "linear-gradient(135deg, #ef4444 0%, #dc2626 100%)",
                     color: "white",
-                    width: 36,
-                    height: 36,
-                    borderRadius: "50%",
+                    width: 30,
+                    height: 30,
+                    borderRadius: "12px",
+                    position: "relative",
+                    "&::after": {
+                      content: '""',
+                      position: "absolute",
+                      inset: "-2px",
+                      borderRadius: "12px",
+                      padding: "2px",
+                      background: "linear-gradient(135deg, #f87171 0%, #ef4444 100%)",
+                      mask: "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
+                      maskComposite: "xor",
+                      opacity: 0.3,
+                    },
                   }}
                 >
-                  <MoneyOffIcon sx={{ fontSize: "1.2rem" }} />
+                  <MoneyOffIcon sx={{ fontSize: "1rem" }} />
                 </Box>
               </Box>
               <Typography
-                variant="h5"
+                variant="h3"
                 component="div"
                 sx={{
-                  fontSize: { xs: "1.1rem", sm: "1.4rem" },
-                  fontWeight: 700,
-                  color: isDarkMode ? "#fff" : "text.primary",
+                  fontSize: { xs: "1rem", sm: "1.5rem" },
+                  fontWeight: 500,
+                  color: isDarkMode ? "#ffffff" : "#0f172a",
+                  lineHeight: 1.1,
+                  letterSpacing: "-0.02em",
                 }}
               >
                 {userPermissions.includes("view-transactions") ||
@@ -801,76 +864,100 @@ const Finances = () => {
         <Grid item xs={12} sm={6} md={3}>
           <Card
             sx={{
-              bgcolor: isDarkMode
-                ? "rgba(79, 70, 229, 0.1)"
-                : "rgba(79, 70, 229, 0.05)",
-              boxShadow: "none",
-              border: `1px solid ${
-                isDarkMode ? "rgba(79, 70, 229, 0.2)" : "rgba(79, 70, 229, 0.1)"
-              }`,
-              borderRadius: 3,
               height: "100%",
+              background: isDarkMode ? "#1e293b" : "#ffffff",
+              border: isDarkMode ? "1px solid #334155" : "1px solid #e2e8f0",
+              borderRadius: "16px",
               position: "relative",
               overflow: "hidden",
-              transition: "all 0.3s ease",
+              transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+              "&::before": {
+                content: '""',
+                position: "absolute",
+                top: 0,
+                left: 0,
+                right: 0,
+                height: "3px",
+                background: "linear-gradient(90deg, #6366f1 0%, #4f46e5 50%, #6366f1 100%)",
+                backgroundSize: "200% 100%",
+                animation: "gradient 3s ease infinite",
+              },
               "&:hover": {
-                transform: "translateY(-3px)",
-                boxShadow: isDarkMode
-                  ? "0 8px 20px rgba(0, 0, 0, 0.3)"
-                  : "0 8px 20px rgba(0, 0, 0, 0.1)",
+                transform: "translateY(-4px)",
+                border: isDarkMode ? "1px solid #475569" : "1px solid #cbd5e1",
+                background: isDarkMode ? "#1f2937" : "#f8fafc",
               },
             }}
           >
-            <Box
-              sx={{
-                position: "absolute",
-                top: -15,
-                right: -15,
-                width: 80,
-                height: 80,
-                borderRadius: "50%",
-                bgcolor: "info.main",
-                opacity: 0.1,
-              }}
-            />
-            <CardContent sx={{ position: "relative", p: { xs: 2, sm: 3 } }}>
+            <CardContent sx={{ p: { xs: 3, sm: 4 } }}>
               <Box
                 sx={{
                   display: "flex",
                   justifyContent: "space-between",
                   alignItems: "flex-start",
-                  mb: 2,
+                  mb: 3,
                 }}
               >
-                <Typography
-                  variant="subtitle1"
-                  color="info.main"
-                  sx={{ fontWeight: 600, fontSize: "0.9rem" }}
-                >
-                  Transactions
-                </Typography>
+                <Box>
+                  <Typography
+                    variant="body2"
+                    sx={{
+                      color: isDarkMode ? "#94a3b8" : "#64748b",
+                      fontWeight: 600,
+                      fontSize: "0.875rem",
+                      textTransform: "uppercase",
+                      letterSpacing: "0.05em",
+                      mb: 1,
+                    }}
+                  >
+                    Transactions
+                  </Typography>
+                  <Typography
+                    variant="caption"
+                    sx={{
+                      color: isDarkMode ? "#64748b" : "#94a3b8",
+                      fontSize: "0.75rem",
+                    }}
+                  >
+                    Total opérations
+                  </Typography>
+                </Box>
                 <Box
                   sx={{
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
-                    bgcolor: "info.main",
+                    background: "linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)",
                     color: "white",
-                    width: 36,
-                    height: 36,
-                    borderRadius: "50%",
+                    width: 30,
+                    height: 30,
+                    borderRadius: "12px",
+                    position: "relative",
+                    "&::after": {
+                      content: '""',
+                      position: "absolute",
+                      inset: "-2px",
+                      borderRadius: "12px",
+                      padding: "2px",
+                      background: "linear-gradient(135deg, #818cf8 0%, #6366f1 100%)",
+                      mask: "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
+                      maskComposite: "xor",
+                      opacity: 0.3,
+                    },
                   }}
                 >
-                  <TrendingUpIcon sx={{ fontSize: "1.2rem" }} />
+                  <TrendingUpIcon sx={{ fontSize: "1rem" }} />
                 </Box>
               </Box>
               <Typography
-                variant="h5"
+                variant="h3"
                 component="div"
                 sx={{
-                  fontSize: { xs: "1.1rem", sm: "1.4rem" },
-                  fontWeight: 700,
-                  color: isDarkMode ? "#fff" : "text.primary",
+                  fontSize: { xs: "1rem", sm: "1.5rem" },
+                  fontWeight: 500,
+                  color: isDarkMode ? "#ffffff" : "#0f172a",
+                  lineHeight: 1.1,
+                  letterSpacing: "-0.02em",
                 }}
               >
                 {userPermissions.includes("view-transactions") ||
@@ -884,19 +971,28 @@ const Finances = () => {
           </Card>
         </Grid>
       </Grid>
-      {/* Onglets avec design moderne */}
+      {/* Onglets avec design moderne professionnel */}
       <Paper
-        elevation={isDarkMode ? 2 : 3}
+        elevation={0}
         sx={{
           p: 0,
-          mb: { xs: 2, sm: 3 },
-          bgcolor: isDarkMode ? "#1f2937" : "#fff",
-          borderRadius: 2,
+          mb: { xs: 3, sm: 4 },
+          background: isDarkMode ? "#1e293b" : "#ffffff",
+          border: isDarkMode ? "1px solid #334155" : "1px solid #e2e8f0",
+          borderRadius: "16px",
           overflow: "hidden",
-          transition: "all 0.3s ease",
-          boxShadow: isDarkMode
-            ? "0 4px 20px rgba(0,0,0,0.3)"
-            : "0 4px 20px rgba(0,0,0,0.1)",
+          position: "relative",
+          "&::before": {
+            content: '""',
+            position: "absolute",
+            bottom: 0,
+            left: 0,
+            right: 0,
+            height: "1px",
+            background: isDarkMode 
+              ? "linear-gradient(90deg, transparent 0%, #475569 50%, transparent 100%)" 
+              : "linear-gradient(90deg, transparent 0%, #cbd5e1 50%, transparent 100%)",
+          },
         }}
       >
         <Tabs
@@ -908,38 +1004,57 @@ const Finances = () => {
           TabIndicatorProps={{
             style: {
               backgroundColor: isDarkMode ? "#3b82f6" : "#2563eb",
-              height: 3,
+              height: "3px",
               borderRadius: "3px 3px 0 0",
             },
           }}
           sx={{
-            borderBottom: 1,
-            borderColor: isDarkMode
-              ? "rgba(55, 65, 81, 0.5)"
-              : "rgba(0, 0, 0, 0.08)",
-            bgcolor: isDarkMode ? "#111827" : "#f8fafc",
             "& .MuiTabs-flexContainer": {
-              gap: { xs: 0.5, sm: 1 },
-              px: { xs: 0.5, sm: 1 },
-              pt: { xs: 0.5, sm: 1 },
+              px: { xs: 2, sm: 3 },
+              py: 1,
+              justifyContent: "center",
             },
             "& .MuiTab-root": {
-              minHeight: { xs: 44, sm: 48 },
-              transition: "all 0.2s ease",
-              borderRadius: "8px 8px 0 0",
-              fontWeight: 500,
+              minHeight: { xs: 56, sm: 64 },
+              transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+              fontWeight: 600,
               textTransform: "none",
-              fontSize: { xs: "0.75rem", sm: "0.95rem" },
-              px: { xs: 1, sm: 2 },
+              fontSize: { xs: "0.875rem", sm: "0.95rem" },
+              px: { xs: 2.5, sm: 3.5 },
+              py: 1.5,
+              color: isDarkMode ? "#94a3b8" : "#64748b",
+              borderRadius: "12px",
+              mx: 0.5,
+              position: "relative",
               "&:hover": {
-                backgroundColor: isDarkMode
-                  ? "rgba(59, 130, 246, 0.1)"
-                  : "rgba(37, 99, 235, 0.05)",
                 color: isDarkMode ? "#60a5fa" : "#3b82f6",
+                background: isDarkMode 
+                  ? "linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(37, 99, 235, 0.05) 100%)" 
+                  : "linear-gradient(135deg, rgba(59, 130, 246, 0.05) 0%, rgba(37, 99, 235, 0.02) 100%)",
+                transform: "translateY(-1px)",
               },
               "&.Mui-selected": {
                 color: isDarkMode ? "#60a5fa" : "#2563eb",
-                fontWeight: 600,
+                background: isDarkMode 
+                  ? "linear-gradient(135deg, rgba(59, 130, 246, 0.15) 0%, rgba(37, 99, 235, 0.08) 100%)" 
+                  : "linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(37, 99, 235, 0.05) 100%)",
+                transform: "translateY(-1px)",
+                "&::after": {
+                  content: '""',
+                  position: "absolute",
+                  bottom: 0,
+                  left: "50%",
+                  transform: "translateX(-50%)",
+                  width: "20px",
+                  height: "2px",
+                  background: isDarkMode ? "#3b82f6" : "#2563eb",
+                  borderRadius: "2px",
+                },
+              },
+              "&.Mui-disabled": {
+                color: "text.disabled",
+                cursor: "not-allowed",
+                opacity: 0.5,
               },
             },
           }}
@@ -948,95 +1063,40 @@ const Finances = () => {
             icon={<CreditCardIcon fontSize="small" />}
             iconPosition="start"
             label="Transactions"
-            onMouseEnter={() => setTabHover(1)}
-            onMouseLeave={() => setTabHover(null)}
             disabled={
               !userPermissions.includes("view-transactions") &&
               !userPermissions.includes("super-admin")
             }
-            sx={{
-              transform: tabHover === 1 ? "translateY(-2px)" : "none",
-              opacity:
-                !userPermissions.includes("view-transactions") &&
-                !userPermissions.includes("super-admin")
-                  ? 0.5
-                  : 1,
-              "&.Mui-disabled": {
-                color: "text.disabled",
-                cursor: "not-allowed",
-              },
-            }}
           />
           <Tab
-            icon={<BarChartIcon fontSize="small" />}
+            icon={<WalletIcon fontSize="small" />}
             iconPosition="start"
-            label="Statistiques"
-            onMouseEnter={() => setTabHover(2)}
-            onMouseLeave={() => setTabHover(null)}
+            label="Portefeuilles"
             disabled={
-              !userPermissions.includes("view-transactions") &&
+              !userPermissions.includes("manage-wallets") &&
               !userPermissions.includes("super-admin")
             }
-            sx={{
-              transform: tabHover === 2 ? "translateY(-2px)" : "none",
-              opacity:
-                !userPermissions.includes("view-transactions") &&
-                !userPermissions.includes("super-admin")
-                  ? 0.5
-                  : 1,
-              "&.Mui-disabled": {
-                color: "text.disabled",
-                cursor: "not-allowed",
-              },
-            }}
           />
           <Tab
             icon={<MonetizationOnIcon fontSize="small" />}
             iconPosition="start"
             label="Commissions"
-            onMouseEnter={() => setTabHover(4)}
-            onMouseLeave={() => setTabHover(null)}
             disabled={
               !userPermissions.includes("manage-commissions") &&
               !userPermissions.includes("super-admin")
             }
-            sx={{
-              transform: tabHover === 4 ? "translateY(-2px)" : "none",
-              opacity:
-                !userPermissions.includes("manage-commissions") &&
-                !userPermissions.includes("super-admin")
-                  ? 0.5
-                  : 1,
-              "&.Mui-disabled": {
-                color: "text.disabled",
-                cursor: "not-allowed",
-              },
-            }}
           />
           <Tab
             icon={<PaymentIcon fontSize="small" />}
             iconPosition="start"
-            label="Retraits"
-            onMouseEnter={() => setTabHover(5)}
-            onMouseLeave={() => setTabHover(null)}
+            label="Demandes de retrait"
             disabled={
               !userPermissions.includes("manage-withdrawals") &&
               !userPermissions.includes("super-admin")
             }
-            sx={{
-              transform: tabHover === 5 ? "translateY(-2px)" : "none",
-              opacity:
-                !userPermissions.includes("manage-withdrawals") &&
-                !userPermissions.includes("super-admin")
-                  ? 0.5
-                  : 1,
-              "&.Mui-disabled": {
-                color: "text.disabled",
-                cursor: "not-allowed",
-              },
-            }}
           />
         </Tabs>
+      </Paper>
 
         {/* Contenu de l'onglet actif */}
         {activeTab === 0 && (
@@ -1891,7 +1951,6 @@ const Finances = () => {
             </Suspense>
           </Box>
         )}
-      </Paper>
 
       {/* Modal de détails de transaction */}
       <Dialog

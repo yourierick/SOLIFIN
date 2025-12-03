@@ -383,6 +383,9 @@ class JetonEsengoController extends Controller
                     'action' => $entry->action_type,
                     'description' => $entry->description,
                     'created_at' => $entry->created_at->format('Y-m-d H:i:s'),
+                    'date_attribution' => $entry->jeton->created_at->format('Y-m-d H:i:s'),
+                    'date_expiration' => $entry->jeton->date_expiration->format('Y-m-d H:i:s'),
+                    'date_utilisation' => $entry->jeton->date_utilisation->format('Y-m-d H:i:s'),
                     'metadata' => $entry->metadata
                 ];
             });
@@ -563,7 +566,7 @@ class JetonEsengoController extends Controller
         try {
             // Recherche du ticket par son code de vérification
             $ticket = TicketGagnant::where('code_verification', $code_verification)
-                ->with(['user', 'cadeau'])
+                ->with(['user', 'admin', 'cadeau'])
                 ->first();
             
             // Vérifier si le ticket existe
@@ -584,10 +587,16 @@ class JetonEsengoController extends Controller
                 'consomme' => $ticket->consomme,
                 'date_consommation' => $ticket->date_consommation ? $ticket->date_consommation->format('Y-m-d H:i:s') : null,
                 'user' => [
-                    'id' => $ticket->user->id,
-                    'name' => $ticket->user->name,
-                    'email' => $ticket->user->email,
-                    'phone' => $ticket->user->phone
+                    'id' => $ticket->user?->id,
+                    'name' => $ticket->user?->name,
+                    'email' => $ticket->user?->email,
+                    'phone' => $ticket->user?->phone
+                ],
+                'distributeur' => [
+                    'id' => $ticket->admin?->id,
+                    'name' => $ticket->admin?->name,
+                    'email' => $ticket->admin?->email,
+                    'phone' => $ticket->admin?->phone
                 ],
                 'cadeau' => [
                     'id' => $ticket->cadeau->id,
@@ -604,6 +613,8 @@ class JetonEsengoController extends Controller
             ]);
             
         } catch (\Exception $e) {
+            \Log::error('Une erreur est survenue lors de la vérification du ticket: ' . $e->getMessage());
+            \Log::error('Une erreur est survenue lors de la vérification du ticket: ' . $e->getLine());
             return response()->json([
                 'success' => false,
                 'message' => 'Une erreur est survenue lors de la vérification du ticket',
@@ -752,8 +763,9 @@ class JetonEsengoController extends Controller
     public function getHistoriqueTicketsGagnants(Request $request)
     {
         try {
+            \Log::info($request->all());
             // Récupérer les tickets consommés avec pagination
-            $perPage = $request->input('per_page', 10);
+            $perPage = $request->input('per_page', 25);
             
             // Construire la requête avec les filtres
             $query = TicketGagnant::with('user', 'cadeau', 'admin');
@@ -782,16 +794,28 @@ class JetonEsengoController extends Controller
                 });
             }
             
-            // Filtre par date de début
+            // Filtre de consommation par date de début
             if ($request->has('date_debut') && !empty($request->input('date_debut'))) {
                 $dateDebut = $request->input('date_debut');
                 $query->whereDate('date_consommation', '>=', $dateDebut);
             }
             
-            // Filtre par date de fin
+            // Filtre de consommation par date de fin
             if ($request->has('date_fin') && !empty($request->input('date_fin'))) {
                 $dateFin = $request->input('date_fin');
                 $query->whereDate('date_consommation', '<=', $dateFin);
+            }
+
+            // Filtre d'expiration par date de début
+            if ($request->has('date_expiration_debut') && !empty($request->input('date_expiration_debut'))) {
+                $dateDebut = $request->input('date_expiration_debut');
+                $query->whereDate('date_expiration', '>=', $dateDebut);
+            }
+            
+            // Filtre d'expiration par date de fin
+            if ($request->has('date_expiration_fin') && !empty($request->input('date_expiration_fin'))) {
+                $dateFin = $request->input('date_expiration_fin');
+                $query->whereDate('date_expiration', '<=', $dateFin);
             }
             
             // Exécuter la requête avec tri et pagination
@@ -851,7 +875,7 @@ class JetonEsengoController extends Controller
     {
         try {
             // Récupérer les tickets consommés avec pagination
-            $perPage = $request->input('per_page', 10);
+            $perPage = $request->input('per_page', 25);
             
             // Construire la requête avec les filtres
             $query = TicketGagnant::with('user', 'cadeau', 'admin')

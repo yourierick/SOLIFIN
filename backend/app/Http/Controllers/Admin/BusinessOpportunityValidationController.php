@@ -31,11 +31,12 @@ class BusinessOpportunityValidationController extends Controller
         }
     }
     /**
-     * Afficher la liste des opportunités d'affaires pour validation
+     * Afficher la liste des opportunités d'affaires pour validation avec pagination
      *
+     * @param  \Illuminate\Http\Request  $request
      * @return \Illuminate\Http\Response
      */
-    public function index()
+    public function index(Request $request)
     {
         // Vérifier si l'utilisateur est un administrateur
         if (!Auth::user()->is_admin) {
@@ -43,25 +44,45 @@ class BusinessOpportunityValidationController extends Controller
         }
         
         try {
-            $allOpportunities = OpportuniteAffaire::with('user')
-                ->orderBy('created_at', 'desc')
-                ->get()
-                ->map(function ($opportunity) {
-                    // Ajouter l'URL du fichier de présentation si elle existe
-                    if ($opportunity->opportunity_file) {
-                        $opportunity->opportunity_file_url = asset('storage/' . $opportunity->opportunity_file);
-                    }
-                    
-                    // Générer l'URL correcte pour la photo de profil
-                    if ($opportunity->user && $opportunity->user->picture) {
-                        $opportunity->user->picture_url = asset('storage/' . $opportunity->user->picture);
-                    }
-                    return $opportunity;
-                });
+            // Paramètres de pagination
+            $page = $request->get('page', 1);
+            $perPage = $request->get('per_page', 10);
             
-            return response()->json($allOpportunities);
+            // Construction de la requête
+            $query = OpportuniteAffaire::with('user')
+                ->orderBy('created_at', 'desc');
+            
+            // Filtres
+            if ($request->has('statut') && $request->get('statut') !== 'all') {
+                $query->where('statut', $request->get('statut'));
+            }
+            
+            if ($request->has('etat') && $request->get('etat') !== 'all') {
+                $query->where('etat', $request->get('etat'));
+            }
+            
+            // Pagination
+            $opportunities = $query->paginate($perPage, ['*'], 'page', $page);
+            
+            // Transformer les résultats
+            $opportunities->getCollection()->transform(function ($opportunity) {
+                // Ajouter l'URL du fichier de présentation si elle existe
+                if ($opportunity->opportunity_file) {
+                    $opportunity->opportunity_file_url = asset('storage/' . $opportunity->opportunity_file);
+                }
+                
+                // Générer l'URL correcte pour la photo de profil
+                if ($opportunity->user && $opportunity->user->picture) {
+                    $opportunity->user->picture_url = asset('storage/' . $opportunity->user->picture);
+                }
+                return $opportunity;
+            });
+            
+            return response()->json([
+                'businessOpportunities' => $opportunities
+            ]);
         } catch (\Exception $e) {
-            return response()->json(['message' => 'Erreur lors de la récupération de toutes les opportunités d\'affaires', 'error' => $e->getMessage()], 500);
+            return response()->json(['message' => 'Erreur lors de la récupération des opportunités d\'affaires', 'error' => $e->getMessage()], 500);
         }
     }
     

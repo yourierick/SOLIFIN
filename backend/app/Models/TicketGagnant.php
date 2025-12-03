@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Carbon\Carbon;
 use App\Notifications\TicketConsommeAdminNotification;
 use App\Notifications\TicketConsommeUserNotification;
+use Illuminate\Support\Facades\DB;
 
 class TicketGagnant extends Model
 {
@@ -55,7 +56,7 @@ class TicketGagnant extends Model
      */
     public function user()
     {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(User::class, 'user_id', 'id');
     }
 
     /**
@@ -63,7 +64,7 @@ class TicketGagnant extends Model
      */
     public function admin()
     {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(User::class, 'admin_id', 'id');
     }
 
     /**
@@ -71,7 +72,7 @@ class TicketGagnant extends Model
      */
     public function cadeau()
     {
-        return $this->belongsTo(Cadeau::class);
+        return $this->belongsTo(Cadeau::class, 'cadeau_id', 'id');
     }
 
     /**
@@ -101,6 +102,7 @@ class TicketGagnant extends Model
      */
     public function marquerCommeConsomme($admin_id)
     {
+        try {
         //Ajouter la valeur du cadeau dans le wallet de l'administrateur.
         $admin = User::find($admin_id);
         $cadeau = Cadeau::find($this->cadeau_id);
@@ -109,13 +111,33 @@ class TicketGagnant extends Model
             return false;
         }
 
-        $admin->wallet->addFunds($this->cadeau->valeur, 'reception', 'completed', [
+        DB::beginTransaction();
+        $admin->wallet->addFunds($this->cadeau->valeur, 'USD', 'reception', 'completed', [
             'ID du Ticket' => $this->id,
             'ID du Cadeau' => $this->cadeau_id,
             'Nom du Cadeau' => $this->cadeau->nom,
             'Valeur du Cadeau' => $this->cadeau->valeur,
             'Code du Ticket' => $this->code_verification,
             'Déscription' => "Réception des fonds d'une valeur de " . $this->cadeau->valeur . " pour rémise du cadeau " . $this->cadeau->nom,
+        ]);
+
+        $walletSystem = WalletSystem::first();
+        $walletSystem->transactions()->create([
+            'wallet_system_id' => $walletSystem->id,
+            'mouvment' => 'out',
+            'type' => 'transfer',
+            'amount' => $this->cadeau->valeur,
+            'currency' => 'USD',
+            'status' => 'completed',
+            'metadata' => [
+                'ID du Ticket' => $this->id,
+                'ID du Cadeau' => $this->cadeau_id,
+                'Nom du Cadeau' => $this->cadeau->nom,
+                'Valeur du Cadeau' => $this->cadeau->valeur,
+                'Code du Ticket' => $this->code_verification,
+                'Distributeur' => $admin->name,
+                'Déscription' => "Paiement des fonds d'une valeur de " . $this->cadeau->valeur . " pour rémise du cadeau " . $this->cadeau->nom,
+            ],
         ]);
 
         $this->consomme = self::CONSOMME;
@@ -135,6 +157,10 @@ class TicketGagnant extends Model
         }
         
         return $saved;
+        } catch (\Exception $e) {
+            DB::rollBack();
+            throw $e;
+        }
     }
 
     public function programmerLaRemise($date, $admin_id)

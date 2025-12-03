@@ -1229,111 +1229,65 @@ export default function MyPacks() {
                       height: "100%",
                       display: "flex",
                       flexDirection: "column",
-                      borderRadius: "16px",
+                      borderRadius: "20px",
                       overflow: "hidden",
-                      transition: "all 0.3s ease",
-                      ...getCardStyle(userPack, isDarkMode),
-                      "&:hover": {
-                        transform: "translateY(-6px)",
-                        ...(isPackExpired(userPack.expiry_date, userPack.status)
-                          ? {
-                              border: "1px solid rgba(239, 68, 68, 0.5)",
-                              boxShadow: "0 8px 25px rgba(239, 68, 68, 0.15)",
-                            }
+                      border: isDarkMode
+                        ? "1px solid rgba(255, 255, 255, 0.08)"
+                        : "1px solid rgba(0, 0, 0, 0.06)",
+                      background: isDarkMode 
+                        ? "linear-gradient(145deg, #1e293b 0%, #0f172a 100%)"
+                        : "linear-gradient(145deg, #ffffff 0%, #f8fafc 100%)",
+                      transition:
+                        "transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+                      position: "relative",
+                      "&::before": {
+                        content: '""',
+                        position: "absolute",
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        height: "4px",
+                        background: isPackExpired(userPack.expiry_date, userPack.status)
+                          ? "linear-gradient(90deg, #ef4444 0%, #dc2626 100%)"
                           : isPackExpiringSoon(userPack.expiry_date)
-                          ? {
-                              border: "1px solid rgba(245, 158, 11, 0.5)",
-                              boxShadow: "0 8px 25px rgba(245, 158, 11, 0.15)",
-                            }
-                          : {
-                              border: isDarkMode
-                                ? "1px solid rgba(99, 102, 241, 0.3)"
-                                : "1px solid rgba(99, 102, 241, 0.25)",
-                            }),
+                          ? "linear-gradient(90deg, #f59e0b 0%, #d97706 100%)"
+                          : userPack.status === "active"
+                          ? "linear-gradient(90deg, #10b981 0%, #059669 100%)"
+                          : "linear-gradient(90deg, #6b7280 0%, #4b5563 100%)",
+                        zIndex: 2,
+                      },
+                      "&:hover": {
+                        transform: "translateY(-8px) scale(1.02)",
+                        boxShadow: isPackExpired(userPack.expiry_date, userPack.status)
+                          ? "0 20px 40px rgba(239, 68, 68, 0.2), 0 0 20px rgba(239, 68, 68, 0.1)"
+                          : isPackExpiringSoon(userPack.expiry_date)
+                          ? "0 20px 40px rgba(245, 158, 11, 0.2), 0 0 20px rgba(245, 158, 11, 0.1)"
+                          : "0 20px 40px rgba(0, 0, 0, 0.15), 0 0 20px rgba(59, 130, 246, 0.08)",
                       },
                     }}
                   >
-                    {/* En-tête avec statut */}
+                    {/* En-tête amélioré avec gradient */}
                     <Box
                       sx={{
-                        p: 3,
-                        borderBottom: "1px solid",
-                        borderColor: isDarkMode
-                          ? "rgba(255, 255, 255, 0.08)"
-                          : "rgba(0, 0, 0, 0.04)",
+                        p: 4,
+                        pb: 3,
+                        position: "relative",
+                        overflow: "hidden",
                         background: isDarkMode
-                          ? "rgba(99, 102, 241, 0.03)"
-                          : "rgba(99, 102, 241, 0.02)",
+                          ? "linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(147, 51, 234, 0.1) 100%)"
+                          : "linear-gradient(135deg, rgba(59, 130, 246, 0.05) 0%, rgba(147, 51, 234, 0.05) 100%)",
+                        borderBottom: `1px solid ${isDarkMode ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.06)"}`,
                       }}
                     >
+                      {/* Badge de statut flottant */}
                       <Box
                         sx={{
-                          display: "flex",
-                          justifyContent: "space-between",
-                          alignItems: "flex-start",
+                          position: "absolute",
+                          top: 16,
+                          right: 16,
+                          zIndex: 3,
                         }}
                       >
-                        <Box sx={{ flex: 1 }}>
-                          <Box
-                            sx={{
-                              display: "flex",
-                              alignItems: "center",
-                              gap: 1,
-                              mb: 1,
-                            }}
-                          >
-                            <Typography
-                              variant="h6"
-                              sx={{
-                                fontWeight: 700,
-                                color: isDarkMode ? "#fff" : "#1f2937",
-                                flex: 1,
-                              }}
-                            >
-                              {userPack.pack.name}
-                            </Typography>
-                          </Box>
-                          <Box
-                            sx={{
-                              display: "flex",
-                              alignItems: "center",
-                              gap: 1,
-                            }}
-                          >
-                            <Typography
-                              variant="h6"
-                              sx={{
-                                color: isPackExpired(
-                                  userPack.expiry_date,
-                                  userPack.status
-                                )
-                                  ? "#ef4444"
-                                  : isPackExpiringSoon(userPack.expiry_date)
-                                  ? "#f59e0b"
-                                  : "primary.main",
-                                fontWeight: 700,
-                              }}
-                            >
-                              ${userPack.pack.price}
-                            </Typography>
-                            <Typography
-                              variant="body2"
-                              sx={{
-                                color: isPackExpired(
-                                  userPack.expiry_date,
-                                  userPack.status
-                                )
-                                  ? "#ef4444"
-                                  : isPackExpiringSoon(userPack.expiry_date)
-                                  ? "#f59e0b"
-                                  : "text.secondary",
-                                fontWeight: 500,
-                              }}
-                            >
-                              /{userPack.pack.abonnement}
-                            </Typography>
-                          </Box>
-                        </Box>
                         <Chip
                           label={
                             isPackExpired(userPack.expiry_date, userPack.status)
@@ -1342,63 +1296,126 @@ export default function MyPacks() {
                               ? "Expire bientôt"
                               : getStatusLabel(userPack.status)
                           }
-                          color={
-                            isPackExpired(userPack.expiry_date, userPack.status)
-                              ? "error"
-                              : isPackExpiringSoon(userPack.expiry_date)
-                              ? "warning"
-                              : getStatusColor(userPack.status)
-                          }
                           size="small"
                           sx={{
-                            fontWeight: 600,
-                            borderRadius: "8px",
-                            px: 1,
+                            fontWeight: 700,
+                            fontSize: "0.75rem",
+                            letterSpacing: "0.025em",
+                            borderRadius: "20px",
+                            px: 2,
+                            py: 1,
+                            background: isPackExpired(userPack.expiry_date, userPack.status)
+                              ? "linear-gradient(135deg, #ef4444 0%, #dc2626 100%)"
+                              : isPackExpiringSoon(userPack.expiry_date)
+                              ? "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)"
+                              : userPack.status === "active"
+                              ? "linear-gradient(135deg, #10b981 0%, #059669 100%)"
+                              : "linear-gradient(135deg, #6b7280 0%, #4b5563 100%)",
+                            color: "#ffffff",
+                            boxShadow: "0 4px 12px rgba(0, 0, 0, 0.15)",
+                            "& .MuiChip-label": {
+                              px: 1,
+                            },
                           }}
                         />
                       </Box>
-                    </Box>
-                    {/* Description */}
-                    <Box sx={{ p: 3, pb: 2 }}>
+
+                      {/* Icône décorative */}
                       <Box
                         sx={{
-                          p: 2,
-                          borderRadius: "12px",
+                          position: "absolute",
+                          top: -20,
+                          right: -20,
+                          width: "120px",
+                          height: "120px",
+                          borderRadius: "50%",
                           background: isDarkMode
-                            ? "rgba(99, 102, 241, 0.05)"
-                            : "rgba(99, 102, 241, 0.03)",
-                          border: isDarkMode
-                            ? "1px solid rgba(99, 102, 241, 0.1)"
-                            : "1px solid rgba(99, 102, 241, 0.08)",
-                          position: "relative",
-                          "&::before": {
-                            content: '""',
-                            position: "absolute",
-                            top: 0,
-                            left: 0,
-                            width: "3px",
-                            height: "100%",
+                            ? "radial-gradient(circle, rgba(59, 130, 246, 0.2) 0%, transparent 70%)"
+                            : "radial-gradient(circle, rgba(59, 130, 246, 0.1) 0%, transparent 70%)",
+                          zIndex: 1,
+                        }}
+                      />
+
+                      <Box sx={{ position: "relative", zIndex: 2 }}>
+                        <Typography
+                          variant="h4"
+                          sx={{ 
+                            fontWeight: 800, 
+                            mb: 1,
                             background: isDarkMode
-                              ? "linear-gradient(180deg, #6366f1 0%, #8b5cf6 100%)"
-                              : "linear-gradient(180deg, #4f46e5 0%, #7c3aed 100%)",
-                            borderRadius: "3px 0 0 3px",
+                              ? "linear-gradient(135deg, #ffffff 0%, #e2e8f0 100%)"
+                              : "linear-gradient(135deg, #1f2937 0%, #374151 100%)",
+                            WebkitBackgroundClip: "text",
+                            WebkitTextFillColor: "transparent",
+                            backgroundClip: "text",
+                            lineHeight: 1.2,
+                          }}
+                        >
+                          {userPack.pack.name}
+                        </Typography>
+                        <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap" }}>
+                          <Typography
+                            variant="h5"
+                            sx={{ 
+                              color: isPackExpired(
+                                userPack.expiry_date,
+                                userPack.status
+                              )
+                                ? "#ef4444"
+                                : isPackExpiringSoon(userPack.expiry_date)
+                                ? "#f59e0b"
+                                : isDarkMode ? "#60a5fa" : "#3b82f6",
+                              fontWeight: 800,
+                              fontSize: "1.5rem",
+                            }}
+                          >
+                            ${userPack.pack.price}
+                          </Typography>
+                          <Typography
+                            variant="body2"
+                            sx={{ 
+                              color: isDarkMode ? "#94a3b8" : "#64748b",
+                              fontWeight: 500,
+                            }}
+                          >
+                            /{userPack.pack.abonnement}
+                          </Typography>
+                        </Box>
+                      </Box>
+                    </Box>
+                    {/* Description améliorée */}
+                    <Box sx={{ p: 4, pb: 3 }}>
+                      <Box
+                        sx={{
+                          p: 3,
+                          borderRadius: "16px",
+                          background: isDarkMode
+                            ? "rgba(59, 130, 246, 0.08)"
+                            : "rgba(59, 130, 246, 0.04)",
+                          border: `1px solid ${isDarkMode ? "rgba(59, 130, 246, 0.2)" : "rgba(59, 130, 246, 0.1)"}`,
+                          position: "relative",
+                          transition: "all 0.2s ease",
+                          "&:hover": {
+                            background: isDarkMode
+                              ? "rgba(59, 130, 246, 0.12)"
+                              : "rgba(59, 130, 246, 0.08)",
+                            transform: "translateX(4px)",
                           },
                         }}
                       >
                         <Typography
                           variant="body2"
                           sx={{
-                            color: isDarkMode ? "#e5e7eb" : "#374151",
+                            color: isDarkMode ? "#cbd5e1" : "#475569",
                             fontWeight: 500,
                             lineHeight: 1.6,
+                            fontSize: "0.9rem",
                             height: "63px",
                             overflow: "hidden",
                             textOverflow: "ellipsis",
                             display: "-webkit-box",
                             WebkitLineClamp: 3,
                             WebkitBoxOrient: "vertical",
-                            pl: 1,
-                            fontStyle: "italic",
                           }}
                         >
                           {userPack.pack.description}

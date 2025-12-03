@@ -192,7 +192,7 @@ const TicketGagnantModal = ({ open, onClose, ticket }) => {
               </div>
             </div>
 
-            {!ticket.consomme && !isExpired(ticket) && (
+            {ticket.consomme === 'non consommé' && !isExpired(ticket) && (
               <div className={`mb-6 p-5 rounded-lg border ${isDarkMode ? 'bg-gray-700/30 border-gray-600' : 'bg-white border-gray-200'} shadow-sm`}>
                 <div className="flex items-center justify-between mb-3">
                   <h5 className="font-semibold flex items-center">

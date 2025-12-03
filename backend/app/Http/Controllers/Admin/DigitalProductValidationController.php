@@ -28,47 +28,66 @@ class DigitalProductValidationController extends Controller
         }
     }
     /**
-     * Récupérer tous les produits numériques en attente de validation
+     * Récupérer tous les produits numériques en attente de validation avec pagination
      *
      * @param  \Illuminate\Http\Request  $request
      * @return \Illuminate\Http\Response
      */
     public function index(Request $request)
     {
-        $query = DigitalProduct::with('page.user');
+        try {
+            // Paramètres de pagination
+            $page = $request->get('page', 1);
+            $perPage = $request->get('per_page', 10);
+            
+            // Construction de la requête
+            $query = DigitalProduct::with('page.user')
+                ->orderBy('created_at', 'desc');
+            
+            // Filtres
+            if ($request->has('statut') && $request->get('statut') !== 'all') {
+                $query->where('statut', $request->get('statut'));
+            }
+            
+            if ($request->has('etat') && $request->get('etat') !== 'all') {
+                $query->where('etat', $request->get('etat'));
+            }
+            
+            // Filtrer par type
+            if ($request->has('type') && in_array($request->type, ['ebook', 'logiciel', 'fichier_admin'])) {
+                $query->where('type', $request->type);
+            }
 
-        // // Filtrer par statut
-        // if ($request->has('statut') && in_array($request->statut, ['en_attente', 'approuve', 'rejete'])) {
-        //     $query->where('statut', $request->statut);
-        // } else {
-        //     $query->where('statut', 'en_attente');
-        // }
+            // Recherche par titre ou description
+            if ($request->has('search')) {
+                $search = $request->search;
+                $query->where(function($q) use ($search) {
+                    $q->where('titre', 'like', "%{$search}%")
+                      ->orWhere('description', 'like', "%{$search}%");
+                });
+            }
 
-        // Filtrer par type
-        if ($request->has('type') && in_array($request->type, ['ebook', 'logiciel', 'fichier_admin'])) {
-            $query->where('type', $request->type);
-        }
-
-        // Recherche par titre ou description
-        if ($request->has('search')) {
-            $search = $request->search;
-            $query->where(function($q) use ($search) {
-                $q->where('titre', 'like', "%{$search}%")
-                  ->orWhere('description', 'like', "%{$search}%");
+            // Pagination
+            $products = $query->paginate($perPage, ['*'], 'page', $page);
+            
+            // Transformer les résultats
+            $products->getCollection()->transform(function ($product) {
+                $product->image_url = $product->image ? asset("storage/" . $product->image) : null;
+                $product->digital_product_file_url = $product->fichier ? asset('storage/' . $product->fichier) : null;
+                
+                if ($product->page && $product->page->user) {
+                    $product->page->user->picture_url = $product->page->user->picture ? asset("storage/" . $product->page->user->picture) : null;
+                }
+                
+                return $product;
             });
+            
+            return response()->json([
+                'digitalProducts' => $products
+            ]);
+        } catch (\Exception $e) {
+            return response()->json(['message' => 'Erreur lors de la récupération des produits numériques', 'error' => $e->getMessage()], 500);
         }
-
-        $products = $query->orderBy('created_at', 'desc')->paginate(15);
-        foreach ($products as $product) {
-            $product->image_url = $product->image ? asset("storage/" . $product->image) : null;
-            $product->digital_product_file_url = $product->fichier ? asset('storage/' . $product->fichier) : null;
-        }
-
-        foreach ($products as $product) {
-            $product->page->user->picture_url = $product->page->user->picture ? asset("storage/" . $product->page->user->picture) : null;
-        }
-        
-        return response()->json($products);
     }
 
     /**

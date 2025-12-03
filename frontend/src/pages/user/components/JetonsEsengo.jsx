@@ -201,6 +201,7 @@ const JetonsEsengo = () => {
     // Actualiser les jetons et tickets
     fetchJetonsEsengo();
     fetchTicketsGagnants();
+    fetchUsedJetons();
 
     // Afficher le ticket gagné
     setSelectedTicket(ticket);
@@ -1374,7 +1375,11 @@ const JetonsEsengo = () => {
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {jetonHistory.history.map((entry, index) => (
+                  {jetonHistory.history.map((entry, index) => {
+                    // Vérification de sécurité
+                    if (!entry) return null;
+                    
+                    return (
                     <div
                       key={index}
                       className="rounded-2xl border shadow-sm backdrop-blur-sm transition-all duration-300 hover:shadow-md"
@@ -1388,20 +1393,20 @@ const JetonsEsengo = () => {
                           className="p-3 rounded-xl flex-shrink-0"
                           style={{
                             backgroundColor:
-                              entry.action === "créé"
+                              entry.action === "attribution"
                                 ? isDarkMode ? "rgba(139, 92, 246, 0.1)" : "rgba(124, 58, 237, 0.05)"
-                                : entry.action === "utilisé"
+                                : entry.action === "utilisation"
                                 ? isDarkMode ? "rgba(16, 185, 129, 0.1)" : "rgba(5, 150, 105, 0.05)"
-                                : entry.action === "expiré"
+                                : entry.action === "expiration"
                                 ? isDarkMode ? "rgba(239, 68, 68, 0.1)" : "rgba(220, 38, 38, 0.05)"
                                 : colors.surfaceLight,
                           }}
                         >
-                          {entry.action === "créé" ? (
+                          {entry.action === "attribution" ? (
                             <GiftIcon className="h-5 w-5" style={{ color: colors.primary }} />
-                          ) : entry.action === "utilisé" ? (
+                          ) : entry.action === "utilisation" ? (
                             <CheckCircleIcon className="h-5 w-5" style={{ color: colors.success }} />
-                          ) : entry.action === "expiré" ? (
+                          ) : entry.action === "expiration" ? (
                             <ClockIcon className="h-5 w-5" style={{ color: colors.danger }} />
                           ) : (
                             <InformationCircleIcon className="h-5 w-5" style={{ color: colors.textSecondary }} />
@@ -1413,30 +1418,30 @@ const JetonsEsengo = () => {
                               className="font-bold text-lg"
                               style={{
                                 color:
-                                  entry.action === "créé"
+                                  entry.action === "attribution"
                                     ? colors.primary
-                                    : entry.action === "utilisé"
+                                    : entry.action === "utilisation"
                                     ? colors.success
-                                    : entry.action === "expiré"
+                                    : entry.action === "expiration"
                                     ? colors.danger
                                     : colors.text,
                               }}
                             >
-                              {entry.action.charAt(0).toUpperCase() +
-                                entry.action.slice(1)}
+                              {entry.action ? entry.action.charAt(0).toUpperCase() + entry.action.slice(1) : 'Action inconnue'}
                             </span>
                           </div>
                           <p className="text-sm mb-2" style={{ color: colors.textSecondary }}>
-                            {entry.description}
+                            {entry.description || 'Aucune description'}
                           </p>
                           <div className="flex items-center text-xs" style={{ color: colors.textSecondary }}>
                             <CalendarIcon className="h-4 w-4 mr-1" />
-                            {formatDate(entry.date)}
+                            {entry.action === 'attribution' ? formatDate(entry.date_attribution) : entry.action === 'utilisation' ? formatDate(entry.date_utilisation) : formatDate(entry.date_expiration)}
                           </div>
                         </div>
                       </div>
                     </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>

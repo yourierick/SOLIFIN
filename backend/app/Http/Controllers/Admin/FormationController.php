@@ -49,7 +49,8 @@ class FormationController extends Controller
             });
         }
         
-        $formations = $query->orderBy('created_at', 'desc')->paginate(10);
+        $perPage = $request->input('per_page', 25); // Par défaut 25, avec options 5, 10, 25, 50
+        $formations = $query->orderBy('created_at', 'desc')->paginate($perPage);
         
         return response()->json([
             'success' => true,

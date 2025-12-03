@@ -31,11 +31,12 @@ class AdvertisementValidationController extends Controller
         }
     }
     /**
-     * Afficher la liste des publicités pour validation
+     * Afficher la liste des publicités pour validation avec pagination
      *
+     * @param  \Illuminate\Http\Request  $request
      * @return \Illuminate\Http\Response
      */
-    public function index()
+    public function index(Request $request)
     {
         // Vérifier si l'utilisateur est un administrateur
         if (!Auth::user()->is_admin) {
@@ -43,29 +44,49 @@ class AdvertisementValidationController extends Controller
         }
         
         try {
-            $allAds = Publicite::with('user')
-                ->orderBy('created_at', 'desc')
-                ->get()
-                ->map(function ($ad) {
-                    // Ajouter l'URL de l'image si elle existe
-                    if ($ad->image) {
-                        $ad->image_url = asset('storage/' . $ad->image);
-                    }
-                    
-                    // Générer l'URL correcte pour la photo de profil
-                    if ($ad->user && $ad->user->picture) {
-                        $ad->user->picture_url = asset('storage/' . $ad->user->picture);
-                    }
-
-                    if ($ad->video) {
-                        $ad->video_url = asset('storage/' . $ad->video);
-                    }
-                    return $ad;
-                });
+            // Paramètres de pagination
+            $page = $request->get('page', 1);
+            $perPage = $request->get('per_page', 10);
             
-            return response()->json($allAds);
+            // Construction de la requête
+            $query = Publicite::with('user')
+                ->orderBy('created_at', 'desc');
+            
+            // Filtres
+            if ($request->has('statut') && $request->get('statut') !== 'all') {
+                $query->where('statut', $request->get('statut'));
+            }
+            
+            if ($request->has('etat') && $request->get('etat') !== 'all') {
+                $query->where('etat', $request->get('etat'));
+            }
+            
+            // Pagination
+            $ads = $query->paginate($perPage, ['*'], 'page', $page);
+            
+            // Transformer les résultats
+            $ads->getCollection()->transform(function ($ad) {
+                // Ajouter l'URL de l'image si elle existe
+                if ($ad->image) {
+                    $ad->image_url = asset('storage/' . $ad->image);
+                }
+                
+                // Générer l'URL correcte pour la photo de profil
+                if ($ad->user && $ad->user->picture) {
+                    $ad->user->picture_url = asset('storage/' . $ad->user->picture);
+                }
+
+                if ($ad->video) {
+                    $ad->video_url = asset('storage/' . $ad->video);
+                }
+                return $ad;
+            });
+            
+            return response()->json([
+                'advertisements' => $ads
+            ]);
         } catch (\Exception $e) {
-            return response()->json(['message' => 'Erreur lors de la récupération de toutes les publicités', 'error' => $e->getMessage()], 500);
+            return response()->json(['message' => 'Erreur lors de la récupération des publicités', 'error' => $e->getMessage()], 500);
         }
     }
     

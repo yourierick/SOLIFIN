@@ -848,94 +848,174 @@ export default function MyPacks() {
                   height: "100%",
                   display: "flex",
                   flexDirection: "column",
-                  borderRadius: "12px",
+                  borderRadius: "20px",
                   overflow: "hidden",
                   border: isDarkMode
-                    ? "1px solid rgba(255, 255, 255, 0.1)"
-                    : "1px solid rgba(0, 0, 0, 0.05)",
-                  bgcolor: isDarkMode ? "#1f2937" : "background.paper",
+                    ? "1px solid rgba(255, 255, 255, 0.08)"
+                    : "1px solid rgba(0, 0, 0, 0.06)",
+                  background: isDarkMode 
+                    ? "linear-gradient(145deg, #1e293b 0%, #0f172a 100%)"
+                    : "linear-gradient(145deg, #ffffff 0%, #f8fafc 100%)",
                   transition:
-                    "transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out",
+                    "transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
                   "&:hover": {
-                    transform: "translateY(-5px)",
-                    boxShadow: "0 10px 30px rgba(0, 0, 0, 0.1)",
+                    transform: "translateY(-8px) scale(1.02)",
+                    boxShadow: isDarkMode
+                      ? "0 20px 40px rgba(0, 0, 0, 0.4), 0 0 20px rgba(59, 130, 246, 0.1)"
+                      : "0 20px 40px rgba(0, 0, 0, 0.15), 0 0 20px rgba(59, 130, 246, 0.08)",
+                  },
+                  position: "relative",
+                  "&::before": {
+                    content: '""',
+                    position: "absolute",
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    height: "4px",
+                    background: userPack.status === "active"
+                      ? "linear-gradient(90deg, #10b981 0%, #059669 100%)"
+                      : userPack.status === "expired"
+                      ? "linear-gradient(90deg, #ef4444 0%, #dc2626 100%)"
+                      : "linear-gradient(90deg, #6b7280 0%, #4b5563 100%)",
+                    zIndex: 2,
                   },
                 }}
               >
-                {/* En-tête avec statut */}
+                {/* En-tête amélioré avec gradient */}
                 <Box
                   sx={{
-                    p: 3,
-                    borderBottom: "1px solid",
-                    borderColor: isDarkMode
-                      ? "rgba(255, 255, 255, 0.1)"
-                      : "rgba(0, 0, 0, 0.05)",
+                    p: 4,
+                    pb: 3,
                     position: "relative",
                     overflow: "hidden",
+                    background: isDarkMode
+                      ? "linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(147, 51, 234, 0.1) 100%)"
+                      : "linear-gradient(135deg, rgba(59, 130, 246, 0.05) 0%, rgba(147, 51, 234, 0.05) 100%)",
+                    borderBottom: `1px solid ${isDarkMode ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.06)"}`,
                   }}
                 >
+                  {/* Badge de statut flottant */}
                   <Box
                     sx={{
                       position: "absolute",
-                      top: 0,
-                      right: 0,
-                      width: "100px",
-                      height: "100px",
-                      borderRadius: "0 0 0 100%",
-                      bgcolor:
-                        userPack.status === "active"
-                          ? "success.light"
-                          : userPack.status === "expired"
-                          ? "error.light"
-                          : "grey.300",
-                      opacity: 0.1,
-                      zIndex: 0,
-                    }}
-                  />
-
-                  <Box
-                    sx={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "flex-start",
-                      position: "relative",
-                      zIndex: 1,
+                      top: 16,
+                      right: 16,
+                      zIndex: 3,
                     }}
                   >
-                    <Box>
-                      <Typography
-                        variant="h5"
-                        sx={{ fontWeight: 700, mb: 0.5 }}
-                      >
-                        {userPack.pack.name}
-                      </Typography>
-                      <Typography
-                        variant="h6"
-                        sx={{ color: "primary.main", fontWeight: 700 }}
-                      >
-                        {userPack.pack.price}$/mois
-                      </Typography>
-                    </Box>
-
                     <Chip
                       label={getStatusLabel(userPack.status)}
-                      color={getStatusColor(userPack.status)}
                       size="small"
                       sx={{
-                        fontWeight: 600,
-                        borderRadius: "6px",
+                        fontWeight: 700,
+                        fontSize: "0.75rem",
+                        letterSpacing: "0.025em",
+                        borderRadius: "20px",
+                        px: 2,
+                        py: 1,
+                        background: userPack.status === "active"
+                          ? "linear-gradient(135deg, #10b981 0%, #059669 100%)"
+                          : userPack.status === "expired"
+                          ? "linear-gradient(135deg, #ef4444 0%, #dc2626 100%)"
+                          : "linear-gradient(135deg, #6b7280 0%, #4b5563 100%)",
+                        color: "#ffffff",
+                        boxShadow: "0 4px 12px rgba(0, 0, 0, 0.15)",
+                        "& .MuiChip-label": {
+                          px: 1,
+                        },
                       }}
                     />
                   </Box>
+
+                  {/* Icône décorative */}
+                  <Box
+                    sx={{
+                      position: "absolute",
+                      top: -20,
+                      right: -20,
+                      width: "120px",
+                      height: "120px",
+                      borderRadius: "50%",
+                      background: isDarkMode
+                        ? "radial-gradient(circle, rgba(59, 130, 246, 0.2) 0%, transparent 70%)"
+                        : "radial-gradient(circle, rgba(59, 130, 246, 0.1) 0%, transparent 70%)",
+                      zIndex: 1,
+                    }}
+                  />
+
+                  <Box sx={{ position: "relative", zIndex: 2 }}>
+                    <Typography
+                      variant="h4"
+                      sx={{ 
+                        fontWeight: 800, 
+                        mb: 1,
+                        background: isDarkMode
+                          ? "linear-gradient(135deg, #ffffff 0%, #e2e8f0 100%)"
+                          : "linear-gradient(135deg, #1f2937 0%, #374151 100%)",
+                        WebkitBackgroundClip: "text",
+                        WebkitTextFillColor: "transparent",
+                        backgroundClip: "text",
+                        lineHeight: 1.2,
+                      }}
+                    >
+                      {userPack.pack.name}
+                    </Typography>
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap" }}>
+                      <Typography
+                        variant="h5"
+                        sx={{ 
+                          color: isDarkMode ? "#60a5fa" : "#3b82f6",
+                          fontWeight: 800,
+                          fontSize: "1.5rem",
+                        }}
+                      >
+                        {userPack.pack.price}$
+                      </Typography>
+                      {canUseCDF && userPack.pack.cdf_price && (
+                        <>
+                          <Typography
+                            variant="body2"
+                            sx={{ 
+                              color: isDarkMode ? "#94a3b8" : "#64748b",
+                              fontWeight: 500,
+                            }}
+                          >
+                            |
+                          </Typography>
+                          <Typography
+                            variant="h5"
+                            sx={{ 
+                              color: isDarkMode ? "#10b981" : "#059669",
+                              fontWeight: 800,
+                              fontSize: "1.5rem",
+                            }}
+                          >
+                            {userPack.pack.cdf_price} FC
+                          </Typography>
+                        </>
+                      )}
+                      <Typography
+                        variant="body2"
+                        sx={{ 
+                          color: isDarkMode ? "#94a3b8" : "#64748b",
+                          fontWeight: 500,
+                        }}
+                      >
+                        /mois
+                      </Typography>
+                    </Box>
+                  </Box>
                 </Box>
 
-                {/* Description */}
-                <Box sx={{ p: 3, pb: 2 }}>
+                {/* Description améliorée */}
+                <Box sx={{ p: 4, pb: 3 }}>
                   <Typography
                     variant="body2"
                     sx={{
-                      color: "text.secondary",
-                      mb: 2,
+                      color: isDarkMode ? "#cbd5e1" : "#475569",
+                      mb: 3,
+                      lineHeight: 1.6,
+                      fontSize: "0.9rem",
                       height: "60px",
                       overflow: "hidden",
                       textOverflow: "ellipsis",
@@ -948,33 +1028,60 @@ export default function MyPacks() {
                   </Typography>
                 </Box>
 
-                {/* Informations */}
-                <Box sx={{ px: 3, pb: 2, flexGrow: 1 }}>
+                {/* Informations améliorées */}
+                <Box sx={{ px: 4, pb: 3, flexGrow: 1 }}>
                   <List disablePadding>
                     {/* Code de parrainage */}
                     <ListItem
                       disablePadding
                       sx={{
-                        py: 1.5,
-                        borderBottom: "1px solid",
-                        borderColor: isDarkMode
-                          ? "rgba(255, 255, 255, 0.05)"
-                          : "rgba(0, 0, 0, 0.05)",
+                        py: 2,
+                        mb: 2,
+                        borderRadius: "12px",
+                        background: isDarkMode
+                          ? "rgba(59, 130, 246, 0.08)"
+                          : "rgba(59, 130, 246, 0.04)",
+                        border: `1px solid ${isDarkMode ? "rgba(59, 130, 246, 0.2)" : "rgba(59, 130, 246, 0.1)"}`,
+                        transition: "all 0.2s ease",
+                        "&:hover": {
+                          background: isDarkMode
+                            ? "rgba(59, 130, 246, 0.12)"
+                            : "rgba(59, 130, 246, 0.08)",
+                          transform: "translateX(4px)",
+                        },
                       }}
                     >
-                      <ListItemIcon sx={{ minWidth: 36 }}>
-                        <ContentCopy fontSize="small" color="action" />
+                      <ListItemIcon sx={{ minWidth: 40 }}>
+                        <Box
+                          sx={{
+                            width: 32,
+                            height: 32,
+                            borderRadius: "8px",
+                            background: isDarkMode
+                              ? "linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)"
+                              : "linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%)",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                          }}
+                        >
+                          <ContentCopy sx={{ fontSize: 18, color: "#ffffff" }} />
+                        </Box>
                       </ListItemIcon>
                       <ListItemText
                         primary="Code de parrainage"
                         secondary={userPack.referral_code}
                         primaryTypographyProps={{
                           variant: "caption",
-                          color: "text.secondary",
+                          color: isDarkMode ? "#94a3b8" : "#64748b",
+                          fontWeight: 600,
+                          textTransform: "uppercase",
+                          letterSpacing: "0.05em",
                         }}
                         secondaryTypographyProps={{
                           variant: "body2",
-                          fontWeight: 600,
+                          fontWeight: 700,
+                          color: isDarkMode ? "#f1f5f9" : "#1e293b",
                           sx: { mt: 0.5 },
                         }}
                       />
@@ -983,6 +1090,16 @@ export default function MyPacks() {
                           edge="end"
                           size="small"
                           onClick={() => handleCopy(userPack.referral_code)}
+                          sx={{
+                            background: isDarkMode
+                              ? "rgba(255, 255, 255, 0.1)"
+                              : "rgba(0, 0, 0, 0.05)",
+                            "&:hover": {
+                              background: isDarkMode
+                                ? "rgba(255, 255, 255, 0.15)"
+                                : "rgba(0, 0, 0, 0.1)",
+                            },
+                          }}
                         >
                           <ContentCopy fontSize="small" />
                         </IconButton>
@@ -994,20 +1111,47 @@ export default function MyPacks() {
                       <ListItem
                         disablePadding
                         sx={{
-                          py: 1.5,
-                          borderBottom: "1px solid",
-                          borderColor: isDarkMode
-                            ? "rgba(255, 255, 255, 0.05)"
-                            : "rgba(0, 0, 0, 0.05)",
+                          py: 2,
+                          borderRadius: "12px",
+                          background: userPack.status === "expired"
+                            ? isDarkMode
+                              ? "rgba(239, 68, 68, 0.08)"
+                              : "rgba(239, 68, 68, 0.04)"
+                            : isDarkMode
+                            ? "rgba(16, 185, 129, 0.08)"
+                            : "rgba(16, 185, 129, 0.04)",
+                          border: userPack.status === "expired"
+                            ? `1px solid ${isDarkMode ? "rgba(239, 68, 68, 0.2)" : "rgba(239, 68, 68, 0.1)"}`
+                            : `1px solid ${isDarkMode ? "rgba(16, 185, 129, 0.2)" : "rgba(16, 185, 129, 0.1)"}`,
+                          transition: "all 0.2s ease",
+                          "&:hover": {
+                            background: userPack.status === "expired"
+                              ? isDarkMode
+                                ? "rgba(239, 68, 68, 0.12)"
+                                : "rgba(239, 68, 68, 0.08)"
+                              : isDarkMode
+                              ? "rgba(16, 185, 129, 0.12)"
+                              : "rgba(16, 185, 129, 0.08)",
+                            transform: "translateX(4px)",
+                          },
                         }}
                       >
-                        <ListItemIcon sx={{ minWidth: 36 }}>
-                          <CalendarMonth
-                            fontSize="small"
-                            color={
-                              userPack.status === "expired" ? "error" : "action"
-                            }
-                          />
+                        <ListItemIcon sx={{ minWidth: 40 }}>
+                          <Box
+                            sx={{
+                              width: 32,
+                              height: 32,
+                              borderRadius: "8px",
+                              background: userPack.status === "expired"
+                                ? "linear-gradient(135deg, #ef4444 0%, #dc2626 100%)"
+                                : "linear-gradient(135deg, #10b981 0%, #059669 100%)",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                            }}
+                          >
+                            <CalendarMonth sx={{ fontSize: 18, color: "#ffffff" }} />
+                          </Box>
                         </ListItemIcon>
                         <ListItemText
                           primary={
@@ -1020,18 +1164,23 @@ export default function MyPacks() {
                           ).toLocaleDateString()}
                           primaryTypographyProps={{
                             variant: "caption",
-                            color:
-                              userPack.status === "expired"
-                                ? "error.main"
-                                : "text.secondary",
+                            color: userPack.status === "expired"
+                              ? "error.main"
+                              : isDarkMode
+                              ? "#94a3b8"
+                              : "#64748b",
+                            fontWeight: 600,
+                            textTransform: "uppercase",
+                            letterSpacing: "0.05em",
                           }}
                           secondaryTypographyProps={{
                             variant: "body2",
-                            fontWeight: 600,
-                            color:
-                              userPack.status === "expired"
-                                ? "error.main"
-                                : undefined,
+                            fontWeight: 700,
+                            color: userPack.status === "expired"
+                              ? "error.main"
+                              : isDarkMode
+                              ? "#f1f5f9"
+                              : "#1e293b",
                             sx: { mt: 0.5 },
                           }}
                         />
@@ -1043,15 +1192,31 @@ export default function MyPacks() {
                       <ListItem
                         disablePadding
                         sx={{
-                          py: 1.5,
+                          py: 2,
+                          mt: 2,
+                          borderRadius: "12px",
+                          background: isDarkMode
+                            ? "rgba(147, 51, 234, 0.08)"
+                            : "rgba(147, 51, 234, 0.04)",
+                          border: `1px solid ${isDarkMode ? "rgba(147, 51, 234, 0.2)" : "rgba(147, 51, 234, 0.1)"}`,
+                          transition: "all 0.2s ease",
+                          "&:hover": {
+                            background: isDarkMode
+                              ? "rgba(147, 51, 234, 0.12)"
+                              : "rgba(147, 51, 234, 0.08)",
+                            transform: "translateX(4px)",
+                          },
                         }}
                       >
                         <ListItemAvatar sx={{ minWidth: 50 }}>
                           <Avatar
                             sx={{
-                              bgcolor: "primary.main",
-                              width: 36,
-                              height: 36,
+                              background: "linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)",
+                              width: 40,
+                              height: 40,
+                              fontWeight: 700,
+                              fontSize: "1rem",
+                              boxShadow: "0 4px 12px rgba(139, 92, 246, 0.3)",
                             }}
                           >
                             {userPack.user.name.charAt(0).toUpperCase()}
@@ -1062,11 +1227,15 @@ export default function MyPacks() {
                           secondary={userPack.user.name}
                           primaryTypographyProps={{
                             variant: "caption",
-                            color: "text.secondary",
+                            color: isDarkMode ? "#94a3b8" : "#64748b",
+                            fontWeight: 600,
+                            textTransform: "uppercase",
+                            letterSpacing: "0.05em",
                           }}
                           secondaryTypographyProps={{
                             variant: "body2",
-                            fontWeight: 600,
+                            fontWeight: 700,
+                            color: isDarkMode ? "#f1f5f9" : "#1e293b",
                             sx: { mt: 0.5 },
                           }}
                         />
@@ -1075,27 +1244,40 @@ export default function MyPacks() {
                   </List>
                 </Box>
 
-                {/* Actions */}
+                {/* Actions améliorées */}
                 <Box
                   sx={{
-                    p: 2,
+                    p: 3,
                     mt: "auto",
-                    borderTop: "1px solid",
-                    borderColor: isDarkMode
-                      ? "rgba(255, 255, 255, 0.1)"
-                      : "rgba(0, 0, 0, 0.05)",
+                    borderTop: `1px solid ${isDarkMode ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.06)"}`,
+                    background: isDarkMode
+                      ? "linear-gradient(135deg, rgba(30, 41, 59, 0.8) 0%, rgba(15, 23, 42, 0.8) 100%)"
+                      : "linear-gradient(135deg, rgba(248, 250, 252, 0.9) 0%, rgba(241, 245, 249, 0.9) 100%)",
                     display: "flex",
                     justifyContent: "space-between",
                     alignItems: "center",
-                    bgcolor: isDarkMode ? "#1a2433" : "rgba(0, 0, 0, 0.02)",
                   }}
                 >
                   <Box sx={{ display: "flex", gap: 1 }}>
-
                     <Tooltip title="Statistiques" placement="top">
                       <IconButton
                         size="small"
                         onClick={() => handleStatsClick(userPack.pack.id)}
+                        sx={{
+                          background: isDarkMode
+                            ? "linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)"
+                            : "linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%)",
+                          color: "#ffffff",
+                          width: 40,
+                          height: 40,
+                          borderRadius: "12px",
+                          boxShadow: "0 4px 12px rgba(59, 130, 246, 0.3)",
+                          transition: "all 0.2s ease",
+                          "&:hover": {
+                            transform: "translateY(-2px) scale(1.05)",
+                            boxShadow: "0 6px 16px rgba(59, 130, 246, 0.4)",
+                          },
+                        }}
                       >
                         <ChartBarIcon className="h-5 w-5" />
                       </IconButton>
@@ -1105,6 +1287,21 @@ export default function MyPacks() {
                       <IconButton
                         size="small"
                         onClick={() => handleReferralsClick(userPack.pack.id)}
+                        sx={{
+                          background: isDarkMode
+                            ? "linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)"
+                            : "linear-gradient(135deg, #a78bfa 0%, #8b5cf6 100%)",
+                          color: "#ffffff",
+                          width: 40,
+                          height: 40,
+                          borderRadius: "12px",
+                          boxShadow: "0 4px 12px rgba(139, 92, 246, 0.3)",
+                          transition: "all 0.2s ease",
+                          "&:hover": {
+                            transform: "translateY(-2px) scale(1.05)",
+                            boxShadow: "0 6px 16px rgba(139, 92, 246, 0.4)",
+                          },
+                        }}
                       >
                         <UsersIcon className="h-5 w-5" />
                       </IconButton>

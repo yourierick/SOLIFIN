@@ -1,1036 +1,998 @@
 import React, { useState, useEffect } from "react";
-import axios from "axios";
-import { toast } from "react-toastify";
 import {
-  CheckCircleIcon,
-  XCircleIcon,
-  StarIcon,
-  TrashIcon,
-  EyeIcon,
-  ChatBubbleLeftRightIcon,
-  FunnelIcon,
-} from "@heroicons/react/24/outline";
-import { useTheme } from "../../contexts/ThemeContext";
+  Box,
+  Button,
+  Card,
+  CardContent,
+  Typography,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper,
+  IconButton,
+  Tooltip,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  Grid,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  TablePagination,
+  CircularProgress,
+  Alert,
+  Rating,
+  Chip,
+} from "@mui/material";
+import {
+  Visibility as VisibilityIcon,
+  CheckCircle as CheckCircleIcon,
+  Cancel as CancelIcon,
+  Star as StarIcon,
+  Delete as DeleteIcon,
+  FilterList as FilterListIcon,
+  EditNote as EditNoteIcon,
+} from "@mui/icons-material";
+import axios from "axios";
+import { useTheme } from "@mui/material/styles";
+import { useAuth } from "../../contexts/AuthContext";
 
 /**
  * Page de gestion des témoignages pour les administrateurs
  * Permet de visualiser, approuver, rejeter, mettre en avant et supprimer les témoignages
  */
 const TestimonialManagement = () => {
+  const theme = useTheme();
+  const isDarkMode = theme.palette.mode === "dark";
+  const { user } = useAuth();
+
   const [testimonials, setTestimonials] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [currentPage, setCurrentPage] = useState(1);
+  const [error, setError] = useState(null);
+  const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const [filters, setFilters] = useState({
-    status: "",
-    minRating: "",
-    featured: "",
-  });
-  const [selectedTestimonial, setSelectedTestimonial] = useState(null);
-  const [modalOpen, setModalOpen] = useState(false);
+  const [rowsPerPage, setRowsPerPage] = useState(25);
+  const [total, setTotal] = useState(0);
   const [showFilters, setShowFilters] = useState(false);
-  const { isDarkMode } = useTheme();
+  const [statusFilter, setStatusFilter] = useState("");
+  const [minRatingFilter, setMinRatingFilter] = useState("");
+  const [featuredFilter, setFeaturedFilter] = useState("");
 
-  // Charger les témoignages avec pagination et filtres
+  const [openDetailDialog, setOpenDetailDialog] = useState(false);
+  const [currentTestimonial, setCurrentTestimonial] = useState(null);
+
+  // Fonction pour récupérer la liste des témoignages
   const fetchTestimonials = async () => {
     setLoading(true);
+    setError(null);
+
     try {
-      const params = new URLSearchParams();
-      params.append("page", currentPage);
+      let url = `/api/admin/testimonials?page=${page}&per_page=${rowsPerPage}`;
 
-      // Ajouter les filtres s'ils sont définis
-      if (filters.status) params.append("status", filters.status);
-      if (filters.minRating) params.append("min_rating", filters.minRating);
-      if (filters.featured !== "") params.append("featured", filters.featured);
-
-      const response = await axios.get(
-        `/api/admin/testimonials?${params.toString()}`
-      );
-
-      if (response.data.success) {
-        setTestimonials(response.data.testimonials.data);
-        setTotalPages(
-          Math.ceil(
-            response.data.testimonials.total /
-              response.data.testimonials.per_page
-          )
-        );
-      } else {
-        toast.error("Erreur lors du chargement des témoignages");
+      if (statusFilter) {
+        url += `&status=${statusFilter}`;
       }
-    } catch (error) {
-      console.error("Erreur lors du chargement des témoignages:", error);
-      toast.error("Erreur lors du chargement des témoignages");
+
+      if (minRatingFilter) {
+        url += `&min_rating=${minRatingFilter}`;
+      }
+
+      if (featuredFilter !== "") {
+        url += `&featured=${featuredFilter}`;
+      }
+
+      const response = await axios.get(url);
+
+      setTestimonials(response.data.testimonials.data);
+      setTotal(response.data.testimonials.total);
+      setTotalPages(
+        Math.ceil(response.data.testimonials.total / response.data.testimonials.per_page)
+      );
+    } catch (err) {
+      console.error("Erreur lors de la récupération des témoignages:", err);
+      setError(
+        "Impossible de charger les témoignages. Veuillez réessayer plus tard."
+      );
     } finally {
       setLoading(false);
     }
   };
 
-  // Charger les témoignages au chargement du composant et lorsque les filtres ou la page changent
+  // Charger les témoignages au chargement du composant et lorsque les filtres changent
   useEffect(() => {
     fetchTestimonials();
-  }, [currentPage, filters]);
+  }, [page, rowsPerPage, statusFilter, minRatingFilter, featuredFilter]);
 
-  // Gérer les changements de filtres
-  const handleFilterChange = (e) => {
-    const { name, value } = e.target;
-    setFilters((prev) => ({ ...prev, [name]: value }));
-    setCurrentPage(1); // Réinitialiser à la première page lors du changement de filtre
+  // Gérer le changement de page
+  const handleChangePage = (event, newPage) => {
+    setPage(newPage + 1); // +1 parce que Material-UI utilise 0-based index
   };
 
-  // Réinitialiser tous les filtres
-  const resetFilters = () => {
-    setFilters({
-      status: "",
-      minRating: "",
-      featured: "",
-    });
-    setCurrentPage(1);
+  // Gérer le changement de nombre de lignes par page
+  const handleChangeRowsPerPage = (event) => {
+    const newRowsPerPage = parseInt(event.target.value, 10);
+    setRowsPerPage(newRowsPerPage);
+    setPage(1); // Revenir à la première page
   };
 
-  // Ouvrir le modal de détail pour un témoignage
-  const openTestimonialDetail = (testimonial) => {
-    setSelectedTestimonial(testimonial);
-    setModalOpen(true);
+  // Fonction pour ouvrir la boîte de dialogue de détails
+  const handleViewDetails = (testimonial) => {
+    setCurrentTestimonial(testimonial);
+    setOpenDetailDialog(true);
   };
 
-  // Fermer le modal de détail
-  const closeModal = () => {
-    setModalOpen(false);
-    setSelectedTestimonial(null);
-  };
-
-  // Approuver un témoignage
-  const approveTestimonial = async (id) => {
+  // Fonction pour approuver un témoignage
+  const handleApproveTestimonial = async (id) => {
     try {
-      const response = await axios.post(
-        `/api/admin/testimonials/${id}/approve`
-      );
-
+      const response = await axios.post(`/api/admin/testimonials/${id}/approve`);
+      
       if (response.data.success) {
-        toast.success("Témoignage approuvé avec succès");
-        fetchTestimonials(); // Recharger la liste des témoignages
-        if (modalOpen) closeModal();
+        fetchTestimonials();
+        setOpenDetailDialog(false);
       } else {
-        toast.error(
-          response.data.message || "Erreur lors de l'approbation du témoignage"
-        );
+        setError("Erreur lors de l'approbation du témoignage");
       }
-    } catch (error) {
-      console.error("Erreur lors de l'approbation du témoignage:", error);
-      toast.error("Erreur lors de l'approbation du témoignage");
+    } catch (err) {
+      console.error("Erreur lors de l'approbation du témoignage:", err);
+      setError("Impossible d'approuver ce témoignage");
     }
   };
 
-  // Rejeter un témoignage
-  const rejectTestimonial = async (id) => {
+  // Fonction pour rejeter un témoignage
+  const handleRejectTestimonial = async (id) => {
     try {
       const response = await axios.post(`/api/admin/testimonials/${id}/reject`);
-
+      
       if (response.data.success) {
-        toast.success("Témoignage rejeté avec succès");
-        fetchTestimonials(); // Recharger la liste des témoignages
-        if (modalOpen) closeModal();
+        fetchTestimonials();
+        setOpenDetailDialog(false);
       } else {
-        toast.error(
-          response.data.message || "Erreur lors du rejet du témoignage"
-        );
+        setError("Erreur lors du rejet du témoignage");
       }
-    } catch (error) {
-      console.error("Erreur lors du rejet du témoignage:", error);
-      toast.error("Erreur lors du rejet du témoignage");
+    } catch (err) {
+      console.error("Erreur lors du rejet du témoignage:", err);
+      setError("Impossible de rejeter ce témoignage");
     }
   };
 
-  // Mettre en avant un témoignage
-  const featureTestimonial = async (id) => {
+  // Fonction pour mettre en avant un témoignage
+  const handleFeatureTestimonial = async (id) => {
     try {
-      const response = await axios.post(
-        `/api/admin/testimonials/${id}/feature`
-      );
-
+      const response = await axios.post(`/api/admin/testimonials/${id}/feature`);
+      
       if (response.data.success) {
-        toast.success("Témoignage mis en avant avec succès");
-        fetchTestimonials(); // Recharger la liste des témoignages
+        fetchTestimonials();
       } else {
-        toast.error(
-          response.data.message ||
-            "Erreur lors de la mise en avant du témoignage"
-        );
+        setError("Erreur lors de la mise en avant du témoignage");
       }
-    } catch (error) {
-      console.error("Erreur lors de la mise en avant du témoignage:", error);
-      toast.error("Erreur lors de la mise en avant du témoignage");
+    } catch (err) {
+      console.error("Erreur lors de la mise en avant du témoignage:", err);
+      setError("Impossible de mettre en avant ce témoignage");
     }
   };
 
-  // Retirer la mise en avant d'un témoignage
-  const unfeatureTestimonial = async (id) => {
+  // Fonction pour retirer la mise en avant
+  const handleUnfeatureTestimonial = async (id) => {
     try {
-      const response = await axios.post(
-        `/api/admin/testimonials/${id}/unfeature`
-      );
-
+      const response = await axios.post(`/api/admin/testimonials/${id}/unfeature`);
+      
       if (response.data.success) {
-        toast.success("Mise en avant du témoignage retirée avec succès");
-        fetchTestimonials(); // Recharger la liste des témoignages
+        fetchTestimonials();
       } else {
-        toast.error(
-          response.data.message ||
-            "Erreur lors du retrait de la mise en avant du témoignage"
-        );
+        setError("Erreur lors du retrait de la mise en avant");
       }
-    } catch (error) {
-      console.error(
-        "Erreur lors du retrait de la mise en avant du témoignage:",
-        error
-      );
-      toast.error("Erreur lors du retrait de la mise en avant du témoignage");
+    } catch (err) {
+      console.error("Erreur lors du retrait de la mise en avant:", err);
+      setError("Impossible de retirer la mise en avant");
     }
   };
 
-  // Supprimer un témoignage
-  const deleteTestimonial = async (id) => {
+  // Fonction pour supprimer un témoignage
+  const handleDeleteTestimonial = async (id) => {
     if (!window.confirm("Êtes-vous sûr de vouloir supprimer ce témoignage ?")) {
       return;
     }
 
     try {
       const response = await axios.delete(`/api/admin/testimonials/${id}`);
-
+      
       if (response.data.success) {
-        toast.success("Témoignage supprimé avec succès");
-        fetchTestimonials(); // Recharger la liste des témoignages
-        if (modalOpen) closeModal();
+        fetchTestimonials();
+        setOpenDetailDialog(false);
       } else {
-        toast.error(
-          response.data.message || "Erreur lors de la suppression du témoignage"
-        );
+        setError("Erreur lors de la suppression du témoignage");
       }
-    } catch (error) {
-      console.error("Erreur lors de la suppression du témoignage:", error);
-      toast.error("Erreur lors de la suppression du témoignage");
+    } catch (err) {
+      console.error("Erreur lors de la suppression du témoignage:", err);
+      setError("Impossible de supprimer ce témoignage");
     }
+  };
+
+  // Fonction pour afficher le statut avec la couleur appropriée
+  const renderStatus = (status) => {
+    const statusConfig = {
+      pending: {
+        label: "En attente",
+        colors: {
+          dark: { bg: "rgba(144, 205, 244, 0.15)", color: "#90CDF4", border: "1px solid rgba(144, 205, 244, 0.3)" },
+          light: { bg: "rgba(43, 108, 176, 0.08)", color: "#2B6CB0", border: "1px solid rgba(43, 108, 176, 0.2)" },
+        },
+      },
+      approved: {
+        label: "Approuvé",
+        colors: {
+          dark: { bg: "rgba(154, 230, 180, 0.15)", color: "#9AE6B4", border: "1px solid rgba(154, 230, 180, 0.3)" },
+          light: { bg: "rgba(39, 103, 73, 0.08)", color: "#276749", border: "1px solid rgba(39, 103, 73, 0.2)" },
+        },
+      },
+      rejected: {
+        label: "Rejeté",
+        colors: {
+          dark: { bg: "rgba(254, 178, 178, 0.15)", color: "#FEB2B2", border: "1px solid rgba(254, 178, 178, 0.3)" },
+          light: { bg: "rgba(197, 48, 48, 0.08)", color: "#C53030", border: "1px solid rgba(197, 48, 48, 0.2)" },
+        },
+      },
+      default: {
+        label: "Inconnu",
+        colors: {
+          dark: { bg: "rgba(226, 232, 240, 0.15)", color: "#E2E8F0", border: "1px solid rgba(226, 232, 240, 0.3)" },
+          light: { bg: "rgba(74, 85, 104, 0.08)", color: "#4A5568", border: "1px solid rgba(74, 85, 104, 0.2)" },
+        },
+      },
+    };
+
+    const config = statusConfig[status] || statusConfig.default;
+    const themeColors = isDarkMode ? config.colors.dark : config.colors.light;
+
+    return (
+      <Box
+        sx={{
+          display: "inline-flex",
+          alignItems: "center",
+          borderRadius: "16px",
+          py: 0.5,
+          px: 1.5,
+          backgroundColor: themeColors.bg,
+          color: themeColors.color,
+          border: themeColors.border,
+          fontWeight: 500,
+          fontSize: "0.75rem",
+          transition: "all 0.2s ease",
+          "&:hover": {
+            boxShadow: `0 0 0 1px ${themeColors.color}`,
+            transform: "translateY(-1px)",
+          },
+        }}
+      >
+        {config.label}
+      </Box>
+    );
   };
 
   // Composant principal
   return (
-    <div className="p-3 sm:p-4 md:p-6">
-      {/* En-tête moderne avec icône */}
-      <div className="flex items-center gap-3 sm:gap-4 mb-4 sm:mb-6">
-        <div
-          className="w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 rounded-xl sm:rounded-2xl flex items-center justify-center"
-          style={{
+    <Box sx={{ p: { xs: 1.5, sm: 2, md: 3 } }}>
+      <Box
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          gap: { xs: 1, sm: 1.5 },
+          mb: { xs: 2, sm: 3 },
+        }}
+      >
+        <Box
+          sx={{
+            width: { xs: 36, sm: 42, md: 48 },
+            height: { xs: 36, sm: 42, md: 48 },
+            borderRadius: { xs: 2, sm: 2.5 },
             background: isDarkMode
               ? "linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)"
               : "linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
             boxShadow: isDarkMode
               ? "0 6px 16px rgba(59, 130, 246, 0.4)"
               : "0 6px 16px rgba(59, 130, 246, 0.3)",
+            transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+            "&:hover": {
+              transform: "scale(1.05) rotate(5deg)",
+              boxShadow: isDarkMode
+                ? "0 8px 20px rgba(59, 130, 246, 0.5)"
+                : "0 8px 20px rgba(59, 130, 246, 0.4)",
+            },
           }}
         >
-          <ChatBubbleLeftRightIcon className="w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7 text-white" />
-        </div>
-        <h1
-          className="text-lg sm:text-xl md:text-2xl font-bold"
-          style={{
+          <EditNoteIcon
+            sx={{
+              fontSize: { xs: 20, sm: 24, md: 28 },
+              color: "#fff",
+            }}
+          />
+        </Box>
+        <Typography
+          variant="h6"
+          sx={{
+            fontSize: { xs: "1.125rem", sm: "1.25rem", md: "1.5rem" },
+            fontWeight: 700,
             background: isDarkMode
               ? "linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)"
               : "linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%)",
             WebkitBackgroundClip: "text",
+            WebkitTextFillColor: "transparent",
             backgroundClip: "text",
-            color: "transparent",
           }}
         >
           Gestion des Témoignages
-        </h1>
-      </div>
+        </Typography>
+      </Box>
 
-      {/* Section des filtres avec toggle */}
-      <div
-        className="mb-4 sm:mb-6 rounded-xl sm:rounded-2xl overflow-hidden"
-        style={{
-          background: isDarkMode
-            ? "linear-gradient(145deg, #1f2937 0%, #1a202c 100%)"
-            : "linear-gradient(145deg, #ffffff 0%, #f8fafc 100%)",
-          border: `1px solid ${isDarkMode ? "rgba(59, 130, 246, 0.2)" : "rgba(59, 130, 246, 0.15)"}`,
-          boxShadow: isDarkMode
-            ? "0 10px 40px rgba(0, 0, 0, 0.5), 0 2px 8px rgba(0, 0, 0, 0.3)"
-            : "0 10px 40px rgba(0, 0, 0, 0.08), 0 2px 8px rgba(0, 0, 0, 0.04)",
+      {/* Bouton pour afficher/masquer les filtres */}
+      <Button
+        variant="outlined"
+        startIcon={<FilterListIcon />}
+        onClick={() => setShowFilters(!showFilters)}
+        sx={{
+          mb: 2,
+          borderRadius: "8px",
+          textTransform: "none",
+          fontWeight: 500,
+          borderColor: isDarkMode ? "rgba(255, 255, 255, 0.23)" : "rgba(0, 0, 0, 0.23)",
+          color: isDarkMode ? "#e0e0e0" : "#333333",
+          backgroundColor: isDarkMode ? "rgba(255, 255, 255, 0.05)" : "rgba(0, 0, 0, 0.05)",
+          "&:hover": {
+            backgroundColor: isDarkMode ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.08)",
+            borderColor: isDarkMode ? "rgba(255, 255, 255, 0.3)" : "rgba(0, 0, 0, 0.3)",
+          },
         }}
       >
-        <div className="p-3 sm:p-4 md:p-5">
-          {/* En-tête avec bouton toggle */}
-          <div className="flex items-center justify-between mb-3">
-            <button
-              onClick={() => setShowFilters(!showFilters)}
-              className="flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg sm:rounded-xl transition-all duration-300"
-              style={{
-                background: showFilters
-                  ? isDarkMode
-                    ? "linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)"
-                    : "linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%)"
-                  : isDarkMode
-                  ? "rgba(59, 130, 246, 0.1)"
-                  : "rgba(59, 130, 246, 0.05)",
-                border: `1px solid ${showFilters ? (isDarkMode ? "rgba(59, 130, 246, 0.3)" : "rgba(59, 130, 246, 0.2)") : "transparent"}`,
-                boxShadow: showFilters
-                  ? isDarkMode
-                    ? "0 4px 12px rgba(59, 130, 246, 0.3)"
-                    : "0 4px 12px rgba(59, 130, 246, 0.2)"
-                  : "none",
-              }}
-            >
-              <div
-                className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg flex items-center justify-center"
-                style={{
-                  background: showFilters
-                    ? "rgba(255, 255, 255, 0.2)"
-                    : isDarkMode
-                    ? "rgba(59, 130, 246, 0.2)"
-                    : "rgba(59, 130, 246, 0.1)",
-                }}
-              >
-                <FunnelIcon
-                  className={`w-4 h-4 sm:w-5 sm:h-5 ${showFilters ? "text-white" : isDarkMode ? "text-blue-400" : "text-blue-600"}`}
-                />
-              </div>
-              <span
-                className={`text-sm sm:text-base font-semibold ${showFilters ? "text-white" : isDarkMode ? "text-blue-400" : "text-blue-600"}`}
-              >
-                {showFilters ? "Masquer les filtres" : "Afficher les filtres"}
-              </span>
-            </button>
-            {showFilters && (
-              <button
-                onClick={resetFilters}
-                className={`px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors ${
-                  isDarkMode
-                    ? "text-gray-400 hover:text-gray-300 hover:bg-gray-700"
-                    : "text-gray-600 hover:text-gray-800 hover:bg-gray-100"
-                }`}
-              >
-                Réinitialiser
-              </button>
-            )}
-          </div>
+        {showFilters ? "Masquer les filtres" : "Afficher les filtres"}
+      </Button>
 
-        {showFilters && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4 mt-4">
-          {/* Filtre par statut */}
-          <div>
-            <label
-              htmlFor="status"
-              className={`block text-sm font-medium mb-1 ${
-                isDarkMode ? "text-gray-300" : "text-gray-700"
-              }`}
-            >
-              Statut
-            </label>
-            <select
-              id="status"
-              name="status"
-              value={filters.status}
-              onChange={handleFilterChange}
-              className={`w-full rounded-md ${
-                isDarkMode
-                  ? "bg-gray-700 border-gray-600 text-white"
-                  : "bg-white border-gray-300 text-gray-900"
-              } border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500`}
-            >
-              <option value="">Tous les statuts</option>
-              <option value="pending">En attente</option>
-              <option value="approved">Approuvés</option>
-              <option value="rejected">Rejetés</option>
-            </select>
-          </div>
-
-          {/* Filtre par note minimale */}
-          <div>
-            <label
-              htmlFor="minRating"
-              className={`block text-sm font-medium mb-1 ${
-                isDarkMode ? "text-gray-300" : "text-gray-700"
-              }`}
-            >
-              Note minimale
-            </label>
-            <select
-              id="minRating"
-              name="minRating"
-              value={filters.minRating}
-              onChange={handleFilterChange}
-              className={`w-full rounded-md ${
-                isDarkMode
-                  ? "bg-gray-700 border-gray-600 text-white"
-                  : "bg-white border-gray-300 text-gray-900"
-              } border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500`}
-            >
-              <option value="">Toutes les notes</option>
-              <option value="1">1 étoile et plus</option>
-              <option value="2">2 étoiles et plus</option>
-              <option value="3">3 étoiles et plus</option>
-              <option value="4">4 étoiles et plus</option>
-              <option value="5">5 étoiles</option>
-            </select>
-          </div>
-
-          {/* Filtre par mise en avant */}
-          <div>
-            <label
-              htmlFor="featured"
-              className={`block text-sm font-medium mb-1 ${
-                isDarkMode ? "text-gray-300" : "text-gray-700"
-              }`}
-            >
-              Mise en avant
-            </label>
-            <select
-              id="featured"
-              name="featured"
-              value={filters.featured}
-              onChange={handleFilterChange}
-              className={`w-full rounded-md ${
-                isDarkMode
-                  ? "bg-gray-700 border-gray-600 text-white"
-                  : "bg-white border-gray-300 text-gray-900"
-              } border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500`}
-            >
-              <option value="">Tous</option>
-              <option value="1">Mis en avant</option>
-              <option value="0">Non mis en avant</option>
-            </select>
-          </div>
-        </div>
-        )}
-        </div>
-      </div>
-
-      {/* Tableau des témoignages */}
-      {loading ? (
-        <div className="flex justify-center py-8">
-          <p className={`${isDarkMode ? "text-gray-300" : "text-gray-600"}`}>
-            Chargement en cours...
-          </p>
-        </div>
-      ) : testimonials.length === 0 ? (
-        <div className="flex justify-center py-8">
-          <p className={`${isDarkMode ? "text-gray-300" : "text-gray-600"}`}>
-            Aucun témoignage ne correspond aux critères de recherche.
-          </p>
-        </div>
-      ) : (
-        <div
-          className="rounded-xl sm:rounded-2xl overflow-hidden"
-          style={{
+      {/* Filtres et recherche - conditionnel */}
+      {showFilters && (
+        <Card
+          elevation={0}
+          sx={{
+            mb: { xs: 2, sm: 3 },
+            bgcolor: isDarkMode ? "#1f2937" : "#fff",
             background: isDarkMode
               ? "linear-gradient(145deg, #1f2937 0%, #1a202c 100%)"
               : "linear-gradient(145deg, #ffffff 0%, #f8fafc 100%)",
-            border: `1px solid ${isDarkMode ? "rgba(59, 130, 246, 0.15)" : "rgba(59, 130, 246, 0.1)"}`,
+            border: "1px solid",
+            borderColor: isDarkMode
+              ? "rgba(59, 130, 246, 0.2)"
+              : "rgba(59, 130, 246, 0.15)",
+            borderRadius: { xs: "14px", sm: "18px" },
+            overflow: "hidden",
             boxShadow: isDarkMode
-              ? "0 12px 40px rgba(0, 0, 0, 0.5), 0 4px 12px rgba(0, 0, 0, 0.3)"
-              : "0 12px 40px rgba(0, 0, 0, 0.1), 0 4px 12px rgba(0, 0, 0, 0.05)",
+              ? "0 10px 40px rgba(0, 0, 0, 0.5), 0 2px 8px rgba(0, 0, 0, 0.3)"
+              : "0 10px 40px rgba(0, 0, 0, 0.08), 0 2px 8px rgba(0, 0, 0, 0.04)",
           }}
         >
-          {/* Indicateur de scroll pour mobile */}
-          <div className="md:hidden text-center py-2 text-xs text-gray-500 dark:text-gray-400 animate-pulse">
-            ← Faites glisser pour voir plus →
-          </div>
-          
-          <div
-            className="overflow-x-auto"
-            style={{
-              scrollbarWidth: "thin",
-              scrollbarColor: isDarkMode ? "#3b82f6 #2d3748" : "#3b82f6 #f1f5f9",
-            }}
-          >
-            <style>{`
-              .overflow-x-auto::-webkit-scrollbar {
-                height: 8px;
-              }
-              .overflow-x-auto::-webkit-scrollbar-track {
-                background: ${isDarkMode ? "linear-gradient(90deg, #2d3748 0%, #1f2937 100%)" : "linear-gradient(90deg, #f1f5f9 0%, #e2e8f0 100%)"};
-                border-radius: 10px;
-              }
-              .overflow-x-auto::-webkit-scrollbar-thumb {
-                background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-                border-radius: 10px;
-                border: 2px solid ${isDarkMode ? "#2d3748" : "#f1f5f9"};
-              }
-              .overflow-x-auto::-webkit-scrollbar-thumb:hover {
-                background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
-              }
-            `}</style>
-          <table className="min-w-full" style={{ minWidth: "800px", borderSpacing: "0 6px", borderCollapse: "separate" }}>
-            <thead>
-              <tr>
-                <th
-                  scope="col"
-                  className="px-4 py-2 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400"
-                >
-                  Utilisateur
-                </th>
-                <th
-                  scope="col"
-                  className="px-4 py-2 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400"
-                >
-                  Note
-                </th>
-                <th
-                  scope="col"
-                  className="px-4 py-2 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400"
-                >
-                  Contenu
-                </th>
-                <th
-                  scope="col"
-                  className="px-4 py-2 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400"
-                >
-                  Statut
-                </th>
-                <th
-                  scope="col"
-                  className="px-4 py-2 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400"
-                >
-                  Date
-                </th>
-                <th
-                  scope="col"
-                  className="px-4 py-2 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400"
-                >
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-              {testimonials.map((testimonial) => (
-                <tr
-                  key={testimonial.id}
-                  className={
-                    isDarkMode
-                      ? "bg-gray-800 hover:bg-gray-700"
-                      : "bg-white hover:bg-gray-50"
-                  }
-                >
-                  {/* Utilisateur */}
-                  <td className="px-4 py-2 whitespace-nowrap">
-                    <div className="flex items-center">
-                      <div className="flex-shrink-0 h-10 w-10 rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center">
-                        {testimonial.user?.profile_picture ? (
-                          <img
-                            src={testimonial.user.profile_picture}
-                            alt={testimonial.user.name}
-                            className="h-10 w-10 rounded-full object-cover"
-                          />
-                        ) : (
-                          <span
-                            className={`text-lg ${
-                              isDarkMode ? "text-gray-400" : "text-gray-600"
-                            }`}
-                          >
-                            {testimonial.user?.name?.charAt(0) || "?"}
-                          </span>
-                        )}
-                      </div>
-                      <div className="ml-4">
-                        <div
-                          className={`text-sm font-medium ${
-                            isDarkMode ? "text-white" : "text-gray-900"
-                          }`}
-                        >
-                          {testimonial.user?.name || "Utilisateur inconnu"}
-                        </div>
-                        <div className="text-sm text-gray-500 dark:text-gray-400">
-                          {testimonial.user?.email || ""}
-                        </div>
-                      </div>
-                    </div>
-                  </td>
-
-                  {/* Note */}
-                  <td className="px-4 py-2 whitespace-nowrap">
-                    <div className="flex items-center">
-                      {[...Array(5)].map((_, i) => (
-                        <StarIcon
-                          key={i}
-                          className={`h-5 w-5 ${
-                            i < testimonial.rating
-                              ? "text-yellow-400"
-                              : "text-gray-300"
-                          }`}
-                        />
-                      ))}
-                      <span className="ml-2 text-sm text-gray-500 dark:text-gray-400">
-                        ({testimonial.rating}/5)
-                      </span>
-                    </div>
-                  </td>
-
-                  {/* Contenu */}
-                  <td className="px-6 py-4">
-                    <div
-                      className={`text-sm ${
-                        isDarkMode ? "text-gray-300" : "text-gray-900"
-                      }`}
-                    >
-                      {testimonial.content.length > 20
-                        ? `${testimonial.content.substring(0, 20)}...`
-                        : testimonial.content}
-                    </div>
-                  </td>
-
-                  {/* Statut */}
-                  <td className="px-4 py-2 whitespace-nowrap">
-                    <span
-                      className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                        testimonial.status === "approved"
-                          ? "bg-green-100 text-green-800 dark:bg-green-800 dark:text-green-100"
-                          : testimonial.status === "rejected"
-                          ? "bg-red-100 text-red-800 dark:bg-red-800 dark:text-red-100"
-                          : "bg-yellow-100 text-yellow-800 dark:bg-yellow-800 dark:text-yellow-100"
-                      }`}
-                    >
-                      {testimonial.status === "approved"
-                        ? "Approuvé"
-                        : testimonial.status === "rejected"
-                        ? "Rejeté"
-                        : "En attente"}
-                    </span>
-                    {testimonial.featured && (
-                      <span className="ml-2 px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800 dark:bg-blue-800 dark:text-blue-100">
-                        Mis en avant
-                      </span>
-                    )}
-                  </td>
-
-                  {/* Date */}
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                    {new Date(testimonial.created_at).toLocaleDateString()}
-                  </td>
-
-                  {/* Actions */}
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <div className="flex space-x-2">
-                      {/* Voir détails */}
-                      <button
-                        onClick={() => openTestimonialDetail(testimonial)}
-                        className="p-1 text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 rounded-full"
-                        title="Voir les détails"
-                      >
-                        <EyeIcon className="h-5 w-5" />
-                      </button>
-
-                      {/* Approuver */}
-                      {testimonial.status !== "approved" && (
-                        <button
-                          onClick={() => approveTestimonial(testimonial.id)}
-                          className="text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300"
-                          title="Approuver"
-                        >
-                          <CheckCircleIcon className="h-5 w-5" />
-                        </button>
-                      )}
-
-                      {/* Rejeter */}
-                      {testimonial.status !== "rejected" && (
-                        <button
-                          onClick={() => rejectTestimonial(testimonial.id)}
-                          className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300"
-                          title="Rejeter"
-                        >
-                          <XCircleIcon className="h-5 w-5" />
-                        </button>
-                      )}
-
-                      {/* Mettre en avant / Retirer mise en avant */}
-                      {testimonial.status === "approved" && (
-                        <button
-                          onClick={() =>
-                            testimonial.featured
-                              ? unfeatureTestimonial(testimonial.id)
-                              : featureTestimonial(testimonial.id)
-                          }
-                          className="text-yellow-600 hover:text-yellow-900 dark:text-yellow-400 dark:hover:text-yellow-300"
-                          title={
-                            testimonial.featured
-                              ? "Retirer la mise en avant"
-                              : "Mettre en avant"
-                          }
-                        >
-                          <StarIcon className="h-5 w-5" />
-                        </button>
-                      )}
-
-                      {/* Supprimer */}
-                      <button
-                        onClick={() => deleteTestimonial(testimonial.id)}
-                        className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300"
-                        title="Supprimer"
-                      >
-                        <TrashIcon className="h-5 w-5" />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          </div>
-        </div>
-      )}
-
-      {/* Pagination */}
-      {!loading && testimonials.length > 0 && (
-        <div className="flex justify-center mt-6">
-          <nav className="flex items-center space-x-2">
-            <button
-              onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
-              disabled={currentPage === 1}
-              className={`px-3 py-1 rounded-md ${
-                currentPage === 1 ? "opacity-50 cursor-not-allowed" : ""
-              } ${
-                isDarkMode
-                  ? "bg-gray-700 text-white hover:bg-gray-600"
-                  : "bg-white text-gray-700 hover:bg-gray-100"
-              }`}
+          <CardContent sx={{ p: { xs: 1.5, sm: 2.5, md: 3 } }}>
+            <Box
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                mb: { xs: 1.5, sm: 2 },
+                flexWrap: "wrap",
+                gap: 1,
+              }}
             >
-              Précédent
-            </button>
-
-            {/* Affichage des numéros de page */}
-            {[...Array(totalPages)].map((_, i) => {
-              const pageNumber = i + 1;
-              // Afficher seulement les pages proches de la page courante
-              if (
-                pageNumber === 1 ||
-                pageNumber === totalPages ||
-                (pageNumber >= currentPage - 1 && pageNumber <= currentPage + 1)
-              ) {
-                return (
-                  <button
-                    key={pageNumber}
-                    onClick={() => setCurrentPage(pageNumber)}
-                    className={`px-3 py-1 rounded-md ${
-                      currentPage === pageNumber
-                        ? isDarkMode
-                          ? "bg-primary-600 text-white"
-                          : "bg-primary-500 text-white"
-                        : isDarkMode
-                        ? "bg-gray-700 text-white hover:bg-gray-600"
-                        : "bg-white text-gray-700 hover:bg-gray-100"
-                    }`}
-                  >
-                    {pageNumber}
-                  </button>
-                );
-              } else if (
-                (pageNumber === currentPage - 2 && currentPage > 3) ||
-                (pageNumber === currentPage + 2 && currentPage < totalPages - 2)
-              ) {
-                // Afficher des points de suspension pour les pages non affichées
-                return <span key={pageNumber}>...</span>;
-              }
-              return null;
-            })}
-
-            <button
-              onClick={() =>
-                setCurrentPage((prev) => Math.min(prev + 1, totalPages))
-              }
-              disabled={currentPage === totalPages}
-              className={`px-3 py-1 rounded-md ${
-                currentPage === totalPages
-                  ? "opacity-50 cursor-not-allowed"
-                  : ""
-              } ${
-                isDarkMode
-                  ? "bg-gray-700 text-white hover:bg-gray-600"
-                  : "bg-white text-gray-700 hover:bg-gray-100"
-              }`}
-            >
-              Suivant
-            </button>
-          </nav>
-        </div>
-      )}
-
-      {/* Modal de détail */}
-      {modalOpen && selectedTestimonial && (
-        <div className="fixed inset-0 z-50 overflow-y-auto">
-          <div className="flex items-center justify-center min-h-screen px-4 text-center">
-            {/* Overlay avec effet de flou léger */}
-            <div
-              className="fixed inset-0 transition-all backdrop-blur-sm"
-              onClick={closeModal}
-              aria-hidden="true"
-            ></div>
-
-            {/* Modal */}
-            <div
-              className={`relative inline-block align-middle rounded-lg text-left overflow-hidden shadow-xl transform transition-all max-w-lg w-full ${
-                isDarkMode ? "bg-gray-800" : "bg-white"
-              }`}
-              role="dialog"
-              aria-modal="true"
-              aria-labelledby="modal-headline"
-            >
-              {/* En-tête */}
-              <div
-                className={`px-4 pt-5 pb-4 sm:p-6 sm:pb-4 ${
-                  isDarkMode ? "bg-gray-800" : "bg-white"
-                }`}
+              <Box
+                sx={{
+                  width: { xs: 28, sm: 32 },
+                  height: { xs: 28, sm: 32 },
+                  borderRadius: "8px",
+                  background: isDarkMode
+                    ? "linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)"
+                    : "linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  mr: { xs: 0.5, sm: 1 },
+                  boxShadow: isDarkMode
+                    ? "0 4px 12px rgba(59, 130, 246, 0.3)"
+                    : "0 4px 12px rgba(59, 130, 246, 0.2)",
+                }}
               >
-                <div className="sm:flex sm:items-start">
-                  <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
-                    <h3
-                      className={`text-lg leading-6 font-medium ${
-                        isDarkMode ? "text-white" : "text-gray-900"
-                      }`}
-                      id="modal-headline"
-                    >
-                      Détail du témoignage
-                    </h3>
+                <FilterListIcon
+                  sx={{ color: "#fff", fontSize: { xs: 16, sm: 18 } }}
+                />
+              </Box>
+              <Typography
+                variant="subtitle1"
+                component="div"
+                sx={{
+                  flexGrow: 1,
+                  fontWeight: 600,
+                  fontSize: { xs: "0.95rem", sm: "1.1rem" },
+                }}
+              >
+                Filtres
+              </Typography>
+              <Button
+                size="small"
+                onClick={() => {
+                  setStatusFilter("");
+                  setMinRatingFilter("");
+                  setFeaturedFilter("");
+                  setPage(1);
+                  setRowsPerPage(25);
+                  fetchTestimonials();
+                }}
+                sx={{
+                  textTransform: "none",
+                  fontSize: { xs: "0.75rem", sm: "0.8rem" },
+                  color: "text.secondary",
+                  minWidth: "auto",
+                  px: { xs: 1, sm: 2 },
+                }}
+              >
+                Réinitialiser
+              </Button>
+            </Box>
+            <Grid
+              container
+              spacing={{ xs: 1.5, sm: 2, md: 2.5 }}
+              alignItems="center"
+            >
+              <Grid item xs={12} sm={4}>
+                <FormControl fullWidth size="small">
+                  <InputLabel>Statut</InputLabel>
+                  <Select
+                    value={statusFilter}
+                    label="Statut"
+                    onChange={(e) => setStatusFilter(e.target.value)}
+                    sx={{
+                      borderRadius: "8px",
+                      "&:hover": {
+                        boxShadow: "0 0 0 1px rgba(0, 0, 0, 0.1)",
+                      },
+                      transition: "all 0.2s",
+                    }}
+                  >
+                    <MenuItem value="">Tous</MenuItem>
+                    <MenuItem value="pending">En attente</MenuItem>
+                    <MenuItem value="approved">Approuvés</MenuItem>
+                    <MenuItem value="rejected">Rejetés</MenuItem>
+                  </Select>
+                </FormControl>
+              </Grid>
+              <Grid item xs={12} sm={4}>
+                <FormControl fullWidth size="small">
+                  <InputLabel>Note minimale</InputLabel>
+                  <Select
+                    value={minRatingFilter}
+                    label="Note minimale"
+                    onChange={(e) => setMinRatingFilter(e.target.value)}
+                    sx={{
+                      borderRadius: "8px",
+                      "&:hover": {
+                        boxShadow: "0 0 0 1px rgba(0, 0, 0, 0.1)",
+                      },
+                      transition: "all 0.2s",
+                    }}
+                  >
+                    <MenuItem value="">Toutes les notes</MenuItem>
+                    <MenuItem value="1">1 étoile et plus</MenuItem>
+                    <MenuItem value="2">2 étoiles et plus</MenuItem>
+                    <MenuItem value="3">3 étoiles et plus</MenuItem>
+                    <MenuItem value="4">4 étoiles et plus</MenuItem>
+                    <MenuItem value="5">5 étoiles</MenuItem>
+                  </Select>
+                </FormControl>
+              </Grid>
+              <Grid item xs={12} sm={4}>
+                <FormControl fullWidth size="small">
+                  <InputLabel>Mise en avant</InputLabel>
+                  <Select
+                    value={featuredFilter}
+                    label="Mise en avant"
+                    onChange={(e) => setFeaturedFilter(e.target.value)}
+                    sx={{
+                      borderRadius: "8px",
+                      "&:hover": {
+                        boxShadow: "0 0 0 1px rgba(0, 0, 0, 0.1)",
+                      },
+                      transition: "all 0.2s",
+                    }}
+                  >
+                    <MenuItem value="">Tous</MenuItem>
+                    <MenuItem value="1">Mis en avant</MenuItem>
+                    <MenuItem value="0">Non mis en avant</MenuItem>
+                  </Select>
+                </FormControl>
+              </Grid>
+            </Grid>
+          </CardContent>
+        </Card>
+      )}
 
-                    <div className="mt-4">
-                      {/* Informations utilisateur */}
-                      <div className="mb-4">
-                        <div className="flex items-center mb-2">
-                          <div className="flex-shrink-0 h-12 w-12 rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center mr-4">
-                            {selectedTestimonial.user?.profile_picture ? (
-                              <img
-                                src={selectedTestimonial.user.profile_picture}
-                                alt={selectedTestimonial.user.name}
-                                className="h-12 w-12 rounded-full object-cover"
+      {/* Tableau des témoignages avec design simplifié */}
+      {loading ? (
+        <Box
+          sx={{
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            height: "300px",
+          }}
+        >
+          <CircularProgress size={40} thickness={4} />
+        </Box>
+      ) : error ? (
+        <Alert
+          severity="error"
+          sx={{
+            my: 2,
+            borderRadius: "8px",
+            boxShadow: "0 2px 10px rgba(0, 0, 0, 0.08)",
+          }}
+        >
+          {error}
+        </Alert>
+      ) : (
+        <Paper
+          elevation={0}
+          sx={{
+            width: "100%",
+            mb: 2,
+            borderRadius: "8px",
+            overflow: "hidden",
+            border: "1px solid",
+            borderColor: isDarkMode ? "rgba(255, 255, 255, 0.12)" : "rgba(0, 0, 0, 0.12)",
+            backgroundColor: isDarkMode ? "#1a1a1a" : "#ffffff",
+          }}
+        >
+          <TableContainer>
+            <Table sx={{ minWidth: 800 }}>
+              <TableHead>
+                <TableRow sx={{ backgroundColor: isDarkMode ? "#252525" : "#f5f5f5" }}>
+                  {[
+                    { id: "user", label: "Utilisateur" },
+                    { id: "rating", label: "Note" },
+                    { id: "content", label: "Contenu" },
+                    { id: "status", label: "Statut" },
+                    { id: "date", label: "Date" },
+                    { id: "actions", label: "Actions", align: "center" },
+                  ].map((column) => (
+                    <TableCell
+                      key={column.id}
+                      align={column.align || "left"}
+                      sx={{
+                        fontWeight: 600,
+                        color: isDarkMode ? "#e0e0e0" : "#333333",
+                        borderBottom: "1px solid",
+                        borderBottomColor: isDarkMode ? "rgba(255, 255, 255, 0.12)" : "rgba(0, 0, 0, 0.12)",
+                        py: 2,
+                        px: 2,
+                      }}
+                    >
+                      {column.label}
+                    </TableCell>
+                  ))}
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {testimonials.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={6} align="center">
+                      <Box sx={{ py: 6, textAlign: "center" }}>
+                        <Typography variant="h6" sx={{ fontWeight: 500, mb: 1 }}>
+                          Aucun témoignage trouvé
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          Essayez de modifier vos critères de recherche
+                        </Typography>
+                      </Box>
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  testimonials.map((testimonial) => (
+                    <TableRow
+                      key={testimonial.id}
+                      sx={{
+                        "&:hover": {
+                          backgroundColor: isDarkMode ? "rgba(255, 255, 255, 0.04)" : "rgba(0, 0, 0, 0.02)",
+                        },
+                        borderBottom: "1px solid",
+                        borderBottomColor: isDarkMode ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.08)",
+                      }}
+                    >
+                      <TableCell sx={{ py: 2, px: 2, color: isDarkMode ? "#e0e0e0" : "#333333" }}>
+                        <Box sx={{ display: "flex", alignItems: "center" }}>
+                          <Box
+                            sx={{
+                              width: 40,
+                              height: 40,
+                              borderRadius: "50%",
+                              backgroundColor: isDarkMode ? "rgba(255, 255, 255, 0.1)" : "rgba(0, 0, 0, 0.1)",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              mr: 2,
+                              overflow: "hidden",
+                            }}
+                          >
+                            {testimonial.user?.profile_picture ? (
+                              <Box
+                                component="img"
+                                src={testimonial.user.profile_picture}
+                                alt={testimonial.user.name}
+                                sx={{ width: "100%", height: "100%", objectFit: "cover" }}
                               />
                             ) : (
-                              <span
-                                className={`text-xl ${
-                                  isDarkMode ? "text-gray-400" : "text-gray-600"
-                                }`}
-                              >
-                                {selectedTestimonial.user?.name?.charAt(0) ||
-                                  "?"}
-                              </span>
+                              <Typography sx={{ fontSize: "1rem", fontWeight: 600 }}>
+                                {testimonial.user?.name?.charAt(0) || "?"}
+                              </Typography>
                             )}
-                          </div>
-                          <div>
-                            <h4
-                              className={`text-md font-medium ${
-                                isDarkMode ? "text-white" : "text-gray-900"
-                              }`}
-                            >
-                              {selectedTestimonial.user?.name ||
-                                "Utilisateur inconnu"}
-                            </h4>
-                            <p className="text-sm text-gray-500 dark:text-gray-400">
-                              {selectedTestimonial.user?.email || ""}
-                            </p>
-                          </div>
-                        </div>
-
-                        {/* Date et statut */}
-                        <div className="flex justify-between items-center mb-2">
-                          <div className="text-sm text-gray-500 dark:text-gray-400">
-                            Soumis le{" "}
-                            {new Date(
-                              selectedTestimonial.created_at
-                            ).toLocaleDateString()}{" "}
-                            à{" "}
-                            {new Date(
-                              selectedTestimonial.created_at
-                            ).toLocaleTimeString()}
-                          </div>
-                          <div className="flex items-center">
-                            <span
-                              className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                                selectedTestimonial.status === "approved"
-                                  ? "bg-green-100 text-green-800 dark:bg-green-800 dark:text-green-100"
-                                  : selectedTestimonial.status === "rejected"
-                                  ? "bg-red-100 text-red-800 dark:bg-red-800 dark:text-red-100"
-                                  : "bg-yellow-100 text-yellow-800 dark:bg-yellow-800 dark:text-yellow-100"
-                              }`}
-                            >
-                              {selectedTestimonial.status === "approved"
-                                ? "Approuvé"
-                                : selectedTestimonial.status === "rejected"
-                                ? "Rejeté"
-                                : "En attente"}
-                            </span>
-                            {selectedTestimonial.featured && (
-                              <span className="ml-2 px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800 dark:bg-blue-800 dark:text-blue-100">
-                                Mis en avant
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Note */}
-                      <div className="mb-4">
-                        <label
-                          className={`block text-sm font-medium mb-1 ${
-                            isDarkMode ? "text-gray-300" : "text-gray-700"
-                          }`}
-                        >
-                          Note
-                        </label>
-                        <div className="flex items-center">
-                          {[...Array(5)].map((_, i) => (
-                            <StarIcon
-                              key={i}
-                              className={`h-6 w-6 ${
-                                i < selectedTestimonial.rating
-                                  ? "text-yellow-400"
-                                  : "text-gray-300"
-                              }`}
+                          </Box>
+                          <Box>
+                            <Typography variant="body2" fontWeight="500">
+                              {testimonial.user?.name || "Utilisateur inconnu"}
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary">
+                              {testimonial.user?.email || ""}
+                            </Typography>
+                          </Box>
+                        </Box>
+                      </TableCell>
+                      <TableCell sx={{ py: 2, px: 2 }}>
+                        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                          <Rating
+                            value={testimonial.rating}
+                            readOnly
+                            size="small"
+                            sx={{
+                              color: "#ffc107",
+                              "& .MuiRating-iconFilled": {
+                                color: "#ffc107",
+                              },
+                              "& .MuiRating-iconEmpty": {
+                                color: isDarkMode ? "rgba(255, 255, 255, 0.2)" : "rgba(0, 0, 0, 0.2)",
+                              },
+                            }}
+                          />
+                          <Typography variant="caption" color="text.secondary">
+                            ({testimonial.rating}/5)
+                          </Typography>
+                        </Box>
+                      </TableCell>
+                      <TableCell sx={{ py: 2, px: 2, color: isDarkMode ? "#e0e0e0" : "#333333" }}>
+                        <Tooltip title={testimonial.content} placement="top-start" arrow>
+                          <Typography
+                            variant="body2"
+                            noWrap
+                            sx={{ maxWidth: 200, overflow: "hidden", textOverflow: "ellipsis" }}
+                          >
+                            {testimonial.content}
+                          </Typography>
+                        </Tooltip>
+                      </TableCell>
+                      <TableCell sx={{ py: 2, px: 2 }}>
+                        <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
+                          {renderStatus(testimonial.status)}
+                          {testimonial.featured && (
+                            <Chip
+                              label="Mis en avant"
+                              size="small"
+                              sx={{
+                                backgroundColor: isDarkMode ? "rgba(59, 130, 246, 0.2)" : "rgba(59, 130, 246, 0.1)",
+                                color: isDarkMode ? "#60a5fa" : "#3b82f6",
+                                fontSize: "0.7rem",
+                                height: "20px",
+                              }}
                             />
-                          ))}
-                          <span className="ml-2 text-sm text-gray-500 dark:text-gray-400">
-                            ({selectedTestimonial.rating}/5)
-                          </span>
-                        </div>
-                      </div>
+                          )}
+                        </Box>
+                      </TableCell>
+                      <TableCell sx={{ py: 2, px: 2, color: isDarkMode ? "#b0b0b0" : "#666666" }}>
+                        {new Date(testimonial.created_at).toLocaleDateString()}
+                      </TableCell>
+                      <TableCell align="center" sx={{ py: 2, px: 1 }}>
+                        <Box sx={{ display: "flex", justifyContent: "center", gap: 1 }}>
+                          <Tooltip title="Voir les détails" arrow placement="top">
+                            <IconButton
+                              size="small"
+                              onClick={() => handleViewDetails(testimonial)}
+                              sx={{ color: isDarkMode ? "#90caf9" : "#1976d2" }}
+                            >
+                              <VisibilityIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
 
-                      {/* Contenu */}
-                      <div className="mb-4">
-                        <label
-                          className={`block text-sm font-medium mb-1 ${
-                            isDarkMode ? "text-gray-300" : "text-gray-700"
-                          }`}
-                        >
-                          Témoignage
-                        </label>
-                        <div
-                          className={`p-3 rounded-md ${
-                            isDarkMode ? "bg-gray-700" : "bg-gray-50"
-                          }`}
-                        >
-                          <p
-                            className={`text-sm ${
-                              isDarkMode ? "text-gray-300" : "text-gray-900"
-                            }`}
-                          >
-                            {selectedTestimonial.content}
-                          </p>
-                        </div>
-                      </div>
-
-                      {/* Informations complémentaires */}
-                      {(selectedTestimonial.position ||
-                        selectedTestimonial.company) && (
-                        <div className="mb-4">
-                          <label
-                            className={`block text-sm font-medium mb-1 ${
-                              isDarkMode ? "text-gray-300" : "text-gray-700"
-                            }`}
-                          >
-                            Informations complémentaires
-                          </label>
-                          <div
-                            className={`p-3 rounded-md ${
-                              isDarkMode ? "bg-gray-700" : "bg-gray-50"
-                            }`}
-                          >
-                            {selectedTestimonial.position && (
-                              <p
-                                className={`text-sm ${
-                                  isDarkMode ? "text-gray-300" : "text-gray-900"
-                                }`}
+                          {testimonial.status !== "approved" && (
+                            <Tooltip title="Approuver" arrow placement="top">
+                              <IconButton
+                                size="small"
+                                onClick={() => handleApproveTestimonial(testimonial.id)}
+                                sx={{ color: isDarkMode ? "#66bb6a" : "#388e3c" }}
                               >
-                                <span className="font-medium">Position :</span>{" "}
-                                {selectedTestimonial.position}
-                              </p>
-                            )}
-                            {selectedTestimonial.company && (
-                              <p
-                                className={`text-sm ${
-                                  isDarkMode ? "text-gray-300" : "text-gray-900"
-                                }`}
+                                <CheckCircleIcon fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
+                          )}
+
+                          {testimonial.status !== "rejected" && (
+                            <Tooltip title="Rejeter" arrow placement="top">
+                              <IconButton
+                                size="small"
+                                onClick={() => handleRejectTestimonial(testimonial.id)}
+                                sx={{ color: isDarkMode ? "#ef5350" : "#d32f2f" }}
                               >
-                                <span className="font-medium">
-                                  Entreprise :
-                                </span>{" "}
-                                {selectedTestimonial.company}
-                              </p>
-                            )}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
+                                <CancelIcon fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
+                          )}
 
-              {/* Actions */}
-              <div
-                className={`px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse ${
-                  isDarkMode
-                    ? "bg-gray-800 border-t border-gray-700"
-                    : "bg-gray-50 border-t border-gray-200"
-                }`}
-              >
-                {/* Boutons d'action selon le statut */}
-                {selectedTestimonial.status !== "approved" && (
-                  <button
-                    type="button"
-                    onClick={() => approveTestimonial(selectedTestimonial.id)}
-                    className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-green-600 text-base font-medium text-white hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 sm:ml-3 sm:w-auto sm:text-sm"
-                  >
-                    Approuver
-                  </button>
+                          {testimonial.status === "approved" && (
+                            <Tooltip
+                              title={testimonial.featured ? "Retirer la mise en avant" : "Mettre en avant"}
+                              arrow placement="top"
+                            >
+                              <IconButton
+                                size="small"
+                                onClick={() =>
+                                  testimonial.featured
+                                    ? handleUnfeatureTestimonial(testimonial.id)
+                                    : handleFeatureTestimonial(testimonial.id)
+                                }
+                                sx={{ color: isDarkMode ? "#ffa726" : "#f57c00" }}
+                              >
+                                <StarIcon fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
+                          )}
+
+                          <Tooltip title="Supprimer" arrow placement="top">
+                            <IconButton
+                              size="small"
+                              onClick={() => handleDeleteTestimonial(testimonial.id)}
+                              sx={{ color: isDarkMode ? "#ef5350" : "#d32f2f" }}
+                            >
+                              <DeleteIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                        </Box>
+                      </TableCell>
+                    </TableRow>
+                  ))
                 )}
-
-                {selectedTestimonial.status !== "rejected" && (
-                  <button
-                    type="button"
-                    onClick={() => rejectTestimonial(selectedTestimonial.id)}
-                    className="mt-3 w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
-                  >
-                    Rejeter
-                  </button>
-                )}
-
-                {selectedTestimonial.status === "approved" && (
-                  <button
-                    type="button"
-                    onClick={() =>
-                      selectedTestimonial.featured
-                        ? unfeatureTestimonial(selectedTestimonial.id)
-                        : featureTestimonial(selectedTestimonial.id)
-                    }
-                    className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-yellow-600 text-base font-medium text-white hover:bg-yellow-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500 sm:ml-3 sm:w-auto sm:text-sm"
-                  >
-                    {selectedTestimonial.featured
-                      ? "Retirer la mise en avant"
-                      : "Mettre en avant"}
-                  </button>
-                )}
-
-                <button
-                  type="button"
-                  onClick={() => deleteTestimonial(selectedTestimonial.id)}
-                  className="mt-3 w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
-                >
-                  Supprimer
-                </button>
-
-                <button
-                  type="button"
-                  onClick={closeModal}
-                  className={`mt-3 w-full inline-flex justify-center rounded-md border shadow-sm px-4 py-2 text-base font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm ${
-                    isDarkMode
-                      ? "bg-gray-700 hover:bg-gray-600 text-white border-gray-600"
-                      : "bg-white hover:bg-gray-50 text-gray-700 border-gray-300"
-                  }`}
-                >
-                  Fermer
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
+              </TableBody>
+            </Table>
+          </TableContainer>
+          
+          {/* TablePagination Material-UI simplifié */}
+          <TablePagination
+            rowsPerPageOptions={[5, 10, 25, 50]}
+            component="div"
+            count={total}
+            rowsPerPage={rowsPerPage}
+            page={page - 1}
+            onPageChange={handleChangePage}
+            onRowsPerPageChange={handleChangeRowsPerPage}
+            labelRowsPerPage="Lignes par page:"
+            labelDisplayedRows={({ from, to, count }) => 
+              `${from}-${to} de ${count !== -1 ? count : `plus de ${to}`}`
+            }
+            sx={{
+              backgroundColor: isDarkMode ? "#1a1a1a" : "#ffffff",
+              borderTop: "1px solid",
+              borderTopColor: isDarkMode ? "rgba(255, 255, 255, 0.12)" : "rgba(0, 0, 0, 0.12)",
+              "& .MuiTablePagination-toolbar": {
+                minHeight: "52px",
+              },
+              "& .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows": {
+                color: isDarkMode ? "#e0e0e0" : "#333333",
+              },
+              "& .MuiTablePagination-select": {
+                color: isDarkMode ? "#e0e0e0" : "#333333",
+              },
+              "& .MuiTablePagination-actions .MuiIconButton-root": {
+                color: isDarkMode ? "#b0b0b0" : "#666666",
+              },
+            }}
+          />
+        </Paper>
       )}
-    </div>
+
+      {/* Boîte de dialogue de détails */}
+      <Dialog
+        open={openDetailDialog}
+        onClose={() => setOpenDetailDialog(false)}
+        maxWidth="md"
+        fullWidth
+        PaperProps={{
+          sx: {
+            bgcolor: isDarkMode ? "#1f2937" : "#fff",
+            background: isDarkMode ? "#1f2937" : "#fff",
+          },
+        }}
+        sx={{
+          backdropFilter: "blur(5px)",
+          "& .MuiBackdrop-root": {
+            backgroundColor: "rgba(16, 15, 15, 0.4)",
+          },
+        }}
+      >
+        <DialogTitle>
+          Détail du témoignage
+        </DialogTitle>
+        <DialogContent>
+          {currentTestimonial && (
+            <Box>
+              {/* Informations utilisateur */}
+              <Box sx={{ display: "flex", alignItems: "center", mb: 3 }}>
+                <Box
+                  sx={{
+                    width: 48,
+                    height: 48,
+                    borderRadius: "50%",
+                    backgroundColor: isDarkMode ? "rgba(255, 255, 255, 0.1)" : "rgba(0, 0, 0, 0.1)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    mr: 2,
+                    overflow: "hidden",
+                  }}
+                >
+                  {currentTestimonial.user?.profile_picture ? (
+                    <Box
+                      component="img"
+                      src={currentTestimonial.user.profile_picture}
+                      alt={currentTestimonial.user.name}
+                      sx={{ width: "100%", height: "100%", objectFit: "cover" }}
+                    />
+                  ) : (
+                    <Typography sx={{ fontSize: "1.2rem", fontWeight: 600 }}>
+                      {currentTestimonial.user?.name?.charAt(0) || "?"}
+                    </Typography>
+                  )}
+                </Box>
+                <Box>
+                  <Typography variant="h6" fontWeight="500">
+                    {currentTestimonial.user?.name || "Utilisateur inconnu"}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    {currentTestimonial.user?.email || ""}
+                  </Typography>
+                </Box>
+              </Box>
+
+              {/* Note */}
+              <Box sx={{ mb: 3 }}>
+                <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>
+                  Note
+                </Typography>
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                  <Rating
+                    value={currentTestimonial.rating}
+                    readOnly
+                    sx={{
+                      color: "#ffc107",
+                      "& .MuiRating-iconFilled": {
+                        color: "#ffc107",
+                      },
+                      "& .MuiRating-iconEmpty": {
+                        color: isDarkMode ? "rgba(255, 255, 255, 0.2)" : "rgba(0, 0, 0, 0.2)",
+                      },
+                    }}
+                  />
+                  <Typography variant="body2" color="text.secondary">
+                    ({currentTestimonial.rating}/5)
+                  </Typography>
+                </Box>
+              </Box>
+
+              {/* Contenu */}
+              <Box sx={{ mb: 3 }}>
+                <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>
+                  Témoignage
+                </Typography>
+                <Box
+                  sx={{
+                    p: 2,
+                    borderRadius: "8px",
+                    backgroundColor: isDarkMode ? "rgba(255, 255, 255, 0.05)" : "rgba(0, 0, 0, 0.02)",
+                  }}
+                >
+                  <Typography variant="body2">
+                    {currentTestimonial.content}
+                  </Typography>
+                </Box>
+              </Box>
+
+              {/* Statut et mise en avant */}
+              <Box sx={{ mb: 3 }}>
+                <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>
+                  Informations
+                </Typography>
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                  {renderStatus(currentTestimonial.status)}
+                  {currentTestimonial.featured && (
+                    <Chip
+                      label="Mis en avant"
+                      size="small"
+                      sx={{
+                        backgroundColor: isDarkMode ? "rgba(59, 130, 246, 0.2)" : "rgba(59, 130, 246, 0.1)",
+                        color: isDarkMode ? "#60a5fa" : "#3b82f6",
+                      }}
+                    />
+                  )}
+                </Box>
+              </Box>
+
+              {/* Date */}
+              <Box sx={{ mb: 3 }}>
+                <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>
+                  Date
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Soumis le {new Date(currentTestimonial.created_at).toLocaleDateString()} à{" "}
+                  {new Date(currentTestimonial.created_at).toLocaleTimeString()}
+                </Typography>
+              </Box>
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions>
+          {currentTestimonial?.status !== "approved" && (
+            <Button
+              onClick={() => handleApproveTestimonial(currentTestimonial.id)}
+              variant="contained"
+              sx={{
+                backgroundColor: "#4caf50",
+                "&:hover": { backgroundColor: "#45a049" },
+              }}
+            >
+              Approuver
+            </Button>
+          )}
+          {currentTestimonial?.status !== "rejected" && (
+            <Button
+              onClick={() => handleRejectTestimonial(currentTestimonial.id)}
+              variant="contained"
+              color="error"
+            >
+              Rejeter
+            </Button>
+          )}
+          {currentTestimonial?.status === "approved" && (
+            <Button
+              onClick={() =>
+                currentTestimonial.featured
+                  ? handleUnfeatureTestimonial(currentTestimonial.id)
+                  : handleFeatureTestimonial(currentTestimonial.id)
+              }
+              variant="contained"
+              sx={{
+                backgroundColor: "#ff9800",
+                "&:hover": { backgroundColor: "#f57c00" },
+              }}
+            >
+              {currentTestimonial.featured ? "Retirer la mise en avant" : "Mettre en avant"}
+            </Button>
+          )}
+          <Button
+            onClick={() => handleDeleteTestimonial(currentTestimonial.id)}
+            variant="contained"
+            color="error"
+          >
+            Supprimer
+          </Button>
+          <Button onClick={() => setOpenDetailDialog(false)}>
+            Fermer
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </Box>
   );
 };
 

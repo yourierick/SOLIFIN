@@ -30,11 +30,12 @@ class JobOfferValidationController extends Controller
         }
     }
     /**
-     * Afficher la liste des offres d'emploi pour validation
+     * Afficher la liste des offres d'emploi pour validation avec pagination
      *
+     * @param  \Illuminate\Http\Request  $request
      * @return \Illuminate\Http\Response
      */
-    public function index()
+    public function index(Request $request)
     {
         // Vérifier si l'utilisateur est un administrateur
         if (!Auth::user()->is_admin) {
@@ -42,25 +43,45 @@ class JobOfferValidationController extends Controller
         }
         
         try {
-            $allJobs = OffreEmploi::with('user')
-                ->orderBy('created_at', 'desc')
-                ->get()
-                ->map(function ($job) {
-                    // Ajouter l'URL du fichier d'offre si elle existe
-                    if ($job->offer_file) {
-                        $job->offer_file_url = asset('storage/' . $job->offer_file);
-                    }
-                    
-                    // Générer l'URL correcte pour la photo de profil
-                    if ($job->user && $job->user->picture) {
-                        $job->user->picture_url = asset('storage/' . $job->user->picture);
-                    }
-                    return $job;
-                });
+            // Paramètres de pagination
+            $page = $request->get('page', 1);
+            $perPage = $request->get('per_page', 10);
             
-            return response()->json($allJobs);
+            // Construction de la requête
+            $query = OffreEmploi::with('user')
+                ->orderBy('created_at', 'desc');
+            
+            // Filtres
+            if ($request->has('statut') && $request->get('statut') !== 'all') {
+                $query->where('statut', $request->get('statut'));
+            }
+            
+            if ($request->has('etat') && $request->get('etat') !== 'all') {
+                $query->where('etat', $request->get('etat'));
+            }
+            
+            // Pagination
+            $jobs = $query->paginate($perPage, ['*'], 'page', $page);
+            
+            // Transformer les résultats
+            $jobs->getCollection()->transform(function ($job) {
+                // Ajouter l'URL du fichier d'offre si elle existe
+                if ($job->offer_file) {
+                    $job->offer_file_url = asset('storage/' . $job->offer_file);
+                }
+                
+                // Générer l'URL correcte pour la photo de profil
+                if ($job->user && $job->user->picture) {
+                    $job->user->picture_url = asset('storage/' . $job->user->picture);
+                }
+                return $job;
+            });
+            
+            return response()->json([
+                'jobOffers' => $jobs
+            ]);
         } catch (\Exception $e) {
-            return response()->json(['message' => 'Erreur lors de la récupération de toutes les offres d\'emploi', 'error' => $e->getMessage()], 500);
+            return response()->json(['message' => 'Erreur lors de la récupération des offres d\'emploi', 'error' => $e->getMessage()], 500);
         }
     }
     

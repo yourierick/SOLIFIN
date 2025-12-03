@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { Tab } from "@headlessui/react";
 import {
   CheckCircleIcon,
@@ -32,37 +32,42 @@ export default function AdvertisementValidation() {
   });
   const [reportModalOpen, setReportModalOpen] = useState(false);
   const [selectedReportedStatus, setSelectedReportedStatus] = useState(null);
-  const [filteredItems, setFilteredItems] = useState({
-    advertisements: [],
-    jobOffers: [],
-    businessOpportunities: [],
-    socialEvents: [],
-    digitalProducts: [],
+
+  // Référence pour éviter le premier chargement dans le useEffect de pagination
+  const hasLoadedPagination = useRef(false);
+
+  // États pour la pagination backend
+  const [pagination, setPagination] = useState({
+    advertisements: { currentPage: 1, totalPages: 1, total: 0, itemsPerPage: 10 },
+    jobOffers: { currentPage: 1, totalPages: 1, total: 0, itemsPerPage: 10 },
+    businessOpportunities: { currentPage: 1, totalPages: 1, total: 0, itemsPerPage: 10 },
+    socialEvents: { currentPage: 1, totalPages: 1, total: 0, itemsPerPage: 10 },
+    digitalProducts: { currentPage: 1, totalPages: 1, total: 0, itemsPerPage: 10 },
   });
 
   // Compteurs pour les publications en attente
   const pendingCounts = useMemo(
     () => ({
-      advertisements: Array.isArray(allItems.advertisements)
-        ? allItems.advertisements.filter((item) => item.statut === "en_attente")
+      advertisements: Array.isArray(allItems.advertisements?.data)
+        ? allItems.advertisements.data.filter((item) => item.statut === "en_attente")
             .length
         : 0,
-      jobOffers: Array.isArray(allItems.jobOffers)
-        ? allItems.jobOffers.filter((item) => item.statut === "en_attente")
+      jobOffers: Array.isArray(allItems.jobOffers?.data)
+        ? allItems.jobOffers.data.filter((item) => item.statut === "en_attente")
             .length
         : 0,
-      businessOpportunities: Array.isArray(allItems.businessOpportunities)
-        ? allItems.businessOpportunities.filter(
+      businessOpportunities: Array.isArray(allItems.businessOpportunities?.data)
+        ? allItems.businessOpportunities.data.filter(
             (item) => item.statut === "en_attente"
           ).length
         : 0,
-      digitalProducts: Array.isArray(allItems.digitalProducts)
-        ? allItems.digitalProducts.filter(
+      digitalProducts: Array.isArray(allItems.digitalProducts?.data)
+        ? allItems.digitalProducts.data.filter(
             (item) => item.statut === "en_attente"
           ).length
         : 0,
-      socialEvents: Array.isArray(allItems.socialEvents)
-        ? allItems.socialEvents.filter((item) => item.statut === "en_attente")
+      socialEvents: Array.isArray(allItems.socialEvents?.data)
+        ? allItems.socialEvents.data.filter((item) => item.statut === "en_attente")
             .length
         : 0,
     }),
@@ -74,15 +79,6 @@ export default function AdvertisementValidation() {
     businessOpportunities: { statut: "all", etat: "all" },
     socialEvents: { statut: "all", etat: "all" },
     digitalProducts: { statut: "all", etat: "all" },
-  });
-
-  // État pour la pagination
-  const [pagination, setPagination] = useState({
-    advertisements: { currentPage: 1, itemsPerPage: 10 },
-    jobOffers: { currentPage: 1, itemsPerPage: 10 },
-    businessOpportunities: { currentPage: 1, itemsPerPage: 10 },
-    socialEvents: { currentPage: 1, itemsPerPage: 10 },
-    digitalProducts: { currentPage: 1, itemsPerPage: 10 },
   });
   const [isLoading, setIsLoading] = useState(true);
   const [selectedItem, setSelectedItem] = useState(null);
@@ -97,12 +93,90 @@ export default function AdvertisementValidation() {
     fetchAllItems();
   }, []);
 
-  // Appliquer les filtres lorsque les filtres ou les données changent
+  // Recharger les données lorsque les filtres changent
   useEffect(() => {
-    applyFilters();
-  }, [allItems, filters]);
+    // Ne pas appeler fetchData au premier chargement (déjà fait par fetchAllItems)
+    if (pagination.advertisements.currentPage === 1 && 
+        pagination.jobOffers.currentPage === 1 && 
+        pagination.businessOpportunities.currentPage === 1 && 
+        pagination.socialEvents.currentPage === 1 && 
+        pagination.digitalProducts.currentPage === 1) {
+      // Premier chargement - ne rien faire, fetchAllItems s'en occupe
+      return;
+    }
+    // Pour les changements de filtres, appeler fetchData
+    fetchData();
+  }, [filters]);
 
-  // Fonction pour récupérer les données
+  // Recharger les données lorsque la page change
+  useEffect(() => {
+    
+    // Skip le premier chargement - fetchAllItems() s'en occupe déjà
+    if (!hasLoadedPagination.current) {
+      hasLoadedPagination.current = true;
+      return;
+    }
+    // Pour les changements de page, appeler fetchData
+    fetchData();
+  }, [
+    pagination.advertisements.currentPage,
+    pagination.jobOffers.currentPage,
+    pagination.businessOpportunities.currentPage,
+    pagination.socialEvents.currentPage,
+    pagination.digitalProducts.currentPage
+  ]);
+
+  // Fonction pour récupérer toutes les données et afficher un toast de confirmation
+  const fetchAllItems = () => {
+    fetchData();
+    toast.info("Données actualisées");
+  };
+
+  // Fonction pour changer de page
+  const changePage = (type, newPage) => {
+    const paginationKey = type === "advertisement" ? "advertisements" :
+                         type === "jobOffer" ? "jobOffers" :
+                         type === "businessOpportunity" ? "businessOpportunities" :
+                         type === "digitalProduct" ? "digitalProducts" : "socialEvents";
+    
+    setPagination(prev => {
+      const updated = {
+        ...prev,
+        [paginationKey]: {
+          ...prev[paginationKey],
+          currentPage: newPage
+        }
+      };
+      return updated;
+    });
+  };
+
+  // Fonction pour mettre à jour les filtres et réinitialiser la page
+  const updateFilter = (type, filterName, value) => {
+    setFilters((prev) => ({
+      ...prev,
+      [type]: {
+        ...prev[type],
+        [filterName]: value,
+      },
+    }));
+    
+    // Réinitialiser la page à 1 lors du changement de filtre
+    const paginationKey = type === "advertisement" ? "advertisements" :
+                         type === "jobOffer" ? "jobOffers" :
+                         type === "businessOpportunity" ? "businessOpportunities" :
+                         type === "digitalProduct" ? "digitalProducts" : "socialEvents";
+    
+    setPagination(prev => ({
+      ...prev,
+      [paginationKey]: {
+        ...prev[paginationKey],
+        currentPage: 1
+      }
+    }));
+  };
+
+  // Fonction pour récupérer les données avec pagination backend
   const fetchData = async () => {
     setIsLoading(true);
     try {
@@ -113,123 +187,90 @@ export default function AdvertisementValidation() {
         socialEventsRes,
         digitalProductsRes,
       ] = await Promise.all([
-        axios.get("/api/admin/advertisements"),
-        axios.get("/api/admin/job-offers"),
-        axios.get("/api/admin/business-opportunities"),
-        axios.get("/api/admin/social-events"),
-        axios.get("/api/admin/digital-products"),
+        axios.get(`/api/admin/advertisements?page=${pagination.advertisements.currentPage}&per_page=${pagination.advertisements.itemsPerPage}&statut=${filters.advertisements.statut}&etat=${filters.advertisements.etat}`),
+        axios.get(`/api/admin/job-offers?page=${pagination.jobOffers.currentPage}&per_page=${pagination.jobOffers.itemsPerPage}&statut=${filters.jobOffers.statut}&etat=${filters.jobOffers.etat}`),
+        axios.get(`/api/admin/business-opportunities?page=${pagination.businessOpportunities.currentPage}&per_page=${pagination.businessOpportunities.itemsPerPage}&statut=${filters.businessOpportunities.statut}&etat=${filters.businessOpportunities.etat}`),
+        axios.get(`/api/admin/social-events?page=${pagination.socialEvents.currentPage}&per_page=${pagination.socialEvents.itemsPerPage}&statut=${filters.socialEvents.statut}&etat=${filters.socialEvents.etat}`),
+        axios.get(`/api/admin/digital-products?page=${pagination.digitalProducts.currentPage}&per_page=${pagination.digitalProducts.itemsPerPage}&statut=${filters.digitalProducts.statut}&etat=${filters.digitalProducts.etat}`),
       ]);
 
-      // S'assurer que toutes les propriétés sont des tableaux
+      // Mettre à jour les données et la pagination
       setAllItems({
-        advertisements: Array.isArray(advertisementsRes.data)
-          ? advertisementsRes.data
-          : [],
-        jobOffers: Array.isArray(jobOffersRes.data) ? jobOffersRes.data : [],
-        businessOpportunities: Array.isArray(businessOpportunitiesRes.data)
-          ? businessOpportunitiesRes.data
-          : [],
-        socialEvents: Array.isArray(socialEventsRes.data)
-          ? socialEventsRes.data
-          : [],
-        digitalProducts: Array.isArray(digitalProductsRes.data.data)
-          ? digitalProductsRes.data.data
-          : [],
+        advertisements: advertisementsRes.data.advertisements,
+        jobOffers: jobOffersRes.data.jobOffers,
+        businessOpportunities: businessOpportunitiesRes.data.businessOpportunities,
+        socialEvents: socialEventsRes.data.socialEvents,
+        digitalProducts: digitalProductsRes.data.digitalProducts,
       });
+
+      // Mettre à jour les états de pagination
+      setPagination(prev => ({
+        ...prev,
+        advertisements: {
+          ...prev.advertisements,
+          currentPage: advertisementsRes.data.advertisements.current_page,
+          totalPages: advertisementsRes.data.advertisements.last_page,
+          total: advertisementsRes.data.advertisements.total,
+        },
+        jobOffers: {
+          ...prev.jobOffers,
+          currentPage: jobOffersRes.data.jobOffers.current_page,
+          totalPages: jobOffersRes.data.jobOffers.last_page,
+          total: jobOffersRes.data.jobOffers.total,
+        },
+        businessOpportunities: {
+          ...prev.businessOpportunities,
+          currentPage: businessOpportunitiesRes.data.businessOpportunities.current_page,
+          totalPages: businessOpportunitiesRes.data.businessOpportunities.last_page,
+          total: businessOpportunitiesRes.data.businessOpportunities.total,
+        },
+        socialEvents: {
+          ...prev.socialEvents,
+          currentPage: socialEventsRes.data.socialEvents.current_page,
+          totalPages: socialEventsRes.data.socialEvents.last_page,
+          total: socialEventsRes.data.socialEvents.total,
+        },
+        digitalProducts: {
+          ...prev.digitalProducts,
+          currentPage: digitalProductsRes.data.digitalProducts.current_page,
+          totalPages: digitalProductsRes.data.digitalProducts.last_page,
+          total: digitalProductsRes.data.digitalProducts.total,
+        },
+      }));
     } catch (error) {
       console.error("Erreur lors du chargement des données:", error);
+      toast.error("Erreur lors du chargement des données");
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Fonction pour récupérer toutes les données et afficher un toast de confirmation
-  const fetchAllItems = () => {
-    fetchData();
-    toast.info("Données actualisées");
+  // Fonction pour obtenir les éléments à afficher (données déjà paginées par le backend)
+  const getItemsForType = (type) => {
+    switch (type) {
+      case "advertisement":
+        return allItems.advertisements?.data || [];
+      case "jobOffer":
+        return allItems.jobOffers?.data || [];
+      case "businessOpportunity":
+        return allItems.businessOpportunities?.data || [];
+      case "socialEvent":
+        return allItems.socialEvents?.data || [];
+      case "digitalProduct":
+        return allItems.digitalProducts?.data || [];
+      default:
+        return [];
+    }
   };
 
-  // Fonction pour appliquer les filtres aux données
-  const applyFilters = () => {
-    const newFilteredItems = {
-      advertisements: filterItems(
-        allItems.advertisements,
-        filters.advertisements
-      ),
-      jobOffers: filterItems(allItems.jobOffers, filters.jobOffers),
-      businessOpportunities: filterItems(
-        allItems.businessOpportunities,
-        filters.businessOpportunities
-      ),
-      socialEvents: filterItems(allItems.socialEvents, filters.socialEvents),
-      digitalProducts: filterItems(
-        allItems.digitalProducts,
-        filters.digitalProducts
-      ),
-    };
-
-    setFilteredItems(newFilteredItems);
-  };
-
-  // Fonction pour filtrer les éléments selon les critères
-  const filterItems = (items, filter) => {
-    if (!Array.isArray(items)) return [];
-    return items.filter((item) => {
-      // Filtre par statut
-      if (filter.statut !== "all" && item.statut !== filter.statut) {
-        return false;
-      }
-
-      // Filtre par état
-      if (filter.etat !== "all" && item.etat !== filter.etat) {
-        return false;
-      }
-
-      return true;
-    });
-  };
-
-  // Fonction pour mettre à jour les filtres
-  const updateFilter = (type, filterName, value) => {
-    setFilters((prev) => ({
-      ...prev,
-      [type]: {
-        ...prev[type],
-        [filterName]: value,
-      },
-    }));
-
-    // Réinitialiser la pagination lors du changement de filtre
-    setPagination((prev) => ({
-      ...prev,
-      [type]: {
-        ...prev[type],
-        currentPage: 1,
-      },
-    }));
-  };
-
-  // Changer de page pour un type de publication
-  const changePage = (type, newPage) => {
-    // Convertir le type en clé de pagination
-    const paginationKey =
-      type === "advertisement"
-        ? "advertisements"
-        : type === "jobOffer"
-        ? "jobOffers"
-        : type === "businessOpportunity"
-        ? "businessOpportunities"
-        : type === "digitalProduct"
-        ? "digitalProducts"
-        : "socialEvents";
-
-    setPagination((prev) => ({
-      ...prev,
-      [paginationKey]: {
-        ...prev[paginationKey],
-        currentPage: newPage,
-      },
-    }));
+  // Fonction pour obtenir les informations de pagination pour un type
+  const getPaginationInfo = (type) => {
+    const paginationKey = type === "advertisement" ? "advertisements" :
+                         type === "jobOffer" ? "jobOffers" :
+                         type === "businessOpportunity" ? "businessOpportunities" :
+                         type === "digitalProduct" ? "digitalProducts" : "socialEvents";
+    
+    return pagination[paginationKey];
   };
 
   const openPreviewModal = (item, type) => {
@@ -619,91 +660,138 @@ export default function AdvertisementValidation() {
     }
   };
 
-  // Fonction pour paginer les éléments
-  const getPaginatedItems = (items, type) => {
-    // Convertir le type en clé de pagination
-    const paginationKey =
-      type === "advertisement"
-        ? "advertisements"
-        : type === "jobOffer"
-        ? "jobOffers"
-        : type === "businessOpportunity"
-        ? "businessOpportunities"
-        : type === "digitalProduct"
-        ? "digitalProducts"
-        : "socialEvents";
+  // Composant de pagination utilisant les informations du backend avec design moderne
+  const Pagination = ({ type }) => {
+    const paginationInfo = getPaginationInfo(type);
+    const { currentPage, totalPages, total } = paginationInfo;
 
-    const { currentPage, itemsPerPage } = pagination[paginationKey];
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    const endIndex = startIndex + itemsPerPage;
-    return items.slice(startIndex, endIndex);
-  };
+    // Afficher la pagination s'il y a des éléments
+    if (total === 0) return null;
 
-  // Composant de pagination
-  const Pagination = ({ items, type }) => {
-    // Convertir le type en clé de pagination
-    const paginationKey =
-      type === "advertisement"
-        ? "advertisements"
-        : type === "jobOffer"
-        ? "jobOffers"
-        : type === "businessOpportunity"
-        ? "businessOpportunities"
-        : type === "digitalProduct"
-        ? "digitalProducts"
-        : "socialEvents";
+    // Générer les pages à afficher (logique intelligente pour éviter trop de boutons)
+    const getPagesToShow = () => {
+      if (totalPages <= 7) {
+        return Array.from({ length: totalPages }, (_, i) => i + 1);
+      }
+      
+      if (currentPage <= 4) {
+        return [1, 2, 3, 4, 5, '...', totalPages];
+      }
+      
+      if (currentPage >= totalPages - 3) {
+        return [1, '...', totalPages - 4, totalPages - 3, totalPages - 2, totalPages - 1, totalPages];
+      }
+      
+      return [1, '...', currentPage - 1, currentPage, currentPage + 1, '...', totalPages];
+    };
 
-    const { currentPage, itemsPerPage } = pagination[paginationKey];
-    const totalPages = Math.ceil(items.length / itemsPerPage);
-
-    if (totalPages <= 1) return null;
+    const pagesToShow = getPagesToShow();
 
     return (
-      <div className="flex justify-center mt-6 space-x-2">
-        <button
-          onClick={() => changePage(type, currentPage - 1)}
-          disabled={currentPage === 1}
-          className={`px-3 py-1 rounded-md ${
-            currentPage === 1
-              ? "bg-gray-200 text-gray-500 cursor-not-allowed dark:bg-gray-700 dark:text-gray-400"
-              : "bg-primary-100 text-primary-700 hover:bg-primary-200 dark:bg-primary-900/30 dark:text-primary-300 dark:hover:bg-primary-800/50"
-          }`}
-        >
-          Précédent
-        </button>
-
-        <div className="flex items-center space-x-1">
-          {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-            <button
-              key={page}
-              onClick={() => changePage(type, page)}
-              className={`px-3 py-1 rounded-md ${
-                currentPage === page
-                  ? "bg-primary-600 text-white dark:bg-primary-700"
-                  : "bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
-              }`}
-            >
-              {page}
-            </button>
-          ))}
+      <div className="flex flex-col sm:flex-row justify-between items-center mt-6 gap-4 bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm border border-gray-200 dark:border-gray-700">
+        {/* Informations sur la pagination */}
+        <div className="text-sm text-gray-600 dark:text-gray-400 order-2 sm:order-1">
+          <span className="font-medium text-gray-900 dark:text-gray-100">
+            {total}
+          </span>
+          <span className="ml-1">élément{total > 1 ? 's' : ''}</span>
+          <span className="mx-2">•</span>
+          <span>Page</span>
+          <span className="font-medium text-gray-900 dark:text-gray-100 ml-1">
+            {currentPage}
+          </span>
+          <span className="mx-1">sur</span>
+          <span className="font-medium text-gray-900 dark:text-gray-100">
+            {totalPages}
+          </span>
         </div>
 
-        <button
-          onClick={() => changePage(type, currentPage + 1)}
-          disabled={currentPage === totalPages}
-          className={`px-3 py-1 rounded-md ${
-            currentPage === totalPages
-              ? "bg-gray-200 text-gray-500 cursor-not-allowed dark:bg-gray-700 dark:text-gray-400"
-              : "bg-primary-100 text-primary-700 hover:bg-primary-200 dark:bg-primary-900/30 dark:text-primary-300 dark:hover:bg-primary-800/50"
-          }`}
-        >
-          Suivant
-        </button>
+        {/* Contrôles de pagination */}
+        <div className="flex items-center space-x-1 order-1 sm:order-2">
+          {/* Bouton Précédent */}
+          <button
+            onClick={() => changePage(type, currentPage - 1)}
+            disabled={currentPage === 1}
+            className={`relative inline-flex items-center px-3 py-2 text-sm font-medium rounded-md transition-all duration-200 ${
+              currentPage === 1
+                ? "bg-gray-100 text-gray-400 cursor-not-allowed dark:bg-gray-700 dark:text-gray-500"
+                : "bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-600"
+            }`}
+          >
+            <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+            <span className="hidden sm:inline">Précédent</span>
+            <span className="sm:hidden">Prev</span>
+          </button>
+
+          {/* Séparateur */}
+          <div className="hidden sm:block w-px h-6 bg-gray-300 dark:bg-gray-600 mx-2" />
+
+          {/* Numéros de page */}
+          <div className="flex items-center space-x-1">
+            {pagesToShow.map((page, index) => (
+              page === '...' ? (
+                <span key={`ellipsis-${index}`} className="px-3 py-2 text-sm text-gray-500 dark:text-gray-400">
+                  ...
+                </span>
+              ) : (
+                <button
+                  key={page}
+                  onClick={() => changePage(type, page)}
+                  className={`relative inline-flex items-center px-3 py-2 text-sm font-medium rounded-md transition-all duration-200 ${
+                    currentPage === page
+                      ? "bg-primary-600 text-white shadow-sm ring-2 ring-primary-500 ring-offset-2 dark:bg-primary-700 dark:ring-primary-600"
+                      : "bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-600"
+                  }`}
+                >
+                  {page}
+                </button>
+              )
+            ))}
+          </div>
+
+          {/* Séparateur */}
+          <div className="hidden sm:block w-px h-6 bg-gray-300 dark:bg-gray-600 mx-2" />
+
+          {/* Bouton Suivant */}
+          <button
+            onClick={() => changePage(type, currentPage + 1)}
+            disabled={currentPage >= totalPages}
+            className={`relative inline-flex items-center px-3 py-2 text-sm font-medium rounded-md transition-all duration-200 ${
+              currentPage >= totalPages
+                ? "bg-gray-100 text-gray-400 cursor-not-allowed dark:bg-gray-700 dark:text-gray-500"
+                : "bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-600"
+            }`}
+          >
+            <span className="hidden sm:inline">Suivant</span>
+            <span className="sm:hidden">Next</span>
+            <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+          </button>
+        </div>
+
+        {/* Sélecteur de page rapide (mobile uniquement) */}
+        <div className="flex items-center space-x-2 order-3 sm:hidden">
+          <label className="text-xs text-gray-600 dark:text-gray-400">Aller à:</label>
+          <select
+            value={currentPage}
+            onChange={(e) => changePage(type, parseInt(e.target.value))}
+            className="text-sm border border-gray-300 rounded-md px-2 py-1 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300"
+          >
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+              <option key={page} value={page}>{page}</option>
+            ))}
+          </select>
+        </div>
       </div>
     );
   };
 
-  const renderItemList = (items, type) => {
+  const renderItemList = (type) => {
+    const items = getItemsForType(type);
+    
     if (items.length === 0) {
       return (
         <div className="text-center py-16 px-4">
@@ -720,13 +808,10 @@ export default function AdvertisementValidation() {
       );
     }
 
-    // Obtenir les éléments paginés
-    const paginatedItems = getPaginatedItems(items, type);
-
     return (
       <>
         <div className="space-y-4">
-          {paginatedItems.map((item) => (
+          {items.map((item) => (
             <div
               key={item.id}
               className={`bg-white dark:bg-gray-800 shadow-sm hover:shadow-md transition-all duration-200 rounded-xl p-5 border-l-4 ${
@@ -880,7 +965,6 @@ export default function AdvertisementValidation() {
             </div>
           ))}
         </div>
-        <Pagination items={items} type={type} />
       </>
     );
   };
@@ -992,22 +1076,23 @@ export default function AdvertisementValidation() {
     }
   };
 
-  // Composant pour les filtres
+  // Composant de filtres pour chaque type
   const FilterControls = ({ type, typeLabel }) => {
-    const currentFilters = filters[type];
+    const currentType = type === "advertisements" ? "advertisement" :
+                         type === "jobOffers" ? "jobOffer" :
+                         type === "businessOpportunities" ? "businessOpportunity" :
+                         type === "digitalProducts" ? "digitalProduct" : "socialEvent";
+    const itemsCount = getItemsForType(currentType).length;
 
     return (
-      <div className="flex flex-wrap gap-4 mb-4">
-        <div className="flex items-center">
-          <label
-            htmlFor={`statut-${type}`}
-            className="mr-2 text-sm font-medium text-gray-700 dark:text-gray-300"
-          >
-            Statut:
+      <div className="flex flex-wrap gap-4 mb-6">
+        {/* Filtre par statut */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            Statut
           </label>
           <select
-            id={`statut-${type}`}
-            value={currentFilters.statut}
+            value={filters[type].statut}
             onChange={(e) => updateFilter(type, "statut", e.target.value)}
             className="bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-2"
           >
@@ -1018,16 +1103,13 @@ export default function AdvertisementValidation() {
           </select>
         </div>
 
-        <div className="flex items-center">
-          <label
-            htmlFor={`etat-${type}`}
-            className="mr-2 text-sm font-medium text-gray-700 dark:text-gray-300"
-          >
-            État:
+        {/* Filtre par état (si applicable) */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            État
           </label>
           <select
-            id={`etat-${type}`}
-            value={currentFilters.etat}
+            value={filters[type].etat}
             onChange={(e) => updateFilter(type, "etat", e.target.value)}
             className="bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-2"
           >
@@ -1038,9 +1120,7 @@ export default function AdvertisementValidation() {
         </div>
 
         <div className="ml-auto text-sm text-gray-500 dark:text-gray-400">
-          {filteredItems[type].length} {typeLabel}
-          {filteredItems[type].length > 1 ? "s" : ""} affiché
-          {filteredItems[type].length > 1 ? "s" : ""}
+          {itemsCount} {typeLabel}{itemsCount > 1 ? "s" : ""} affiché{itemsCount > 1 ? "s" : ""}
         </div>
       </div>
     );
@@ -1385,10 +1465,8 @@ export default function AdvertisementValidation() {
               ) : (
                 <>
                   <FilterControls type="advertisements" typeLabel="publicité" />
-                  {renderItemList(
-                    filteredItems.advertisements,
-                    "advertisement"
-                  )}
+                  {renderItemList("advertisement")}
+                  <Pagination type="advertisement" />
                 </>
               )}
             </Tab.Panel>
@@ -1400,7 +1478,8 @@ export default function AdvertisementValidation() {
               ) : (
                 <>
                   <FilterControls type="jobOffers" typeLabel="offre d'emploi" />
-                  {renderItemList(filteredItems.jobOffers, "jobOffer")}
+                  {renderItemList("jobOffer")}
+                  <Pagination type="jobOffer" />
                 </>
               )}
             </Tab.Panel>
@@ -1415,10 +1494,8 @@ export default function AdvertisementValidation() {
                     type="businessOpportunities"
                     typeLabel="opportunité d'affaire"
                   />
-                  {renderItemList(
-                    filteredItems.businessOpportunities,
-                    "businessOpportunity"
-                  )}
+                  {renderItemList("businessOpportunity")}
+                  <Pagination type="businessOpportunity" />
                 </>
               )}
             </Tab.Panel>
@@ -1433,10 +1510,8 @@ export default function AdvertisementValidation() {
                     type="digitalProducts"
                     typeLabel="produit numérique"
                   />
-                  {renderItemList(
-                    filteredItems.digitalProducts,
-                    "digitalProduct"
-                  )}
+                  {renderItemList("digitalProduct")}
+                  <Pagination type="digitalProduct" />
                 </>
               )}
             </Tab.Panel>
@@ -1451,7 +1526,8 @@ export default function AdvertisementValidation() {
                     type="socialEvents"
                     typeLabel="statut social"
                   />
-                  {renderItemList(filteredItems.socialEvents, "socialEvent")}
+                  {renderItemList("socialEvent")}
+                  <Pagination type="socialEvent" />
                 </>
               )}
             </Tab.Panel>
