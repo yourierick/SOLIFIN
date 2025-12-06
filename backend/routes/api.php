@@ -267,6 +267,11 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
 
     // Routes pour la gestion des pages et publications et files d'actualités
     Route::get('/my-page', [App\Http\Controllers\PageController::class, 'getMyPage']);
+    Route::get('/my-page/advertisements', [App\Http\Controllers\PageController::class, 'getAdvertisements']);
+    Route::get('/my-page/job-offers', [App\Http\Controllers\PageController::class, 'getJobOffers']);
+    Route::get('/my-page/business-opportunities', [App\Http\Controllers\PageController::class, 'getBusinessOpportunities']);
+    Route::get('/my-page/digital-products', [App\Http\Controllers\PageController::class, 'getDigitalProducts']);
+    
     Route::post('/my-page/update-cover-photo', [App\Http\Controllers\PageController::class, 'updateCoverPhoto']);
     Route::get('/feed', [App\Http\Controllers\FeedController::class, 'index']);
     

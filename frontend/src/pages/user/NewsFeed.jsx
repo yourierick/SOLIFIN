@@ -13,7 +13,6 @@ import {
   ChevronDownIcon,
   ChatBubbleLeftEllipsisIcon,
   HeartIcon,
-  ShareIcon,
   EllipsisHorizontalIcon,
   XMarkIcon,
   ArrowPathIcon,
@@ -33,6 +32,29 @@ import { HeartIcon as HeartIconSolid } from "@heroicons/react/24/solid";
 import PostCard from "./components/PostCard";
 import PostDetailModal from "./components/PostDetailModal";
 import LoadingSpinner from "../../components/LoadingSpinner";
+import { 
+  Table, 
+  TableBody, 
+  TableCell, 
+  TableContainer, 
+  TableHead, 
+  TableRow, 
+  Paper,
+  TablePagination,
+  Box,
+  Typography,
+  Chip,
+  IconButton,
+  Tooltip,
+  LinearProgress
+} from '@mui/material';
+import { 
+  Visibility as VisibilityIcon,
+  Favorite as FavoriteIcon,
+  FavoriteBorder as FavoriteBorderIcon,
+  Comment as CommentIcon,
+  Share as ShareIcon
+} from '@mui/icons-material';
 
 function classNames(...classes) {
   return classes.filter(Boolean).join(" ");
@@ -49,54 +71,51 @@ export default function NewsFeed({ initialActiveTab = 0, showTabs = true }) {
   const [activeTab, setActiveTab] = useState(adjustedInitialActiveTab);
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false); // État pour le chargement infini
   const [error, setError] = useState(null);
   const [hasMore, setHasMore] = useState(true);
   const [lastId, setLastId] = useState(0);
+
+  // États pour la pagination des offres d'emploi (Material-UI)
+  const [jobOffersPage, setJobOffersPage] = useState(0);
+  const [jobOffersRowsPerPage, setJobOffersRowsPerPage] = useState(10);
+  const [jobOffersTotal, setJobOffersTotal] = useState(0);
+  const [loadingJobOffers, setLoadingJobOffers] = useState(false);
+
+  // États pour la pagination des opportunités d'affaires (Material-UI)
+  const [oppoPage, setOppoPage] = useState(0);
+  const [oppoRowsPerPage, setOppoRowsPerPage] = useState(10);
+  const [oppoTotal, setOppoTotal] = useState(0);
+  const [loadingOppo, setLoadingOppo] = useState(false);
 
   const [selectedTab, setSelectedTab] = useState(0);
   const [searchQuery, setSearchQuery] = useState("");
   const [jobFilter, setJobFilter] = useState("all"); // 'all', 'active', 'recent', 'expired'
 
   // États pour les filtres des offres d'emploi
-  const [countryFilter, setCountryFilter] = useState("");
-  const [sectorFilter, setSectorFilter] = useState("");
-  const [cityFilter, setCityFilter] = useState("");
   const [postTypeFilter, setPostTypeFilter] = useState(""); // "offre_emploi" ou "appel_manifestation_interet"
   const [contractTypeFilter, setContractTypeFilter] = useState("");
 
   // États pour les filtres des opportunités d'affaires
-  const [oppoCountryFilter, setOppoCountryFilter] = useState("");
-  const [oppoSectorFilter, setOppoSectorFilter] = useState("");
-  const [oppoCityFilter, setOppoCityFilter] = useState("");
   const [oppoTypeFilter, setOppoTypeFilter] = useState(""); // "appel_projet", "partenariat", "appel_offre"
+  const [oppoDateFilter, setOppoDateFilter] = useState(""); // Filtre sur date_limite
 
   // États pour les filtres du fil d'actualités
   const [showNewsFilters, setShowNewsFilters] = useState(false);
-  const [newsCountryFilter, setNewsCountryFilter] = useState("");
-  const [newsCityFilter, setNewsCityFilter] = useState("");
   const [newsTypeFilter, setNewsTypeFilter] = useState(""); // "publicite" ou "annonce"
   const [newsCategoryFilter, setNewsCategoryFilter] = useState(""); // "produit" ou "service"
-  const [newsSubCategoryFilter, setNewsSubCategoryFilter] = useState("");
   const [newsDeliveryFilter, setNewsDeliveryFilter] = useState(""); // "OUI" ou "NON"
   const [newsStatusFilter, setNewsStatusFilter] = useState("all"); // "all", "disponible", "termine"
 
   // États pour les listes de valeurs uniques pour les filtres d'offres d'emploi
-  const [uniqueCountries, setUniqueCountries] = useState([]);
-  const [uniqueSectors, setUniqueSectors] = useState([]);
-  const [uniqueCities, setUniqueCities] = useState([]);
   const [uniquePostTypes, setUniquePostTypes] = useState([]);
   const [uniqueContractTypes, setUniqueContractTypes] = useState([]);
 
   // États pour les listes de valeurs uniques pour les filtres d'opportunités d'affaires
-  const [uniqueOppoCountries, setUniqueOppoCountries] = useState([]);
-  const [uniqueOppoSectors, setUniqueOppoSectors] = useState([]);
-  const [uniqueOppoCities, setUniqueOppoCities] = useState([]);
+  // (plus besoin de pays, secteurs, villes - couverts par la recherche)
 
   // États pour les listes de valeurs uniques pour les filtres du fil d'actualités
-  const [uniqueNewsCountries, setUniqueNewsCountries] = useState([]);
-  const [uniqueNewsCities, setUniqueNewsCities] = useState([]);
   const [uniqueNewsCategories, setUniqueNewsCategories] = useState([]);
-  const [uniqueNewsSubCategories, setUniqueNewsSubCategories] = useState([]);
   const [uniqueOppoTypes, setUniqueOppoTypes] = useState([]);
 
   // État pour contrôler l'affichage du panneau de filtres
@@ -123,51 +142,15 @@ export default function NewsFeed({ initialActiveTab = 0, showTabs = true }) {
 
     // Extraire les valeurs uniques pour les offres d'emploi
     if (jobPosts.length > 0) {
-      // Extraire les pays uniques
-      const countries = [
-        ...new Set(jobPosts.map((post) => post.pays).filter(Boolean)),
-      ];
-      setUniqueCountries(countries);
-
-      // Extraire les secteurs uniques
-      const sectors = [
-        ...new Set(jobPosts.map((post) => post.sector).filter(Boolean)),
-      ];
-      setUniqueSectors(sectors);
-
-      // Extraire les villes uniques
-      const cities = [
-        ...new Set(jobPosts.map((post) => post.ville).filter(Boolean)),
-      ];
-      setUniqueCities(cities);
-
       // Extraire les types de contrat uniques
       const contractTypes = [
-        ...new Set(jobPosts.map((post) => post.type_contrat).filter(Boolean)),
+        "CDI", "CDD", "Stage", "Freelance", "Temps partiel", "Non défini"
       ];
       setUniqueContractTypes(contractTypes);
     }
 
     // Extraire les valeurs uniques pour les opportunités d'affaires
     if (oppoPosts.length > 0) {
-      // Extraire les pays uniques
-      const oppoCountries = [
-        ...new Set(oppoPosts.map((post) => post.pays).filter(Boolean)),
-      ];
-      setUniqueOppoCountries(oppoCountries);
-
-      // Extraire les secteurs uniques
-      const oppoSectors = [
-        ...new Set(oppoPosts.map((post) => post.secteur).filter(Boolean)),
-      ];
-      setUniqueOppoSectors(oppoSectors);
-
-      // Extraire les villes uniques
-      const oppoCities = [
-        ...new Set(oppoPosts.map((post) => post.ville).filter(Boolean)),
-      ];
-      setUniqueOppoCities(oppoCities);
-
       // Extraire les types d'opportunités uniques
       const oppoTypes = [
         ...new Set(oppoPosts.map((post) => post.post_type).filter(Boolean)),
@@ -177,41 +160,20 @@ export default function NewsFeed({ initialActiveTab = 0, showTabs = true }) {
 
     // Extraire les valeurs uniques pour le fil d'actualités
     if (newsPosts.length > 0) {
-      // Extraire les pays uniques
-      const newsCountries = [
-        ...new Set(newsPosts.map((post) => post.pays).filter(Boolean)),
-      ];
-      setUniqueNewsCountries(newsCountries);
-
-      // Extraire les villes uniques
-      const newsCities = [
-        ...new Set(newsPosts.map((post) => post.ville).filter(Boolean)),
-      ];
-      setUniqueNewsCities(newsCities);
-
       // Extraire les catégories uniques
       const newsCategories = [
-        ...new Set(newsPosts.map((post) => post.categorie).filter(Boolean)),
-      ];
-      setUniqueNewsCategories(newsCategories);
-
-      // Extraire les sous-catégories uniques
-      const newsSubCategories = [
         ...new Set(
           newsPosts
-            .map((post) => post.sous_categorie || post.autre_sous_categorie)
+            .map((post) => post.categorie || post.autre_categorie)
             .filter(Boolean)
         ),
       ];
-      setUniqueNewsSubCategories(newsSubCategories);
+      setUniqueNewsCategories(newsCategories);
     }
   }, []);
 
   // Fonction pour réinitialiser tous les filtres
   const resetFilters = () => {
-    setCountryFilter("");
-    setSectorFilter("");
-    setCityFilter("");
     setPostTypeFilter("");
     setContractTypeFilter("");
     setSearchQuery("");
@@ -220,36 +182,189 @@ export default function NewsFeed({ initialActiveTab = 0, showTabs = true }) {
 
   // Fonction pour réinitialiser les filtres des opportunités d'affaires
   const resetOppoFilters = () => {
-    setOppoCountryFilter("");
-    setOppoSectorFilter("");
-    setOppoCityFilter("");
     setOppoTypeFilter("");
+    setOppoDateFilter("");
     setSearchQuery("");
     setJobFilter("all");
   };
 
   // Fonction pour réinitialiser les filtres du fil d'actualités
   const resetNewsFilters = () => {
-    setNewsCountryFilter("");
-    setNewsCityFilter("");
     setNewsTypeFilter("");
     setNewsCategoryFilter("");
-    setNewsSubCategoryFilter("");
     setNewsDeliveryFilter("");
     setNewsStatusFilter("all");
     setSearchQuery("");
   };
 
-  // Fonction pour charger les posts sans boucle infinie
+  // Fonction pour charger les offres d'emploi avec pagination backend
+  const fetchJobOffersWithPagination = useCallback(async (page, rowsPerPage) => {
+    try {
+      setLoadingJobOffers(true);
+      
+      const config = {
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+        },
+        params: {
+          type: 'offres-emploi',
+          page: page + 1, // Material-UI utilise 0-based, backend 1-based
+          limit: rowsPerPage,
+          search: searchQuery || undefined,
+        },
+        timeout: 10000,
+      };
+
+      // Ajouter les filtres des offres d'emploi
+      if (postTypeFilter) config.params.type_offre = postTypeFilter;
+      if (contractTypeFilter) config.params.type_contrat = contractTypeFilter;
+      if (jobFilter !== "all") config.params.statut = jobFilter;
+
+      const response = await axios.get('/api/feed', config);
+      
+      // Mettre à jour les publications avec les offres d'emploi paginées
+      const jobOffers = response.data.posts || [];
+      
+      // Filtrer les posts existants pour ne garder que les offres d'emploi
+      setPosts(prevPosts => {
+        const otherPosts = prevPosts.filter(post => post.type !== 'offres-emploi');
+        return [...otherPosts, ...jobOffers];
+      });
+      
+      setJobOffersTotal(response.data.total || jobOffers.length);
+     
+    } catch (err) {
+      console.error("Erreur lors du chargement des offres d'emploi:", err);
+      setError("Erreur lors du chargement des offres d'emploi");
+    } finally {
+      setLoadingJobOffers(false);
+    }
+  }, [searchQuery, postTypeFilter, contractTypeFilter, jobFilter]);
+
+  // Effet optimisé pour les offres d'emploi (un seul effet pour tout gérer)
+  useEffect(() => {
+    if (activeTab === 1) { // Onglet offres d'emploi
+      fetchJobOffersWithPagination(jobOffersPage, jobOffersRowsPerPage);
+    }
+  }, [jobOffersPage, jobOffersRowsPerPage, activeTab, fetchJobOffersWithPagination]);
+
+  // Effet pour réinitialiser la page quand les filtres changent (sans appeler l'API)
+  const filterDependencies = [searchQuery, postTypeFilter, contractTypeFilter, jobFilter];
+  const prevFilterRef = useRef(filterDependencies);
+  
+  useEffect(() => {
+    if (activeTab === 1) {
+      // Vérifier si les filtres ont changé
+      const filtersChanged = filterDependencies.some((dep, index) => dep !== prevFilterRef.current[index]);
+      
+      if (filtersChanged) {
+        setJobOffersPage(0); // Réinitialiser la page seulement
+        prevFilterRef.current = filterDependencies;
+      }
+    }
+  }, filterDependencies.concat([activeTab]));
+
+  // Fonctions pour gérer la pagination des offres d'emploi
+  const handleJobOffersPageChange = (event, newPage) => {
+    setJobOffersPage(newPage);
+  };
+
+  const handleJobOffersRowsPerPageChange = (event) => {
+    setJobOffersRowsPerPage(parseInt(event.target.value, 10));
+    setJobOffersPage(0); // Revenir à la première page
+  };
+
+  // Fonction pour charger les opportunités d'affaires avec pagination backend
+  const fetchOppoWithPagination = useCallback(async (page, rowsPerPage) => {
+    try {
+      setLoadingOppo(true);
+      
+      const config = {
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+        },
+        params: {
+          type: 'opportunites-affaires',
+          page: page + 1, // Material-UI utilise 0-based, backend 1-based
+          limit: rowsPerPage,
+          search: searchQuery || undefined,
+        },
+        timeout: 10000,
+      };
+
+      // Ajouter les filtres des opportunités d'affaires
+      if (oppoTypeFilter) config.params.type_opportunite = oppoTypeFilter;
+      if (oppoDateFilter) {
+        config.params.date_limite = oppoDateFilter;
+      }
+      if (jobFilter !== "all") config.params.statut = jobFilter;
+
+      const response = await axios.get('/api/feed', config);
+      
+      // Mettre à jour les publications avec les opportunités paginées
+      const oppoPosts = response.data.posts || [];
+      
+      // Filtrer les posts existants pour ne garder que les opportunités
+      setPosts(prevPosts => {
+        const otherPosts = prevPosts.filter(post => post.type !== 'opportunites-affaires');
+        return [...otherPosts, ...oppoPosts];
+      });
+      
+      setOppoTotal(response.data.total || oppoPosts.length);
+     
+    } catch (err) {
+      console.error("Erreur lors du chargement des opportunités d'affaires:", err);
+      setError("Erreur lors du chargement des opportunités d'affaires");
+    } finally {
+      setLoadingOppo(false);
+    }
+  }, [searchQuery, oppoTypeFilter, oppoDateFilter, jobFilter]);
+
+  // Effet optimisé pour les opportunités d'affaires (un seul effet pour tout gérer)
+  useEffect(() => {
+    if (activeTab === 2) { // Onglet opportunités d'affaires
+      fetchOppoWithPagination(oppoPage, oppoRowsPerPage);
+    }
+  }, [oppoPage, oppoRowsPerPage, activeTab, fetchOppoWithPagination]);
+
+  // Effet pour réinitialiser la page quand les filtres d'opportunités changent (sans appeler l'API)
+  const oppoFilterDependencies = [searchQuery, oppoTypeFilter, oppoDateFilter, jobFilter];
+  const prevOppoFilterRef = useRef(oppoFilterDependencies);
+  
+  useEffect(() => {
+    if (activeTab === 2) {
+      // Vérifier si les filtres ont changé
+      const filtersChanged = oppoFilterDependencies.some((dep, index) => dep !== prevOppoFilterRef.current[index]);
+      
+      if (filtersChanged) {
+        setOppoPage(0); // Réinitialiser la page seulement
+        prevOppoFilterRef.current = oppoFilterDependencies;
+      }
+    }
+  }, oppoFilterDependencies.concat([activeTab]));
+
+  // Fonctions pour gérer la pagination des opportunités d'affaires
+  const handleOppoPageChange = (event, newPage) => {
+    setOppoPage(newPage);
+  };
+
+  const handleOppoRowsPerPageChange = (event) => {
+    setOppoRowsPerPage(parseInt(event.target.value, 10));
+    setOppoPage(0); // Revenir à la première page
+  };
   const fetchPosts = useCallback(
     async (reset = false, retryCount = 0) => {
       try {
         if (!hasMore && !reset) return;
 
-        // Seulement afficher le loading au premier essai
-        if (retryCount === 0) {
+        // Utiliser loadingMore pour le chargement infini, loading pour le chargement initial
+        if (reset) {
           setLoading(true);
           setError(null);
+        } else {
+          setLoadingMore(true);
         }
 
         // Configuration pour la requête
@@ -264,38 +379,28 @@ export default function NewsFeed({ initialActiveTab = 0, showTabs = true }) {
             limit: limit,
             search: searchQuery || undefined,
           },
-          // Augmenter le timeout pour permettre au serveur de répondre
-          timeout: 15000,
+          // Timeout plus court pour une meilleure réactivité
+          timeout: 10000,
         };
 
         // Ajouter les paramètres de filtre en fonction de l'onglet actif
         if (activeTab === 0) {
           // Publicités
-          if (newsCountryFilter) config.params.pays = newsCountryFilter;
-          if (newsCityFilter) config.params.ville = newsCityFilter;
           if (newsTypeFilter) config.params.type_publication = newsTypeFilter;
           if (newsCategoryFilter) config.params.categorie = newsCategoryFilter;
-          if (newsSubCategoryFilter)
-            config.params.sous_categorie = newsSubCategoryFilter;
           if (newsDeliveryFilter)
             config.params.besoin_livreurs = newsDeliveryFilter;
           if (newsStatusFilter !== "all")
             config.params.statut = newsStatusFilter;
         } else if (activeTab === 1) {
           // Offres d'emploi
-          if (countryFilter) config.params.pays = countryFilter;
-          if (sectorFilter) config.params.secteur = sectorFilter;
-          if (cityFilter) config.params.ville = cityFilter;
           if (postTypeFilter) config.params.type_offre = postTypeFilter;
-          if (contractTypeFilter)
-            config.params.type_contrat = contractTypeFilter;
+          if (contractTypeFilter) config.params.type_contrat = contractTypeFilter;
           if (jobFilter !== "all") config.params.statut = jobFilter;
         } else if (activeTab === 2) {
           // Opportunités d'affaires
-          if (oppoCountryFilter) config.params.pays = oppoCountryFilter;
-          if (oppoSectorFilter) config.params.secteur = oppoSectorFilter;
-          if (oppoCityFilter) config.params.ville = oppoCityFilter;
           if (oppoTypeFilter) config.params.type_opportunite = oppoTypeFilter;
+          if (oppoDateFilter) config.params.date_limite = oppoDateFilter;
         }
 
         const response = await axios.get("/api/feed", config);
@@ -336,6 +441,7 @@ export default function NewsFeed({ initialActiveTab = 0, showTabs = true }) {
 
         setHasMore(response.data.has_more);
         setLoading(false);
+        setLoadingMore(false); // Réinitialiser le chargement infini
       } catch (err) {
         console.error("Erreur lors du chargement des publications:", err);
 
@@ -352,7 +458,6 @@ export default function NewsFeed({ initialActiveTab = 0, showTabs = true }) {
         // Mécanisme de retry limité (maximum 2 tentatives et pas de retry pour les erreurs de ressources)
         // Pour les erreurs de timeout, on fait quand même une tentative mais avec un délai plus long
         if (retryCount < 2 && (!isResourceError || isTimeoutError)) {
-          console.log(`Tentative de rechargement ${retryCount + 1}/2...`);
           // Utiliser un délai plus long entre les tentatives
           setTimeout(() => {
             fetchPosts(reset, retryCount + 1);
@@ -386,6 +491,7 @@ export default function NewsFeed({ initialActiveTab = 0, showTabs = true }) {
           setError("Une erreur est survenue. Veuillez réessayer plus tard.");
         }
         setLoading(false);
+        setLoadingMore(false); // Réinitialiser le chargement infini en cas d'erreur
       }
     },
     [
@@ -397,25 +503,17 @@ export default function NewsFeed({ initialActiveTab = 0, showTabs = true }) {
       extractUniqueValues,
       searchQuery,
       // Filtres pour le fil d'actualités
-      newsCountryFilter,
-      newsCityFilter,
       newsTypeFilter,
       newsCategoryFilter,
-      newsSubCategoryFilter,
       newsDeliveryFilter,
       newsStatusFilter,
       // Filtres pour les offres d'emploi
-      countryFilter,
-      sectorFilter,
-      cityFilter,
       postTypeFilter,
       contractTypeFilter,
       jobFilter,
       // Filtres pour les opportunités d'affaires
-      oppoCountryFilter,
-      oppoSectorFilter,
-      oppoCityFilter,
       oppoTypeFilter,
+      oppoDateFilter,
     ]
   );
 
@@ -528,18 +626,27 @@ export default function NewsFeed({ initialActiveTab = 0, showTabs = true }) {
   // Configuration de l'intersection observer pour le défilement infini
   const lastPostElementRef = useCallback(
     (node) => {
-      if (loading) return;
+      if (loading || loadingMore) return; // Bloquer si déjà en chargement
       if (observer.current) observer.current.disconnect();
 
-      observer.current = new IntersectionObserver((entries) => {
-        if (entries[0].isIntersecting && hasMore) {
-          fetchPosts();
+      observer.current = new IntersectionObserver(
+        (entries) => {
+          // Se déclencher quand l'élément est visible à 50% (plus tôt pour un chargement plus fluide)
+          if (entries[0].isIntersecting && hasMore) {
+            fetchPosts();
+          }
+        },
+        {
+          // Se déclencher plus tôt pour un chargement plus fluide
+          threshold: 0.5,
+          // Marge pour déclencher avant que l'utilisateur n'arrive complètement en bas
+          rootMargin: '100px',
         }
-      });
+      );
 
       if (node) observer.current.observe(node);
     },
-    [loading, hasMore, fetchPosts]
+    [loading, loadingMore, hasMore, fetchPosts]
   );
 
   // Gérer l'action "J'aime"
@@ -669,7 +776,6 @@ export default function NewsFeed({ initialActiveTab = 0, showTabs = true }) {
 
   // Gérer le partage d'un post
   const handleShare = async (type, postId, platform) => {
-    console.log(type, postId, platform);
     try {
       const response = await axios.post(`/api/${type}/${postId}/share`, {
         platform,
@@ -776,84 +882,83 @@ export default function NewsFeed({ initialActiveTab = 0, showTabs = true }) {
   };
 
   return (
-    <div className="w-full max-w-full lg:max-w-6xl mx-auto flex-grow transition-all duration-300">
-      {/* Onglets de navigation */}
-      <Tab.Group
-        selectedIndex={activeTab}
-        onChange={(index) => {
-          // Mettre à jour l'onglet actif
-          setActiveTab(index);
+    <div className={`min-h-screen transition-colors duration-300 ${
+      isDarkMode 
+        ? 'bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900' 
+        : 'bg-gradient-to-br from-gray-50 via-white to-gray-50'
+    }`}>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <Tab.Group
+          selectedIndex={activeTab}
+          onChange={(index) => {
+            setActiveTab(index);
+            // Réinitialiser les filtres appropriés lors du changement d'onglet
+            if (index === 0) {
+              // Si on passe à l'onglet Publicités, réinitialiser les filtres des autres onglets
+              resetFilters();
+              resetOppoFilters();
+            } else if (index === 1) {
+              // Si on passe à l'onglet Offres d'emploi, réinitialiser les filtres des autres onglets
+              resetNewsFilters();
+              resetOppoFilters();
+            } else if (index === 2) {
+              // Si on passe à l'onglet Opportunités, réinitialiser les filtres des autres onglets
+              resetNewsFilters();
+              resetFilters();
+            } else {
+              // Pour les autres onglets, réinitialiser tous les filtres
+              resetNewsFilters();
+              resetFilters();
+              resetOppoFilters();
+            }
 
-          // Réinitialiser la recherche et les filtres spécifiques à l'onglet précédent
-          setSearchQuery("");
-
-          // Réinitialiser les filtres en fonction de l'onglet sélectionné
-          if (index === 0) {
-            // Si on passe à l'onglet Publicités, réinitialiser les filtres des autres onglets
-            resetFilters();
-            resetOppoFilters();
-          } else if (index === 1) {
-            // Si on passe à l'onglet Offres d'emploi, réinitialiser les filtres des autres onglets
-            resetNewsFilters();
-            resetOppoFilters();
-          } else if (index === 2) {
-            // Si on passe à l'onglet Opportunités, réinitialiser les filtres des autres onglets
-            resetNewsFilters();
-            resetFilters();
-          } else {
-            // Pour les autres onglets, réinitialiser tous les filtres
-            resetNewsFilters();
-            resetFilters();
-            resetOppoFilters();
-          }
-
-          // Recharger les publications avec les nouveaux paramètres
-          fetchPosts(true);
-        }}
-      >
+            // Recharger les publications avec les nouveaux paramètres
+            fetchPosts(true);
+          }}
+        >
         {showTabs && (
-          <Tab.List className="flex space-x-1 rounded-xl bg-primary-100 dark:bg-gray-800 p-1 mb-6">
+          <Tab.List className="flex space-x-2 rounded-2xl bg-gradient-to-r from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900 p-2 mb-8 shadow-lg backdrop-blur-sm">
             <Tab
               className={({ selected }) =>
                 classNames(
-                  "w-full rounded-lg py-2.5 text-sm font-medium leading-5",
+                  "w-full rounded-xl py-3 px-4 text-sm font-semibold leading-5 transition-all duration-300 transform",
                   "flex items-center justify-center",
                   selected
-                    ? "bg-white dark:bg-gray-700 shadow text-primary-600 dark:text-white"
-                    : "text-gray-600 dark:text-gray-400 hover:bg-white/[0.12] hover:text-primary-600 dark:hover:text-white"
+                    ? "bg-gradient-to-r from-white to-gray-50 dark:from-gray-700 dark:to-gray-800 shadow-lg text-primary-600 dark:text-white scale-105"
+                    : "text-gray-600 dark:text-gray-400 hover:bg-white/50 dark:hover:bg-gray-700/50 hover:text-primary-600 dark:hover:text-white hover:scale-102"
                 )
               }
             >
               <NewspaperIcon className="h-5 w-5 mr-2" />
-              Publicités
+              <span>Publicités</span>
             </Tab>
             <Tab
               className={({ selected }) =>
                 classNames(
-                  "w-full rounded-lg py-2.5 text-sm font-medium leading-5",
+                  "w-full rounded-xl py-3 px-4 text-sm font-semibold leading-5 transition-all duration-300 transform",
                   "flex items-center justify-center",
                   selected
-                    ? "bg-white dark:bg-gray-700 shadow text-primary-600 dark:text-white"
-                    : "text-gray-600 dark:text-gray-400 hover:bg-white/[0.12] hover:text-primary-600 dark:hover:text-white"
+                    ? "bg-gradient-to-r from-white to-gray-50 dark:from-gray-700 dark:to-gray-800 shadow-lg text-primary-600 dark:text-white scale-105"
+                    : "text-gray-600 dark:text-gray-400 hover:bg-white/50 dark:hover:bg-gray-700/50 hover:text-primary-600 dark:hover:text-white hover:scale-102"
                 )
               }
             >
               <BriefcaseIcon className="h-5 w-5 mr-2" />
-              Offres d'emploi
+              <span>Offres d'emploi</span>
             </Tab>
             <Tab
               className={({ selected }) =>
                 classNames(
-                  "w-full rounded-lg py-2.5 text-sm font-medium leading-5",
+                  "w-full rounded-xl py-3 px-4 text-sm font-semibold leading-5 transition-all duration-300 transform",
                   "flex items-center justify-center",
                   selected
-                    ? "bg-white dark:bg-gray-700 shadow text-primary-600 dark:text-white"
-                    : "text-gray-600 dark:text-gray-400 hover:bg-white/[0.12] hover:text-primary-600 dark:hover:text-white"
+                    ? "bg-gradient-to-r from-white to-gray-50 dark:from-gray-700 dark:to-gray-800 shadow-lg text-primary-600 dark:text-white scale-105"
+                    : "text-gray-600 dark:text-gray-400 hover:bg-white/50 dark:hover:bg-gray-700/50 hover:text-primary-600 dark:hover:text-white hover:scale-102"
                 )
               }
             >
               <LightBulbIcon className="h-5 w-5 mr-2" />
-              Opportunités
+              <span>Opportunités</span>
             </Tab>
           </Tab.List>
         )}
@@ -866,90 +971,98 @@ export default function NewsFeed({ initialActiveTab = 0, showTabs = true }) {
             )}
           >
             {/* Filtres et recherche */}
-            <div className="flex flex-wrap justify-between items-center gap-3 p-4 mb-4 rounded-lg border ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}">
+            {/* Filtres et recherche */}
+            <div className={`flex flex-wrap justify-between items-center gap-4 p-6 mb-6 rounded-2xl shadow-lg backdrop-blur-sm transition-all duration-300 ${
+              isDarkMode 
+                ? 'bg-gradient-to-r from-gray-800/90 to-gray-900/90 border border-gray-700/50 shadow-gray-900/50' 
+                : 'bg-gradient-to-r from-white/95 to-gray-50/95 border border-gray-200/50 shadow-blue-100/50'
+            }`}>
               {/* Barre de recherche */}
-              <div className="relative w-full md:w-1/3">
+              <div className="relative w-full md:w-1/3 group">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <MagnifyingGlassIcon className="h-5 w-5 text-gray-400 group-focus-within:text-primary-500 transition-colors duration-200" />
+                </div>
                 <input
                   type="text"
                   placeholder="Rechercher une publication..."
-                  className={`block w-full pl-10 pr-3 py-2 border ${
+                  className={`block w-full pl-10 pr-10 py-3 border-2 rounded-xl transition-all duration-300 transform focus:scale-[1.02] ${
                     isDarkMode
-                      ? "bg-gray-700 border-gray-600 text-white"
-                      : "bg-white border-gray-300 text-gray-900"
-                  } rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500`}
+                      ? "bg-gray-700/50 border-gray-600 text-white placeholder-gray-400 focus:border-primary-500 focus:bg-gray-700/80 focus:shadow-lg focus:shadow-primary-500/20"
+                      : "bg-white/80 border-gray-300 text-gray-900 placeholder-gray-500 focus:border-primary-500 focus:bg-white focus:shadow-lg focus:shadow-primary-500/20"
+                  }`}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <MagnifyingGlassIcon className="h-5 w-5 text-gray-400" />
-                </div>
                 {searchQuery && (
                   <button
-                    className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center group"
                     onClick={() => setSearchQuery("")}
                   >
-                    <XMarkIcon className="h-5 w-5 text-gray-400 hover:text-gray-600" />
+                    <XMarkIcon className="h-5 w-5 text-gray-400 hover:text-red-500 transition-colors duration-200" />
                   </button>
                 )}
               </div>
 
               {/* Bouton pour afficher/masquer les filtres avancés */}
               <button
-                className={`px-3 py-2 rounded-md flex items-center justify-center transition-colors ${
+                className={`px-6 py-3 rounded-xl flex items-center justify-center font-medium transition-all duration-300 transform hover:scale-105 active:scale-95 shadow-md hover:shadow-lg ${
                   isDarkMode
-                    ? "bg-gray-700 text-white hover:bg-gray-600"
-                    : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                    ? "bg-gradient-to-r from-primary-600 to-primary-700 text-white hover:from-primary-700 hover:to-primary-800 shadow-primary-900/30 hover:shadow-primary-900/50"
+                    : "bg-gradient-to-r from-primary-500 to-primary-600 text-white hover:from-primary-600 hover:to-primary-700 shadow-primary-500/30 hover:shadow-primary-500/50"
                 }`}
                 onClick={() => setShowNewsFilters(!showNewsFilters)}
               >
-                <FunnelIcon className="h-5 w-5 mr-1" />
+                <FunnelIcon className="h-5 w-5 mr-2" />
                 <span className="text-sm">
                   {showNewsFilters ? "Masquer les filtres" : "Filtres avancés"}
                 </span>
+                <ChevronDownIcon className={`h-4 w-4 ml-2 transition-transform duration-300 ${showNewsFilters ? 'rotate-180' : ''}`} />
               </button>
 
               {/* Filtres de statut */}
-              <div className="flex flex-wrap gap-1">
+              <div className="flex flex-wrap gap-2">
                 <button
-                  className={`px-2 py-1 rounded-md flex items-center justify-center transition-colors ${
+                  className={`px-4 py-2 rounded-xl flex items-center justify-center font-medium transition-all duration-300 transform hover:scale-105 ${
                     newsStatusFilter === "all"
                       ? isDarkMode
-                        ? "bg-primary-600 text-white"
-                        : "bg-primary-500 text-white"
+                        ? "bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg shadow-blue-900/30"
+                        : "bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg shadow-blue-500/30"
                       : isDarkMode
-                      ? "bg-gray-700 text-gray-300"
-                      : "bg-gray-200 text-gray-700"
+                      ? "bg-gray-700/80 text-gray-300 hover:bg-gray-600/80 border border-gray-600/50"
+                      : "bg-gray-100/80 text-gray-700 hover:bg-gray-200/80 border border-gray-300/50"
                   }`}
                   onClick={() => setNewsStatusFilter("all")}
                 >
                   <span className="text-sm">Toutes</span>
                 </button>
                 <button
-                  className={`px-3 py-2 rounded-md flex items-center justify-center transition-colors ${
+                  className={`px-4 py-2 rounded-xl flex items-center justify-center font-medium transition-all duration-300 transform hover:scale-105 ${
                     newsStatusFilter === "disponible"
                       ? isDarkMode
-                        ? "bg-green-600 text-white"
-                        : "bg-green-500 text-white"
+                        ? "bg-gradient-to-r from-green-600 to-green-700 text-white shadow-lg shadow-green-900/30"
+                        : "bg-gradient-to-r from-green-500 to-green-600 text-white shadow-lg shadow-green-500/30"
                       : isDarkMode
-                      ? "bg-gray-700 text-gray-300"
-                      : "bg-gray-200 text-gray-700"
+                      ? "bg-gray-700/80 text-gray-300 hover:bg-gray-600/80 border border-gray-600/50"
+                      : "bg-gray-100/80 text-gray-700 hover:bg-gray-200/80 border border-gray-300/50"
                   }`}
                   onClick={() => setNewsStatusFilter("disponible")}
                 >
-                  <span className="text-sm">En cours</span>
+                  <CheckCircleIcon className="h-4 w-4 mr-1" />
+                    <span className="text-sm">En cours</span>
                 </button>
                 <button
-                  className={`px-3 py-2 rounded-md flex items-center justify-center transition-colors ${
+                  className={`px-4 py-2 rounded-xl flex items-center justify-center font-medium transition-all duration-300 transform hover:scale-105 ${
                     newsStatusFilter === "termine"
                       ? isDarkMode
-                        ? "bg-red-600 text-white"
-                        : "bg-red-500 text-white"
+                        ? "bg-gradient-to-r from-red-600 to-red-700 text-white shadow-lg shadow-red-900/30"
+                        : "bg-gradient-to-r from-red-500 to-red-600 text-white shadow-lg shadow-red-500/30"
                       : isDarkMode
-                      ? "bg-gray-700 text-gray-300"
-                      : "bg-gray-200 text-gray-700"
+                      ? "bg-gray-700/80 text-gray-300 hover:bg-gray-600/80 border border-gray-600/50"
+                      : "bg-gray-100/80 text-gray-700 hover:bg-gray-200/80 border border-gray-300/50"
                   }`}
                   onClick={() => setNewsStatusFilter("termine")}
                 >
+                  <XCircleIcon className="h-4 w-4 mr-1" />
                   <span className="text-sm">Terminées</span>
                 </button>
               </div>
@@ -958,134 +1071,52 @@ export default function NewsFeed({ initialActiveTab = 0, showTabs = true }) {
             {/* Panneau de filtres avancés pour le fil d'actualités */}
             {showNewsFilters && (
               <div
-                className={`p-4 mb-4 rounded-lg ${
+                className={`p-6 mb-6 rounded-2xl shadow-xl backdrop-blur-sm transform transition-all duration-500 animate-in slide-in-from-top-2 ${
                   isDarkMode
-                    ? "bg-gray-800 border border-gray-700"
-                    : "bg-gray-50 border border-gray-200"
+                    ? "bg-gradient-to-br from-gray-800/95 to-gray-900/95 border border-gray-700/50 shadow-gray-900/50"
+                    : "bg-gradient-to-br from-white/95 to-gray-50/95 border border-gray-200/50 shadow-gray-200/50"
                 }`}
               >
-                <div className="flex justify-between items-center mb-3">
+                <div className="flex justify-between items-center mb-6">
                   <h3
-                    className={`font-medium ${
-                      isDarkMode ? "text-white" : "text-gray-900"
+                    className={`text-lg font-bold bg-gradient-to-r ${
+                      isDarkMode 
+                        ? "from-blue-400 to-purple-400 text-transparent bg-clip-text" 
+                        : "from-blue-600 to-purple-600 text-transparent bg-clip-text"
                     }`}
                   >
                     Filtres avancés
                   </h3>
                   <button
-                    className={`text-sm px-2 py-1 rounded ${
+                    className={`text-sm px-4 py-2 rounded-xl flex items-center font-medium transition-all duration-300 transform hover:scale-105 ${
                       isDarkMode
-                        ? "text-primary-400 hover:text-primary-300 hover:bg-gray-700"
-                        : "text-primary-600 hover:text-primary-700 hover:bg-gray-100"
+                        ? "text-primary-400 hover:text-primary-300 hover:bg-gray-700/50 border border-gray-600/50"
+                        : "text-primary-600 hover:text-primary-700 hover:bg-gray-100/50 border border-gray-300/50"
                     }`}
                     onClick={resetNewsFilters}
                   >
-                    <span className="flex items-center">
-                      <ArrowPathIcon className="h-4 w-4 mr-1" />
-                      Réinitialiser les filtres
-                    </span>
+                    <ArrowPathIcon className="h-4 w-4 mr-2" />
+                    Réinitialiser
                   </button>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {/* Filtre par pays */}
-                  <div>
-                    <label
-                      className={`block text-sm font-medium mb-1 ${
-                        isDarkMode ? "text-gray-300" : "text-gray-700"
-                      }`}
-                    >
-                      Pays
-                    </label>
-                    <div className="relative">
-                      <select
-                        className={`block w-full px-3 py-2 pr-8 rounded border ${
-                          isDarkMode
-                            ? "bg-gray-700 border-gray-600 text-white"
-                            : "bg-white border-gray-300 text-gray-900"
-                        } focus:outline-none focus:ring-2 focus:ring-primary-500`}
-                        value={newsCountryFilter}
-                        onChange={(e) => setNewsCountryFilter(e.target.value)}
-                      >
-                        <option value="">Tous les pays</option>
-                        {uniqueNewsCountries.map((country) => (
-                          <option key={country} value={country}>
-                            {country}
-                          </option>
-                        ))}
-                      </select>
-                      <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500">
-                        <ChevronDownIcon className="h-4 w-4" />
-                      </div>
-                      {newsCountryFilter && (
-                        <button
-                          className="absolute inset-y-0 right-0 pr-8 flex items-center"
-                          onClick={() => setNewsCountryFilter("")}
-                          title="Effacer la sélection"
-                        >
-                          <XMarkIcon className="h-4 w-4 text-gray-400 hover:text-gray-600" />
-                        </button>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Filtre par ville */}
-                  <div>
-                    <label
-                      className={`block text-sm font-medium mb-1 ${
-                        isDarkMode ? "text-gray-300" : "text-gray-700"
-                      }`}
-                    >
-                      Ville
-                    </label>
-                    <div className="relative">
-                      <select
-                        className={`block w-full px-3 py-2 pr-8 rounded border ${
-                          isDarkMode
-                            ? "bg-gray-700 border-gray-600 text-white"
-                            : "bg-white border-gray-300 text-gray-900"
-                        } focus:outline-none focus:ring-2 focus:ring-primary-500`}
-                        value={newsCityFilter}
-                        onChange={(e) => setNewsCityFilter(e.target.value)}
-                      >
-                        <option value="">Toutes les villes</option>
-                        {uniqueNewsCities.map((city) => (
-                          <option key={city} value={city}>
-                            {city}
-                          </option>
-                        ))}
-                      </select>
-                      <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500">
-                        <ChevronDownIcon className="h-4 w-4" />
-                      </div>
-                      {newsCityFilter && (
-                        <button
-                          className="absolute inset-y-0 right-0 pr-8 flex items-center"
-                          onClick={() => setNewsCityFilter("")}
-                          title="Effacer la sélection"
-                        >
-                          <XMarkIcon className="h-4 w-4 text-gray-400 hover:text-gray-600" />
-                        </button>
-                      )}
-                    </div>
-                  </div>
-
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                   {/* Filtre par type */}
-                  <div>
+                  <div className="group">
                     <label
-                      className={`block text-sm font-medium mb-1 ${
-                        isDarkMode ? "text-gray-300" : "text-gray-700"
+                      className={`block text-sm font-semibold mb-2 transition-colors duration-200 ${
+                        isDarkMode ? "text-gray-200 group-focus-within:text-primary-400" : "text-gray-700 group-focus-within:text-primary-600"
                       }`}
                     >
                       Type
                     </label>
                     <div className="relative">
                       <select
-                        className={`block w-full px-3 py-2 pr-8 rounded border ${
+                        className={`block w-full px-4 py-3 pr-10 rounded-xl border-2 transition-all duration-300 transform focus:scale-[1.02] focus:shadow-lg ${
                           isDarkMode
-                            ? "bg-gray-700 border-gray-600 text-white"
-                            : "bg-white border-gray-300 text-gray-900"
-                        } focus:outline-none focus:ring-2 focus:ring-primary-500`}
+                            ? "bg-gray-700/50 border-gray-600 text-white focus:border-primary-500 focus:bg-gray-700/80 focus:shadow-primary-500/20"
+                            : "bg-white/80 border-gray-300 text-gray-900 focus:border-primary-500 focus:bg-white focus:shadow-primary-500/20"
+                        }`}
                         value={newsTypeFilter}
                         onChange={(e) => setNewsTypeFilter(e.target.value)}
                       >
@@ -1093,127 +1124,78 @@ export default function NewsFeed({ initialActiveTab = 0, showTabs = true }) {
                         <option value="publicite">Publicité</option>
                         <option value="annonce">Annonce</option>
                       </select>
-                      <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500">
+                      <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-500">
                         <ChevronDownIcon className="h-4 w-4" />
                       </div>
                       {newsTypeFilter && (
                         <button
-                          className="absolute inset-y-0 right-0 pr-8 flex items-center"
+                          className="absolute inset-y-0 right-0 pr-10 flex items-center group"
                           onClick={() => setNewsTypeFilter("")}
                           title="Effacer la sélection"
                         >
-                          <XMarkIcon className="h-4 w-4 text-gray-400 hover:text-gray-600" />
+                          <XMarkIcon className="h-4 w-4 text-gray-400 hover:text-red-500 transition-colors duration-200" />
                         </button>
                       )}
                     </div>
                   </div>
 
                   {/* Filtre par catégorie */}
-                  <div>
+                  <div className="group">
                     <label
-                      className={`block text-sm font-medium mb-1 ${
-                        isDarkMode ? "text-gray-300" : "text-gray-700"
+                      className={`block text-sm font-semibold mb-2 transition-colors duration-200 ${
+                        isDarkMode ? "text-gray-200 group-focus-within:text-primary-400" : "text-gray-700 group-focus-within:text-primary-600"
                       }`}
                     >
                       Catégorie
                     </label>
                     <div className="relative">
                       <select
-                        className={`block w-full px-3 py-2 pr-8 rounded border ${
+                        className={`block w-full px-4 py-3 pr-10 rounded-xl border-2 transition-all duration-300 transform focus:scale-[1.02] focus:shadow-lg ${
                           isDarkMode
-                            ? "bg-gray-700 border-gray-600 text-white"
-                            : "bg-white border-gray-300 text-gray-900"
-                        } focus:outline-none focus:ring-2 focus:ring-primary-500`}
+                            ? "bg-gray-700/50 border-gray-600 text-white focus:border-primary-500 focus:bg-gray-700/80 focus:shadow-primary-500/20"
+                            : "bg-white/80 border-gray-300 text-gray-900 focus:border-primary-500 focus:bg-white focus:shadow-primary-500/20"
+                        }`}
                         value={newsCategoryFilter}
                         onChange={(e) => setNewsCategoryFilter(e.target.value)}
                       >
                         <option value="">Toutes les catégories</option>
-                        <option value="produit">Produit</option>
-                        <option value="service">Service</option>
-                        {uniqueNewsCategories
-                          .filter(
-                            (cat) => cat !== "produit" && cat !== "service"
-                          )
-                          .map((category) => (
-                            <option key={category} value={category}>
-                              {category}
-                            </option>
-                          ))}
+                        {uniqueNewsCategories.map((category) => (
+                          <option key={category} value={category}>
+                            {category}
+                          </option>
+                        ))}
                       </select>
-                      <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500">
+                      <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-500">
                         <ChevronDownIcon className="h-4 w-4" />
                       </div>
                       {newsCategoryFilter && (
                         <button
-                          className="absolute inset-y-0 right-0 pr-8 flex items-center"
+                          className="absolute inset-y-0 right-0 pr-10 flex items-center group"
                           onClick={() => setNewsCategoryFilter("")}
                           title="Effacer la sélection"
                         >
-                          <XMarkIcon className="h-4 w-4 text-gray-400 hover:text-gray-600" />
-                        </button>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Filtre par sous-catégorie */}
-                  <div>
-                    <label
-                      className={`block text-sm font-medium mb-1 ${
-                        isDarkMode ? "text-gray-300" : "text-gray-700"
-                      }`}
-                    >
-                      Sous-catégorie
-                    </label>
-                    <div className="relative">
-                      <select
-                        className={`block w-full px-3 py-2 pr-8 rounded border ${
-                          isDarkMode
-                            ? "bg-gray-700 border-gray-600 text-white"
-                            : "bg-white border-gray-300 text-gray-900"
-                        } focus:outline-none focus:ring-2 focus:ring-primary-500`}
-                        value={newsSubCategoryFilter}
-                        onChange={(e) =>
-                          setNewsSubCategoryFilter(e.target.value)
-                        }
-                      >
-                        <option value="">Toutes les sous-catégories</option>
-                        {uniqueNewsSubCategories.map((subCategory) => (
-                          <option key={subCategory} value={subCategory}>
-                            {subCategory}
-                          </option>
-                        ))}
-                      </select>
-                      <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500">
-                        <ChevronDownIcon className="h-4 w-4" />
-                      </div>
-                      {newsSubCategoryFilter && (
-                        <button
-                          className="absolute inset-y-0 right-0 pr-8 flex items-center"
-                          onClick={() => setNewsSubCategoryFilter("")}
-                          title="Effacer la sélection"
-                        >
-                          <XMarkIcon className="h-4 w-4 text-gray-400 hover:text-gray-600" />
+                          <XMarkIcon className="h-4 w-4 text-gray-400 hover:text-red-500 transition-colors duration-200" />
                         </button>
                       )}
                     </div>
                   </div>
 
                   {/* Filtre par besoin de livreurs */}
-                  <div>
+                  <div className="group">
                     <label
-                      className={`block text-sm font-medium mb-1 ${
-                        isDarkMode ? "text-gray-300" : "text-gray-700"
+                      className={`block text-sm font-semibold mb-2 transition-colors duration-200 ${
+                        isDarkMode ? "text-gray-200 group-focus-within:text-primary-400" : "text-gray-700 group-focus-within:text-primary-600"
                       }`}
                     >
                       Besoin de livreurs
                     </label>
                     <div className="relative">
                       <select
-                        className={`block w-full px-3 py-2 pr-8 rounded border ${
+                        className={`block w-full px-4 py-3 pr-10 rounded-xl border-2 transition-all duration-300 transform focus:scale-[1.02] focus:shadow-lg ${
                           isDarkMode
-                            ? "bg-gray-700 border-gray-600 text-white"
-                            : "bg-white border-gray-300 text-gray-900"
-                        } focus:outline-none focus:ring-2 focus:ring-primary-500`}
+                            ? "bg-gray-700/50 border-gray-600 text-white focus:border-primary-500 focus:bg-gray-700/80 focus:shadow-primary-500/20"
+                            : "bg-white/80 border-gray-300 text-gray-900 focus:border-primary-500 focus:bg-white focus:shadow-primary-500/20"
+                        }`}
                         value={newsDeliveryFilter}
                         onChange={(e) => setNewsDeliveryFilter(e.target.value)}
                       >
@@ -1221,16 +1203,16 @@ export default function NewsFeed({ initialActiveTab = 0, showTabs = true }) {
                         <option value="OUI">Oui</option>
                         <option value="NON">Non</option>
                       </select>
-                      <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500">
+                      <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-500">
                         <ChevronDownIcon className="h-4 w-4" />
                       </div>
                       {newsDeliveryFilter && (
                         <button
-                          className="absolute inset-y-0 right-0 pr-8 flex items-center"
+                          className="absolute inset-y-0 right-0 pr-10 flex items-center group"
                           onClick={() => setNewsDeliveryFilter("")}
                           title="Effacer la sélection"
                         >
-                          <XMarkIcon className="h-4 w-4 text-gray-400 hover:text-gray-600" />
+                          <XMarkIcon className="h-4 w-4 text-gray-400 hover:text-red-500 transition-colors duration-200" />
                         </button>
                       )}
                     </div>
@@ -1277,21 +1259,19 @@ export default function NewsFeed({ initialActiveTab = 0, showTabs = true }) {
                         (post.description &&
                           post.description.toLowerCase().includes(query)) ||
                         (post.contenu &&
-                          post.contenu.toLowerCase().includes(query))
-                    );
-                  }
-
-                  // Filtrer par pays
-                  if (newsCountryFilter) {
-                    filteredPosts = filteredPosts.filter(
-                      (post) => post.pays === newsCountryFilter
-                    );
-                  }
-
-                  // Filtrer par ville
-                  if (newsCityFilter) {
-                    filteredPosts = filteredPosts.filter(
-                      (post) => post.ville === newsCityFilter
+                          post.contenu.toLowerCase().includes(query)) ||
+                        (post.pays &&
+                          post.pays.toLowerCase().includes(query)) ||
+                        (post.ville &&
+                          post.ville.toLowerCase().includes(query)) ||
+                        (post.categorie &&
+                          post.categorie.toLowerCase().includes(query)) ||
+                        (post.autre_categorie &&
+                          post.autre_categorie.toLowerCase().includes(query)) ||
+                        (post.sous_categorie &&
+                          post.sous_categorie.toLowerCase().includes(query)) ||
+                        (post.autre_sous_categorie &&
+                          post.autre_sous_categorie.toLowerCase().includes(query))
                     );
                   }
 
@@ -1306,15 +1286,6 @@ export default function NewsFeed({ initialActiveTab = 0, showTabs = true }) {
                   if (newsCategoryFilter) {
                     filteredPosts = filteredPosts.filter(
                       (post) => post.categorie === newsCategoryFilter
-                    );
-                  }
-
-                  // Filtrer par sous-catégorie
-                  if (newsSubCategoryFilter) {
-                    filteredPosts = filteredPosts.filter(
-                      (post) =>
-                        post.sous_categorie === newsSubCategoryFilter ||
-                        post.autre_sous_categorie === newsSubCategoryFilter
                     );
                   }
 
@@ -1425,6 +1396,13 @@ export default function NewsFeed({ initialActiveTab = 0, showTabs = true }) {
                 });
               })()}
 
+              {/* Indicateur de chargement infini */}
+              {loadingMore && (
+                <div className="flex justify-center py-4">
+                  <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-primary-600"></div>
+                </div>
+              )}
+
               {loading && (
                 <div className="min-h-screen flex items-start pt-24 justify-center bg-white dark:bg-[rgba(17,24,39,0.95)]">
                   <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-600"></div>
@@ -1485,76 +1463,82 @@ export default function NewsFeed({ initialActiveTab = 0, showTabs = true }) {
               </div>
 
               {/* Filtres et recherche */}
-              <div className="flex flex-wrap justify-between items-center gap-3 p-4">
+              <div className={`flex flex-wrap justify-between items-center gap-4 p-6 mb-6 rounded-2xl shadow-lg backdrop-blur-sm transition-all duration-300 ${
+                isDarkMode 
+                  ? 'bg-gradient-to-r from-gray-800/90 to-gray-900/90 border border-gray-700/50 shadow-gray-900/50' 
+                  : 'bg-gradient-to-r from-white/95 to-gray-50/95 border border-gray-200/50 shadow-blue-100/50'
+              }`}>
                 {/* Barre de recherche */}
-                <div className="relative w-full md:w-1/3">
+                <div className="relative w-full md:w-1/3 group">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <MagnifyingGlassIcon className="h-5 w-5 text-gray-400 group-focus-within:text-primary-500 transition-colors duration-200" />
+                  </div>
                   <input
                     type="text"
                     placeholder="Rechercher une offre..."
-                    className={`block w-full pl-10 pr-3 py-2 border ${
+                    className={`block w-full pl-10 pr-10 py-3 border-2 rounded-xl transition-all duration-300 transform focus:scale-[1.02] ${
                       isDarkMode
-                        ? "bg-gray-700 border-gray-600 text-white"
-                        : "bg-white border-gray-300 text-gray-900"
-                    } rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500`}
+                        ? "bg-gray-700/50 border-gray-600 text-white placeholder-gray-400 focus:border-primary-500 focus:bg-gray-700/80 focus:shadow-lg focus:shadow-primary-500/20"
+                        : "bg-white/80 border-gray-300 text-gray-900 placeholder-gray-500 focus:border-primary-500 focus:bg-white focus:shadow-lg focus:shadow-primary-500/20"
+                    }`}
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                   />
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <MagnifyingGlassIcon className="h-5 w-5 text-gray-400" />
-                  </div>
                   {searchQuery && (
                     <button
-                      className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                      className="absolute inset-y-0 right-0 pr-3 flex items-center group"
                       onClick={() => setSearchQuery("")}
                     >
-                      <XMarkIcon className="h-5 w-5 text-gray-400 hover:text-gray-600" />
+                      <XMarkIcon className="h-5 w-5 text-gray-400 hover:text-red-500 transition-colors duration-200" />
                     </button>
                   )}
                 </div>
 
                 {/* Bouton pour afficher/masquer les filtres avancés */}
                 <button
-                  className={`px-3 py-2 rounded-md flex items-center justify-center transition-colors ${
+                  className={`px-6 py-3 rounded-xl flex items-center justify-center font-medium transition-all duration-300 transform hover:scale-105 active:scale-95 shadow-md hover:shadow-lg ${
                     isDarkMode
-                      ? "bg-gray-700 text-white hover:bg-gray-600"
-                      : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                      ? "bg-gradient-to-r from-primary-600 to-primary-700 text-white hover:from-primary-700 hover:to-primary-800 shadow-primary-900/30 hover:shadow-primary-900/50"
+                      : "bg-gradient-to-r from-primary-500 to-primary-600 text-white hover:from-primary-600 hover:to-primary-700 shadow-primary-500/30 hover:shadow-primary-500/50"
                   }`}
                   onClick={() => setShowFilters(!showFilters)}
                 >
-                  <FunnelIcon className="h-5 w-5 mr-1" />
+                  <FunnelIcon className="h-5 w-5 mr-2" />
                   <span className="text-sm">
                     {showFilters ? "Masquer les filtres" : "Filtres avancés"}
                   </span>
+                  <ChevronDownIcon className={`h-4 w-4 ml-2 transition-transform duration-300 ${showFilters ? 'rotate-180' : ''}`} />
                 </button>
 
                 {/* Filtres de statut */}
                 <div className="flex flex-wrap gap-2">
                   <button
-                    className={`px-3 py-2 rounded-md flex items-center justify-center transition-colors ${
+                    className={`px-4 py-2 rounded-xl flex items-center justify-center font-medium transition-all duration-300 transform hover:scale-105 ${
                       jobFilter === "all"
                         ? isDarkMode
-                          ? "bg-primary-600 text-white"
-                          : "bg-primary-500 text-white"
+                          ? "bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg shadow-blue-900/30"
+                          : "bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg shadow-blue-500/30"
                         : isDarkMode
-                        ? "bg-gray-700 text-gray-300"
-                        : "bg-gray-200 text-gray-700"
+                        ? "bg-gray-700/80 text-gray-300 hover:bg-gray-600/80 border border-gray-600/50"
+                        : "bg-gray-100/80 text-gray-700 hover:bg-gray-200/80 border border-gray-300/50"
                     }`}
                     onClick={() => setJobFilter("all")}
                   >
                     <span className="text-sm">Toutes</span>
                   </button>
                   <button
-                    className={`px-3 py-2 rounded-md flex items-center justify-center transition-colors ${
+                    className={`px-4 py-2 rounded-xl flex items-center justify-center font-medium transition-all duration-300 transform hover:scale-105 ${
                       jobFilter === "disponible"
                         ? isDarkMode
-                          ? "bg-green-600 text-white"
-                          : "bg-green-500 text-white"
+                          ? "bg-gradient-to-r from-green-600 to-green-700 text-white shadow-lg shadow-green-900/30"
+                          : "bg-gradient-to-r from-green-500 to-green-600 text-white shadow-lg shadow-green-500/30"
                         : isDarkMode
-                        ? "bg-gray-700 text-gray-300"
-                        : "bg-gray-200 text-gray-700"
+                        ? "bg-gray-700/80 text-gray-300 hover:bg-gray-600/80 border border-gray-600/50"
+                        : "bg-gray-100/80 text-gray-700 hover:bg-gray-200/80 border border-gray-300/50"
                     }`}
                     onClick={() => setJobFilter("disponible")}
                   >
+                    <CheckCircleIcon className="h-4 w-4 mr-1" />
                     <span className="text-sm">En cours</span>
                   </button>
                   <button
@@ -1621,129 +1605,6 @@ export default function NewsFeed({ initialActiveTab = 0, showTabs = true }) {
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {/* Filtre par pays */}
-                    <div>
-                      <label
-                        className={`block text-sm font-medium mb-1 ${
-                          isDarkMode ? "text-gray-300" : "text-gray-700"
-                        }`}
-                      >
-                        Pays
-                      </label>
-                      <div className="relative">
-                        <select
-                          className={`block w-full px-3 py-2 pr-8 rounded border ${
-                            isDarkMode
-                              ? "bg-gray-700 border-gray-600 text-white"
-                              : "bg-white border-gray-300 text-gray-900"
-                          } focus:outline-none focus:ring-2 focus:ring-primary-500`}
-                          value={countryFilter}
-                          onChange={(e) => setCountryFilter(e.target.value)}
-                        >
-                          <option value="">Tous les pays</option>
-                          {uniqueCountries.map((country) => (
-                            <option key={country} value={country}>
-                              {country}
-                            </option>
-                          ))}
-                        </select>
-                        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500">
-                          <ChevronDownIcon className="h-4 w-4" />
-                        </div>
-                        {countryFilter && (
-                          <button
-                            className="absolute inset-y-0 right-0 pr-8 flex items-center"
-                            onClick={() => setCountryFilter("")}
-                            title="Effacer la sélection"
-                          >
-                            <XMarkIcon className="h-4 w-4 text-gray-400 hover:text-gray-600" />
-                          </button>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Filtre par ville */}
-                    <div>
-                      <label
-                        className={`block text-sm font-medium mb-1 ${
-                          isDarkMode ? "text-gray-300" : "text-gray-700"
-                        }`}
-                      >
-                        Ville
-                      </label>
-                      <div className="relative">
-                        <select
-                          className={`block w-full px-3 py-2 pr-8 rounded border ${
-                            isDarkMode
-                              ? "bg-gray-700 border-gray-600 text-white"
-                              : "bg-white border-gray-300 text-gray-900"
-                          } focus:outline-none focus:ring-2 focus:ring-primary-500`}
-                          value={cityFilter}
-                          onChange={(e) => setCityFilter(e.target.value)}
-                        >
-                          <option value="">Toutes les villes</option>
-                          {uniqueCities.map((city) => (
-                            <option key={city} value={city}>
-                              {city}
-                            </option>
-                          ))}
-                        </select>
-                        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500">
-                          <ChevronDownIcon className="h-4 w-4" />
-                        </div>
-                        {cityFilter && (
-                          <button
-                            className="absolute inset-y-0 right-0 pr-8 flex items-center"
-                            onClick={() => setCityFilter("")}
-                            title="Effacer la sélection"
-                          >
-                            <XMarkIcon className="h-4 w-4 text-gray-400 hover:text-gray-600" />
-                          </button>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Filtre par secteur */}
-                    <div>
-                      <label
-                        className={`block text-sm font-medium mb-1 ${
-                          isDarkMode ? "text-gray-300" : "text-gray-700"
-                        }`}
-                      >
-                        Secteur
-                      </label>
-                      <div className="relative">
-                        <select
-                          className={`block w-full px-3 py-2 pr-8 rounded border ${
-                            isDarkMode
-                              ? "bg-gray-700 border-gray-600 text-white"
-                              : "bg-white border-gray-300 text-gray-900"
-                          } focus:outline-none focus:ring-2 focus:ring-primary-500`}
-                          value={sectorFilter}
-                          onChange={(e) => setSectorFilter(e.target.value)}
-                        >
-                          <option value="">Tous les secteurs</option>
-                          {uniqueSectors.map((sector) => (
-                            <option key={sector} value={sector}>
-                              {sector}
-                            </option>
-                          ))}
-                        </select>
-                        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500">
-                          <ChevronDownIcon className="h-4 w-4" />
-                        </div>
-                        {sectorFilter && (
-                          <button
-                            className="absolute inset-y-0 right-0 pr-8 flex items-center"
-                            onClick={() => setSectorFilter("")}
-                            title="Effacer la sélection"
-                          >
-                            <XMarkIcon className="h-4 w-4 text-gray-400 hover:text-gray-600" />
-                          </button>
-                        )}
-                      </div>
-                    </div>
-
                     {/* Filtre par type de publication */}
                     <div>
                       <label
@@ -1829,98 +1690,47 @@ export default function NewsFeed({ initialActiveTab = 0, showTabs = true }) {
                   </div>
 
                   {/* Indicateurs de filtres actifs */}
-                  {(countryFilter ||
-                    sectorFilter ||
-                    cityFilter ||
-                    postTypeFilter ||
+                  {(postTypeFilter ||
                     contractTypeFilter) && (
                     <div
-                      className={`mt-4 pt-3 border-t ${
-                        isDarkMode ? "border-gray-700" : "border-gray-200"
+                      className={`mt-6 pt-4 border-t ${
+                        isDarkMode ? "border-gray-700/50" : "border-gray-200/50"
                       }`}
                     >
-                      <div className="flex flex-wrap gap-2">
+                      <div className="flex flex-wrap items-center gap-2">
                         <span
-                          className={`text-sm ${
+                          className={`text-sm font-semibold ${
                             isDarkMode ? "text-gray-300" : "text-gray-700"
                           }`}
                         >
                           Filtres actifs:
                         </span>
-                        {countryFilter && (
-                          <span
-                            className={`inline-flex items-center px-2 py-1 rounded-full text-xs ${
-                              isDarkMode
-                                ? "bg-gray-700 text-white"
-                                : "bg-gray-200 text-gray-800"
-                            }`}
-                          >
-                            Pays: {countryFilter}
-                            <XMarkIcon
-                              className="h-3 w-3 ml-1 cursor-pointer"
-                              onClick={() => setCountryFilter("")}
-                            />
-                          </span>
-                        )}
-                        {cityFilter && (
-                          <span
-                            className={`inline-flex items-center px-2 py-1 rounded-full text-xs ${
-                              isDarkMode
-                                ? "bg-gray-700 text-white"
-                                : "bg-gray-200 text-gray-800"
-                            }`}
-                          >
-                            Ville: {cityFilter}
-                            <XMarkIcon
-                              className="h-3 w-3 ml-1 cursor-pointer"
-                              onClick={() => setCityFilter("")}
-                            />
-                          </span>
-                        )}
-                        {sectorFilter && (
-                          <span
-                            className={`inline-flex items-center px-2 py-1 rounded-full text-xs ${
-                              isDarkMode
-                                ? "bg-gray-700 text-white"
-                                : "bg-gray-200 text-gray-800"
-                            }`}
-                          >
-                            Secteur: {sectorFilter}
-                            <XMarkIcon
-                              className="h-3 w-3 ml-1 cursor-pointer"
-                              onClick={() => setSectorFilter("")}
-                            />
-                          </span>
-                        )}
                         {postTypeFilter && (
                           <span
-                            className={`inline-flex items-center px-2 py-1 rounded-full text-xs ${
+                            className={`inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-300 transform hover:scale-105 ${
                               isDarkMode
-                                ? "bg-gray-700 text-white"
-                                : "bg-gray-200 text-gray-800"
+                                ? "bg-gradient-to-r from-primary-600/20 to-primary-700/20 text-primary-300 border border-primary-600/30 hover:border-primary-500/50"
+                                : "bg-gradient-to-r from-primary-100 to-primary-200 text-primary-800 border border-primary-300/50 hover:border-primary-400/50"
                             }`}
                           >
-                            Type:{" "}
-                            {postTypeFilter === "offre_emploi"
-                              ? "Offre d'emploi"
-                              : "Appel à manifestation d'intérêt"}
+                            Type: {postTypeFilter === "offre_emploi" ? "Offre d'emploi" : "Appel à manifestation d'intérêt"}
                             <XMarkIcon
-                              className="h-3 w-3 ml-1 cursor-pointer"
+                              className="h-3 w-3 ml-2 cursor-pointer hover:text-red-500 transition-colors duration-200"
                               onClick={() => setPostTypeFilter("")}
                             />
                           </span>
                         )}
                         {contractTypeFilter && (
                           <span
-                            className={`inline-flex items-center px-2 py-1 rounded-full text-xs ${
+                            className={`inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-300 transform hover:scale-105 ${
                               isDarkMode
-                                ? "bg-gray-700 text-white"
-                                : "bg-gray-200 text-gray-800"
+                                ? "bg-gradient-to-r from-blue-600/20 to-blue-700/20 text-blue-300 border border-blue-600/30 hover:border-blue-500/50"
+                                : "bg-gradient-to-r from-blue-100 to-blue-200 text-blue-800 border border-blue-300/50 hover:border-blue-400/50"
                             }`}
                           >
                             Contrat: {contractTypeFilter}
                             <XMarkIcon
-                              className="h-3 w-3 ml-1 cursor-pointer"
+                              className="h-3 w-3 ml-2 cursor-pointer hover:text-red-500 transition-colors duration-200"
                               onClick={() => setContractTypeFilter("")}
                             />
                           </span>
@@ -1944,295 +1754,170 @@ export default function NewsFeed({ initialActiveTab = 0, showTabs = true }) {
               </div>
             </div>
 
-            {/* Tableau des offres et appels à manifestation */}
-            <div
-              className={`overflow-hidden rounded-lg shadow ${
-                isDarkMode ? "bg-gray-800" : "bg-white"
-              }`}
-            >
-              {/* En-tête du tableau */}
-              <div
-                className={`grid grid-cols-12 gap-4 p-4 font-medium ${
-                  isDarkMode
-                    ? "bg-gray-700 text-white border-gray-600"
-                    : "bg-gray-50 text-gray-700 border-gray-200"
-                } border-b`}
+            {/* Tableau Material-UI des offres d'emploi avec pagination */}
+            <Box sx={{ width: '100%' }}>
+              <TableContainer 
+                component={Paper} 
+                sx={{ 
+                  backgroundColor: isDarkMode ? '#1f2937' : '#ffffff',
+                  color: isDarkMode ? '#ffffff' : '#000000',
+                  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)'
+                }}
               >
-                <div className="col-span-6 sm:col-span-5">Titre</div>
-                <div className="col-span-3 sm:col-span-3 hidden sm:block">
-                  Organisme
-                </div>
-                <div className="col-span-3 sm:col-span-2 hidden sm:block">
-                  Pays
-                </div>
-                <div className="col-span-6 sm:col-span-2 text-right">
-                  Date de clôture
-                </div>
-              </div>
+                {loadingJobOffers && <LinearProgress />}
+                <Table>
+                  <TableHead sx={{ backgroundColor: isDarkMode ? '#374151' : '#f9fafb' }}>
+                    <TableRow>
+                      <TableCell sx={{ color: isDarkMode ? '#ffffff' : '#111827', fontWeight: 'bold' }}>
+                        Titre
+                      </TableCell>
+                      <TableCell sx={{ color: isDarkMode ? '#ffffff' : '#111827', fontWeight: 'bold' }}>
+                        Organisme
+                      </TableCell>
+                      <TableCell sx={{ color: isDarkMode ? '#ffffff' : '#111827', fontWeight: 'bold' }}>
+                        Pays
+                      </TableCell>
+                      <TableCell sx={{ color: isDarkMode ? '#ffffff' : '#111827', fontWeight: 'bold' }}>
+                        Date de clôture
+                      </TableCell>
+                      <TableCell sx={{ color: isDarkMode ? '#ffffff' : '#111827', fontWeight: 'bold' }}>
+                        Actions
+                      </TableCell>
+                    </TableRow>
+                  </TableHead>
 
-              {/* Corps du tableau */}
-              {loading ? (
-                <div className="min-h-screen flex items-start pt-24 justify-center bg-white dark:bg-[rgba(17,24,39,0.95)]">
-                  <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-600"></div>
-                </div>
-              ) : (
-                <div>
-                  {posts
-                    .filter((post) => post.type === "offres-emploi")
-                    // Filtre par texte de recherche
-                    .filter((post) => {
-                      if (searchQuery) {
-                        const query = searchQuery.toLowerCase();
-                        return (
-                          post.title?.toLowerCase().includes(query) ||
-                          post.company_name?.toLowerCase().includes(query) ||
-                          post.pays?.toLowerCase().includes(query) ||
-                          post.ville?.toLowerCase().includes(query) ||
-                          post.reference?.toLowerCase().includes(query) ||
-                          post.sector?.toLowerCase().includes(query)
-                        );
-                      }
-                      return true;
-                    })
-                    // Filtre par statut
-                    .filter((post) => {
-                      if (jobFilter === "all") return true;
-                      if (jobFilter === "disponible")
-                        return post.etat === "disponible";
-                      if (jobFilter === "recent") {
-                        const threeDaysAgo = new Date();
-                        threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
-                        return new Date(post.created_at) >= threeDaysAgo;
-                      }
-                      if (jobFilter === "expired")
-                        return post.statut === "expiré";
-                      return true;
-                    })
-                    // Filtre par pays
-                    .filter((post) => {
-                      if (!countryFilter) return true;
-                      return post.pays === countryFilter;
-                    })
-                    // Filtre par secteur
-                    .filter((post) => {
-                      if (!sectorFilter) return true;
-                      return post.sector === sectorFilter;
-                    })
-                    // Filtre par ville
-                    .filter((post) => {
-                      if (!cityFilter) return true;
-                      return post.ville === cityFilter;
-                    })
-                    // Filtre par type de publication
-                    .filter((post) => {
-                      if (!postTypeFilter) return true;
-                      return post.post_type === postTypeFilter;
-                    })
-                    // Filtre par type de contrat
-                    .filter((post) => {
-                      if (!contractTypeFilter) return true;
-                      return post.type_contrat === contractTypeFilter;
-                    })
-                    .map((post) => (
-                      <div
-                        key={post.id}
-                        className={`grid grid-cols-12 gap-4 p-4 cursor-pointer hover:${
-                          isDarkMode ? "bg-gray-700" : "bg-gray-50"
-                        } border-b ${
-                          isDarkMode ? "border-gray-700" : "border-gray-200"
-                        }`}
-                        onClick={() => openPostDetail(post.id, post.type)}
-                      >
-                        <div className="col-span-6 sm:col-span-5">
-                          <div className="flex items-start">
-                            <div
-                              className={`flex-shrink-0 w-2 h-2 mt-2 rounded-full ${
-                                post.status === "disponible"
-                                  ? "bg-green-500"
-                                  : post.status === "expired"
-                                  ? "bg-red-500"
-                                  : "bg-orange-500"
-                              }`}
-                            ></div>
-                            <div className="ml-2">
-                              <div
-                                className={`font-medium ${
-                                  isDarkMode ? "text-white" : "text-gray-900"
-                                }`}
-                              >
-                                {post.title}
-                              </div>
-                              <div className="text-sm text-gray-500">
-                                {post.reference || "Réf. non précisée"}
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                        <div className="col-span-3 sm:col-span-3 hidden sm:block">
-                          <div
-                            className={`text-sm ${
-                              isDarkMode ? "text-gray-300" : "text-gray-700"
-                            }`}
-                          >
+              <TableBody>
+                    {posts
+                      .filter((post) => post.type === "offres-emploi")
+                      .map((post) => (
+                        <TableRow 
+                          key={post.id}
+                          sx={{ 
+                            '&:hover': { backgroundColor: isDarkMode ? '#374151' : '#f9fafb' },
+                            cursor: 'pointer'
+                          }}
+                          onClick={() => openPostDetail(post.id, post.type)}
+                        >
+                          <TableCell sx={{ color: isDarkMode ? '#ffffff' : '#111827' }}>
+                            <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                              <Box
+                                sx={{
+                                  width: 8,
+                                  height: 8,
+                                  borderRadius: '50%',
+                                  backgroundColor: post.etat === 'disponible' ? '#10b981' : 
+                                                  post.etat === 'expiré' ? '#ef4444' : '#f59e0b',
+                                  mr: 1,
+                                  mt: 1
+                                }}
+                              />
+                              <Box>
+                                <Typography variant="subtitle2" sx={{ fontWeight: 'medium' }}>
+                                  {post.title}
+                                </Typography>
+                                <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                                  {post.reference || "Réf. non précisée"}
+                                </Typography>
+                              </Box>
+                            </Box>
+                          </TableCell>
+                          <TableCell sx={{ color: isDarkMode ? '#ffffff' : '#111827' }}>
                             {post.company_name || "Non précisé"}
-                          </div>
-                        </div>
-                        <div className="col-span-3 sm:col-span-2 hidden sm:block">
-                          <div
-                            className={`text-sm ${
-                              isDarkMode ? "text-gray-300" : "text-gray-700"
-                            }`}
-                          >
+                          </TableCell>
+                          <TableCell sx={{ color: isDarkMode ? '#ffffff' : '#111827' }}>
                             {post.pays || "Non précisé"}
-                          </div>
-                        </div>
-                        <div className="col-span-6 sm:col-span-2 text-right">
-                          <div
-                            className={`text-sm ${
-                              isDarkMode ? "text-gray-300" : "text-gray-700"
-                            }`}
-                          >
+                          </TableCell>
+                          <TableCell sx={{ color: isDarkMode ? '#ffffff' : '#111827' }}>
                             {post.date_limite
-                              ? new Date(post.date_limite).toLocaleDateString(
-                                  "fr-FR",
-                                  {
-                                    day: "2-digit",
-                                    month: "2-digit",
-                                    year: "numeric",
-                                  }
-                                )
+                              ? new Date(post.date_limite).toLocaleDateString("fr-FR", {
+                                  day: "2-digit",
+                                  month: "2-digit",
+                                  year: "numeric",
+                                })
                               : "Date non spécifiée"}
-                          </div>
-
-                          {/* Actions sociales (j'aime, commentaires, partages) */}
-                          <div
-                            className={`flex items-center justify-end mt-2 text-sm ${
-                              isDarkMode ? "text-gray-400" : "text-gray-500"
-                            }`}
-                          >
-                            <button
-                              className="flex items-center mr-3"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleLike(post.id, post.type);
-                              }}
-                            >
-                              {post.is_liked ? (
-                                <HeartIconSolid className="h-4 w-4 text-red-500 mr-1" />
-                              ) : (
-                                <HeartIcon className="h-4 w-4 mr-1" />
-                              )}
-                              <span>{post.likes_count || 0}</span>
-                            </button>
-
-                            <button
-                              className="flex items-center mr-3"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                openPostDetail(post.id, post.type);
-                              }}
-                            >
-                              <ChatBubbleLeftEllipsisIcon className="h-4 w-4 mr-1" />
-                              <span>{post.comments_count || 0}</span>
-                            </button>
-
-                            <button
-                              className="flex items-center"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleShare(post.id, post.type);
-                              }}
-                            >
-                              <ShareIcon className="h-4 w-4 mr-1" />
-                              <span>{post.shares_count || 0}</span>
-                            </button>
-                          </div>
-
-                          {/* Boutons d'action (Détails, Télécharger, WhatsApp, lien externe) */}
-                          <div className="flex justify-end mt-2 space-x-2">
-                            {/* Bouton Détails */}
-                            <button
-                              className={`p-1 rounded-full ${
-                                isDarkMode
-                                  ? "bg-blue-600 hover:bg-blue-700"
-                                  : "bg-blue-500 hover:bg-blue-600"
-                              } text-white`}
-                              title="Voir les détails"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                openPostDetail(post.id, post.type);
-                              }}
-                            >
-                              <InformationCircleIcon className="w-4 h-4" />
-                            </button>
-
-                            {/* Bouton Télécharger */}
-                            {post.offer_file_url && (
-                              <a
-                                href={post.offer_file_url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className={`p-1 rounded-full ${
-                                  isDarkMode
-                                    ? "bg-purple-600 hover:bg-purple-700"
-                                    : "bg-purple-500 hover:bg-purple-600"
-                                } text-white`}
-                                title="Télécharger l'offre"
-                                onClick={(e) => e.stopPropagation()}
-                                download
-                              >
-                                <DocumentArrowDownIcon className="w-4 h-4" />
-                              </a>
-                            )}
-
-                            {/* Bouton WhatsApp */}
-                            {post.whatsapp && (
-                              <a
-                                href={`https://wa.me/${post.whatsapp.replace(
-                                  /[^0-9]/g,
-                                  ""
-                                )}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="p-1 rounded-full bg-green-600 text-white hover:bg-green-700"
-                                title="Contacter via WhatsApp"
-                                onClick={(e) => e.stopPropagation()}
-                              >
-                                <svg
-                                  xmlns="http://www.w3.org/2000/svg"
-                                  viewBox="0 0 24 24"
-                                  fill="currentColor"
-                                  className="w-4 h-4"
+                          </TableCell>
+                          <TableCell>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                              {/* Actions sociales */}
+                              <Tooltip title="J'aime">
+                                <IconButton 
+                                  size="small" 
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleLike(post.id, post.type);
+                                  }}
+                                  sx={{ color: post.is_liked ? '#ef4444' : 'text.secondary' }}
                                 >
-                                  <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
-                                </svg>
-                              </a>
-                            )}
+                                  {post.is_liked ? <FavoriteIcon /> : <FavoriteBorderIcon />}
+                                </IconButton>
+                              </Tooltip>
+                              
+                              <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                                {post.likes_count || 0}
+                              </Typography>
 
-                            {/* Bouton Lien externe */}
-                            {post.external_link && (
-                              <a
-                                href={post.external_link}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className={`p-1 rounded-full ${
-                                  isDarkMode
-                                    ? "bg-primary-600 hover:bg-primary-700"
-                                    : "bg-primary-500 hover:bg-primary-600"
-                                } text-white`}
-                                title="En savoir plus"
-                                onClick={(e) => e.stopPropagation()}
-                              >
-                                <ArrowTopRightOnSquareIcon className="w-4 h-4" />
-                              </a>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                </div>
-              )}
-            </div>
+                              <Tooltip title="Commentaires">
+                                <IconButton 
+                                  size="small" 
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    openPostDetail(post.id, post.type);
+                                  }}
+                                  sx={{ color: 'text.secondary' }}
+                                >
+                                  <CommentIcon />
+                                </IconButton>
+                              </Tooltip>
+                              
+                              <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                                {post.comments_count || 0}
+                              </Typography>
+
+                              {/* Bouton détails */}
+                              <Tooltip title="Voir les détails">
+                                <IconButton 
+                                  size="small"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    openPostDetail(post.id, post.type);
+                                  }}
+                                  sx={{ 
+                                    backgroundColor: '#3b82f6',
+                                    color: 'white',
+                                    '&:hover': { backgroundColor: '#2563eb' }
+                                  }}
+                                >
+                                  <VisibilityIcon />
+                                </IconButton>
+                              </Tooltip>
+                            </Box>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+              
+              {/* Pagination Material-UI */}
+              <TablePagination
+                rowsPerPageOptions={[5, 10, 25, 50]}
+                component="div"
+                count={jobOffersTotal}
+                rowsPerPage={jobOffersRowsPerPage}
+                page={jobOffersPage}
+                onPageChange={handleJobOffersPageChange}
+                onRowsPerPageChange={handleJobOffersRowsPerPageChange}
+                labelRowsPerPage="Lignes par page:"
+                labelDisplayedRows={({ from, to, count }) => `${from}-${to} sur ${count !== -1 ? count : `plus de ${to}`}`}
+                sx={{ 
+                  backgroundColor: isDarkMode ? '#1f2937' : '#ffffff',
+                  color: isDarkMode ? '#ffffff' : '#000000',
+                  '.MuiTablePagination-selectLabel, .MuiTablePagination-displayedRows': {
+                    color: isDarkMode ? '#ffffff' : '#000000'
+                  }
+                }}
+              />
+            </Box>
           </Tab.Panel>
 
           {/* Troisième onglet: Opportunités d'affaires /partenariat et appel à projet */}
@@ -2348,17 +2033,18 @@ export default function NewsFeed({ initialActiveTab = 0, showTabs = true }) {
                     <span className="text-sm">Toutes</span>
                   </button>
                   <button
-                    className={`px-3 py-2 rounded-md flex items-center justify-center transition-colors ${
+                    className={`px-4 py-2 rounded-xl flex items-center justify-center font-medium transition-all duration-300 transform hover:scale-105 ${
                       jobFilter === "disponible"
                         ? isDarkMode
-                          ? "bg-green-600 text-white"
-                          : "bg-green-500 text-white"
+                          ? "bg-gradient-to-r from-green-600 to-green-700 text-white shadow-lg shadow-green-900/30"
+                          : "bg-gradient-to-r from-green-500 to-green-600 text-white shadow-lg shadow-green-500/30"
                         : isDarkMode
-                        ? "bg-gray-700 text-gray-300"
-                        : "bg-gray-200 text-gray-700"
+                        ? "bg-gray-700/80 text-gray-300 hover:bg-gray-600/80 border border-gray-600/50"
+                        : "bg-gray-100/80 text-gray-700 hover:bg-gray-200/80 border border-gray-300/50"
                     }`}
                     onClick={() => setJobFilter("disponible")}
                   >
+                    <CheckCircleIcon className="h-4 w-4 mr-1" />
                     <span className="text-sm">En cours</span>
                   </button>
                   <button
@@ -2425,129 +2111,6 @@ export default function NewsFeed({ initialActiveTab = 0, showTabs = true }) {
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {/* Filtre par pays */}
-                    <div>
-                      <label
-                        className={`block text-sm font-medium mb-1 ${
-                          isDarkMode ? "text-gray-300" : "text-gray-700"
-                        }`}
-                      >
-                        Pays
-                      </label>
-                      <div className="relative">
-                        <select
-                          className={`block w-full px-3 py-2 pr-8 rounded border ${
-                            isDarkMode
-                              ? "bg-gray-700 border-gray-600 text-white"
-                              : "bg-white border-gray-300 text-gray-900"
-                          } focus:outline-none focus:ring-2 focus:ring-primary-500`}
-                          value={oppoCountryFilter}
-                          onChange={(e) => setOppoCountryFilter(e.target.value)}
-                        >
-                          <option value="">Tous les pays</option>
-                          {uniqueOppoCountries.map((country) => (
-                            <option key={country} value={country}>
-                              {country}
-                            </option>
-                          ))}
-                        </select>
-                        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500">
-                          <ChevronDownIcon className="h-4 w-4" />
-                        </div>
-                        {oppoCountryFilter && (
-                          <button
-                            className="absolute inset-y-0 right-0 pr-8 flex items-center"
-                            onClick={() => setOppoCountryFilter("")}
-                            title="Effacer la sélection"
-                          >
-                            <XMarkIcon className="h-4 w-4 text-gray-400 hover:text-gray-600" />
-                          </button>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Filtre par ville */}
-                    <div>
-                      <label
-                        className={`block text-sm font-medium mb-1 ${
-                          isDarkMode ? "text-gray-300" : "text-gray-700"
-                        }`}
-                      >
-                        Ville
-                      </label>
-                      <div className="relative">
-                        <select
-                          className={`block w-full px-3 py-2 pr-8 rounded border ${
-                            isDarkMode
-                              ? "bg-gray-700 border-gray-600 text-white"
-                              : "bg-white border-gray-300 text-gray-900"
-                          } focus:outline-none focus:ring-2 focus:ring-primary-500`}
-                          value={oppoCityFilter}
-                          onChange={(e) => setOppoCityFilter(e.target.value)}
-                        >
-                          <option value="">Toutes les villes</option>
-                          {uniqueOppoCities.map((city) => (
-                            <option key={city} value={city}>
-                              {city}
-                            </option>
-                          ))}
-                        </select>
-                        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500">
-                          <ChevronDownIcon className="h-4 w-4" />
-                        </div>
-                        {oppoCityFilter && (
-                          <button
-                            className="absolute inset-y-0 right-0 pr-8 flex items-center"
-                            onClick={() => setOppoCityFilter("")}
-                            title="Effacer la sélection"
-                          >
-                            <XMarkIcon className="h-4 w-4 text-gray-400 hover:text-gray-600" />
-                          </button>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Filtre par secteur */}
-                    <div>
-                      <label
-                        className={`block text-sm font-medium mb-1 ${
-                          isDarkMode ? "text-gray-300" : "text-gray-700"
-                        }`}
-                      >
-                        Secteur
-                      </label>
-                      <div className="relative">
-                        <select
-                          className={`block w-full px-3 py-2 pr-8 rounded border ${
-                            isDarkMode
-                              ? "bg-gray-700 border-gray-600 text-white"
-                              : "bg-white border-gray-300 text-gray-900"
-                          } focus:outline-none focus:ring-2 focus:ring-primary-500`}
-                          value={oppoSectorFilter}
-                          onChange={(e) => setOppoSectorFilter(e.target.value)}
-                        >
-                          <option value="">Tous les secteurs</option>
-                          {uniqueOppoSectors.map((sector) => (
-                            <option key={sector} value={sector}>
-                              {sector}
-                            </option>
-                          ))}
-                        </select>
-                        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500">
-                          <ChevronDownIcon className="h-4 w-4" />
-                        </div>
-                        {oppoSectorFilter && (
-                          <button
-                            className="absolute inset-y-0 right-0 pr-8 flex items-center"
-                            onClick={() => setOppoSectorFilter("")}
-                            title="Effacer la sélection"
-                          >
-                            <XMarkIcon className="h-4 w-4 text-gray-400 hover:text-gray-600" />
-                          </button>
-                        )}
-                      </div>
-                    </div>
-
                     {/* Filtre par type d'opportunité */}
                     <div>
                       <label
@@ -2586,13 +2149,42 @@ export default function NewsFeed({ initialActiveTab = 0, showTabs = true }) {
                         )}
                       </div>
                     </div>
+
+                    {/* Filtre par date limite */}
+                    <div>
+                      <label
+                        className={`block text-sm font-medium mb-1 ${
+                          isDarkMode ? "text-gray-300" : "text-gray-700"
+                        }`}
+                      >
+                        Date limite
+                      </label>
+                      <div className="relative">
+                        <input
+                          type="date"
+                          className={`block w-full px-3 py-2 rounded border ${
+                            isDarkMode
+                              ? "bg-gray-700 border-gray-600 text-white"
+                              : "bg-white border-gray-300 text-gray-900"
+                          } focus:outline-none focus:ring-2 focus:ring-primary-500`}
+                          value={oppoDateFilter}
+                          onChange={(e) => setOppoDateFilter(e.target.value)}
+                        />
+                        {oppoDateFilter && (
+                          <button
+                            className="absolute inset-y-0 right-0 pr-8 flex items-center"
+                            onClick={() => setOppoDateFilter("")}
+                            title="Effacer la sélection"
+                          >
+                            <XMarkIcon className="h-4 w-4 text-gray-400 hover:text-gray-600" />
+                          </button>
+                        )}
+                      </div>
+                    </div>
                   </div>
 
                   {/* Indicateurs de filtres actifs */}
-                  {(oppoCountryFilter ||
-                    oppoSectorFilter ||
-                    oppoCityFilter ||
-                    oppoTypeFilter) && (
+                  {(oppoTypeFilter || oppoDateFilter) && (
                     <div
                       className={`mt-4 pt-3 border-t ${
                         isDarkMode ? "border-gray-700" : "border-gray-200"
@@ -2606,51 +2198,6 @@ export default function NewsFeed({ initialActiveTab = 0, showTabs = true }) {
                         >
                           Filtres actifs:
                         </span>
-                        {oppoCountryFilter && (
-                          <span
-                            className={`inline-flex items-center px-2 py-1 rounded-full text-xs ${
-                              isDarkMode
-                                ? "bg-gray-700 text-white"
-                                : "bg-gray-200 text-gray-800"
-                            }`}
-                          >
-                            Pays: {oppoCountryFilter}
-                            <XMarkIcon
-                              className="h-3 w-3 ml-1 cursor-pointer"
-                              onClick={() => setOppoCountryFilter("")}
-                            />
-                          </span>
-                        )}
-                        {oppoCityFilter && (
-                          <span
-                            className={`inline-flex items-center px-2 py-1 rounded-full text-xs ${
-                              isDarkMode
-                                ? "bg-gray-700 text-white"
-                                : "bg-gray-200 text-gray-800"
-                            }`}
-                          >
-                            Ville: {oppoCityFilter}
-                            <XMarkIcon
-                              className="h-3 w-3 ml-1 cursor-pointer"
-                              onClick={() => setOppoCityFilter("")}
-                            />
-                          </span>
-                        )}
-                        {oppoSectorFilter && (
-                          <span
-                            className={`inline-flex items-center px-2 py-1 rounded-full text-xs ${
-                              isDarkMode
-                                ? "bg-gray-700 text-white"
-                                : "bg-gray-200 text-gray-800"
-                            }`}
-                          >
-                            Secteur: {oppoSectorFilter}
-                            <XMarkIcon
-                              className="h-3 w-3 ml-1 cursor-pointer"
-                              onClick={() => setOppoSectorFilter("")}
-                            />
-                          </span>
-                        )}
                         {oppoTypeFilter && (
                           <span
                             className={`inline-flex items-center px-2 py-1 rounded-full text-xs ${
@@ -2671,6 +2218,21 @@ export default function NewsFeed({ initialActiveTab = 0, showTabs = true }) {
                             />
                           </span>
                         )}
+                        {oppoDateFilter && (
+                          <span
+                            className={`inline-flex items-center px-2 py-1 rounded-full text-xs ${
+                              isDarkMode
+                                ? "bg-gray-700 text-white"
+                                : "bg-gray-200 text-gray-800"
+                            }`}
+                          >
+                            Date limite: {new Date(oppoDateFilter).toLocaleDateString('fr-FR')}
+                            <XMarkIcon
+                              className="h-3 w-3 ml-1 cursor-pointer"
+                              onClick={() => setOppoDateFilter("")}
+                            />
+                          </span>
+                        )}
                       </div>
                     </div>
                   )}
@@ -2678,389 +2240,193 @@ export default function NewsFeed({ initialActiveTab = 0, showTabs = true }) {
               )}
             </div>
 
-            {/* Tableau des opportunités d'affaires */}
-            <div
-              className={`overflow-hidden rounded-lg shadow ${
-                isDarkMode ? "bg-gray-800" : "bg-white"
-              }`}
-            >
-              {loading ? (
-                <div className="min-h-screen flex items-start pt-24 justify-center bg-white dark:bg-[rgba(17,24,39,0.95)]">
-                  <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-600"></div>
-                </div>
-              ) : (
-                <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                    <thead
-                      className={isDarkMode ? "bg-gray-700" : "bg-gray-50"}
-                    >
-                      <tr>
-                        <th
-                          scope="col"
-                          className={`px-6 py-3 text-left text-xs font-medium ${
-                            isDarkMode ? "text-gray-300" : "text-gray-500"
-                          } uppercase tracking-wider`}
+            {/* Tableau Material-UI des opportunités d'affaires avec pagination */}
+            <Box sx={{ width: '100%' }}>
+              <TableContainer 
+                component={Paper} 
+                sx={{ 
+                  backgroundColor: isDarkMode ? '#1f2937' : '#ffffff',
+                  color: isDarkMode ? '#ffffff' : '#000000',
+                  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)'
+                }}
+              >
+                {loadingOppo && <LinearProgress />}
+                <Table>
+                  <TableHead sx={{ backgroundColor: isDarkMode ? '#374151' : '#f9fafb' }}>
+                    <TableRow>
+                      <TableCell sx={{ color: isDarkMode ? '#ffffff' : '#111827', fontWeight: 'bold' }}>
+                        Titre
+                      </TableCell>
+                      <TableCell sx={{ color: isDarkMode ? '#ffffff' : '#111827', fontWeight: 'bold' }}>
+                        Type
+                      </TableCell>
+                      <TableCell sx={{ color: isDarkMode ? '#ffffff' : '#111827', fontWeight: 'bold' }}>
+                        Entreprise
+                      </TableCell>
+                      <TableCell sx={{ color: isDarkMode ? '#ffffff' : '#111827', fontWeight: 'bold' }}>
+                        Date de clôture
+                      </TableCell>
+                      <TableCell sx={{ color: isDarkMode ? '#ffffff' : '#111827', fontWeight: 'bold' }}>
+                        Actions
+                      </TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {posts
+                      .filter((post) => post.type === "opportunites-affaires")
+                      .map((post) => (
+                        <TableRow 
+                          key={post.id}
+                          sx={{ 
+                            '&:hover': { backgroundColor: isDarkMode ? '#374151' : '#f9fafb' },
+                            cursor: 'pointer'
+                          }}
+                          onClick={() => openPostDetail(post.id, post.type)}
                         >
-                          Titre
-                        </th>
-                        <th
-                          scope="col"
-                          className={`px-6 py-3 text-left text-xs font-medium ${
-                            isDarkMode ? "text-gray-300" : "text-gray-500"
-                          } uppercase tracking-wider hidden md:table-cell`}
-                        >
-                          Type
-                        </th>
-                        <th
-                          scope="col"
-                          className={`px-6 py-3 text-left text-xs font-medium ${
-                            isDarkMode ? "text-gray-300" : "text-gray-500"
-                          } uppercase tracking-wider hidden md:table-cell`}
-                        >
-                          Entreprise
-                        </th>
-                        <th
-                          scope="col"
-                          className={`px-6 py-3 text-left text-xs font-medium ${
-                            isDarkMode ? "text-gray-300" : "text-gray-500"
-                          } uppercase tracking-wider hidden sm:table-cell`}
-                        >
-                          Date de clôture
-                        </th>
-                        <th
-                          scope="col"
-                          className={`px-6 py-3 text-center text-xs font-medium ${
-                            isDarkMode ? "text-gray-300" : "text-gray-500"
-                          } uppercase tracking-wider`}
-                        >
-                          Actions
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody
-                      className={`divide-y ${
-                        isDarkMode ? "divide-gray-700" : "divide-gray-200"
-                      }`}
-                    >
-                      {posts
-                        .filter((post) => post.type === "opportunites-affaires")
-                        // Filtre par texte de recherche
-                        .filter((post) => {
-                          if (searchQuery) {
-                            const query = searchQuery.toLowerCase();
-                            return (
-                              post.title?.toLowerCase().includes(query) ||
-                              post.entreprise?.toLowerCase().includes(query) ||
-                              post.description?.toLowerCase().includes(query) ||
-                              post.pays?.toLowerCase().includes(query) ||
-                              post.ville?.toLowerCase().includes(query) ||
-                              post.secteur?.toLowerCase().includes(query) ||
-                              post.post_type?.toLowerCase().includes(query)
-                            );
-                          }
-                          return true;
-                        })
-                        // Filtre de statut
-                        .filter((post) => {
-                          if (jobFilter === "all") return true;
-                          if (jobFilter === "disponible")
-                            return !post.is_expired;
-                          if (jobFilter === "expired") return post.is_expired;
-                          if (jobFilter === "recent")
-                            return (
-                              new Date(post.created_at) >
-                              new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
-                            );
-                          return true;
-                        })
-                        // Filtre par pays
-                        .filter((post) => {
-                          if (!oppoCountryFilter) return true;
-                          return post.pays === oppoCountryFilter;
-                        })
-                        // Filtre par secteur
-                        .filter((post) => {
-                          if (!oppoSectorFilter) return true;
-                          return post.secteur === oppoSectorFilter;
-                        })
-                        // Filtre par ville
-                        .filter((post) => {
-                          if (!oppoCityFilter) return true;
-                          return post.ville === oppoCityFilter;
-                        })
-                        // Filtre par type d'opportunité
-                        .filter((post) => {
-                          if (!oppoTypeFilter) return true;
-                          return post.post_type === oppoTypeFilter;
-                        })
-                        .map((post) => (
-                          <tr
-                            key={post.id}
-                            className={`hover:${
-                              isDarkMode ? "bg-gray-700" : "bg-gray-50"
-                            } cursor-pointer`}
-                            onClick={() => openPostDetail(post.id, post.type)}
-                          >
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              <div className="flex items-center">
-                                <div
-                                  className={`flex-shrink-0 w-2 h-2 mt-2 rounded-full ${
-                                    post.status === "disponible"
-                                      ? "bg-green-500"
-                                      : post.status === "expired"
-                                      ? "bg-red-500"
-                                      : "bg-orange-500"
-                                  }`}
-                                ></div>
-                                <div className="ml-4">
-                                  <div
-                                    className={`font-medium ${
-                                      isDarkMode
-                                        ? "text-white"
-                                        : "text-gray-900"
-                                    }`}
-                                  >
-                                    {post.title || "Non précisé"}
-                                  </div>
-                                  <div className="text-sm text-gray-500">
-                                    {post.reference || "Réf. non précisée"}
-                                  </div>
-                                </div>
-                              </div>
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap hidden md:table-cell">
-                              <span
-                                className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                                  post.post_type === "appel_offre"
-                                    ? "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
-                                    : post.post_type === "appel_projet"
-                                    ? "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200"
-                                    : "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
-                                }`}
-                              >
-                                {post.post_type === "appel_offre"
+                          <TableCell sx={{ color: isDarkMode ? '#ffffff' : '#111827' }}>
+                            <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                              <Box
+                                sx={{
+                                  width: 8,
+                                  height: 8,
+                                  borderRadius: '50%',
+                                  backgroundColor: post.etat === 'disponible' ? '#10b981' : 
+                                                  post.etat === 'expiré' ? '#ef4444' : '#f59e0b',
+                                  mr: 1,
+                                  mt: 1
+                                }}
+                              />
+                              <Box>
+                                <Typography variant="subtitle2" sx={{ fontWeight: 'medium' }}>
+                                  {post.title || "Non précisé"}
+                                </Typography>
+                                <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                                  {post.reference || "Réf. non précisée"}
+                                </Typography>
+                              </Box>
+                            </Box>
+                          </TableCell>
+                          <TableCell sx={{ color: isDarkMode ? '#ffffff' : '#111827' }}>
+                            <Chip
+                              label={
+                                post.post_type === "appel_offre"
                                   ? "Appel d'offre"
                                   : post.post_type === "appel_projet"
                                   ? "Appel à projet"
-                                  : "Partenariat"}
-                              </span>
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap hidden md:table-cell">
-                              <div
-                                className={`text-sm ${
-                                  isDarkMode ? "text-gray-300" : "text-gray-700"
-                                }`}
-                              >
-                                {post.company_name || "Non précisé"}
-                              </div>
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm hidden sm:table-cell">
-                              <div
-                                className={`text-sm ${
-                                  post.is_expired
-                                    ? "text-red-500"
-                                    : isDarkMode
-                                    ? "text-gray-400"
-                                    : "text-gray-500"
-                                }`}
-                              >
-                                {post.date_limite
-                                  ? new Date(
-                                      post.date_limite
-                                    ).toLocaleDateString()
-                                  : "Sans date limite"}
-                              </div>
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
-                              {/* Actions sociales (j'aime, commentaires, partages) avec compteurs */}
-                              <div className="flex justify-center space-x-3 mb-2">
-                                <button
+                                  : "Partenariat"
+                              }
+                              size="small"
+                              sx={{
+                                backgroundColor: 
+                                  post.post_type === "appel_offre"
+                                    ? '#dbeafe'
+                                    : post.post_type === "appel_projet"
+                                    ? '#f3e8ff'
+                                    : '#dcfce7',
+                                color: 
+                                  post.post_type === "appel_offre"
+                                    ? '#1e40af'
+                                    : post.post_type === "appel_projet"
+                                    ? '#6b21a8'
+                                    : '#166534',
+                                fontSize: '0.75rem'
+                              }}
+                            />
+                          </TableCell>
+                          <TableCell sx={{ color: isDarkMode ? '#ffffff' : '#111827' }}>
+                            {post.company_name || "Non précisé"}
+                          </TableCell>
+                          <TableCell sx={{ color: isDarkMode ? '#ffffff' : '#111827' }}>
+                            {post.date_limite
+                              ? new Date(post.date_limite).toLocaleDateString("fr-FR", {
+                                  day: "2-digit",
+                                  month: "2-digit",
+                                  year: "numeric",
+                                })
+                              : "Date non spécifiée"}
+                          </TableCell>
+                          <TableCell>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                              {/* Actions sociales */}
+                              <Tooltip title="J'aime">
+                                <IconButton 
+                                  size="small" 
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     handleLike(post.id, post.type);
                                   }}
-                                  className={`flex items-center ${
-                                    post.is_liked
-                                      ? "text-red-500"
-                                      : isDarkMode
-                                      ? "text-gray-400 hover:text-gray-300"
-                                      : "text-gray-500 hover:text-gray-700"
-                                  }`}
-                                  title="J'aime"
+                                  sx={{ color: post.is_liked ? '#ef4444' : 'text.secondary' }}
                                 >
-                                  {post.is_liked ? (
-                                    <HeartIconSolid className="h-4 w-4 mr-1" />
-                                  ) : (
-                                    <HeartIcon className="h-4 w-4 mr-1" />
-                                  )}
-                                  <span className="text-xs">
-                                    {post.likes_count || 0}
-                                  </span>
-                                </button>
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    openPostDetail(
-                                      post.id,
-                                      post.type,
-                                      "comments"
-                                    );
-                                  }}
-                                  className={`flex items-center ${
-                                    isDarkMode
-                                      ? "text-gray-400 hover:text-gray-300"
-                                      : "text-gray-500 hover:text-gray-700"
-                                  }`}
-                                  title="Commentaires"
-                                >
-                                  <ChatBubbleLeftIcon className="h-4 w-4 mr-1" />
-                                  <span className="text-xs">
-                                    {post.comments_count || 0}
-                                  </span>
-                                </button>
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleShare(post.type, post.id, "facebook");
-                                  }}
-                                  className={`flex items-center ${
-                                    isDarkMode
-                                      ? "text-gray-400 hover:text-gray-300"
-                                      : "text-gray-500 hover:text-gray-700"
-                                  }`}
-                                  title="Partager"
-                                >
-                                  <ShareIcon className="h-4 w-4 mr-1" />
-                                  <span className="text-xs">
-                                    {post.shares_count || 0}
-                                  </span>
-                                </button>
-                              </div>
+                                  {post.is_liked ? <FavoriteIcon /> : <FavoriteBorderIcon />}
+                                </IconButton>
+                              </Tooltip>
+                              
+                              <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                                {post.likes_count || 0}
+                              </Typography>
 
-                              {/* Boutons d'action (Détails, Télécharger, WhatsApp, lien externe) */}
-                              <div className="flex justify-center space-x-2">
-                                {/* Bouton Détails */}
-                                <button
-                                  className={`p-1 rounded-full ${
-                                    isDarkMode
-                                      ? "bg-blue-600 hover:bg-blue-700"
-                                      : "bg-blue-500 hover:bg-blue-600"
-                                  } text-white`}
-                                  title="Voir les détails"
+                              <Tooltip title="Commentaires">
+                                <IconButton 
+                                  size="small" 
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     openPostDetail(post.id, post.type);
                                   }}
+                                  sx={{ color: 'text.secondary' }}
                                 >
-                                  <InformationCircleIcon className="w-4 h-4" />
-                                </button>
+                                  <CommentIcon />
+                                </IconButton>
+                              </Tooltip>
+                              
+                              <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                                {post.comments_count || 0}
+                              </Typography>
 
-                                {/* Bouton Télécharger */}
-                                {post.opportunity_file_url && (
-                                  <a
-                                    href={post.opportunity_file_url}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className={`p-1 rounded-full ${
-                                      isDarkMode
-                                        ? "bg-purple-600 hover:bg-purple-700"
-                                        : "bg-purple-500 hover:bg-purple-600"
-                                    } text-white`}
-                                    title="Télécharger le fichier"
-                                    onClick={(e) => e.stopPropagation()}
-                                    download
-                                  >
-                                    <DocumentArrowDownIcon className="w-4 h-4" />
-                                  </a>
-                                )}
-
-                                {/* Bouton WhatsApp */}
-                                {post.whatsapp && (
-                                  <a
-                                    href={`https://wa.me/${post.whatsapp.replace(
-                                      /[^0-9]/g,
-                                      ""
-                                    )}`}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="p-1 rounded-full bg-green-600 text-white hover:bg-green-700"
-                                    title="Contacter via WhatsApp"
-                                    onClick={(e) => e.stopPropagation()}
-                                  >
-                                    <svg
-                                      xmlns="http://www.w3.org/2000/svg"
-                                      viewBox="0 0 24 24"
-                                      fill="currentColor"
-                                      className="w-4 h-4"
-                                    >
-                                      <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
-                                    </svg>
-                                  </a>
-                                )}
-
-                                {/* Bouton Lien externe */}
-                                {post.external_link && (
-                                  <a
-                                    href={post.external_link}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className={`p-1 rounded-full ${
-                                      isDarkMode
-                                        ? "bg-primary-600 hover:bg-primary-700"
-                                        : "bg-primary-500 hover:bg-primary-600"
-                                    } text-white`}
-                                    title="En savoir plus"
-                                    onClick={(e) => e.stopPropagation()}
-                                  >
-                                    <ArrowTopRightOnSquareIcon className="w-4 h-4" />
-                                  </a>
-                                )}
-                              </div>
-                            </td>
-                          </tr>
-                        ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-
-              {/* Options de tri et informations */}
-              <div
-                className={`flex flex-wrap justify-between items-center gap-3 p-4 border-t ${
-                  isDarkMode ? "border-gray-700" : "border-gray-200"
-                }`}
-              >
-                <div className="text-sm font-medium text-gray-500 dark:text-gray-400 flex items-center">
-                  <InformationCircleIcon className="h-5 w-5 mr-1" />
-                  <span>Cliquez sur une opportunité pour voir les détails</span>
-                </div>
-                <div className="flex items-center">
-                  <span
-                    className={`text-sm mr-2 ${
-                      isDarkMode ? "text-gray-300" : "text-gray-700"
-                    }`}
-                  >
-                    Trier par:
-                  </span>
-                  <div className="relative">
-                    <select
-                      className={`block appearance-none w-full px-4 py-2 pr-8 rounded border ${
-                        isDarkMode
-                          ? "bg-gray-700 border-gray-600 text-white"
-                          : "bg-white border-gray-300 text-gray-900"
-                      } focus:outline-none focus:ring-2 focus:ring-primary-500`}
-                    >
-                      <option>Plus récentes</option>
-                      <option>Plus anciennes</option>
-                      <option>Popularité</option>
-                    </select>
-                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700 dark:text-gray-300">
-                      <ChevronDownIcon className="h-4 w-4" />
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
+                              {/* Bouton détails */}
+                              <Tooltip title="Voir les détails">
+                                <IconButton 
+                                  size="small"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    openPostDetail(post.id, post.type);
+                                  }}
+                                  sx={{ 
+                                    backgroundColor: '#3b82f6',
+                                    color: 'white',
+                                    '&:hover': { backgroundColor: '#2563eb' }
+                                  }}
+                                >
+                                  <VisibilityIcon />
+                                </IconButton>
+                              </Tooltip>
+                            </Box>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+              
+              {/* Pagination Material-UI */}
+              <TablePagination
+                rowsPerPageOptions={[5, 10, 25, 50]}
+                component="div"
+                count={oppoTotal}
+                rowsPerPage={oppoRowsPerPage}
+                page={oppoPage}
+                onPageChange={handleOppoPageChange}
+                onRowsPerPageChange={handleOppoRowsPerPageChange}
+                labelRowsPerPage="Lignes par page:"
+                labelDisplayedRows={({ from, to, count }) => `${from}-${to} sur ${count !== -1 ? count : `plus de ${to}`}`}
+                sx={{ 
+                  backgroundColor: isDarkMode ? '#1f2937' : '#ffffff',
+                  color: isDarkMode ? '#ffffff' : '#000000',
+                  '.MuiTablePagination-selectLabel, .MuiTablePagination-displayedRows': {
+                    color: isDarkMode ? '#ffffff' : '#000000'
+                  }
+                }}
+              />
+            </Box>
           </Tab.Panel>
 
           {/* Quatrième onglet: Formations */}
@@ -3421,6 +2787,7 @@ export default function NewsFeed({ initialActiveTab = 0, showTabs = true }) {
           isDarkMode={isDarkMode}
         />
       )}
+      </div>
     </div>
   );
 }

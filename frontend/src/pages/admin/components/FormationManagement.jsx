@@ -769,10 +769,12 @@ const FormationManagement = () => {
             backgroundColor: isDarkMode ? "#1a1a1a" : "#ffffff",
           }}
         >
-          <TableContainer>
+          <TableContainer
+            sx={{ backgroundColor: isDarkMode ? "#293545ff" : "#f5f5f5" }}
+          >
             <Table sx={{ minWidth: 650 }}>
               <TableHead>
-                <TableRow sx={{ backgroundColor: isDarkMode ? "#252525" : "#f5f5f5" }}>
+                <TableRow sx={{ backgroundColor: isDarkMode ? "#293545ff" : "#f5f5f5" }}>
                   {[
                     { id: "title", label: "Titre" },
                     { id: "type", label: "Type" },

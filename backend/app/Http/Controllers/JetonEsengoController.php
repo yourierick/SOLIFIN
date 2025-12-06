@@ -599,11 +599,11 @@ class JetonEsengoController extends Controller
                     'phone' => $ticket->admin?->phone
                 ],
                 'cadeau' => [
-                    'id' => $ticket->cadeau->id,
-                    'nom' => $ticket->cadeau->nom,
-                    'description' => $ticket->cadeau->description,
-                    'image_url' => $ticket->cadeau->image_url,
-                    'valeur' => $ticket->cadeau->valeur
+                    'id' => $ticket->cadeaus?->id,
+                    'nom' => $ticket->cadeau?->nom,
+                    'description' => $ticket->cadeau?->description,
+                    'image_url' => $ticket->cadeau?->image_url,
+                    'valeur' => $ticket->cadeau?->valeur
                 ]
             ];
             

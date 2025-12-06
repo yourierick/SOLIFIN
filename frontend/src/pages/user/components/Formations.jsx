@@ -114,7 +114,11 @@ const Formations = ({ compact = false }) => {
   const [categoryFilter, setCategoryFilter] = useState("");
   const [availableCategories, setAvailableCategories] = useState([]);
   const [page, setPage] = useState(1);
+  const [rowsPerPage, setRowsPerPage] = useState(6);
+  const [totalCount, setTotalCount] = useState(0);
   const [myFormationsPage, setMyFormationsPage] = useState(1);
+  const [myFormationsRowsPerPage, setMyFormationsRowsPerPage] = useState(6);
+  const [myFormationsTotalCount, setMyFormationsTotalCount] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
   const [myFormationsTotalPages, setMyFormationsTotalPages] = useState(1);
   const [showFilters, setShowFilters] = useState(false);
@@ -132,7 +136,7 @@ const Formations = ({ compact = false }) => {
     setError(null);
 
     try {
-      let url = `/api/formations?page=${page}`;
+      let url = `/api/formations?page=${page}&per_page=${rowsPerPage}`;
 
       if (searchQuery) {
         url += `&search=${encodeURIComponent(searchQuery)}`;
@@ -156,9 +160,8 @@ const Formations = ({ compact = false }) => {
       setAvailableCategories(uniqueCategories);
 
       setFormations(formationsData);
-      setTotalPages(
-        Math.ceil(response.data.data.total / response.data.data.per_page)
-      );
+      setTotalPages(response.data.data.last_page);
+      setTotalCount(response.data.data.total);
     } catch (err) {
       console.error("Erreur lors de la récupération des formations:", err);
       setError(
@@ -169,20 +172,29 @@ const Formations = ({ compact = false }) => {
     }
   };
 
+  // Gestionnaires de pagination
+  const handlePageChange = (event, newPage) => {
+    setPage(newPage);
+  };
+
+  const handleRowsPerPageChange = (event) => {
+    setRowsPerPage(parseInt(event.target.value, 10));
+    setPage(1); // Revenir à la première page quand on change le nombre de lignes
+  };
+
   // Fonction pour récupérer les formations créées par l'utilisateur
   const fetchMyFormations = async () => {
     setMyFormationsLoading(true);
     setMyFormationsError(null);
 
     try {
-      let url = `/api/formations/my/list?page=${myFormationsPage}`;
+      let url = `/api/formations/my/list?page=${myFormationsPage}&per_page=${myFormationsRowsPerPage}`;
 
       const response = await axios.get(url);
 
       setMyFormations(response.data.data.data);
-      setMyFormationsTotalPages(
-        Math.ceil(response.data.data.total / response.data.data.per_page)
-      );
+      setMyFormationsTotalPages(response.data.data.last_page);
+      setMyFormationsTotalCount(response.data.data.total);
     } catch (err) {
       console.error("Erreur lors de la récupération de mes formations:", err);
       setMyFormationsError(
@@ -191,6 +203,16 @@ const Formations = ({ compact = false }) => {
     } finally {
       setMyFormationsLoading(false);
     }
+  };
+
+  // Gestionnaires de pagination pour mes formations
+  const handleMyFormationsPageChange = (event, newPage) => {
+    setMyFormationsPage(newPage);
+  };
+
+  const handleMyFormationsRowsPerPageChange = (event) => {
+    setMyFormationsRowsPerPage(parseInt(event.target.value, 10));
+    setMyFormationsPage(1); // Revenir à la première page quand on change le nombre de lignes
   };
 
   // Fonction pour récupérer les formations achetées par l'utilisateur
@@ -244,7 +266,7 @@ const Formations = ({ compact = false }) => {
     fetchMyFormations();
     fetchPurchasedFormations();
     fetchUserPacks();
-  }, [page, myFormationsPage, searchQuery, typeFilter, categoryFilter]);
+  }, [page, rowsPerPage, myFormationsPage, myFormationsRowsPerPage, searchQuery, typeFilter, categoryFilter]);
 
   // Réinitialiser la page lorsque les filtres changent
   useEffect(() => {
@@ -976,26 +998,59 @@ const Formations = ({ compact = false }) => {
               ))}
             </Grid>
 
-            {/* Pagination moderne */}
-            <Box sx={{ display: "flex", justifyContent: "center", mt: 4 }}>
-              <Pagination
-                count={totalPages}
-                page={page}
-                onChange={(e, value) => setPage(value)}
-                color="primary"
-                size={isMobile ? "small" : "medium"}
-                showFirstButton
-                showLastButton
-                sx={{
-                  "& .MuiPaginationItem-root": {
-                    borderRadius: 2,
-                  },
-                  "& .Mui-selected": {
-                    background: "linear-gradient(45deg, #3b82f6, #8b5cf6)",
-                    color: "white",
-                  },
-                }}
-              />
+            {/* Pagination moderne avec sélecteur de lignes */}
+            <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mt: 4, px: 2 }}>
+              <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+                <Typography variant="body2" sx={{ color: "text.secondary" }}>
+                  Afficher
+                </Typography>
+                <FormControl size="small" sx={{ minWidth: 80 }}>
+                  <Select
+                    value={rowsPerPage}
+                    onChange={handleRowsPerPageChange}
+                    sx={{
+                      "& .MuiOutlinedInput-notchedOutline": {
+                        borderColor: "primary.main",
+                      },
+                    }}
+                  >
+                    <MenuItem value={5}>5</MenuItem>
+                    <MenuItem value={6}>6</MenuItem>
+                    <MenuItem value={10}>10</MenuItem>
+                    <MenuItem value={25}>25</MenuItem>
+                    <MenuItem value={50}>50</MenuItem>
+                  </Select>
+                </FormControl>
+                <Typography variant="body2" sx={{ color: "text.secondary" }}>
+                  résultats par page
+                </Typography>
+              </Box>
+
+              <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+                <Typography variant="body2" sx={{ color: "text.secondary" }}>
+                  {totalCount > 0
+                    ? `${(page - 1) * rowsPerPage + 1}-${Math.min(page * rowsPerPage, totalCount)} sur ${totalCount}`
+                    : "0 résultats"}
+                </Typography>
+                <Pagination
+                  count={totalPages}
+                  page={page}
+                  onChange={handlePageChange}
+                  color="primary"
+                  size={isMobile ? "small" : "medium"}
+                  showFirstButton
+                  showLastButton
+                  sx={{
+                    "& .MuiPaginationItem-root": {
+                      borderRadius: 2,
+                    },
+                    "& .Mui-selected": {
+                      background: "linear-gradient(45deg, #3b82f6, #8b5cf6)",
+                      color: "white",
+                    },
+                  }}
+                />
+              </Box>
             </Box>
           </>
         )}
@@ -1335,26 +1390,59 @@ const Formations = ({ compact = false }) => {
               ))}
             </Grid>
 
-            {/* Pagination moderne */}
-            <Box sx={{ display: "flex", justifyContent: "center", mt: 4 }}>
-              <Pagination
-                count={myFormationsTotalPages}
-                page={myFormationsPage}
-                onChange={(e, value) => setMyFormationsPage(value)}
-                color="primary"
-                size={isMobile ? "small" : "medium"}
-                showFirstButton
-                showLastButton
-                sx={{
-                  "& .MuiPaginationItem-root": {
-                    borderRadius: 2,
-                  },
-                  "& .Mui-selected": {
-                    background: "linear-gradient(45deg, #3b82f6, #8b5cf6)",
-                    color: "white",
-                  },
-                }}
-              />
+            {/* Pagination moderne avec sélecteur de lignes */}
+            <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mt: 4, px: 2 }}>
+              <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+                <Typography variant="body2" sx={{ color: "text.secondary" }}>
+                  Afficher
+                </Typography>
+                <FormControl size="small" sx={{ minWidth: 80 }}>
+                  <Select
+                    value={myFormationsRowsPerPage}
+                    onChange={handleMyFormationsRowsPerPageChange}
+                    sx={{
+                      "& .MuiOutlinedInput-notchedOutline": {
+                        borderColor: "primary.main",
+                      },
+                    }}
+                  >
+                    <MenuItem value={5}>5</MenuItem>
+                    <MenuItem value={6}>6</MenuItem>
+                    <MenuItem value={10}>10</MenuItem>
+                    <MenuItem value={25}>25</MenuItem>
+                    <MenuItem value={50}>50</MenuItem>
+                  </Select>
+                </FormControl>
+                <Typography variant="body2" sx={{ color: "text.secondary" }}>
+                  résultats par page
+                </Typography>
+              </Box>
+
+              <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+                <Typography variant="body2" sx={{ color: "text.secondary" }}>
+                  {myFormationsTotalCount > 0
+                    ? `${(myFormationsPage - 1) * myFormationsRowsPerPage + 1}-${Math.min(myFormationsPage * myFormationsRowsPerPage, myFormationsTotalCount)} sur ${myFormationsTotalCount}`
+                    : "0 résultats"}
+                </Typography>
+                <Pagination
+                  count={myFormationsTotalPages}
+                  page={myFormationsPage}
+                  onChange={handleMyFormationsPageChange}
+                  color="primary"
+                  size={isMobile ? "small" : "medium"}
+                  showFirstButton
+                  showLastButton
+                  sx={{
+                    "& .MuiPaginationItem-root": {
+                      borderRadius: 2,
+                    },
+                    "& .Mui-selected": {
+                      background: "linear-gradient(45deg, #3b82f6, #8b5cf6)",
+                      color: "white",
+                    },
+                  }}
+                />
+              </Box>
             </Box>
           </>
         )}

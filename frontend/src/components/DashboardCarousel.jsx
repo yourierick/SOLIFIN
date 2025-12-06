@@ -18,13 +18,18 @@ import {
   MegaphoneIcon,
   BriefcaseIcon,
   ArrowTopRightOnSquareIcon,
-  HeartIcon,
   ClockIcon,
   MapPinIcon,
   BuildingOfficeIcon,
   StarIcon,
+  CurrencyDollarIcon,
+  TagIcon,
+  PhoneIcon,
+  EnvelopeIcon,
+  CalendarIcon,
+  BuildingOffice2Icon,
+  DocumentTextIcon,
 } from "@heroicons/react/24/outline";
-import { HeartIcon as HeartIconSolid } from "@heroicons/react/24/solid";
 import { motion, AnimatePresence } from "framer-motion";
 
 export default function DashboardCarousel() {
@@ -32,8 +37,6 @@ export default function DashboardCarousel() {
   const [carouselItems, setCarouselItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [hoveredIndex, setHoveredIndex] = useState(null);
-  const [likedItems, setLikedItems] = useState(new Set());
-  const [likesCount, setLikesCount] = useState({});
 
   useEffect(() => {
     const fetchData = async () => {
@@ -43,6 +46,7 @@ export default function DashboardCarousel() {
         // Utiliser le nouvel endpoint unifié pour le carrousel
         const response = await axios.get("/api/dashboard/carousel");
 
+        console.log(response)
         if (response.data.success) {
           // Transformer les publicités en format carousel
           const publicites = response.data.publicites.map((pub) => ({
@@ -60,9 +64,21 @@ export default function DashboardCarousel() {
             color: "from-blue-400 to-blue-600",
             image: pub.image,
             created_at: pub.created_at,
+            expiry_date: pub.expiry_date,
             badge: "Promotion",
             badgeColor: "bg-blue-500",
-            stats: { views: Math.floor(Math.random() * 1000) + 100 },
+            // Nouveaux champs
+            prix: pub.prix_unitaire_vente,
+            devise: pub.devise,
+            categorie: pub.categorie,
+            sous_categorie: pub.sous_categorie,
+            pays: pub.pays,
+            ville: pub.ville,
+            contacts: pub.contacts,
+            email: pub.email,
+            lien: pub.lien,
+            user: pub.user,
+            page: pub.page,
           }));
 
           // Transformer les offres d'emploi en format carousel
@@ -79,12 +95,23 @@ export default function DashboardCarousel() {
             pageId: offre.page_id,
             userId: offre.user_id,
             color: "from-green-400 to-green-600",
-            localisation: offre.localisation,
+            localisation: offre.ville,
             type_contrat: offre.type_contrat,
             created_at: offre.created_at,
+            expiry_date: offre.expiry_date,
             badge: "Nouveau",
             badgeColor: "bg-green-500",
-            stats: { applications: Math.floor(Math.random() * 50) + 5 },
+            // Nouveaux champs
+            entreprise: offre.entreprise,
+            reference: offre.reference,
+            secteur: offre.secteur,
+            pays: offre.pays,
+            date_limite: offre.date_limite,
+            contacts: offre.contacts,
+            email_contact: offre.email_contact,
+            lien: offre.lien,
+            user: offre.user,
+            page: offre.page,
           }));
 
           // Transformer les opportunités d'affaires en format carousel
@@ -104,9 +131,20 @@ export default function DashboardCarousel() {
               color: "from-purple-400 to-purple-600",
               secteur: oppo.secteur,
               created_at: oppo.created_at,
+              expiry_date: oppo.expiry_date,
               badge: "Tendance",
               badgeColor: "bg-purple-500",
-              stats: { interest: Math.floor(Math.random() * 100) + 20 },
+              // Nouveaux champs
+              entreprise: oppo.entreprise,
+              reference: oppo.reference,
+              pays: oppo.pays,
+              ville: oppo.ville,
+              date_limite: oppo.date_limite,
+              contacts: oppo.contacts,
+              email: oppo.email,
+              lien: oppo.lien,
+              user: oppo.user,
+              page: oppo.page,
             })
           );
 
@@ -117,9 +155,6 @@ export default function DashboardCarousel() {
           const shuffledItems = allItems.sort(() => 0.5 - Math.random());
 
           setCarouselItems(shuffledItems);
-
-          // Vérifier les likes existants après avoir chargé les items
-          setTimeout(() => checkExistingLikes(shuffledItems), 100);
         } else {
           setCarouselItems([]);
         }
@@ -172,73 +207,6 @@ export default function DashboardCarousel() {
     fetchData();
   }, []);
 
-  // Gérer l'interaction de like avec API
-  const handleLike = async (item) => {
-    try {
-      const isLiked = likedItems.has(item.id);
-
-      if (item.type === "publicité") {
-        const endpoint = isLiked ? "unlike" : "like";
-        await axios.post(`/api/publicites/${item.id}/${endpoint}`);
-      } else if (item.type === "emploi") {
-        await axios.post(`/api/offres-emploi/${item.id}/like`);
-      } else if (item.type === "opportunité") {
-        await axios.post(`/api/opportunites-affaires/${item.id}/like`);
-      }
-
-      // Mettre à jour l'état local
-      const newLikedItems = new Set(likedItems);
-      if (isLiked) {
-        newLikedItems.delete(item.id);
-        setLikesCount((prev) => ({
-          ...prev,
-          [item.id]: (prev[item.id] || 0) - 1,
-        }));
-      } else {
-        newLikedItems.add(item.id);
-        setLikesCount((prev) => ({
-          ...prev,
-          [item.id]: (prev[item.id] || 0) + 1,
-        }));
-      }
-      setLikedItems(newLikedItems);
-    } catch (error) {
-      console.error("Erreur lors du like:", error);
-    }
-  };
-
-  // Vérifier les likes existants
-  const checkExistingLikes = async (items) => {
-    for (const item of items) {
-      try {
-        let response;
-        if (item.type === "publicité") {
-          response = await axios.get(`/api/publicites/${item.id}/check-like`);
-        } else if (item.type === "emploi") {
-          response = await axios.get(
-            `/api/offres-emploi/${item.id}/check-like`
-          );
-        } else if (item.type === "opportunité") {
-          response = await axios.get(
-            `/api/opportunites-affaires/${item.id}/check-like`
-          );
-        }
-
-        if (response?.data?.liked) {
-          setLikedItems((prev) => new Set(prev).add(item.id));
-        }
-        if (response?.data?.likesCount) {
-          setLikesCount((prev) => ({
-            ...prev,
-            [item.id]: response.data.likesCount,
-          }));
-        }
-      } catch (error) {
-        console.error("Erreur vérification like:", error);
-      }
-    }
-  };
-
   // Formater la date pour l'affichage
   const formatDate = (dateString) => {
     if (!dateString) return "";
@@ -249,6 +217,34 @@ export default function DashboardCarousel() {
         month: "short",
         year: "numeric",
       });
+    } catch (error) {
+      return "";
+    }
+  };
+
+  // Formater la date limite pour l'affichage
+  const formatDeadline = (dateString) => {
+    if (!dateString) return "";
+    try {
+      const date = new Date(dateString);
+      const today = new Date();
+      const diffTime = date - today;
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      
+      if (diffDays < 0) {
+        return "Expiré";
+      } else if (diffDays === 0) {
+        return "Dernier jour";
+      } else if (diffDays === 1) {
+        return "Demain";
+      } else if (diffDays <= 7) {
+        return `${diffDays} jours`;
+      } else {
+        return date.toLocaleDateString("fr-FR", {
+          day: "numeric",
+          month: "short",
+        });
+      }
     } catch (error) {
       return "";
     }
@@ -455,8 +451,33 @@ export default function DashboardCarousel() {
                         {item.description}
                       </p>
 
-                      {/* Informations supplémentaires */}
+                      {/* Informations essentielles */}
                       <div className="space-y-2 mb-4">
+                        {/* Prix pour les publicités */}
+                        {item.type === "publicité" && item.prix && (
+                          <div
+                            className={`text-xs font-semibold ${
+                              isDarkMode ? "text-green-400" : "text-green-600"
+                            } flex items-center`}
+                          >
+                            <CurrencyDollarIcon className="h-3 w-3 mr-1" />
+                            {item.prix} {item.devise || "USD"}
+                          </div>
+                        )}
+                        
+                        {/* Entreprise pour emploi et opportunité */}
+                        {(item.type === "emploi" || item.type === "opportunité") && item.entreprise && (
+                          <div
+                            className={`text-xs font-medium ${
+                              isDarkMode ? "text-blue-400" : "text-blue-600"
+                            } flex items-center`}
+                          >
+                            <BuildingOffice2Icon className="h-3 w-3 mr-1" />
+                            {item.entreprise}
+                          </div>
+                        )}
+                        
+                        {/* Type de contrat pour les emplois */}
                         {item.type === "emploi" && item.type_contrat && (
                           <div
                             className={`text-xs ${
@@ -467,71 +488,34 @@ export default function DashboardCarousel() {
                             {item.type_contrat}
                           </div>
                         )}
-                        {item.type === "emploi" && item.localisation && (
+                        
+                        {/* Localisation */}
+                        {item.ville && (
                           <div
                             className={`text-xs ${
                               isDarkMode ? "text-gray-500" : "text-gray-400"
                             } flex items-center`}
                           >
                             <MapPinIcon className="h-3 w-3 mr-1" />
-                            {item.localisation}
+                            {item.ville}
                           </div>
                         )}
-                        {item.type === "opportunité" && item.secteur && (
+                        
+                        {/* Date limite/expiration */}
+                        {(item.date_limite || item.expiry_date) && (
                           <div
-                            className={`text-xs ${
-                              isDarkMode ? "text-gray-500" : "text-gray-400"
+                            className={`text-xs font-medium ${
+                              formatDeadline(item.date_limite || item.expiry_date) === "Expiré"
+                                ? "text-red-500"
+                                : formatDeadline(item.date_limite || item.expiry_date) === "Dernier jour" || formatDeadline(item.date_limite || item.expiry_date) === "Demain"
+                                ? "text-orange-500"
+                                : isDarkMode ? "text-yellow-400" : "text-yellow-600"
                             } flex items-center`}
                           >
-                            <BuildingOfficeIcon className="h-3 w-3 mr-1" />
-                            {item.secteur}
+                            <CalendarIcon className="h-3 w-3 mr-1" />
+                            {item.type === "publicité" ? `Expire ${formatDeadline(item.expiry_date)}` : formatDeadline(item.date_limite)}
                           </div>
                         )}
-                      </div>
-
-                      {/* Statistiques et like */}
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-4">
-                          {item.stats?.views && (
-                            <div
-                              className={`flex items-center text-xs ${
-                                isDarkMode ? "text-gray-500" : "text-gray-400"
-                              }`}
-                            >
-                              <StarIcon className="h-3 w-3 mr-1" />
-                              {item.stats.views}
-                            </div>
-                          )}
-                          {item.stats?.applications && (
-                            <div
-                              className={`flex items-center text-xs ${
-                                isDarkMode ? "text-gray-500" : "text-gray-400"
-                              }`}
-                            >
-                              <BriefcaseIcon className="h-3 w-3 mr-1" />
-                              {item.stats.applications}
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Bouton like */}
-                        <motion.button
-                          whileHover={{ scale: 1.1 }}
-                          whileTap={{ scale: 0.9 }}
-                          onClick={() => handleLike(item)}
-                          className={`flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium transition-all ${
-                            likedItems.has(item.id)
-                              ? "bg-red-100 text-red-600"
-                              : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                          }`}
-                        >
-                          {likedItems.has(item.id) ? (
-                            <HeartIconSolid className="h-4 w-4" />
-                          ) : (
-                            <HeartIcon className="h-4 w-4" />
-                          )}
-                          {likesCount[item.id] || 0}
-                        </motion.button>
                       </div>
                     </div>
 
@@ -583,6 +567,36 @@ export default function DashboardCarousel() {
           </Swiper>
         </div>
       </div>
+
+      {/* Lien "voir plus d'évenements" */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.3 }}
+        className="flex justify-center mt-8"
+      >
+        <Link
+          to="/dashboard/my-page"
+          className={`inline-flex items-center gap-2 text-sm font-medium transition-all duration-300 hover:gap-3 ${
+            isDarkMode
+              ? "text-blue-400 hover:text-blue-300"
+              : "text-blue-600 hover:text-blue-700"
+          }`}
+        >
+          Voir plus d'évenements
+          <motion.div
+            animate={{ x: [0, 4, 0] }}
+            transition={{
+              duration: 1.5,
+              repeat: Infinity,
+              repeatType: "loop",
+              ease: "easeInOut",
+            }}
+          >
+            <ArrowTopRightOnSquareIcon className="h-4 w-4" />
+          </motion.div>
+        </Link>
+      </motion.div>
 
       <style>
         {`

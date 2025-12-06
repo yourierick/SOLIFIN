@@ -191,27 +191,33 @@ export default function Navbar() {
             {user ? (
               user.is_admin ? (
                 <div className="flex items-center space-x-4">
-                  <RouterLink
-                    to="/admin"
-                    className={`inline-flex items-center btn-primary px-5 py-2.5 text-lg font-medium rounded-md transition-colors duration-200 ${
-                      isDarkMode
-                        ? "text-white-200 hover:text-white"
-                        : "text-white-900 hover:text-white"
-                    }`}
-                  >
-                    Tableau de bord
-                  </RouterLink>
-                  <button
-                    onClick={logout}
-                    className={`inline-flex items-center px-5 py-2.5 text-lg font-medium rounded-md transition-colors duration-200 ${
-                      isDarkMode
-                        ? "text-gray-200 hover:text-white"
-                        : "text-gray-900 hover:text-gray-700"
-                    }`}
-                  >
-                    <ArrowLeftOnRectangleIcon className="h-6 w-6 mr-2" />
-                    Déconnexion
-                  </button>
+                  <Tooltip text="Tableau de bord" isDarkMode={isDarkMode}>
+                    <RouterLink
+                      to="/admin"
+                      className={`inline-flex bg-primary-600 hover:bg-primary-700 items-center justify-center p-2.5 rounded-full transition-colors duration-200 ${
+                        isDarkMode
+                          ? "text-gray-200 hover:text-white"
+                          : "text-white hover:text-white-700"
+                      }`}
+                      aria-label="Tableau de bord"
+                    >
+                      <HomeIcon className="h-6 w-6" />
+                    </RouterLink>
+                  </Tooltip>
+                  
+                  <Tooltip text="Déconnexion" isDarkMode={isDarkMode}>
+                    <button
+                      onClick={logout}
+                      className={`inline-flex items-center justify-center p-2.5 rounded-full transition-colors duration-200 ${
+                        isDarkMode
+                          ? "bg-gray-700 text-gray-200 hover:bg-gray-600 hover:text-white"
+                          : "bg-gray-200 text-gray-700 hover:bg-gray-300 hover:text-gray-900"
+                      }`}
+                      aria-label="Déconnexion"
+                    >
+                      <ArrowLeftOnRectangleIcon className="h-6 w-6" />
+                    </button>
+                  </Tooltip>
                 </div>
               ) : (
                 <div className="flex items-center space-x-3 xl:space-x-5">

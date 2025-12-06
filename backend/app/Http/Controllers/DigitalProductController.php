@@ -62,7 +62,9 @@ class DigitalProductController extends Controller
             });
         }
 
-        $products = $query->orderBy('created_at', 'desc')->paginate(12);
+        // Pagination avec 6 éléments par page
+        $perPage = $request->get('per_page', 6);
+        $products = $query->orderBy('created_at', 'desc')->paginate($perPage);
         foreach ($products as $product) {
             $product->image_url = $product->image ? asset("storage/" . $product->image) : null;
             $product->fichier_url = $product->fichier ? asset('storage/' . $product->fichier) : null;

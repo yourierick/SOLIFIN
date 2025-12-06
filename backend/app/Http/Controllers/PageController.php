@@ -72,43 +72,8 @@ class PageController extends Controller
             ]);
         }
 
-        // Charger les publications
-        $page->load([
-            'publicites', 
-            'offresEmploi', 
-            'opportunitesAffaires',
-            'produitsNumeriques',
-            'user'
-        ]);
-        
-        // Ajouter l'URL complète du fichier PDF pour chaque offre d'emploi
-        if ($page->offresEmploi) {
-            foreach ($page->offresEmploi as $offre) {
-                if ($offre->offer_file) {
-                    $offre->offer_file_url = asset('storage/' . $offre->offer_file);
-                }
-            }
-        }
-
-        if ($page->opportunitesAffaires) {
-            foreach ($page->opportunitesAffaires as $opportunite) {
-                if ($opportunite->opportunity_file) {
-                    $opportunite->opportunity_file_url = asset('storage/' . $opportunite->opportunity_file);
-                }
-            }
-        }
-        
-        // Ajouter les URLs complètes pour les produits numériques
-        if ($page->produitsNumeriques) {
-            foreach ($page->produitsNumeriques as $produit) {
-                if ($produit->image) {
-                    $produit->image_url = asset('storage/' . $produit->image);
-                }
-                if ($produit->fichier) {
-                    $produit->fichier_url = asset('storage/' . $produit->fichier);
-                }
-            }
-        }
+        // Charger uniquement les informations de base de la page et l'utilisateur
+        $page->load(['user']);
 
         // Calculer le nombre total de likes pour cette page
         $totalLikes = $this->calculateTotalLikes($page);
@@ -118,11 +83,338 @@ class PageController extends Controller
         $page->save();
 
         // Ajouter l'URL complète de la photo de couverture si elle existe
-        $page->photo_de_couverture = asset('storage/' . $page->photo_de_couverture);
+        if ($page->photo_de_couverture) {
+            $page->photo_de_couverture = asset('storage/' . $page->photo_de_couverture);
+        }
 
         return response()->json([
             'success' => true,
             'page' => $page,
+        ]);
+    }
+
+    /**
+     * Récupérer les publicités de l'utilisateur avec pagination
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\Response
+     */
+    public function getAdvertisements(Request $request)
+    {
+        \Log::info($request->all());
+        $user = Auth::user();
+        $page = $user->page;
+
+        if (!$page) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Page non trouvée',
+                'advertisements' => [],
+                'pagination' => [
+                    'currentPage' => 1,
+                    'totalPages' => 0,
+                    'totalItems' => 0,
+                    'itemsPerPage' => $request->get('limit', 25)
+                ]
+            ]);
+        }
+
+        $pageNumber = $request->get('page', 1);
+        $limit = $request->get('limit', 25);
+        $offset = ($pageNumber - 1) * $limit;
+
+        // Récupérer les publicités avec pagination
+        $advertisementsQuery = $page->publicites();
+        
+        // Appliquer les filtres si présents
+        if ($request->has('search')) {
+            $search = $request->get('search');
+            $advertisementsQuery->where(function($q) use ($search) {
+                $q->where('titre', 'LIKE', "%{$search}%")
+                  ->orWhere('description', 'LIKE', "%{$search}%");
+            });
+        }
+
+        if ($request->has('statut') && $request->get('statut') !== 'tous') {
+            $advertisementsQuery->where('statut', $request->get('statut'));
+        }
+
+        if ($request->has('etat') && $request->get('etat') !== 'tous') {
+            $advertisementsQuery->where('etat', $request->get('etat'));
+        }
+
+        // Filtres de date
+        if ($request->has('date_debut') && $request->get('date_debut')) {
+            $advertisementsQuery->whereDate('created_at', '>=', $request->get('date_debut'));
+        }
+
+        if ($request->has('date_fin') && $request->get('date_fin')) {
+            $advertisementsQuery->whereDate('created_at', '<=', $request->get('date_fin'));
+        }
+
+        $totalItems = $advertisementsQuery->count();
+        $advertisements = $advertisementsQuery->offset($offset)->limit($limit)->get();
+
+        $totalPages = ceil($totalItems / $limit);
+
+        return response()->json([
+            'success' => true,
+            'advertisements' => $advertisements,
+            'pagination' => [
+                'currentPage' => (int)$pageNumber,
+                'totalPages' => $totalPages,
+                'totalItems' => $totalItems,
+                'itemsPerPage' => (int)$limit
+            ]
+        ]);
+    }
+
+    /**
+     * Récupérer les offres d'emploi de l'utilisateur avec pagination
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\Response
+     */
+    public function getJobOffers(Request $request)
+    {
+        $user = Auth::user();
+        $page = $user->page;
+
+        if (!$page) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Page non trouvée',
+                'jobOffers' => [],
+                'pagination' => [
+                    'currentPage' => 1,
+                    'totalPages' => 0,
+                    'totalItems' => 0,
+                    'itemsPerPage' => $request->get('limit', 25)
+                ]
+            ]);
+        }
+
+        $pageNumber = $request->get('page', 1);
+        $limit = $request->get('limit', 25);
+        $offset = ($pageNumber - 1) * $limit;
+
+        // Récupérer les offres d'emploi avec pagination
+        $jobOffersQuery = $page->offresEmploi();
+        
+        // Appliquer les filtres si présents
+        if ($request->has('search')) {
+            $search = $request->get('search');
+            $jobOffersQuery->where(function($q) use ($search) {
+                $q->where('titre', 'LIKE', "%{$search}%")
+                  ->orWhere('description', 'LIKE', "%{$search}%");
+            });
+        }
+
+        if ($request->has('statut') && $request->get('statut') !== 'tous') {
+            $jobOffersQuery->where('statut', $request->get('statut'));
+        }
+
+        if ($request->has('etat') && $request->get('etat') !== 'tous') {
+            $jobOffersQuery->where('etat', $request->get('etat'));
+        }
+
+        // Filtres de date
+        if ($request->has('date_debut') && $request->get('date_debut')) {
+            $jobOffersQuery->whereDate('created_at', '>=', $request->get('date_debut'));
+        }
+
+        if ($request->has('date_fin') && $request->get('date_fin')) {
+            $jobOffersQuery->whereDate('created_at', '<=', $request->get('date_fin'));
+        }
+
+        $totalItems = $jobOffersQuery->count();
+        $jobOffers = $jobOffersQuery->offset($offset)->limit($limit)->get();
+
+        // Ajouter l'URL complète du fichier PDF pour chaque offre d'emploi
+        foreach ($jobOffers as $offre) {
+            if ($offre->offer_file) {
+                $offre->offer_file_url = asset('storage/' . $offre->offer_file);
+            }
+        }
+
+        $totalPages = ceil($totalItems / $limit);
+
+        return response()->json([
+            'success' => true,
+            'jobOffers' => $jobOffers,
+            'pagination' => [
+                'currentPage' => (int)$pageNumber,
+                'totalPages' => $totalPages,
+                'totalItems' => $totalItems,
+                'itemsPerPage' => (int)$limit
+            ]
+        ]);
+    }
+
+    /**
+     * Récupérer les opportunités d'affaires de l'utilisateur avec pagination
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\Response
+     */
+    public function getBusinessOpportunities(Request $request)
+    {
+        $user = Auth::user();
+        $page = $user->page;
+
+        if (!$page) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Page non trouvée',
+                'businessOpportunities' => [],
+                'pagination' => [
+                    'currentPage' => 1,
+                    'totalPages' => 0,
+                    'totalItems' => 0,
+                    'itemsPerPage' => $request->get('limit', 25)
+                ]
+            ]);
+        }
+
+        $pageNumber = $request->get('page', 1);
+        $limit = $request->get('limit', 25);
+        $offset = ($pageNumber - 1) * $limit;
+
+        // Récupérer les opportunités d'affaires avec pagination
+        $businessOpportunitiesQuery = $page->opportunitesAffaires();
+        
+        // Appliquer les filtres si présents
+        if ($request->has('search')) {
+            $search = $request->get('search');
+            $businessOpportunitiesQuery->where(function($q) use ($search) {
+                $q->where('titre', 'LIKE', "%{$search}%")
+                  ->orWhere('description', 'LIKE', "%{$search}%");
+            });
+        }
+
+        if ($request->has('statut') && $request->get('statut') !== 'tous') {
+            $businessOpportunitiesQuery->where('statut', $request->get('statut'));
+        }
+
+        if ($request->has('etat') && $request->get('etat') !== 'tous') {
+            $businessOpportunitiesQuery->where('etat', $request->get('etat'));
+        }
+
+        // Filtres de date
+        if ($request->has('date_debut') && $request->get('date_debut')) {
+            $businessOpportunitiesQuery->whereDate('created_at', '>=', $request->get('date_debut'));
+        }
+
+        if ($request->has('date_fin') && $request->get('date_fin')) {
+            $businessOpportunitiesQuery->whereDate('created_at', '<=', $request->get('date_fin'));
+        }
+
+        $totalItems = $businessOpportunitiesQuery->count();
+        $businessOpportunities = $businessOpportunitiesQuery->offset($offset)->limit($limit)->get();
+
+        // Ajouter l'URL complète du fichier PDF pour chaque opportunité
+        foreach ($businessOpportunities as $opportunite) {
+            if ($opportunite->opportunity_file) {
+                $opportunite->opportunity_file_url = asset('storage/' . $opportunite->opportunity_file);
+            }
+        }
+
+        $totalPages = ceil($totalItems / $limit);
+
+        return response()->json([
+            'success' => true,
+            'businessOpportunities' => $businessOpportunities,
+            'pagination' => [
+                'currentPage' => (int)$pageNumber,
+                'totalPages' => $totalPages,
+                'totalItems' => $totalItems,
+                'itemsPerPage' => (int)$limit
+            ]
+        ]);
+    }
+
+    /**
+     * Récupérer les produits numériques de l'utilisateur avec pagination
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\Response
+     */
+    public function getDigitalProducts(Request $request)
+    {
+        $user = Auth::user();
+        $page = $user->page;
+
+        if (!$page) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Page non trouvée',
+                'digitalProducts' => [],
+                'pagination' => [
+                    'currentPage' => 1,
+                    'totalPages' => 0,
+                    'totalItems' => 0,
+                    'itemsPerPage' => $request->get('per_page', $request->get('limit', 6))
+                ]
+            ]);
+        }
+
+        $pageNumber = $request->get('page', 1);
+        $limit = $request->get('per_page', $request->get('limit', 6)); // Utiliser per_page ou limit, par défaut 6
+        $offset = ($pageNumber - 1) * $limit;
+
+        // Récupérer les produits numériques avec pagination
+        $digitalProductsQuery = $page->produitsNumeriques();
+        
+        // Appliquer les filtres si présents
+        if ($request->has('search')) {
+            $search = $request->get('search');
+            $digitalProductsQuery->where(function($q) use ($search) {
+                $q->where('titre', 'LIKE', "%{$search}%")
+                  ->orWhere('description', 'LIKE', "%{$search}%");
+            });
+        }
+
+        if ($request->has('statut') && $request->get('statut') !== 'tous') {
+            $digitalProductsQuery->where('statut', $request->get('statut'));
+        }
+
+        if ($request->has('etat') && $request->get('etat') !== 'tous') {
+            $digitalProductsQuery->where('etat', $request->get('etat'));
+        }
+
+        // Filtres de date
+        if ($request->has('date_debut') && $request->get('date_debut')) {
+            $digitalProductsQuery->whereDate('created_at', '>=', $request->get('date_debut'));
+        }
+
+        if ($request->has('date_fin') && $request->get('date_fin')) {
+            $digitalProductsQuery->whereDate('created_at', '<=', $request->get('date_fin'));
+        }
+
+        $totalItems = $digitalProductsQuery->count();
+        $digitalProducts = $digitalProductsQuery->offset($offset)->limit($limit)->get();
+
+        // Ajouter les URLs complètes pour les produits numériques
+        foreach ($digitalProducts as $produit) {
+            if ($produit->image) {
+                $produit->image_url = asset('storage/' . $produit->image);
+            }
+            if ($produit->fichier) {
+                $produit->fichier_url = asset('storage/' . $produit->fichier);
+            }
+        }
+
+        $totalPages = ceil($totalItems / $limit);
+
+        return response()->json([
+            'success' => true,
+            'digitalProducts' => $digitalProducts,
+            'pagination' => [
+                'currentPage' => (int)$pageNumber,
+                'totalPages' => $totalPages,
+                'totalItems' => $totalItems,
+                'itemsPerPage' => (int)$limit
+            ]
         ]);
     }
 

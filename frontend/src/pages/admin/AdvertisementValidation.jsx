@@ -814,13 +814,15 @@ export default function AdvertisementValidation() {
           {items.map((item) => (
             <div
               key={item.id}
-              className={`bg-white dark:bg-gray-800 shadow-sm hover:shadow-md transition-all duration-200 rounded-xl p-5 border-l-4 ${
+              className={`shadow-sm hover:shadow-md transition-all duration-200 rounded-xl p-5 border-l-4 ${
                 type === "socialEvent" && item.needs_attention
                   ? "border-l-red-500 dark:border-l-red-500"
                   : getStatusBorderColor(item.statut).replace(
                       "border",
                       "border-l"
                     )
+              } ${
+                isDarkMode ? "bg-[#293545ff]" : "bg-white"
               }`}
             >
               <div className="flex flex-col md:flex-row justify-between gap-4">

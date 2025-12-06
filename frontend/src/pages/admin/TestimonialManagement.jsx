@@ -551,10 +551,12 @@ const TestimonialManagement = () => {
             backgroundColor: isDarkMode ? "#1a1a1a" : "#ffffff",
           }}
         >
-          <TableContainer>
+          <TableContainer
+            sx={{ backgroundColor: isDarkMode ? "#293545ff" : "#f5f5f5" }}
+          >
             <Table sx={{ minWidth: 800 }}>
               <TableHead>
-                <TableRow sx={{ backgroundColor: isDarkMode ? "#252525" : "#f5f5f5" }}>
+                <TableRow>
                   {[
                     { id: "user", label: "Utilisateur" },
                     { id: "rating", label: "Note" },

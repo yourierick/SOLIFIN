@@ -3,6 +3,8 @@ import {
   MagnifyingGlassIcon,
   AdjustmentsHorizontalIcon,
   XMarkIcon,
+  CalendarIcon,
+  FunnelIcon,
 } from "@heroicons/react/24/outline";
 
 const SearchFilterBar = ({
@@ -45,16 +47,31 @@ const SearchFilterBar = ({
       onToggleFilters();
     }
   };
+
+  const handleFilterUpdate = (key, value) => {
+    console.log('SearchFilterBar - Filter updated:', key, '=', value);
+    console.log('SearchFilterBar - Current filters:', filters);
+    if (handleFilterChange) {
+      console.log('SearchFilterBar - Calling handleFilterChange');
+      handleFilterChange(key, value);
+    } else if (onFilterChange) {
+      console.log('SearchFilterBar - Calling onFilterChange');
+      onFilterChange({ ...filters, [key]: value });
+    } else {
+      console.log('SearchFilterBar - No filter change handler available');
+    }
+  };
+
   return (
-    <div className={`mb-${isMobile ? "3" : "4"}`}>
-      {/* Barre de recherche */}
-      <div className={`flex items-center ${isMobile ? "gap-1" : "gap-2"} mb-2`}>
-        <div className="relative flex-1">
-          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+    <div className={`mb-${isMobile ? "4" : "6"}`}>
+      {/* Barre de recherche moderne */}
+      <div className={`flex items-center ${isMobile ? "gap-2" : "gap-3"} mb-3`}>
+        <div className="relative flex-1 group">
+          <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
             <MagnifyingGlassIcon
               className={`${
                 isMobile ? "h-4 w-4" : "h-5 w-5"
-              } text-gray-400 dark:text-gray-500`}
+              } text-gray-400 dark:text-gray-500 transition-colors duration-300 group-focus-within:text-primary-500 dark:group-focus-within:text-primary-400`}
             />
           </div>
           <input
@@ -66,80 +83,107 @@ const SearchFilterBar = ({
                 ? "Rechercher..."
                 : "Rechercher par titre, description, contact..."
             }
-            className={`block w-full pl-${isMobile ? "9" : "10"} pr-3 ${
-              isMobile ? "py-1.5" : "py-2"
-            } border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 ${
-              isMobile ? "rounded-sm" : "rounded-md"
-            } shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 ${
-              isMobile ? "text-xs" : "sm:text-sm"
-            } text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400`}
+            className={`block w-full pl-${isMobile ? "11" : "12"} pr-12 ${
+              isMobile ? "py-3" : "py-4"
+            } border border-gray-200 dark:border-gray-600 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm ${
+              isMobile ? "rounded-xl" : "rounded-2xl"
+            } focus:outline-none focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500 dark:focus:border-primary-400 ${
+              isMobile ? "text-sm" : "text-base"
+            } text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 transition-all duration-300 hover:bg-white dark:hover:bg-gray-800 hover:border-gray-300 dark:hover:border-gray-500`}
           />
           {searchTerm && (
             <button
               onClick={() => handleSearchChange("")}
-              className="absolute inset-y-0 right-0 pr-3 flex items-center"
+              className="absolute inset-y-0 right-0 pr-4 flex items-center group hover:bg-gray-100 dark:hover:bg-gray-700 rounded-r-xl transition-all duration-300"
             >
               <XMarkIcon
                 className={`${
                   isMobile ? "h-4 w-4" : "h-5 w-5"
-                } text-gray-400 dark:text-gray-500 hover:text-gray-500 dark:hover:text-gray-400`}
+                } text-gray-400 dark:text-gray-500 hover:text-red-500 dark:hover:text-red-400 transition-colors duration-300`}
               />
             </button>
           )}
         </div>
         <button
           onClick={handleToggleFilters}
-          className={`${isMobile ? "p-1.5" : "p-2"} ${
-            isMobile ? "rounded-sm" : "rounded-md"
+          className={`group relative overflow-hidden ${
+            isMobile ? "p-3" : "p-4"
+          } ${
+            isMobile ? "rounded-xl" : "rounded-2xl"
           } ${
             showFilters
-              ? "bg-primary-100 dark:bg-primary-900 text-primary-700 dark:text-primary-300"
-              : "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300"
-          } hover:bg-primary-50 dark:hover:bg-primary-800`}
+              ? "bg-gradient-to-r from-primary-500 to-primary-600 dark:from-primary-600 dark:to-primary-700 text-white shadow-lg shadow-primary-500/25"
+              : "bg-gradient-to-r from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-600 text-gray-700 dark:text-gray-300 hover:from-gray-200 hover:to-gray-300 dark:hover:from-gray-600 dark:hover:to-gray-500"
+          } transition-all duration-300 hover:scale-105 transform hover:-translate-y-0.5`}
         >
-          <AdjustmentsHorizontalIcon
-            className={`${isMobile ? "h-4 w-4" : "h-5 w-5"}`}
+          <div className="absolute inset-0 bg-gradient-to-r from-white/0 to-white/20 dark:from-white/0 dark:to-white/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+          <FunnelIcon
+            className={`${isMobile ? "h-4 w-4" : "h-5 w-5"} relative z-10 transition-transform duration-300 group-hover:rotate-12 ${
+              showFilters ? "text-white" : ""
+            }`}
           />
         </button>
       </div>
 
-      {/* Filtres */}
+      {/* Filtres modernes */}
       {showFilters && (
         <div
-          className={`bg-white dark:bg-gray-800 ${isMobile ? "p-2" : "p-3"} ${
-            isMobile ? "rounded-sm" : "rounded-md"
-          } shadow-sm border border-gray-200 dark:border-gray-700 mb-3`}
+          className={`relative overflow-hidden bg-gradient-to-br from-white/95 to-gray-50/95 dark:from-gray-800/95 dark:to-gray-900/95 backdrop-blur-xl border border-gray-200/50 dark:border-gray-700/50 ${
+            isMobile ? "p-5" : "p-7"
+          } ${
+            isMobile ? "rounded-2xl" : "rounded-3xl"
+          } shadow-xl shadow-gray-200/20 dark:shadow-gray-900/20 mb-4 transition-all duration-500`}
         >
+          {/* Header des filtres */}
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center">
+              <div className="relative">
+                <AdjustmentsHorizontalIcon className={`${
+                  isMobile ? "h-5 w-5" : "h-6 w-6"
+                } text-primary-600 dark:text-primary-400 mr-3 transition-transform duration-300 group-hover:rotate-12`} />
+              </div>
+              <div>
+                <h3 className={`${
+                  isMobile ? "text-base" : "text-lg"
+                } font-bold bg-gradient-to-r from-gray-900 to-gray-700 dark:from-white dark:to-gray-300 bg-clip-text text-transparent`}>
+                  Filtres avancés
+                </h3>
+                <p className={`text-xs text-gray-500 dark:text-gray-400 mt-1`}>
+                  Affinez votre recherche
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center space-x-1">
+              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+              <span className={`text-xs text-gray-600 dark:text-gray-400 font-medium`}>
+                Actifs
+              </span>
+            </div>
+          </div>
+
           <div
             className={`grid ${
-              isMobile ? "grid-cols-1" : "grid-cols-1 md:grid-cols-3"
-            } ${isMobile ? "gap-2" : "gap-3"}`}
+              isMobile ? "grid-cols-1" : "grid-cols-1 md:grid-cols-2 lg:grid-cols-4"
+            } ${isMobile ? "gap-3" : "gap-4"}`}
           >
             {/* Filtre par statut */}
-            <div>
-              <label
-                className={`block ${
-                  isMobile ? "text-xs" : "text-sm"
-                } font-medium text-gray-700 dark:text-gray-300 mb-1`}
-              >
+            <div className="space-y-3 group">
+              <label className={`flex items-center ${
+                isMobile ? "text-xs" : "text-sm"
+              } font-semibold text-gray-700 dark:text-gray-300 transition-colors duration-300 group-hover:text-primary-600 dark:group-hover:text-primary-400`}>
+                <div className="w-2 h-2 bg-gradient-to-r from-primary-400 to-primary-600 rounded-full mr-2 animate-pulse"></div>
                 Statut
               </label>
               <select
-                value={filters.statut}
-                onChange={(e) => {
-                  if (handleFilterChange) {
-                    handleFilterChange("statut", e.target.value);
-                  } else if (onFilterChange) {
-                    onFilterChange({ ...filters, statut: e.target.value });
-                  }
-                }}
+                value={filters.statut || 'tous'}
+                onChange={(e) => handleFilterUpdate("statut", e.target.value)}
                 className={`block w-full ${
-                  isMobile ? "px-2 py-1.5" : "px-3 py-2"
-                } border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white ${
-                  isMobile ? "rounded-sm" : "rounded-md"
-                } shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 ${
-                  isMobile ? "text-xs" : "sm:text-sm"
-                }`}
+                  isMobile ? "px-4 py-3" : "px-4 py-3.5"
+                } border border-gray-200 dark:border-gray-600 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm text-gray-900 dark:text-white ${
+                  isMobile ? "rounded-xl" : "rounded-xl"
+                } focus:outline-none focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500 dark:focus:border-primary-400 ${
+                  isMobile ? "text-sm" : "text-sm"
+                } transition-all duration-300 hover:bg-white dark:hover:bg-gray-800 hover:border-gray-300 dark:hover:border-gray-500 font-medium`}
               >
                 <option value="tous">Tous les statuts</option>
                 <option value="en_attente">En attente</option>
@@ -150,30 +194,23 @@ const SearchFilterBar = ({
             </div>
 
             {/* Filtre par état */}
-            <div>
-              <label
-                className={`block ${
-                  isMobile ? "text-xs" : "text-sm"
-                } font-medium text-gray-700 dark:text-gray-300 mb-1`}
-              >
+            <div className="space-y-3 group">
+              <label className={`flex items-center ${
+                isMobile ? "text-xs" : "text-sm"
+              } font-semibold text-gray-700 dark:text-gray-300 transition-colors duration-300 group-hover:text-green-600 dark:group-hover:text-green-400`}>
+                <div className="w-2 h-2 bg-gradient-to-r from-green-400 to-green-600 rounded-full mr-2 animate-pulse"></div>
                 État
               </label>
               <select
-                value={filters.etat}
-                onChange={(e) => {
-                  if (handleFilterChange) {
-                    handleFilterChange("etat", e.target.value);
-                  } else if (onFilterChange) {
-                    onFilterChange({ ...filters, etat: e.target.value });
-                  }
-                }}
+                value={filters.etat || 'tous'}
+                onChange={(e) => handleFilterUpdate("etat", e.target.value)}
                 className={`block w-full ${
-                  isMobile ? "px-2 py-1.5" : "px-3 py-2"
-                } border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white ${
-                  isMobile ? "rounded-sm" : "rounded-md"
-                } shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 ${
-                  isMobile ? "text-xs" : "sm:text-sm"
-                }`}
+                  isMobile ? "px-4 py-3" : "px-4 py-3.5"
+                } border border-gray-200 dark:border-gray-600 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm text-gray-900 dark:text-white ${
+                  isMobile ? "rounded-xl" : "rounded-xl"
+                } focus:outline-none focus:ring-2 focus:ring-green-500/50 focus:border-green-500 dark:focus:border-green-400 ${
+                  isMobile ? "text-sm" : "text-sm"
+                } transition-all duration-300 hover:bg-white dark:hover:bg-gray-800 hover:border-gray-300 dark:hover:border-gray-500 font-medium`}
               >
                 <option value="tous">Tous les états</option>
                 <option value="disponible">Disponible</option>
@@ -181,52 +218,104 @@ const SearchFilterBar = ({
               </select>
             </div>
 
-            {/* Filtre par date */}
-            <div>
-              <label
-                className={`block ${
-                  isMobile ? "text-xs" : "text-sm"
-                } font-medium text-gray-700 dark:text-gray-300 mb-1`}
-              >
-                Date de création
+            {/* Filtre date de début */}
+            <div className="space-y-3 group">
+              <label className={`flex items-center ${
+                isMobile ? "text-xs" : "text-sm"
+              } font-semibold text-gray-700 dark:text-gray-300 transition-colors duration-300 group-hover:text-blue-600 dark:group-hover:text-blue-400`}>
+                <CalendarIcon className={`${
+                  isMobile ? "h-4 w-4" : "h-4 w-4"
+                } text-blue-500 mr-2 transition-transform duration-300 group-hover:scale-110`} />
+                Date de début
               </label>
-              <select
-                value={filters.dateRange}
-                onChange={(e) => {
-                  if (handleFilterChange) {
-                    handleFilterChange("dateRange", e.target.value);
-                  } else if (onFilterChange) {
-                    onFilterChange({ ...filters, dateRange: e.target.value });
-                  }
-                }}
+              <input
+                type="date"
+                value={filters.date_debut || ''}
+                onChange={(e) => handleFilterUpdate("date_debut", e.target.value)}
                 className={`block w-full ${
-                  isMobile ? "px-2 py-1.5" : "px-3 py-2"
-                } border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white ${
-                  isMobile ? "rounded-sm" : "rounded-md"
-                } shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 ${
-                  isMobile ? "text-xs" : "sm:text-sm"
-                }`}
-              >
-                <option value="tous">Toutes les dates</option>
-                <option value="aujourd'hui">Aujourd'hui</option>
-                <option value="semaine">Cette semaine</option>
-                <option value="mois">Ce mois</option>
-              </select>
+                  isMobile ? "px-4 py-3" : "px-4 py-3.5"
+                } border border-gray-200 dark:border-gray-600 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm text-gray-900 dark:text-white ${
+                  isMobile ? "rounded-xl" : "rounded-xl"
+                } focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 dark:focus:border-blue-400 ${
+                  isMobile ? "text-sm" : "text-sm"
+                } transition-all duration-300 hover:bg-white dark:hover:bg-gray-800 hover:border-gray-300 dark:hover:border-gray-500 font-medium`}
+              />
+            </div>
+
+            {/* Filtre date de fin */}
+            <div className="space-y-3 group">
+              <label className={`flex items-center ${
+                isMobile ? "text-xs" : "text-sm"
+              } font-semibold text-gray-700 dark:text-gray-300 transition-colors duration-300 group-hover:text-red-600 dark:group-hover:text-red-400`}>
+                <CalendarIcon className={`${
+                  isMobile ? "h-4 w-4" : "h-4 w-4"
+                } text-red-500 mr-2 transition-transform duration-300 group-hover:scale-110`} />
+                Date de fin
+              </label>
+              <input
+                type="date"
+                value={filters.date_fin || ''}
+                onChange={(e) => handleFilterUpdate("date_fin", e.target.value)}
+                min={filters.date_debut || ''}
+                className={`block w-full ${
+                  isMobile ? "px-4 py-3" : "px-4 py-3.5"
+                } border border-gray-200 dark:border-gray-600 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm text-gray-900 dark:text-white ${
+                  isMobile ? "rounded-xl" : "rounded-xl"
+                } focus:outline-none focus:ring-2 focus:ring-red-500/50 focus:border-red-500 dark:focus:border-red-400 ${
+                  isMobile ? "text-sm" : "text-sm"
+                } transition-all duration-300 hover:bg-white dark:hover:bg-gray-800 hover:border-gray-300 dark:hover:border-gray-500 font-medium`}
+              />
             </div>
           </div>
 
-          {/* Bouton de réinitialisation */}
-          <div className="mt-3">
-            <button
-              onClick={resetFilters}
-              className={`${
-                isMobile ? "px-3 py-1.5 text-xs" : "px-4 py-2 text-sm"
-              } bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 ${
-                isMobile ? "rounded-sm" : "rounded-md"
-              } hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors duration-200`}
-            >
-              Réinitialiser les filtres
-            </button>
+          {/* Boutons d'action modernes */}
+          <div className="flex items-center justify-between mt-8 pt-6 border-t border-gray-200/50 dark:border-gray-700/50">
+            <div className="flex items-center space-x-3">
+              <div className="relative">
+                <div className="w-3 h-3 bg-gradient-to-r from-green-400 to-green-600 rounded-full animate-pulse"></div>
+                <div className="absolute inset-0 w-3 h-3 bg-green-400 rounded-full animate-ping"></div>
+              </div>
+              <span className={`${
+                isMobile ? "text-xs" : "text-sm"
+              } text-gray-600 dark:text-gray-400 font-medium`}>
+                Filtres actifs
+              </span>
+            </div>
+            <div className="flex space-x-3">
+              <button
+                onClick={resetFilters}
+                className={`group relative overflow-hidden ${
+                  isMobile ? "px-5 py-3 text-xs" : "px-6 py-3.5 text-sm"
+                } bg-gradient-to-r from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-600 text-gray-700 dark:text-gray-300 ${
+                  isMobile ? "rounded-xl" : "rounded-xl"
+                } hover:from-gray-200 hover:to-gray-300 dark:hover:from-gray-600 dark:hover:to-gray-500 transition-all duration-300 hover:scale-105 transform hover:-translate-y-0.5 font-medium`}
+              >
+                <div className="absolute inset-0 bg-gradient-to-r from-white/0 to-white/20 dark:from-white/0 dark:to-white/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                <span className="relative z-10 flex items-center">
+                  <svg className="w-4 h-4 mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+                    <path d="M3 3v5h5"/>
+                  </svg>
+                  Réinitialiser
+                </span>
+              </button>
+              <button
+                onClick={handleToggleFilters}
+                className={`group relative overflow-hidden ${
+                  isMobile ? "px-5 py-3 text-xs" : "px-6 py-3.5 text-sm"
+                } bg-gradient-to-r from-primary-500 to-primary-600 dark:from-primary-600 dark:to-primary-700 text-white ${
+                  isMobile ? "rounded-xl" : "rounded-xl"
+                } hover:from-primary-600 hover:to-primary-700 dark:hover:from-primary-700 dark:hover:to-primary-800 shadow-lg shadow-primary-500/25 hover:shadow-xl hover:shadow-primary-600/35 transition-all duration-300 hover:scale-105 transform hover:-translate-y-0.5 font-semibold`}
+              >
+                <div className="absolute inset-0 bg-gradient-to-r from-white/0 to-white/20 dark:from-white/0 dark:to-white/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                <span className="relative z-10 flex items-center">
+                  <svg className="w-4 h-4 mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <polyline points="20 6 9 17 4 12"/>
+                  </svg>
+                  Appliquer
+                </span>
+              </button>
+            </div>
           </div>
         </div>
       )}

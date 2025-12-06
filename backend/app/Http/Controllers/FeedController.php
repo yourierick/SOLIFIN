@@ -34,6 +34,7 @@ class FeedController extends Controller
     {
         $type = $request->input('type', 'publicites');
         $lastId = $request->input('last_id', 0);
+        $page = $request->input('page', 1); // Pour Material-UI pagination
         $limit = $request->input('limit', 10);
         $userId = Auth::id();
         
@@ -48,31 +49,220 @@ class FeedController extends Controller
                 $query = OffreEmploi::with(['page', 'page.user'])
                     ->where('statut', 'approuvé')
                     ->latest();
+                
+                // Appliquer les filtres spécifiques aux offres d'emploi
+                if ($request->has('search') && $request->input('search')) {
+                    $searchTerm = $request->input('search');
+                    $query->where(function($q) use ($searchTerm) {
+                        $q->where('titre', 'LIKE', '%' . $searchTerm . '%')
+                          ->orWhere('entreprise', 'LIKE', '%' . $searchTerm . '%')
+                          ->orWhere('pays', 'LIKE', '%' . $searchTerm . '%')
+                          ->orWhere('ville', 'LIKE', '%' . $searchTerm . '%')
+                          ->orWhere('reference', 'LIKE', '%' . $searchTerm . '%')
+                          ->orWhere('secteur', 'LIKE', '%' . $searchTerm . '%');
+                    });
+                }
+                if ($request->has('pays') && $request->input('pays')) {
+                    $query->where('pays', $request->input('pays'));
+                }
+                if ($request->has('ville') && $request->input('ville')) {
+                    $query->where('ville', $request->input('ville'));
+                }
+                if ($request->has('secteur') && $request->input('secteur')) {
+                    $query->where('secteur', $request->input('secteur'));
+                }
+                if ($request->has('type_offre') && $request->input('type_offre')) {
+                    $typeOffre = $request->input('type_offre');
+                    // Gérer les deux cas : avec et sans accent
+                    if ($typeOffre === 'appel_manifestation_interet') {
+                        $query->where('type', 'appel_manifestation_intéret');
+                    } else {
+                        $query->where('type', $typeOffre);
+                    }
+                }
+                if ($request->has('type_contrat') && $request->input('type_contrat')) {
+                    $query->where('type_contrat', $request->input('type_contrat'));
+                }
+                if ($request->has('statut') && $request->input('statut') !== 'all') {
+                    if ($request->input('statut') === 'disponible') {
+                        $query->where('etat', 'disponible');
+                    } elseif ($request->input('statut') === 'expired') {
+                        $query->where('etat', 'terminé');
+                    } elseif ($request->input('statut') === 'recent') {
+                        $threeDaysAgo = now()->subDays(3);
+                        $query->where('created_at', '>=', $threeDaysAgo);
+                    }
+                }
                 break;
                 
             case 'opportunites-affaires':
                 $query = OpportuniteAffaire::with(['page', 'page.user'])
                     ->where('statut', 'approuvé')
                     ->latest();
+                
+                // Appliquer les filtres spécifiques aux opportunités d'affaires
+                if ($request->has('search') && $request->input('search')) {
+                    $searchTerm = $request->input('search');
+                    $query->where(function($q) use ($searchTerm) {
+                        $q->where('titre', 'LIKE', '%' . $searchTerm . '%')
+                          ->orWhere('entreprise', 'LIKE', '%' . $searchTerm . '%')
+                          ->orWhere('pays', 'LIKE', '%' . $searchTerm . '%')
+                          ->orWhere('ville', 'LIKE', '%' . $searchTerm . '%')
+                          ->orWhere('secteur', 'LIKE', '%' . $searchTerm . '%');
+                    });
+                }
+                if ($request->has('pays') && $request->input('pays')) {
+                    $query->where('pays', $request->input('pays'));
+                }
+                if ($request->has('ville') && $request->input('ville')) {
+                    $query->where('ville', $request->input('ville'));
+                }
+                if ($request->has('secteur') && $request->input('secteur')) {
+                    $query->where('secteur', $request->input('secteur'));
+                }
+                if ($request->has('type_offre') && $request->input('type_offre')) {
+                    $typeOffre = $request->input('type_offre');
+                    // Gérer les deux cas : avec et sans accent
+                    if ($typeOffre === 'appel_offre') {
+                        $query->where('type', 'appel_offre');
+                    } elseif ($typeOffre === 'appel_projet') {
+                        $query->where('type', 'appel_projet');
+                    } else {
+                        $query->where('type', $typeOffre);
+                    }
+                }
+                if ($request->has('statut') && $request->input('statut') !== 'all') {
+                    if ($request->input('statut') === 'disponible') {
+                        $query->where('etat', 'disponible');
+                    } elseif ($request->input('statut') === 'expired') {
+                        $query->where('etat', 'terminé');
+                    } elseif ($request->input('statut') === 'recent') {
+                        $threeDaysAgo = now()->subDays(3);
+                        $query->where('created_at', '>=', $threeDaysAgo);
+                    }
+                }
+                
+                // Filtre par type d'opportunité
+                if ($request->has('type_opportunite') && $request->input('type_opportunite')) {
+                    $typeOpportunite = $request->input('type_opportunite');
+                    if ($typeOpportunite === 'appel_offre') {
+                        $query->where('type', 'appel_offre');
+                    } elseif ($typeOpportunite === 'appel_projet') {
+                        $query->where('type', 'appel_projet');
+                    } elseif ($typeOpportunite === 'partenariat') {
+                        $query->where('type', 'partenariat');
+                    } else {
+                        $query->where('type', $typeOpportunite);
+                    }
+                }
+                
+                // Filtre par date limite
+                if ($request->has('date_limite') && $request->input('date_limite')) {
+                    $dateLimite = $request->input('date_limite');
+                    \Log::info('Filtre date_limite reçu: ' . $dateLimite);
+                    // Convertir la date au format Y-m-d si nécessaire
+                    try {
+                        $dateLimite = \Carbon\Carbon::parse($dateLimite)->format('Y-m-d');
+                        \Log::info('Date convertie: ' . $dateLimite);
+                        $query->where('date_limite', '>=', $dateLimite);
+                    } catch (\Exception $e) {
+                        // Si la conversion échoue, utiliser la date brute
+                        \Log::error('Erreur conversion date: ' . $e->getMessage());
+                        $query->where('date_limite', '>=', $dateLimite);
+                    }
+                }
                 break;
                 
             default: // 'publicites'
                 $query = Publicite::with(['page', 'page.user'])
                     ->where('statut', 'approuvé')
                     ->latest();
+                
+                // Appliquer la recherche pour les publicités
+                if ($request->has('search') && $request->input('search')) {
+                    $searchTerm = $request->input('search');
+                    $query->where(function($q) use ($searchTerm) {
+                        $q->where('titre', 'LIKE', '%' . $searchTerm . '%')
+                          ->orWhere('description', 'LIKE', '%' . $searchTerm . '%')
+                          ->orWhere('contenu', 'LIKE', '%' . $searchTerm . '%')
+                          ->orWhere('pays', 'LIKE', '%' . $searchTerm . '%')
+                          ->orWhere('ville', 'LIKE', '%' . $searchTerm . '%')
+                          ->orWhere('categorie', 'LIKE', '%' . $searchTerm . '%')
+                          ->orWhere('autre_categorie', 'LIKE', '%' . $searchTerm . '%')
+                          ->orWhere('sous_categorie', 'LIKE', '%' . $searchTerm . '%')
+                          ->orWhere('autre_sous_categorie', 'LIKE', '%' . $searchTerm . '%');
+                    });
+                }
                 break;
         }
 
-        // Pour l'infinite scroll
-        if ($lastId > 0) {
-            $query->where('id', '<', $lastId);
+        // Appliquer les filtres spécifiques aux publicités (si type = 'publicites' ou default)
+        if ($type === 'publicites' || $type === 'annonces') {
+            // Filtre par type de publication
+            if ($request->has('type_publication') && $request->input('type_publication')) {
+                $query->where('type', $request->input('type_publication'));
+            }
+            
+            // Filtre par catégorie
+            if ($request->has('categorie') && $request->input('categorie')) {
+                $query->where(function($q) use ($request) {
+                    $q->where('categorie', $request->input('categorie'))
+                      ->orWhere('autre_categorie', $request->input('categorie'));
+                });
+            }
+            
+            // Filtre par besoin de livreurs
+            if ($request->has('besoin_livreurs') && $request->input('besoin_livreurs')) {
+                $query->where('besoin_livreurs', $request->input('besoin_livreurs'));
+            }
+            
+            // Filtre par statut
+            if ($request->has('statut') && $request->input('statut') !== 'all') {
+                if ($request->input('statut') === 'disponible') {
+                    $query->where('etat', 'disponible');
+                } elseif ($request->input('statut') === 'termine') {
+                    $query->where('etat', 'terminé');
+                }
+            }
         }
-        
+
         // Prioriser les publications des pages auxquelles l'utilisateur est abonné
         // mais afficher aussi les autres publications
-        $query->orderByRaw('CASE WHEN page_id IN (' . (empty($subscribedPageIds) ? '0' : implode(',', $subscribedPageIds)) . ') THEN 0 ELSE 1 END');
+        if (!empty($subscribedPageIds)) {
+            $query->orderByRaw('CASE WHEN page_id IN (' . implode(',', $subscribedPageIds) . ') THEN 0 ELSE 1 END, id DESC');
+        } else {
+            $query->orderBy('id', 'desc');
+        }
 
-        $publications = $query->take($limit)->get();
+        // Compter le total pour la pagination Material-UI (AVANT d'appliquer l'offset)
+        $totalQuery = clone $query;
+        $total = $totalQuery->count();
+
+        // Gestion différente pour infinite scroll vs pagination Material-UI
+        if ($request->has('page')) {
+            // Pagination Material-UI (pour offres d'emploi)
+            $offset = ($page - 1) * $limit;
+            $query->offset($offset);
+        } else {
+            // Infinite scroll (pour publicités et opportunités)
+            if ($lastId > 0) {
+                $query->where('id', '<', $lastId);
+            }
+        }
+
+        // Limiter la requête pour de meilleures performances
+        if ($request->has('page')) {
+            // Pagination Material-UI : prendre exactement limit
+            $publications = $query->take($limit)->get();
+            $hasMore = false; // Pas de has_more pour pagination classique
+        } else {
+            // Infinite scroll : prendre limit + 1 pour détecter s'il y en a plus
+            $publications = $query->take($limit + 1)->get();
+            $hasMore = count($publications) > $limit;
+            if ($hasMore) {
+                $publications = $publications->take($limit);
+            }
+        }
 
         // Transformer les publications pour avoir un format uniforme
         $posts = $publications->map(function ($publication) use ($userId, $type) {
@@ -304,11 +494,13 @@ class FeedController extends Controller
             return $post;
         });
 
+        \Log::info('Feed request - Type: ' . $type . ', LastID: ' . $lastId . ', Limit: ' . $limit . ', HasMore: ' . $hasMore . ', Total: ' . $total . ', Posts count: ' . count($posts));
         \Log::info('Publications récupérées: ' . json_encode($posts));
 
         return response()->json([
             'posts' => $posts,
-            'has_more' => count($publications) == $limit
+            'has_more' => $hasMore,
+            'total' => $total
         ]);
     }
 

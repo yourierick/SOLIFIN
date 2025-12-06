@@ -18,6 +18,10 @@ import {
   ChevronRightIcon,
   ExclamationTriangleIcon,
   ArrowDownTrayIcon,
+  EyeIcon,
+  PencilIcon,
+  TrashIcon,
+  SparklesIcon,
 } from "@heroicons/react/24/outline";
 import axios from "../../utils/axios";
 import { useAuth } from "../../contexts/AuthContext";
@@ -25,7 +29,26 @@ import { useTheme } from "../../contexts/ThemeContext";
 import { usePublicationPack } from "../../contexts/PublicationPackContext";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import PublicationCard from "./components/PublicationCard";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper,
+  Chip,
+  Box,
+  IconButton,
+  Tooltip,
+  Alert,
+  TablePagination,
+  Typography,
+  FormControl,
+  Select,
+  MenuItem,
+  Pagination as MuiPagination,
+} from "@mui/material";
 import PublicationForm from "./components/PublicationForm";
 import PublicationPackAlert from "../../components/PublicationPackAlert";
 import PublicationDetailsModal from "./components/PublicationDetailsModal";
@@ -34,7 +57,6 @@ import Modal from "../../components/Modal";
 import Pagination from "../../components/Pagination";
 import BoostPublicationModal from "./components/BoostPublicationModal";
 import LivreursList from "./components/LivreursList";
-import LivreurForm from "./components/LivreurForm";
 import Social from "./Social";
 import Formations from "./components/Formations";
 import NewsFeed from "./NewsFeed";
@@ -44,11 +66,116 @@ import DigitalProductCard from "../../components/DigitalProductCard";
 import DigitalProductForm from "../../components/DigitalProductForm";
 import PurchaseDigitalProductModal from "./components/PurchaseDigitalProductModal";
 
+// Styles CSS personnalisés pour les animations
+const customStyles = `
+  @keyframes gradient {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+  }
+  
+  .animate-gradient {
+    background-size: 200% 200%;
+    animation: gradient 3s ease infinite;
+  }
+  
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+  
+  .glassmorphism {
+    backdrop-filter: blur(16px) saturate(180%);
+    background-color: rgba(255, 255, 255, 0.75);
+    border: 1px solid rgba(209, 213, 219, 0.3);
+  }
+  
+  .dark .glassmorphism {
+    background-color: rgba(17, 24, 39, 0.75);
+    border: 1px solid rgba(75, 85, 99, 0.3);
+  }
+  
+  .hover\:shadow-3xl:hover {
+    box-shadow: 0 35px 60px -12px rgba(0, 0, 0, 0.25);
+  }
+  
+  .border-3 {
+    border-width: 3px;
+  }
+`
+
 function classNames(...classes) {
   return classes.filter(Boolean).join(" ");
 }
 
+// Fonction pour formater la date
+const formatDate = (dateString) => {
+  if (!dateString) return "";
+  try {
+    const date = new Date(dateString);
+    return date.toLocaleDateString("fr-FR", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+    });
+  } catch (error) {
+    return "";
+  }
+};
+
+// Fonction pour obtenir le statut en français
+const getStatutLabel = (statut) => {
+  switch (statut) {
+    case "en_attente":
+      return "En attente";
+    case "approuve":
+      return "Approuvé";
+    case "rejete":
+      return "Rejeté";
+    case "expire":
+      return "Expiré";
+    case "active":
+      return "Actif";
+    case "inactive":
+      return "Inactif";
+    default:
+      return statut || "Inconnu";
+  }
+};
+
+// Fonction pour obtenir la couleur du statut
+const getStatutColor = (statut) => {
+  switch (statut) {
+    case "en_attente":
+      return "warning";
+    case "approuve":
+    case "active":
+      return "success";
+    case "rejete":
+    case "expire":
+    case "inactive":
+      return "error";
+    default:
+      return "default";
+  }
+};
+
 export default function MyPage() {
+  // Injection des styles CSS personnalisés
+  useEffect(() => {
+    const styleElement = document.createElement('style');
+    styleElement.textContent = customStyles;
+    document.head.appendChild(styleElement);
+    
+    return () => {
+      document.head.removeChild(styleElement);
+    };
+  }, []);
+  
   // Détection mobile
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
 
@@ -98,7 +225,8 @@ export default function MyPage() {
   const [filters, setFilters] = useState({
     statut: "tous", // 'tous', 'en_attente', 'approuvé', 'rejeté'
     etat: "tous", // 'tous', 'disponible', 'terminé'
-    dateRange: "tous", // 'tous', 'aujourd'hui', 'semaine', 'mois'
+    date_debut: "", // Format YYYY-MM-DD
+    date_fin: "", // Format YYYY-MM-DD
   });
   const [catalogFilters, setCatalogFilters] = useState({
     type: "tous", // 'tous', 'ebook', 'fichier_admin'
@@ -117,7 +245,8 @@ export default function MyPage() {
     setFilters({
       statut: "tous",
       etat: "tous",
-      dateRange: "tous",
+      date_debut: "",
+      date_fin: "",
     });
     setSearchTerm("");
   };
@@ -135,7 +264,8 @@ export default function MyPage() {
     try {
       setIsLoadingCatalog(true);
       const params = {
-        page: pagination.catalogProducts.currentPage,
+        page: catalogPagination.currentPage,
+        per_page: catalogPagination.rowsPerPage,
         search: catalogSearchTerm,
       };
 
@@ -150,20 +280,42 @@ export default function MyPage() {
       setCatalogProducts(response.data.data || []);
 
       // Mettre à jour la pagination
-      setPagination((prev) => ({
-        ...prev,
-        catalogProducts: {
-          ...prev.catalogProducts,
-          totalPages: Math.ceil(response.data.total / response.data.per_page),
-          totalItems: response.data.total,
-        },
-      }));
+      setCatalogPagination({
+        currentPage: response.data.current_page,
+        totalPages: response.data.last_page,
+        rowsPerPage: response.data.per_page,
+        totalCount: response.data.total,
+      });
     } catch (error) {
       console.error("Erreur lors du chargement du catalogue:", error);
       toast.error("Impossible de charger le catalogue de produits numériques");
     } finally {
       setIsLoadingCatalog(false);
     }
+  };
+
+  // Gestionnaires de pagination pour le catalogue
+  const handleCatalogPageChange = async (newPage) => {
+    setCatalogPagination(prev => ({ ...prev, currentPage: newPage }));
+    // Forcer le rechargement après la mise à jour de l'état
+    setTimeout(() => fetchCatalogProducts(), 0);
+  };
+
+  const handleCatalogRowsPerPageChange = async (newRowsPerPage) => {
+    setCatalogPagination(prev => ({ ...prev, rowsPerPage: newRowsPerPage, currentPage: 1 }));
+    // Forcer le rechargement après la mise à jour de l'état
+    setTimeout(() => fetchCatalogProducts(), 0);
+  };
+
+  // Gestionnaires de pagination pour les produits de l'utilisateur
+  const handleUserProductsPageChange = async (newPage) => {
+    setUserProductsPagination(prev => ({ ...prev, currentPage: newPage }));
+    await fetchPageData('digitalProducts', newPage, userProductsPagination.rowsPerPage);
+  };
+
+  const handleUserProductsRowsPerPageChange = async (newRowsPerPage) => {
+    setUserProductsPagination(prev => ({ ...prev, rowsPerPage: newRowsPerPage, currentPage: 1 }));
+    await fetchPageData('digitalProducts', 1, newRowsPerPage);
   };
 
   // Fonction pour ouvrir le modal d'achat d'un produit numérique
@@ -240,6 +392,15 @@ export default function MyPage() {
     catalogProducts: { currentPage: 1, itemsPerPage: 6 },
   });
 
+  // État pour l'onglet actif et pagination backend
+  const [activeTab, setActiveTab] = useState(null);
+  const [backendPagination, setBackendPagination] = useState({
+    currentPage: 1,
+    totalPages: 1,
+    totalItems: 0,
+    itemsPerPage: 25,
+  });
+
   // État pour le modal de boost
   const [showBoostModal, setShowBoostModal] = useState(false);
   const [publicationToBoost, setPublicationToBoost] = useState(null);
@@ -247,38 +408,164 @@ export default function MyPage() {
 
   // États pour la gestion des livreurs
   const [livreurs, setLivreurs] = useState([]);
+  const [livreursPagination, setLivreursPagination] = useState({
+    currentPage: 1,
+    totalPages: 1,
+    rowsPerPage: 25,
+    totalCount: 0,
+  });
+  const [catalogPagination, setCatalogPagination] = useState({
+    currentPage: 1,
+    totalPages: 1,
+    rowsPerPage: 6,
+    totalCount: 0,
+  });
+  const [userProductsPagination, setUserProductsPagination] = useState({
+    currentPage: 1,
+    totalPages: 1,
+    rowsPerPage: 6,
+    totalCount: 0,
+  });
   const [isLivreurFormOpen, setIsLivreurFormOpen] = useState(false);
   const [isLoadingLivreurs, setIsLoadingLivreurs] = useState(false);
   const [candidatureStatus, setCandidatureStatus] = useState(null); // null, 'en_attente', 'approuve', 'rejete'
 
-  // Fonction pour récupérer les données de la page
-  const fetchPageData = async () => {
+  // Fonction pour récupérer les données de la page avec pagination backend
+  const fetchPageData = async (activeTab = null, page = 1, rowsPerPage = 25) => {
     try {
       setIsLoading(true);
-      // Fetch page statistics
-      const pageResponse = await axios.get(`/api/my-page`);
-      setPageData(pageResponse.data.page); // Mettre à jour les données de la page
-      setSubscribersCount(pageResponse.data.page.nombre_abonnes);
-      setLikesCount(pageResponse.data.page.nombre_likes);
+      
+      // Si c'est le premier chargement et qu'on a pas les infos de base, les charger
+      if (!pageData?.id) {
+        const basicResponse = await axios.get('/api/my-page');
+        setPageData(basicResponse.data.page);
+        setSubscribersCount(basicResponse.data.page.nombre_abonnes);
+        setLikesCount(basicResponse.data.page.nombre_likes);
+        
+        // Mettre à jour les publications avec les données de base
+        const updatedPublications = {
+          advertisements: basicResponse.data.page.publicites || [],
+          jobOffers: basicResponse.data.page.offres_emploi || [],
+          businessOpportunities: basicResponse.data.page.opportunites_affaires || [],
+          digitalProducts: basicResponse.data.page.produits_numeriques || [],
+        };
+        setPublications(JSON.parse(JSON.stringify(updatedPublications)));
+      }
+      
+      // Si pas d'onglet spécifié, on s'arrête là (chargement initial complet)
+      if (!activeTab) {
+        // Charger les autres données
+        await fetchCatalogProducts();
+        await fetchLivreurs(1, livreursPagination.rowsPerPage);
+        fetchMyPurchases();
+        return;
+      }
+      
+      // Construire les paramètres de la requête
+      const params = new URLSearchParams({
+        page: page.toString(),
+        limit: rowsPerPage.toString(),
+      });
 
-      // Fetch all publication types avec valeurs par défaut
-      const updatedPublications = {
-        advertisements: pageResponse.data.page.publicites || [],
-        jobOffers: pageResponse.data.page.offres_emploi || [],
-        businessOpportunities:
-          pageResponse.data.page.opportunites_affaires || [],
-        digitalProducts: pageResponse.data.page.produits_numeriques || [],
-      };
+      // Ajouter les filtres s'ils existent
+      if (searchTerm) {
+        params.append('search', searchTerm);
+      }
+      if (filters.statut && filters.statut !== 'tous') {
+        params.append('statut', filters.statut);
+      }
+      if (filters.etat && filters.etat !== 'tous') {
+        params.append('etat', filters.etat);
+      }
+      if (filters.date_debut) {
+        params.append('date_debut', filters.date_debut);
+      }
+      if (filters.date_fin) {
+        params.append('date_fin', filters.date_fin);
+      }
 
-      // Forcer la mise à jour en utilisant JSON.parse/stringify pour une copie profonde
-      setPublications(JSON.parse(JSON.stringify(updatedPublications)));
+      // Ajouter le type de données à charger selon l'onglet actif
+      let endpoint = `/api/my-page`;
+      switch (activeTab) {
+        case 'advertisements':
+          endpoint = `/api/my-page/advertisements`;
+          break;
+        case 'jobOffers':
+          endpoint = `/api/my-page/job-offers`;
+          break;
+        case 'businessOpportunities':
+          endpoint = `/api/my-page/business-opportunities`;
+          break;
+        case 'livreurs':
+          // Utiliser le LivreurController dédié avec l'ID de la page
+          endpoint = `/api/livreurs/page/${pageData?.id || ''}`;
+          break;
+        case 'digitalProducts':
+          endpoint = `/api/my-page/digital-products`;
+          params.append('per_page', userProductsPagination.rowsPerPage.toString());
+          break;
+        default:
+          endpoint = `/api/my-page`;
+      }
 
-      // Récupérer également les autres données
-      await fetchCatalogProducts();
-      await fetchLivreurs();
-      fetchMyPurchases();
+      // Appel API avec pagination et filtres
+      const response = await axios.get(`${endpoint}?${params.toString()}`);
+      
+      // Mise à jour spécifique selon l'onglet
+      switch (activeTab) {
+        case 'advertisements':
+          setPublications(prev => ({
+            ...prev,
+            advertisements: response.data.advertisements || []
+          }));
+          break;
+        case 'jobOffers':
+          setPublications(prev => ({
+            ...prev,
+            jobOffers: response.data.jobOffers || []
+          }));
+          break;
+        case 'businessOpportunities':
+          setPublications(prev => ({
+            ...prev,
+            businessOpportunities: response.data.businessOpportunities || []
+          }));
+          break;
+        case 'livreurs':
+          setLivreurs(response.data.livreurs || []);
+          break;
+        case 'digitalProducts':
+          setPublications(prev => ({
+            ...prev,
+            digitalProducts: response.data.digitalProducts || []
+          }));
+          // Mettre à jour la pagination spécifique
+          if (response.data.pagination) {
+            setUserProductsPagination({
+              currentPage: response.data.pagination.currentPage,
+              totalPages: response.data.pagination.totalPages,
+              rowsPerPage: response.data.pagination.itemsPerPage,
+              totalCount: response.data.pagination.totalItems,
+            });
+          }
+          break;
+      }
+      
+      // Mettre à jour les informations de pagination ( sauf pour livreurs qui utilise un format différent)
+      if (response.data.pagination && activeTab !== 'livreurs') {
+        setBackendPagination(response.data.pagination);
+      } else if (activeTab === 'livreurs') {
+        // Pour les livreurs, créer une pagination basique car le contrôleur dédié n'inclut pas de pagination
+        setBackendPagination({
+          currentPage: 1,
+          totalPages: 1,
+          totalItems: response.data.livreurs?.length || 0,
+          itemsPerPage: 25
+        });
+      }
     } catch (error) {
       console.error("Erreur lors du chargement des données:", error);
+      toast.error("Erreur lors du chargement des données");
     } finally {
       setIsLoading(false);
     }
@@ -432,17 +719,35 @@ export default function MyPage() {
     }
   };
 
+  // Gestionnaires de pagination pour les livreurs
+  const handleLivreursPageChange = async (newPage) => {
+    await fetchLivreurs(newPage, livreursPagination.rowsPerPage);
+  };
+
+  const handleLivreursRowsPerPageChange = async (newRowsPerPage) => {
+    await fetchLivreurs(1, newRowsPerPage);
+  };
+
   // Fonction pour récupérer les livreurs d'une page
-  const fetchLivreurs = async () => {
+  const fetchLivreurs = async (page = 1, rowsPerPage = 25) => {
     if (!pageData?.id) return;
 
     try {
       setIsLoadingLivreurs(true);
-      const response = await axios.get(`/api/livreurs/page/${pageData.id}`);
+      const response = await axios.get(`/api/livreurs/page/${pageData.id}?page=${page}&limit=${rowsPerPage}`);
       setLivreurs(response.data.livreurs || []);
+      
+      // Mettre à jour la pagination avec les données du backend
+      const paginationData = response.data.pagination || response.data;
+      setLivreursPagination({
+        currentPage: paginationData.current_page || page,
+        totalPages: paginationData.total_pages || 1,
+        rowsPerPage: paginationData.per_page || rowsPerPage,
+        totalCount: paginationData.total || response.data.livreurs?.length || 0,
+      });
     } catch (error) {
       console.error("Erreur lors du chargement des livreurs:", error);
-      toast.error("Impossible de charger les livreurs");
+      setLivreurs([]);
     } finally {
       setIsLoadingLivreurs(false);
     }
@@ -468,7 +773,7 @@ export default function MyPage() {
     try {
       await axios.post(`/api/livreurs/approuver/${livreurId}`);
       toast.success("Candidature approuvée avec succès");
-      await fetchLivreurs();
+      await fetchLivreurs(1, 25);
     } catch (error) {
       console.error("Erreur lors de l'approbation du livreur:", error);
       toast.error("Impossible d'approuver cette candidature");
@@ -480,7 +785,7 @@ export default function MyPage() {
     try {
       await axios.post(`/api/livreurs/rejeter/${livreurId}`);
       toast.success("Candidature rejetée");
-      await fetchLivreurs();
+      await fetchLivreurs(1, 25);
     } catch (error) {
       console.error("Erreur lors du rejet du livreur:", error);
       toast.error("Impossible de rejeter cette candidature");
@@ -492,7 +797,7 @@ export default function MyPage() {
     try {
       await axios.post(`/api/livreurs/revoquer/${livreurId}`);
       toast.success("Livreur révoqué avec succès");
-      await fetchLivreurs();
+      await fetchLivreurs(1, 25);
     } catch (error) {
       console.error("Erreur lors de la révocation du livreur:", error);
       toast.error("Impossible de révoquer ce livreur");
@@ -631,7 +936,7 @@ export default function MyPage() {
     try {
       await axios.delete(`/api/livreurs/${livreurId}`);
       toast.success("Candidature supprimée avec succès");
-      await fetchLivreurs();
+      await fetchLivreurs(1, 25);
       // Si c'est l'utilisateur connecté qui supprime sa propre candidature
       if (user && !pageData?.is_owner) {
         setCandidatureStatus(null);
@@ -649,55 +954,16 @@ export default function MyPage() {
     fetchCatalog();
   };
 
-  // Fonction pour confirmer l'achat d'un produit numérique
-  const confirmPurchase = async () => {
-    if (!productToPurchase) return;
-
-    try {
-      setIsPurchasing(true);
-      const response = await axios.post(
-        `/api/digital-products/${productToPurchase.id}/purchase`
-      );
-
-      toast.success(
-        "Achat effectué avec succès ! Vous pouvez télécharger votre produit dans la section 'Mes achats'."
-      );
-
-      // Fermer le modal et réinitialiser les états
-      setShowPurchaseModal(false);
-      setProductToPurchase(null);
-
-      // Rediriger vers la page de téléchargement si nécessaire
-      if (response.data.download_url) {
-        window.open(response.data.download_url, "_blank");
-      }
-    } catch (error) {
-      console.error("Erreur lors de l'achat:", error);
-      let errorMessage = "Une erreur est survenue lors de l'achat du produit";
-
-      if (error.response) {
-        if (error.response.status === 402) {
-          errorMessage = "Solde insuffisant pour effectuer cet achat";
-        } else if (error.response.status === 409) {
-          errorMessage = "Vous avez déjà acheté ce produit";
-        } else if (error.response.data && error.response.data.message) {
-          errorMessage = error.response.data.message;
-        }
-      }
-
-      toast.error(errorMessage);
-    } finally {
-      setIsPurchasing(false);
-    }
-  };
-
   useEffect(() => {
     // Vérifier le statut du pack de publication
     if (refreshPackStatus) {
       refreshPackStatus();
     }
 
-    fetchPageData();
+    // Charger les publicités par défaut au chargement (un seul appel)
+    setActiveTab('advertisements');
+    loadTabData('advertisements');
+    
     fetchCatalogProducts();
   }, [user.id]);
 
@@ -705,14 +971,15 @@ export default function MyPage() {
   useEffect(() => {
     fetchCatalogProducts();
   }, [
-    pagination.catalogProducts.currentPage,
+    catalogPagination.currentPage,
+    catalogPagination.rowsPerPage,
     catalogSearchTerm,
     catalogFilters.type,
   ]);
 
   useEffect(() => {
     if (pageData?.id) {
-      fetchLivreurs();
+      fetchLivreurs(1, 25);
       checkCandidatureStatus();
     }
   }, [pageData?.id]);
@@ -1044,6 +1311,36 @@ export default function MyPage() {
       businessOpportunities: { ...prev.businessOpportunities, currentPage: 1 },
       digitalProducts: { ...prev.digitalProducts, currentPage: 1 },
     }));
+    
+    // Recharger les données avec pagination backend
+    if (activeTab) {
+      loadTabData(activeTab);
+    }
+  };
+
+  // Fonctions pour la pagination backend
+  const handleBackendPageChange = async (newPage) => {
+    if (activeTab) {
+      await fetchPageData(activeTab, newPage + 1, backendPagination.itemsPerPage);
+    }
+  };
+
+  const handleBackendRowsPerPageChange = async (newRowsPerPage) => {
+    if (activeTab) {
+      await fetchPageData(activeTab, 1, newRowsPerPage);
+    }
+  };
+
+  // Fonction pour charger les données selon l'onglet actif
+  const loadTabData = async (tabType) => {
+    setActiveTab(tabType);
+    
+    // Si c'est le premier chargement, charger les infos de base + données de l'onglet en un seul appel
+    if (!pageData?.id) {
+      await fetchPageData(tabType, 1, 25); // Premier appel : infos de base + données de l'onglet
+    } else {
+      await fetchPageData(tabType, 1, 25); // Changements d'onglet : seulement les données de l'onglet
+    }
   };
 
   // Fonction pour mettre à jour un filtre spécifique
@@ -1052,15 +1349,21 @@ export default function MyPage() {
       ...prev,
       [filterName]: value,
     }));
-
-    // Réinitialiser la pagination à la première page lorsqu'un filtre change
-    setPagination((prev) => ({
-      advertisements: { ...prev.advertisements, currentPage: 1 },
-      jobOffers: { ...prev.jobOffers, currentPage: 1 },
-      businessOpportunities: { ...prev.businessOpportunities, currentPage: 1 },
-      digitalProducts: { ...prev.digitalProducts, currentPage: 1 },
-    }));
   };
+
+  // Effet pour recharger les données quand les filtres changent
+  useEffect(() => {
+    if (activeTab) {
+      loadTabData(activeTab);
+    }
+  }, [filters, activeTab]);
+
+  // Effet pour recharger les données quand le terme de recherche change
+  useEffect(() => {
+    if (activeTab) {
+      loadTabData(activeTab);
+    }
+  }, [searchTerm, activeTab]);
 
   // Fonction pour gérer le changement de page
   const handlePageChange = (type, newPage) => {
@@ -1141,55 +1444,54 @@ export default function MyPage() {
   };
 
   return (
-    <div
-      className={`px-3 py-4 sm:px-4 sm:py-6 lg:px-2 ${
+    <div className={`min-h-screen transition-all duration-500 ${
+      isDarkMode 
+        ? 'bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900' 
+        : 'bg-gradient-to-br from-gray-50 via-white to-blue-50'
+    }`}>
+      <div className={`px-3 py-4 sm:px-4 sm:py-6 lg:px-2 ${
         isMobile ? "max-w-full" : ""
-      }`}
-    >
+      }`}>
       {/* Page Header - Modern Design */}
-      <div
-        className={`bg-white/90 dark:bg-gray-800/90 ${
-          isMobile ? "rounded-md" : "rounded-lg"
-        } shadow-md mb-4 sm:mb-6 overflow-hidden backdrop-blur-sm border border-gray-100 dark:border-gray-700 glassmorphism`}
-      >
-        <div className={`relative ${isMobile ? "h-32" : "h-40"}`}>
-          {/* Cover Photo Area with subtle gradient overlay */}
-          <div className="absolute inset-0 bg-gradient-to-b from-black/20 to-black/40 z-10"></div>
+      <div className={`relative overflow-hidden mb-4 sm:mb-6 transition-all duration-300 hover:shadow-xl ${
+        isMobile ? "rounded-2xl" : "rounded-3xl"
+      } bg-gradient-to-br from-white/95 to-gray-50/95 dark:from-gray-800/95 dark:to-gray-900/95 backdrop-blur-xl border border-white/20 dark:border-gray-700/50 shadow-lg`}>
+        <div className={`relative ${isMobile ? "h-32" : "h-48"} group`}>
+          {/* Enhanced Cover Photo Area with animated gradient overlay */}
+          <div className="absolute inset-0 bg-gradient-to-br from-primary-600/20 via-purple-600/20 to-pink-600/20 dark:from-primary-800/30 dark:via-purple-800/30 dark:to-pink-800/30 z-10 transition-all duration-500 group-hover:from-primary-600/30 group-hover:via-purple-600/30 group-hover:to-pink-600/30"></div>
+          <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent z-10"></div>
           {pageData?.photo_de_couverture ? (
             <img
               src={pageData.photo_de_couverture}
               alt="Photo de couverture"
-              className="h-full w-full object-cover"
+              className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
             />
           ) : (
-            <div className="h-full w-full bg-gradient-to-r from-primary-500 to-primary-700"></div>
+            <div className="h-full w-full bg-gradient-to-br from-primary-500 via-purple-600 to-pink-600 animate-gradient"></div>
           )}
           <button
             onClick={() => setShowCoverPhotoModal(true)}
-            className={`absolute top-2 right-2 sm:top-3 sm:right-3 bg-white/90 dark:bg-gray-800/90 text-primary-600 dark:text-primary-400 ${
-              isMobile ? "p-1.5" : "p-2"
-            } rounded-full shadow-lg hover:bg-white dark:hover:bg-gray-700 transition-all duration-300 ease-in-out z-20 backdrop-blur-sm hover:scale-105`}
+            className={`absolute top-3 right-3 bg-white/90 dark:bg-gray-800/90 text-primary-600 dark:text-primary-400 ${
+              isMobile ? "p-2" : "p-3"
+            } rounded-full shadow-lg hover:bg-white dark:hover:bg-gray-700 transition-all duration-300 ease-in-out z-20 backdrop-blur-sm hover:scale-110 hover:shadow-xl hover:rotate-12 transform`}
             title="Ajouter une photo de couverture"
           >
-            <PlusIcon className={`h-4 w-4 sm:h-5 sm:w-5`} />
+            <PlusIcon className={`${isMobile ? "h-4 w-4" : "h-5 w-5"} transition-transform duration-300 group-hover:rotate-90`} />
           </button>
         </div>
-        <div className={`px-4 pb-3 sm:px-6 sm:pb-4 relative`}>
-          <div
-            className={`flex items-end ${
-              isMobile ? "-mt-12" : "-mt-16"
-            } sm:items-center flex-row relative z-30`}
-          >
-            <div
-              className={`h-16 w-16 sm:h-20 sm:w-24 md:h-24 md:w-24 lg:h-32 lg:w-32 rounded-full border-4 border-white dark:border-gray-800 bg-gray-100 dark:bg-gray-700 overflow-hidden shadow-lg`}
-            >
+        <div className={`px-6 pb-4 sm:px-8 sm:pb-6 relative`}>
+          <div className={`flex items-end ${
+            isMobile ? "-mt-14" : "-mt-20"
+          } sm:items-center flex-row relative z-30`}>
+            <div className={`relative group ${
+              isMobile ? "h-20 w-20" : "h-24 w-24 sm:h-28 sm:w-28 md:h-32 md:w-32 lg:h-36 lg:w-36"
+            } rounded-full border-4 border-white dark:border-gray-800 bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-800 overflow-hidden shadow-2xl transition-all duration-500 hover:shadow-3xl hover:scale-105`}>
               {user?.picture ? (
                 <img
                   src={user.picture}
                   alt={`Photo de profil de ${user.name}`}
-                  className="h-full w-full object-cover"
+                  className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110"
                   onError={(e) => {
-                    // En cas d'erreur de chargement de l'image, afficher les initiales
                     e.target.style.display = "none";
                     e.target.parentNode.querySelector(
                       ".fallback-initials"
@@ -1197,70 +1499,59 @@ export default function MyPage() {
                   }}
                 />
               ) : null}
-              <div
-                className={`fallback-initials h-full w-full flex items-center justify-center bg-primary-100 dark:bg-primary-900 text-primary-700 dark:text-primary-300 ${
-                  isMobile ? "text-2xl" : "text-3xl sm:text-4xl"
-                } font-bold ${user?.picture ? "hidden" : ""}`}
-              >
+              <div className={`fallback-initials h-full w-full flex items-center justify-center bg-gradient-to-br from-primary-400 to-primary-600 dark:from-primary-600 dark:to-primary-800 text-white ${
+                isMobile ? "text-xl" : "text-2xl sm:text-3xl"
+              } font-bold ${user?.picture ? "hidden" : ""} transition-all duration-300 group-hover:from-primary-500 group-hover:to-primary-700`}>
                 {user?.name?.charAt(0) || "U"}
               </div>
+              {/* Badge de statut animé */}
+              <div className="absolute -bottom-1 -right-1 h-6 w-6 bg-green-500 rounded-full border-3 border-white dark:border-gray-800 animate-pulse shadow-lg"></div>
             </div>
-            <div className={`ml-3 sm:ml-6 flex-1`}>
-              <div
-                className={`flex flex-row ${
-                  isMobile ? "items-start" : "items-center"
-                } justify-between`}
-              >
-                <div>
-                  <h1
-                    className={`${
-                      isMobile ? "text-lg" : "text-xl sm:text-2xl"
-                    } font-bold text-gray-900 dark:text-white`}
-                    style={{
-                      textShadow: isDarkMode
-                        ? "-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000"
-                        : "-1px -1px 0 #fff, 1px -1px 0 #fff, -1px 1px 0 #fff, 1px 1px 0 #fff",
-                    }}
-                  >
+            <div className={`ml-4 sm:ml-6 flex-1`}>
+              <div className={`flex flex-row ${
+                isMobile ? "items-start" : "items-center"
+              } justify-between`}>
+                <div className="group">
+                  <h1 className={`${
+                    isMobile ? "text-xl" : "text-2xl sm:text-3xl"
+                  } font-bold text-white transition-all duration-300 group-hover:text-primary-200 dark:group-hover:text-primary-300`} 
+                  style={{
+                    textShadow: '2px 2px 4px rgba(0,0,0,0.8), 0 0 8px rgba(0,0,0,0.5), 1px 1px 2px rgba(0,0,0,0.9)',
+                    backgroundColor: 'rgba(0,0,0,0.3)',
+                    padding: '4px 8px',
+                    borderRadius: '8px',
+                    backdropFilter: 'blur(4px)'
+                  }}>
                     {user?.name}
                   </h1>
-                  <p
-                    className={`${
+                  <p className={`${
+                    isMobile ? "text-xs" : "text-sm"
+                  } font-medium text-gray-600 dark:text-gray-300 ${
+                    isMobile
+                      ? "flex flex-col space-y-2 mt-2"
+                      : "flex items-center space-x-4"
+                  } mt-2`}>
+                    <span className={`flex items-center px-3 py-1.5 rounded-full bg-white/90 dark:bg-gray-800/90 backdrop-blur-md border border-white/50 dark:border-gray-700/50 transition-all duration-300 hover:scale-105 shadow-lg ${
                       isMobile ? "text-xs" : "text-sm"
-                    } font-medium text-gray-600 dark:text-gray-300 ${
-                      isMobile
-                        ? "flex flex-col space-y-1"
-                        : "flex items-center space-x-3"
-                    } mt-1`}
-                  >
-                    <span
-                      className={`flex items-center ${
-                        isMobile ? "text-xs" : ""
-                      }`}
-                    >
-                      <UsersIcon
-                        className={`h-3 w-3 sm:h-4 sm:w-4 mr-1 text-primary-500 dark:text-primary-400`}
-                      />
-                      {subscribersCount} abonnés
+                    }`}
+                    style={{
+                      boxShadow: '0 2px 8px rgba(0,0,0,0.3), 0 0 4px rgba(0,0,0,0.2)'
+                    }}>
+                      <UsersIcon className="h-4 w-4 mr-2 text-blue-600 dark:text-blue-400" />
+                      <span className="font-bold text-blue-800 dark:text-blue-200">{subscribersCount}</span>
+                      <span className="text-blue-700 dark:text-blue-300 ml-1 font-medium">abonnés</span>
                     </span>
-                    <span
-                      className={`flex items-center ${
-                        isMobile ? "text-xs" : ""
-                      }`}
-                    >
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        className={`h-3 w-3 sm:h-4 sm:w-4 mr-1 text-red-500 dark:text-red-400`}
-                        viewBox="0 0 20 20"
-                        fill="currentColor"
-                      >
-                        <path
-                          fillRule="evenodd"
-                          d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z"
-                          clipRule="evenodd"
-                        />
+                    <span className={`flex items-center px-3 py-1.5 rounded-full bg-white/90 dark:bg-gray-800/90 backdrop-blur-md border border-white/50 dark:border-gray-700/50 transition-all duration-300 hover:scale-105 shadow-lg ${
+                      isMobile ? "text-xs" : "text-sm"
+                    }`}
+                    style={{
+                      boxShadow: '0 2px 8px rgba(0,0,0,0.3), 0 0 4px rgba(0,0,0,0.2)'
+                    }}>
+                      <svg className="h-4 w-4 mr-2 text-red-500 dark:text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clipRule="evenodd" />
                       </svg>
-                      {likesCount} mentions j'aime
+                      <span className="font-bold text-red-800 dark:text-red-200">{likesCount}</span>
+                      <span className="text-red-700 dark:text-red-300 ml-1 font-medium">j'aime</span>
                     </span>
                   </p>
                 </div>
@@ -1276,201 +1567,226 @@ export default function MyPage() {
       )}
 
       {/* Main Content */}
-      <div
-        className={`bg-white/95 dark:bg-gray-800/95 ${
-          isMobile ? "rounded-md" : "rounded-lg"
-        } shadow-md tabs-container overflow-hidden backdrop-blur-sm border border-gray-100 dark:border-gray-700 glassmorphism`}
-      >
-        <Tab.Group>
+      <div className={`relative overflow-hidden transition-all duration-500 hover:shadow-2xl ${
+        isMobile ? "rounded-2xl" : "rounded-3xl"
+      } bg-gradient-to-br from-white/95 to-gray-50/95 dark:from-gray-800/95 dark:to-gray-900/95 backdrop-blur-xl border border-white/20 dark:border-gray-700/50 shadow-xl tabs-container`}>
+        <Tab.Group onChange={(index) => {
+          const tabTypes = ['advertisements', 'jobOffers', 'businessOpportunities', 'livreurs', 'formations', 'pages', 'digitalProducts', 'social'];
+          if (index < tabTypes.length) {
+            loadTabData(tabTypes[index]);
+          }
+        }}>
           {/* Custom Tab Navigation avec flèches de défilement */}
-          <div className="relative">
+          <div className="relative bg-gradient-to-r from-gray-50/50 to-gray-100/50 dark:from-gray-800/50 dark:to-gray-900/50 backdrop-blur-sm">
             {/* Flèche de défilement gauche */}
             <button
-              className={`absolute left-0 top-1/2 -translate-y-1/2 z-10 bg-white/80 dark:bg-gray-800/80 rounded-full ${
-                isMobile ? "p-1" : "p-1.5"
-              } shadow-md hover:bg-white dark:hover:bg-gray-700 transition-all duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary-500 disabled:opacity-40 disabled:cursor-not-allowed backdrop-blur-sm`}
+              className={`absolute left-2 top-1/2 -translate-y-1/2 z-20 bg-gradient-to-r from-white to-gray-50 dark:from-gray-800 dark:to-gray-700 rounded-full ${
+                isMobile ? "p-2" : "p-2.5"
+              } hover:scale-110 transition-all duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary-500 disabled:opacity-40 disabled:cursor-not-allowed backdrop-blur-md border border-white/50 dark:border-gray-600/50 group`}
               onClick={() => {
                 const tabList = document.querySelector(".tab-list-container");
-                tabList.scrollBy({ left: -200, behavior: "smooth" });
+                if (tabList) {
+                  tabList.scrollBy({ left: -200, behavior: "smooth" });
+                }
               }}
             >
-              <ChevronLeftIcon
-                className={`h-4 w-4 sm:h-5 sm:w-5 text-primary-600 dark:text-primary-400`}
-              />
+              <ChevronLeftIcon className={`h-4 w-4 sm:h-5 sm:w-5 text-primary-600 dark:text-primary-400 transition-transform duration-300 group-hover:-translate-x-0.5`} />
             </button>
 
-            {/* Conteneur de défilement avec masque de dégradé */}
-            <div
-              className={`overflow-hidden ${
-                isMobile ? "mx-6" : "mx-8"
-              } relative`}
-            >
-              <div className="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-white to-transparent dark:from-gray-800 dark:to-transparent z-[1]"></div>
-              <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-white to-transparent dark:from-gray-800 dark:to-transparent z-[1]"></div>
+            {/* Enhanced scroll container with animated gradient masks */}
+            <div className={`overflow-hidden ${
+              isMobile ? "mx-8" : "mx-12"
+            } relative`}>
+              <div className="absolute left-0 top-0 bottom-0 w-12 bg-gradient-to-r from-white via-white/80 to-transparent dark:from-gray-800 dark:via-gray-800/80 dark:to-transparent z-[1] animate-pulse"></div>
+              <div className="absolute right-0 top-0 bottom-0 w-12 bg-gradient-to-l from-white via-white/80 to-transparent dark:from-gray-800 dark:via-gray-800/80 dark:to-transparent z-[1] animate-pulse"></div>
 
               <div className="tab-list-container overflow-x-auto scrollbar-hide">
-                <Tab.List
-                  className={`flex ${isMobile ? "space-x-0.5" : "space-x-1"} ${
-                    isMobile ? "rounded-t-md" : "rounded-t-lg"
-                  } bg-gray-50 dark:bg-gray-800 ${
-                    isMobile ? "p-1" : "p-2"
-                  } whitespace-nowrap min-w-max border-b border-gray-100 dark:border-gray-700`}
-                >
+                <Tab.List className={`flex ${isMobile ? "space-x-1" : "space-x-2"} ${
+                  isMobile ? "rounded-t-2xl" : "rounded-t-3xl"
+                } bg-gradient-to-r from-gray-50/80 to-gray-100/80 dark:from-gray-800/80 dark:to-gray-900/80 backdrop-blur-md ${
+                  isMobile ? "p-2" : "p-3"
+                } whitespace-nowrap min-w-max border-b border-gray-200/50 dark:border-gray-700/50 shadow-inner`}>
+                  {/* Publicités Tab */}
                   <Tab
                     className={({ selected }) =>
                       classNames(
-                        `flex-shrink-0 ${
+                        `flex-shrink-0 relative ${
                           isMobile
-                            ? "min-w-[100px] py-2 px-3"
-                            : "min-w-[120px] py-2.5 px-4"
-                        } ${isMobile ? "text-xs" : "text-sm"} font-medium ${
-                          isMobile ? "rounded-sm" : "rounded-md"
-                        } transition-all duration-300 ease-in-out flex items-center justify-center gap-1`,
-                        "focus:outline-none",
+                            ? "min-w-[110px] py-2.5 px-3"
+                            : "min-w-[130px] py-3 px-4"
+                        } ${isMobile ? "text-xs" : "text-sm"} font-semibold ${
+                          isMobile ? "rounded-xl" : "rounded-2xl"
+                        } transition-all duration-300 ease-in-out flex items-center justify-center gap-2 transform hover:scale-105`,
+                        "focus:outline-none focus:ring-2 focus:ring-primary-500/50",
                         selected
-                          ? "bg-white dark:bg-gray-700 shadow-sm text-primary-700 dark:text-white border border-gray-100 dark:border-gray-600"
-                          : "text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50 hover:text-primary-600"
+                          ? "bg-gradient-to-r from-primary-500 to-primary-600 dark:from-primary-600 dark:to-primary-700 text-white shadow-lg shadow-primary-500/25 border border-primary-400/50 dark:border-primary-600/50 scale-105"
+                          : "text-gray-600 dark:text-gray-300 hover:bg-gradient-to-r hover:from-gray-100 hover:to-gray-200 dark:hover:from-gray-700/50 dark:hover:to-gray-600/50 hover:text-primary-600 dark:hover:text-primary-400 hover:shadow-md"
                       )
                     }
                   >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="h-4 w-4"
-                      viewBox="0 0 20 20"
-                      fill="currentColor"
-                    >
+                    <svg className="h-4 w-4 transition-transform duration-300 group-hover:rotate-12" viewBox="0 0 20 20" fill="currentColor">
                       <path d="M5 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H5zM5 11a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2H5zM11 5a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V5zM11 13a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
                     </svg>
-                    Publicités
+                    <span className="truncate">Publicités</span>
                   </Tab>
+                  {/* Offres d'emploi Tab */}
                   <Tab
                     className={({ selected }) =>
                       classNames(
-                        "flex-shrink-0 min-w-[120px] py-2.5 px-4 text-sm font-medium rounded-md transition-all duration-300 ease-in-out flex items-center justify-center gap-1.5",
-                        "focus:outline-none",
+                        `flex-shrink-0 relative ${
+                          isMobile
+                            ? "min-w-[110px] py-2.5 px-3"
+                            : "min-w-[130px] py-3 px-4"
+                        } ${isMobile ? "text-xs" : "text-sm"} font-semibold ${
+                          isMobile ? "rounded-xl" : "rounded-2xl"
+                        } transition-all duration-300 ease-in-out flex items-center justify-center gap-2 transform hover:scale-105`,
+                        "focus:outline-none focus:ring-2 focus:ring-primary-500/50",
                         selected
-                          ? "bg-white dark:bg-gray-700 shadow-sm text-primary-700 dark:text-white border border-gray-100 dark:border-gray-600"
-                          : "text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50 hover:text-primary-600"
+                          ? "bg-gradient-to-r from-primary-500 to-primary-600 dark:from-primary-600 dark:to-primary-700 text-white shadow-lg shadow-primary-500/25 border border-primary-400/50 dark:border-primary-600/50 scale-105"
+                          : "text-gray-600 dark:text-gray-300 hover:bg-gradient-to-r hover:from-gray-100 hover:to-gray-200 dark:hover:from-gray-700/50 dark:hover:to-gray-600/50 hover:text-primary-600 dark:hover:text-primary-400 hover:shadow-md"
                       )
                     }
                   >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="h-4 w-4"
-                      viewBox="0 0 20 20"
-                      fill="currentColor"
-                    >
-                      <path
-                        fillRule="evenodd"
-                        d="M6 6V5a3 3 0 013-3h2a3 3 0 013 3v1h2a2 2 0 012 2v3.57A22.952 22.952 0 0110 13a22.95 22.95 0 01-8-1.43V8a2 2 0 012-2h2zm2-1a1 1 0 011-1h2a1 1 0 011 1v1H8V5zm1 5a1 1 0 011-1h.01a1 1 0 110 2H10a1 1 0 01-1-1z"
-                        clipRule="evenodd"
-                      />
+                    <svg className="h-4 w-4 transition-transform duration-300 group-hover:rotate-12" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M6 6V5a3 3 0 013-3h2a3 3 0 013 3v1h2a2 2 0 012 2v3.57A22.952 22.952 0 0110 13a22.95 22.95 0 01-8-1.43V8a2 2 0 012-2h2zm2-1a1 1 0 011-1h2a1 1 0 011 1v1H8V5zm1 5a1 1 0 011-1h.01a1 1 0 110 2H10a1 1 0 01-1-1z" clipRule="evenodd" />
                       <path d="M2 13.692V16a2 2 0 002 2h12a2 2 0 002-2v-2.308A24.974 24.974 0 0110 15c-2.796 0-5.487-.46-8-1.308z" />
                     </svg>
-                    Offres d'emploi
+                    <span className="truncate">Offres d'emploi</span>
                   </Tab>
+                  {/* Opportunités Tab */}
                   <Tab
                     className={({ selected }) =>
                       classNames(
-                        "flex-shrink-0 min-w-[120px] py-2.5 px-4 text-sm font-medium rounded-md transition-all duration-300 ease-in-out flex items-center justify-center gap-1.5",
-                        "focus:outline-none",
+                        `flex-shrink-0 relative ${
+                          isMobile
+                            ? "min-w-[110px] py-2.5 px-3"
+                            : "min-w-[130px] py-3 px-4"
+                        } ${isMobile ? "text-xs" : "text-sm"} font-semibold ${
+                          isMobile ? "rounded-xl" : "rounded-2xl"
+                        } transition-all duration-300 ease-in-out flex items-center justify-center gap-2 transform hover:scale-105`,
+                        "focus:outline-none focus:ring-2 focus:ring-primary-500/50",
                         selected
-                          ? "bg-white dark:bg-gray-700 shadow-sm text-primary-700 dark:text-white border border-gray-100 dark:border-gray-600"
-                          : "text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50 hover:text-primary-600"
+                          ? "bg-gradient-to-r from-primary-500 to-primary-600 dark:from-primary-600 dark:to-primary-700 text-white shadow-lg shadow-primary-500/25 border border-primary-400/50 dark:border-primary-600/50 scale-105"
+                          : "text-gray-600 dark:text-gray-300 hover:bg-gradient-to-r hover:from-gray-100 hover:to-gray-200 dark:hover:from-gray-700/50 dark:hover:to-gray-600/50 hover:text-primary-600 dark:hover:text-primary-400 hover:shadow-md"
                       )
                     }
                   >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="h-4 w-4"
-                      viewBox="0 0 20 20"
-                      fill="currentColor"
-                    >
-                      <path
-                        fillRule="evenodd"
-                        d="M6.672 1.911a1 1 0 10-1.932.518l.259.966a1 1 0 001.932-.518l-.26-.966zM2.429 4.74a1 1 0 10-.517 1.932l.966.259a1 1 0 00.517-1.932l-.966-.26zm8.814-.569a1 1 0 00-1.415-1.414l-.707.707a1 1 0 101.415 1.415l.707-.708zm-7.071 7.072l.707-.707A1 1 0 003.465 9.12l-.708.707a1 1 0 001.415 1.415l.707-.708zm3.2-5.171a1 1 0 00-1.3 1.3l4 10a1 1 0 001.823.075l1.38-2.759 3.018 3.02a1 1 0 001.414-1.415l-3.019-3.02 2.76-1.379a1 1 0 00-.076-1.822l-10-4z"
-                        clipRule="evenodd"
-                      />
+                    <svg className="h-4 w-4 transition-transform duration-300 group-hover:rotate-12" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M6.672 1.911a1 1 0 10-1.932.518l.259.966a1 1 0 001.932-.518l-.26-.966zM2.429 4.74a1 1 0 10-.517 1.932l.966.259a1 1 0 00.517-1.932l-.966-.26zm8.814-.569a1 1 0 00-1.415-1.414l-.707.707a1 1 0 101.415 1.415l.707-.708zm-7.071 7.072l.707-.707A1 1 0 003.465 9.12l-.708.707a1 1 0 001.415 1.415l.707-.708zm3.2-5.171a1 1 0 00-1.3 1.3l4 10a1 1 0 001.823.075l1.38-2.759 3.018 3.02a1 1 0 001.414-1.415l-3.019-3.02 2.76-1.379a1 1 0 00-.076-1.822l-10-4z" clipRule="evenodd" />
                     </svg>
-                    Opportunités
+                    <span className="truncate">Opportunités</span>
                   </Tab>
+                  
+                  {/* Livreurs Tab */}
                   <Tab
                     className={({ selected }) =>
                       classNames(
-                        "flex-shrink-0 min-w-[120px] py-2.5 px-4 text-sm font-medium rounded-md transition-all duration-300 ease-in-out flex items-center justify-center gap-1.5",
-                        "focus:outline-none",
+                        `flex-shrink-0 relative ${
+                          isMobile
+                            ? "min-w-[110px] py-2.5 px-3"
+                            : "min-w-[130px] py-3 px-4"
+                        } ${isMobile ? "text-xs" : "text-sm"} font-semibold ${
+                          isMobile ? "rounded-xl" : "rounded-2xl"
+                        } transition-all duration-300 ease-in-out flex items-center justify-center gap-2 transform hover:scale-105`,
+                        "focus:outline-none focus:ring-2 focus:ring-primary-500/50",
                         selected
-                          ? "bg-white dark:bg-gray-700 shadow-sm text-primary-700 dark:text-white border border-gray-100 dark:border-gray-600"
-                          : "text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50 hover:text-primary-600"
+                          ? "bg-gradient-to-r from-primary-500 to-primary-600 dark:from-primary-600 dark:to-primary-700 text-white shadow-lg shadow-primary-500/25 border border-primary-400/50 dark:border-primary-600/50 scale-105"
+                          : "text-gray-600 dark:text-gray-300 hover:bg-gradient-to-r hover:from-gray-100 hover:to-gray-200 dark:hover:from-gray-700/50 dark:hover:to-gray-600/50 hover:text-primary-600 dark:hover:text-primary-400 hover:shadow-md"
                       )
                     }
                   >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="h-4 w-4"
-                      viewBox="0 0 20 20"
-                      fill="currentColor"
-                    >
+                    <svg className="h-4 w-4 transition-transform duration-300 group-hover:rotate-12" viewBox="0 0 20 20" fill="currentColor">
                       <path d="M8 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM15 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0z" />
                       <path d="M3 4a1 1 0 00-1 1v10a1 1 0 001 1h1.05a2.5 2.5 0 014.9 0H10a1 1 0 001-1V5a1 1 0 00-1-1H3zM14 7a1 1 0 00-1 1v6.05A2.5 2.5 0 0115.95 16H17a1 1 0 001-1v-5a1 1 0 00-.293-.707l-2-2A1 1 0 0015 7h-1z" />
                     </svg>
-                    Livreurs
+                    <span className="truncate">Livreurs</span>
                   </Tab>
+                  
+                  {/* Formations Tab */}
                   <Tab
                     className={({ selected }) =>
                       classNames(
-                        "flex-shrink-0 min-w-[120px] py-2.5 px-4 text-sm font-medium rounded-md transition-all duration-300 ease-in-out flex items-center justify-center gap-1.5",
-                        "focus:outline-none",
+                        `flex-shrink-0 relative ${
+                          isMobile
+                            ? "min-w-[110px] py-2.5 px-3"
+                            : "min-w-[130px] py-3 px-4"
+                        } ${isMobile ? "text-xs" : "text-sm"} font-semibold ${
+                          isMobile ? "rounded-xl" : "rounded-2xl"
+                        } transition-all duration-300 ease-in-out flex items-center justify-center gap-2 transform hover:scale-105`,
+                        "focus:outline-none focus:ring-2 focus:ring-primary-500/50",
                         selected
-                          ? "bg-white dark:bg-gray-700 shadow-sm text-primary-700 dark:text-white border border-gray-100 dark:border-gray-600"
-                          : "text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50 hover:text-primary-600"
+                          ? "bg-gradient-to-r from-primary-500 to-primary-600 dark:from-primary-600 dark:to-primary-700 text-white shadow-lg shadow-primary-500/25 border border-primary-400/50 dark:border-primary-600/50 scale-105"
+                          : "text-gray-600 dark:text-gray-300 hover:bg-gradient-to-r hover:from-gray-100 hover:to-gray-200 dark:hover:from-gray-700/50 dark:hover:to-gray-600/50 hover:text-primary-600 dark:hover:text-primary-400 hover:shadow-md"
                       )
                     }
                   >
-                    <AcademicCapIcon className="h-4 w-4" />
-                    Formations
+                    <AcademicCapIcon className="h-4 w-4 transition-transform duration-300 group-hover:rotate-12" />
+                    <span className="truncate">Formations</span>
                   </Tab>
+                  {/* Pages Tab */}
                   <Tab
                     className={({ selected }) =>
                       classNames(
-                        "flex-shrink-0 min-w-[120px] py-2.5 px-4 text-sm font-medium rounded-md transition-all duration-300 ease-in-out flex items-center justify-center gap-1.5",
-                        "focus:outline-none",
+                        `flex-shrink-0 relative ${
+                          isMobile
+                            ? "min-w-[110px] py-2.5 px-3"
+                            : "min-w-[130px] py-3 px-4"
+                        } ${isMobile ? "text-xs" : "text-sm"} font-semibold ${
+                          isMobile ? "rounded-xl" : "rounded-2xl"
+                        } transition-all duration-300 ease-in-out flex items-center justify-center gap-2 transform hover:scale-105`,
+                        "focus:outline-none focus:ring-2 focus:ring-primary-500/50",
                         selected
-                          ? "bg-white dark:bg-gray-700 shadow-sm text-primary-700 dark:text-white border border-gray-100 dark:border-gray-600"
-                          : "text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50 hover:text-primary-600"
+                          ? "bg-gradient-to-r from-primary-500 to-primary-600 dark:from-primary-600 dark:to-primary-700 text-white shadow-lg shadow-primary-500/25 border border-primary-400/50 dark:border-primary-600/50 scale-105"
+                          : "text-gray-600 dark:text-gray-300 hover:bg-gradient-to-r hover:from-gray-100 hover:to-gray-200 dark:hover:from-gray-700/50 dark:hover:to-gray-600/50 hover:text-primary-600 dark:hover:text-primary-400 hover:shadow-md"
                       )
                     }
                   >
-                    <UsersIcon className="h-4 w-4" />
-                    Pages
+                    <UsersIcon className="h-4 w-4 transition-transform duration-300 group-hover:rotate-12" />
+                    <span className="truncate">Pages</span>
                   </Tab>
+                  
+                  {/* Produits numériques Tab */}
                   <Tab
                     className={({ selected }) =>
                       classNames(
-                        "flex-shrink-0 min-w-[120px] py-2.5 px-4 text-sm font-medium rounded-md transition-all duration-300 ease-in-out flex items-center justify-center gap-1.5",
-                        "focus:outline-none",
+                        `flex-shrink-0 relative ${
+                          isMobile
+                            ? "min-w-[110px] py-2.5 px-3"
+                            : "min-w-[130px] py-3 px-4"
+                        } ${isMobile ? "text-xs" : "text-sm"} font-semibold ${
+                          isMobile ? "rounded-xl" : "rounded-2xl"
+                        } transition-all duration-300 ease-in-out flex items-center justify-center gap-2 transform hover:scale-105`,
+                        "focus:outline-none focus:ring-2 focus:ring-primary-500/50",
                         selected
-                          ? "bg-white dark:bg-gray-700 shadow-sm text-primary-700 dark:text-white border border-gray-100 dark:border-gray-600"
-                          : "text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50 hover:text-primary-600"
+                          ? "bg-gradient-to-r from-primary-500 to-primary-600 dark:from-primary-600 dark:to-primary-700 text-white shadow-lg shadow-primary-500/25 border border-primary-400/50 dark:border-primary-600/50 scale-105"
+                          : "text-gray-600 dark:text-gray-300 hover:bg-gradient-to-r hover:from-gray-100 hover:to-gray-200 dark:hover:from-gray-700/50 dark:hover:to-gray-600/50 hover:text-primary-600 dark:hover:text-primary-400 hover:shadow-md"
                       )
                     }
                   >
-                    <DocumentTextIcon className="h-4 w-4" />
-                    Produits numériques
+                    <DocumentTextIcon className="h-4 w-4 transition-transform duration-300 group-hover:rotate-12" />
+                    <span className="truncate">Produits numériques</span>
                   </Tab>
+                  
+                  {/* Social Tab */}
                   <Tab
                     className={({ selected }) =>
                       classNames(
-                        "flex-shrink-0 min-w-[120px] py-2.5 px-4 text-sm font-medium rounded-md transition-all duration-300 ease-in-out flex items-center justify-center gap-1.5",
-                        "focus:outline-none",
+                        `flex-shrink-0 relative ${
+                          isMobile
+                            ? "min-w-[110px] py-2.5 px-3"
+                            : "min-w-[130px] py-3 px-4"
+                        } ${isMobile ? "text-xs" : "text-sm"} font-semibold ${
+                          isMobile ? "rounded-xl" : "rounded-2xl"
+                        } transition-all duration-300 ease-in-out flex items-center justify-center gap-2 transform hover:scale-105`,
+                        "focus:outline-none focus:ring-2 focus:ring-primary-500/50",
                         selected
-                          ? "bg-white dark:bg-gray-700 shadow-sm text-primary-700 dark:text-white border border-gray-100 dark:border-gray-600"
-                          : "text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50 hover:text-primary-600"
+                          ? "bg-gradient-to-r from-primary-500 to-primary-600 dark:from-primary-600 dark:to-primary-700 text-white shadow-lg shadow-primary-500/25 border border-primary-400/50 dark:border-primary-600/50 scale-105"
+                          : "text-gray-600 dark:text-gray-300 hover:bg-gradient-to-r hover:from-gray-100 hover:to-gray-200 dark:hover:from-gray-700/50 dark:hover:to-gray-600/50 hover:text-primary-600 dark:hover:text-primary-400 hover:shadow-md"
                       )
                     }
                   >
-                    <ChatBubbleLeftRightIcon className="h-4 w-4" />
-                    Social
+                    <ChatBubbleLeftRightIcon className="h-4 w-4 transition-transform duration-300 group-hover:rotate-12" />
+                    <span className="truncate">Social</span>
                   </Tab>
                 </Tab.List>
               </div>
@@ -1478,13 +1794,17 @@ export default function MyPage() {
 
             {/* Flèche de défilement droite */}
             <button
-              className="absolute right-0 top-1/2 -translate-y-1/2 z-10 bg-white/80 dark:bg-gray-800/80 rounded-full p-1.5 shadow-md hover:bg-white dark:hover:bg-gray-700 transition-all duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary-500 disabled:opacity-40 disabled:cursor-not-allowed backdrop-blur-sm"
+              className={`absolute right-2 top-1/2 -translate-y-1/2 z-20 bg-gradient-to-l from-white to-gray-50 dark:from-gray-800 dark:to-gray-700 rounded-full ${
+                isMobile ? "p-2" : "p-2.5"
+              } hover:scale-110 transition-all duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary-500 disabled:opacity-40 disabled:cursor-not-allowed backdrop-blur-md border border-white/50 dark:border-gray-600/50 group`}
               onClick={() => {
                 const tabList = document.querySelector(".tab-list-container");
-                tabList.scrollBy({ left: 200, behavior: "smooth" });
+                if (tabList) {
+                  tabList.scrollBy({ left: 200, behavior: "smooth" });
+                }
               }}
             >
-              <ChevronRightIcon className="h-5 w-5 text-primary-600 dark:text-primary-400" />
+              <ChevronRightIcon className={`h-4 w-4 sm:h-5 sm:w-5 text-primary-600 dark:text-primary-400 transition-transform duration-300 group-hover:translate-x-0.5`} />
             </button>
           </div>
           <Tab.Panels>
@@ -1499,56 +1819,50 @@ export default function MyPage() {
                   {
                     content: (
                       <>
-                        <div
-                          className={`flex ${
-                            isMobile ? "flex-col gap-3" : "justify-between"
-                          } items-center ${isMobile ? "mb-3" : "mb-4"}`}
-                        >
-                          <h2
-                            className={`${
-                              isMobile ? "text-base" : "text-lg"
-                            } font-semibold text-gray-800 dark:text-white`}
-                          >
+                        <div className={`flex ${
+                          isMobile ? "flex-col gap-3" : "justify-between"
+                        } items-center ${isMobile ? "mb-4" : "mb-6"}`}>
+                          <h2 className={`${
+                            isMobile ? "text-lg" : "text-xl"
+                          } font-bold bg-gradient-to-r from-gray-900 to-gray-700 dark:from-white dark:to-gray-300 bg-clip-text text-transparent`}>
                             Mes publicités
                           </h2>
-                          <div
-                            className={`flex items-center ${
-                              isMobile ? "gap-1 w-full" : "gap-2"
-                            }`}
-                          >
+                          <div className={`flex items-center ${
+                            isMobile ? "gap-2 w-full" : "gap-3"
+                          }`}>
                             <button
                               onClick={handleRefresh}
-                              className={`flex items-center ${
+                              className={`group flex items-center ${
                                 isMobile
-                                  ? "gap-1 px-2 py-1.5 text-xs"
-                                  : "gap-2 px-3 py-2"
-                              } bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 ${
+                                  ? "gap-2 px-3 py-2 text-xs"
+                                  : "gap-2 px-4 py-2.5"
+                              } bg-gradient-to-r from-gray-100 to-gray-200 hover:from-gray-200 hover:to-gray-300 dark:from-gray-700 dark:hover:from-gray-600 dark:hover:to-gray-500 text-gray-700 dark:text-gray-300 ${
                                 isMobile
-                                  ? "rounded-md flex-1 justify-center"
-                                  : "rounded-lg"
-                              } transition-colors`}
+                                  ? "rounded-xl flex-1 justify-center"
+                                  : "rounded-xl"
+                              } transition-all duration-300 hover:scale-105 hover:shadow-md border border-gray-200 dark:border-gray-600`}
                               title="Actualiser les données"
                             >
-                              <ArrowPathIcon
-                                className={`${
-                                  isMobile ? "h-4 w-4" : "h-5 w-5"
-                                }`}
-                              />
-                              {isMobile ? "Actualiser" : "Actualiser"}
+                              <ArrowPathIcon className={`${
+                                isMobile ? "h-4 w-4" : "h-5 w-5"
+                              } transition-transform duration-300 group-hover:rotate-180`} />
+                              <span className="font-medium">{isMobile ? "Actualiser" : "Actualiser"}</span>
                             </button>
                             <button
                               onClick={() => handleFormOpen("advertisement")}
-                              className={`flex items-center ${
+                              className={`group flex items-center ${
                                 isMobile
-                                  ? "gap-1 px-2 py-1.5 text-xs flex-1 justify-center"
-                                  : "gap-2 px-4 py-2"
+                                  ? "gap-2 px-3 py-2 text-xs flex-1 justify-center"
+                                  : "gap-2 px-5 py-2.5"
                               } ${
                                 isPackActive
-                                  ? "bg-primary-600 hover:bg-primary-700"
-                                  : "bg-gray-400 cursor-not-allowed"
+                                  ? "bg-gradient-to-r from-primary-500 to-primary-600 hover:from-primary-600 hover:to-primary-700 dark:from-primary-600 dark:to-primary-700 dark:hover:from-primary-700 dark:hover:to-primary-800 shadow-lg shadow-primary-500/25 hover:shadow-xl hover:shadow-primary-600/35"
+                                  : "bg-gradient-to-r from-gray-400 to-gray-500 cursor-not-allowed opacity-60"
                               } text-white ${
-                                isMobile ? "rounded-md" : "rounded-lg"
-                              } transition-colors`}
+                                isMobile ? "rounded-xl" : "rounded-xl"
+                              } transition-all duration-300 hover:scale-105 transform border border-primary-400/50 dark:border-primary-600/50 ${
+                                isPackActive ? "hover:-translate-y-0.5" : ""
+                              }`}
                               disabled={!isPackActive}
                               title={
                                 !isPackActive
@@ -1556,12 +1870,10 @@ export default function MyPage() {
                                   : ""
                               }
                             >
-                              <PlusIcon
-                                className={`${
-                                  isMobile ? "h-4 w-4" : "h-5 w-5"
-                                }`}
-                              />
-                              {isMobile ? "Créer" : "Créer une publicité"}
+                              <PlusIcon className={`${
+                                isMobile ? "h-4 w-4" : "h-5 w-5"
+                              } transition-transform duration-300 group-hover:rotate-90`} />
+                              <span className="font-semibold">{isMobile ? "Créer" : "Créer une publicité"}</span>
                             </button>
                           </div>
                         </div>
@@ -1587,75 +1899,287 @@ export default function MyPage() {
                           </div>
                         ) : (
                           <>
-                            <div
-                              className={`grid ${
-                                isMobile
-                                  ? "grid-cols-1 sm:grid-cols-2"
-                                  : "grid-cols-1 md:grid-cols-2 lg:grid-cols-3"
-                              } ${isMobile ? "gap-3" : "gap-4"}`}
-                            >
-                              {getFilteredPublications("advertisement", false)
-                                .length === 0 ? (
-                                <div className="col-span-full py-8 text-center text-gray-500 dark:text-gray-400">
-                                  {searchTerm ||
-                                  filters.statut !== "tous" ||
-                                  filters.etat !== "tous" ||
-                                  filters.dateRange !== "tous"
-                                    ? "Aucune publicité ne correspond à vos critères de recherche."
-                                    : "Vous n'avez pas encore de publicités."}
-                                </div>
-                              ) : (
-                                getFilteredPublications(
-                                  "advertisement",
-                                  true
-                                ).map((ad) => (
-                                  <PublicationCard
-                                    key={ad.id}
-                                    publication={ad}
-                                    type="advertisement"
-                                    onEdit={() =>
-                                      handleEdit(ad, "advertisement")
-                                    }
-                                    onDelete={() =>
-                                      handleDeleteConfirm(
-                                        ad.id,
-                                        "advertisement"
-                                      )
-                                    }
-                                    onViewDetails={() =>
-                                      handleViewDetails(ad, "advertisement")
-                                    }
-                                    onStateChange={(newState) =>
-                                      handleStateChange(
-                                        ad.id,
-                                        "advertisement",
-                                        newState
-                                      )
-                                    }
-                                    onBoost={() =>
-                                      handleBoost(ad, "advertisement")
-                                    }
-                                  />
-                                ))
-                              )}
-                            </div>
-
-                            {/* Pagination pour les publicités */}
-                            {getFilteredPublications("advertisement", false)
-                              .length > 0 && (
-                              <div className={`mt-${isMobile ? "4" : "6"}`}>
-                                <Pagination
-                                  currentPage={
-                                    pagination.advertisements.currentPage
-                                  }
-                                  totalPages={getTotalPages("advertisement")}
-                                  onPageChange={(page) =>
-                                    handlePageChange("advertisements", page)
-                                  }
-                                  compact={isMobile}
-                                />
-                              </div>
+                            {/* Tableau des publicités */}
+                            {getFilteredPublications("advertisement", false).length === 0 ? (
+                              <Alert severity="info" sx={{ mb: 2 }}>
+                                {searchTerm ||
+                                filters.statut !== "tous" ||
+                                filters.etat !== "tous" ||
+                                filters.dateRange !== "tous"
+                                  ? "Aucune publicité ne correspond à vos critères de recherche."
+                                  : "Vous n'avez pas encore de publicités."}
+                              </Alert>
+                            ) : (
+                              <TableContainer
+                                sx={{
+                                  boxShadow: isDarkMode
+                                    ? "none"
+                                    : "0 2px 10px rgba(0, 0, 0, 0.05)",
+                                  borderRadius: { xs: 1.5, sm: 2 },
+                                  overflow: "auto",
+                                  maxWidth: "100%",
+                                  "&::-webkit-scrollbar": {
+                                    height: { xs: 4, sm: 6 },
+                                    width: { xs: 4, sm: 6 },
+                                  },
+                                  "&::-webkit-scrollbar-track": {
+                                    backgroundColor: isDarkMode
+                                      ? "rgba(55, 65, 81, 0.4)"
+                                      : "rgba(0, 0, 0, 0.06)",
+                                    borderRadius: { xs: 2, sm: 3 },
+                                  },
+                                  "&::-webkit-scrollbar-thumb": {
+                                    backgroundColor: isDarkMode
+                                      ? "rgba(156, 163, 175, 0.6)"
+                                      : "rgba(156, 163, 175, 0.4)",
+                                    borderRadius: { xs: 2, sm: 3 },
+                                    "&:hover": {
+                                      backgroundColor: isDarkMode
+                                        ? "rgba(156, 163, 175, 0.8)"
+                                        : "rgba(156, 163, 175, 0.6)",
+                                    },
+                                  },
+                                }}
+                              >
+                                <Table 
+                                  size="small" 
+                                  sx={{ 
+                                    minWidth: { xs: "800px", sm: "900px" },
+                                    tableLayout: "fixed"
+                                  }}
+                                >
+                                  <TableHead>
+                                    <TableRow
+                                      sx={{
+                                        bgcolor: isDarkMode ? "#111827" : "#f0f4f8",
+                                        "& th": {
+                                          fontWeight: "bold",
+                                          color: isDarkMode ? "#fff" : "#334155",
+                                          fontSize: { xs: "0.75rem", sm: "0.85rem" },
+                                          padding: { xs: "8px 10px", sm: "12px 16px" },
+                                          borderBottom: isDarkMode
+                                            ? "1px solid #374151"
+                                            : "2px solid #e2e8f0",
+                                          textTransform: "uppercase",
+                                          letterSpacing: "0.05em",
+                                          whiteSpace: "nowrap",
+                                        },
+                                      }}
+                                    >
+                                      <TableCell sx={{ width: { xs: "60px", sm: "80px" } }}>ID</TableCell>
+                                      <TableCell sx={{ width: { xs: "200px", sm: "250px" } }}>Titre</TableCell>
+                                      <TableCell sx={{ width: { xs: "120px", sm: "140px" } }}>Statut</TableCell>
+                                      <TableCell sx={{ width: { xs: "100px", sm: "120px" } }}>Date</TableCell>
+                                      <TableCell sx={{ width: { xs: "80px", sm: "100px" } }} align="center">Actions</TableCell>
+                                    </TableRow>
+                                  </TableHead>
+                                  <TableBody>
+                                    {getFilteredPublications("advertisement", false).map((ad) => (
+                                      <TableRow
+                                        key={ad.id}
+                                        sx={{
+                                          "&:hover": {
+                                            bgcolor: isDarkMode ? "#374151" : "#f8fafc",
+                                          },
+                                          borderBottom: `1px solid ${
+                                            isDarkMode ? "#374151" : "#e2e8f0"
+                                          }`,
+                                          "& td": {
+                                            padding: { xs: "6px 10px", sm: "10px 16px" },
+                                            color: isDarkMode ? "#fff" : "#475569",
+                                            fontSize: { xs: "0.75rem", sm: "0.875rem" },
+                                            whiteSpace: "nowrap",
+                                            overflow: "hidden",
+                                            textOverflow: "ellipsis",
+                                          },
+                                          bgcolor: isDarkMode ? "#1d2432" : "#fff",
+                                        }}
+                                      >
+                                        <TableCell>
+                                          <Box
+                                            sx={{
+                                              display: "inline-flex",
+                                              alignItems: "center",
+                                              px: { xs: 0.75, sm: 1 },
+                                              py: { xs: 0.4, sm: 0.5 },
+                                              borderRadius: { xs: 0.75, sm: 1 },
+                                              background: isDarkMode
+                                                ? "rgba(59, 130, 246, 0.2)"
+                                                : "rgba(59, 130, 246, 0.1)",
+                                              border: `1px solid ${isDarkMode ? "rgba(59, 130, 246, 0.3)" : "rgba(59, 130, 246, 0.2)"}`,
+                                              fontSize: { xs: "0.7rem", sm: "0.8rem" },
+                                              fontWeight: 600,
+                                              color: isDarkMode ? "#60a5fa" : "#2563eb",
+                                            }}
+                                          >
+                                            #{ad.id}
+                                          </Box>
+                                        </TableCell>
+                                        <TableCell>
+                                          <Box
+                                            sx={{
+                                              maxWidth: { xs: "180px", sm: "230px" },
+                                            }}
+                                          >
+                                            <Box
+                                              sx={{
+                                                fontWeight: 600,
+                                                color: isDarkMode ? "#fff" : "#1f2937",
+                                                fontSize: { xs: "0.8rem", sm: "0.9rem" },
+                                                overflow: "hidden",
+                                                textOverflow: "ellipsis",
+                                                whiteSpace: "nowrap",
+                                              }}
+                                            >
+                                              {ad.titre || "Sans titre"}
+                                            </Box>
+                                            {ad.description && (
+                                              <Box
+                                                sx={{
+                                                  color: isDarkMode ? "#9ca3af" : "#6b7280",
+                                                  fontSize: { xs: "0.7rem", sm: "0.75rem" },
+                                                  mt: 0.5,
+                                                  overflow: "hidden",
+                                                  textOverflow: "ellipsis",
+                                                  whiteSpace: "nowrap",
+                                                }}
+                                              >
+                                                {ad.description.length > 50
+                                                  ? ad.description.substring(0, 50) + "..."
+                                                  : ad.description}
+                                              </Box>
+                                            )}
+                                          </Box>
+                                        </TableCell>
+                                        <TableCell>
+                                          <Chip
+                                            label={getStatutLabel(ad.statut)}
+                                            size="small"
+                                            color={getStatutColor(ad.statut)}
+                                            sx={{
+                                              fontSize: { xs: "0.65rem", sm: "0.75rem" },
+                                              height: { xs: 20, sm: 24 },
+                                              fontWeight: 600,
+                                              borderRadius: { xs: 1, sm: 1.5 },
+                                            }}
+                                          />
+                                        </TableCell>
+                                        <TableCell>
+                                          <Box
+                                            sx={{
+                                              fontSize: { xs: "0.7rem", sm: "0.8rem" },
+                                              color: isDarkMode ? "#9ca3af" : "#6b7280",
+                                            }}
+                                          >
+                                            {formatDate(ad.created_at)}
+                                          </Box>
+                                        </TableCell>
+                                        <TableCell align="center">
+                                          <Box
+                                            sx={{
+                                              display: "flex",
+                                              gap: 0.5,
+                                              justifyContent: "center",
+                                            }}
+                                          >
+                                            <Tooltip title="Voir les détails" arrow>
+                                              <IconButton
+                                                size="small"
+                                                onClick={() => handleViewDetails(ad, "advertisement")}
+                                                sx={{
+                                                  color: isDarkMode ? "#60a5fa" : "#2563eb",
+                                                  bgcolor: isDarkMode ? "rgba(59, 130, 246, 0.1)" : "rgba(37, 99, 235, 0.05)",
+                                                  "&:hover": {
+                                                    bgcolor: isDarkMode ? "rgba(59, 130, 246, 0.2)" : "rgba(37, 99, 235, 0.1)",
+                                                  },
+                                                }}
+                                              >
+                                                <EyeIcon className="h-4 w-4" />
+                                              </IconButton>
+                                            </Tooltip>
+                                            <Tooltip title="Modifier" arrow>
+                                              <IconButton
+                                                size="small"
+                                                onClick={() => handleEdit(ad, "advertisement")}
+                                                sx={{
+                                                  color: isDarkMode ? "#34d399" : "#059669",
+                                                  bgcolor: isDarkMode ? "rgba(52, 211, 153, 0.1)" : "rgba(5, 150, 105, 0.05)",
+                                                  "&:hover": {
+                                                    bgcolor: isDarkMode ? "rgba(52, 211, 153, 0.2)" : "rgba(5, 150, 105, 0.1)",
+                                                  },
+                                                }}
+                                              >
+                                                <PencilIcon className="h-4 w-4" />
+                                              </IconButton>
+                                            </Tooltip>
+                                            <Tooltip title="Supprimer" arrow>
+                                              <IconButton
+                                                size="small"
+                                                onClick={() => handleDeleteConfirm(ad.id, "advertisement")}
+                                                sx={{
+                                                  color: isDarkMode ? "#f87171" : "#dc2626",
+                                                  bgcolor: isDarkMode ? "rgba(248, 113, 113, 0.1)" : "rgba(220, 38, 38, 0.05)",
+                                                  "&:hover": {
+                                                    bgcolor: isDarkMode ? "rgba(248, 113, 113, 0.2)" : "rgba(220, 38, 38, 0.1)",
+                                                  },
+                                                }}
+                                              >
+                                                <TrashIcon className="h-4 w-4" />
+                                              </IconButton>
+                                            </Tooltip>
+                                          </Box>
+                                        </TableCell>
+                                      </TableRow>
+                                    ))}
+                                  </TableBody>
+                                </Table>
+                              </TableContainer>
                             )}
+
+                            {/* Pagination backend pour les publicités */}
+                            <TablePagination
+                              component="div"
+                              count={backendPagination.totalItems}
+                              page={backendPagination.currentPage - 1}
+                              onPageChange={(event, newPage) => handleBackendPageChange(newPage)}
+                              rowsPerPage={backendPagination.itemsPerPage}
+                              onRowsPerPageChange={(event) => handleBackendRowsPerPageChange(parseInt(event.target.value, 10))}
+                              rowsPerPageOptions={[5, 10, 25, 50]}
+                              labelRowsPerPage="Lignes par page:"
+                              labelDisplayedRows={({ from, to, count }) =>
+                                `${from}-${to} sur ${count !== -1 ? count : `plus de ${to}`}`
+                              }
+                              sx={{
+                                color: isDarkMode ? "#fff" : "#475569",
+                                fontSize: { xs: "0.75rem", sm: "0.875rem" },
+                                "& .MuiTablePagination-toolbar": {
+                                  minHeight: { xs: "40px", sm: "52px" },
+                                  padding: { xs: "8px", sm: "16px" },
+                                },
+                                "& .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows": {
+                                  fontSize: { xs: "0.75rem", sm: "0.875rem" },
+                                },
+                                "& .MuiTablePagination-selectIcon": {
+                                  color: isDarkMode ? "#fff" : "#475569",
+                                },
+                                "& .MuiTablePagination-select": {
+                                  backgroundColor: isDarkMode ? "#1f2937" : "#f8fafc",
+                                  borderRadius: 1,
+                                  padding: "4px 8px",
+                                  border: isDarkMode
+                                    ? "1px solid #374151"
+                                    : "1px solid #e2e8f0",
+                                  fontSize: { xs: "0.75rem", sm: "0.875rem" },
+                                },
+                                "& .MuiTablePagination-actions button": {
+                                  color: isDarkMode ? "#fff" : "#475569",
+                                  fontSize: { xs: "0.75rem", sm: "0.875rem" },
+                                  "&:hover": {
+                                    backgroundColor: isDarkMode ? "#374151" : "#f1f5f9",
+                                  },
+                                },
+                              }}
+                            />
                           </>
                         )}
                       </>
@@ -1790,72 +2314,287 @@ export default function MyPage() {
                           </div>
                         ) : (
                           <>
-                            <div
-                              className={`grid ${
-                                isMobile
-                                  ? "grid-cols-1 sm:grid-cols-2"
-                                  : "grid-cols-1 md:grid-cols-2 lg:grid-cols-3"
-                              } ${isMobile ? "gap-3" : "gap-4"}`}
-                            >
-                              {getFilteredPublications("jobOffer", false)
-                                .length === 0 ? (
-                                <div className="col-span-full py-8 text-center text-gray-500 dark:text-gray-400">
-                                  {searchTerm ||
-                                  filters.statut !== "tous" ||
-                                  filters.etat !== "tous" ||
-                                  filters.dateRange !== "tous"
-                                    ? "Aucune offre d'emploi ne correspond à vos critères de recherche."
-                                    : "Vous n'avez pas encore d'offres d'emploi."}
-                                </div>
-                              ) : (
-                                getFilteredPublications("jobOffer", true).map(
-                                  (offer) => (
-                                    <PublicationCard
-                                      key={offer.id}
-                                      publication={offer}
-                                      type="jobOffer"
-                                      onEdit={() =>
-                                        handleEdit(offer, "jobOffer")
-                                      }
-                                      onDelete={() =>
-                                        handleDeleteConfirm(
-                                          offer.id,
-                                          "jobOffer"
-                                        )
-                                      }
-                                      onViewDetails={() =>
-                                        handleViewDetails(offer, "jobOffer")
-                                      }
-                                      onStateChange={(newState) =>
-                                        handleStateChange(
-                                          offer.id,
-                                          "jobOffer",
-                                          newState
-                                        )
-                                      }
-                                      onBoost={() =>
-                                        handleBoost(offer, "jobOffer")
-                                      }
-                                    />
-                                  )
-                                )
-                              )}
-                            </div>
-
-                            {/* Pagination pour les offres d'emploi */}
-                            {getFilteredPublications("jobOffer", false).length >
-                              0 && (
-                              <div className={`mt-${isMobile ? "4" : "6"}`}>
-                                <Pagination
-                                  currentPage={pagination.jobOffers.currentPage}
-                                  totalPages={getTotalPages("jobOffer")}
-                                  onPageChange={(page) =>
-                                    handlePageChange("jobOffers", page)
-                                  }
-                                  compact={isMobile}
-                                />
-                              </div>
+                            {/* Tableau des offres d'emploi */}
+                            {getFilteredPublications("jobOffer", false).length === 0 ? (
+                              <Alert severity="info" sx={{ mb: 2 }}>
+                                {searchTerm ||
+                                filters.statut !== "tous" ||
+                                filters.etat !== "tous" ||
+                                filters.dateRange !== "tous"
+                                  ? "Aucune offre d'emploi ne correspond à vos critères de recherche."
+                                  : "Vous n'avez pas encore d'offres d'emploi."}
+                              </Alert>
+                            ) : (
+                              <TableContainer
+                                sx={{
+                                  boxShadow: isDarkMode
+                                    ? "none"
+                                    : "0 2px 10px rgba(0, 0, 0, 0.05)",
+                                  borderRadius: { xs: 1.5, sm: 2 },
+                                  overflow: "auto",
+                                  maxWidth: "100%",
+                                  "&::-webkit-scrollbar": {
+                                    height: { xs: 4, sm: 6 },
+                                    width: { xs: 4, sm: 6 },
+                                  },
+                                  "&::-webkit-scrollbar-track": {
+                                    backgroundColor: isDarkMode
+                                      ? "rgba(55, 65, 81, 0.4)"
+                                      : "rgba(0, 0, 0, 0.06)",
+                                    borderRadius: { xs: 2, sm: 3 },
+                                  },
+                                  "&::-webkit-scrollbar-thumb": {
+                                    backgroundColor: isDarkMode
+                                      ? "rgba(156, 163, 175, 0.6)"
+                                      : "rgba(156, 163, 175, 0.4)",
+                                    borderRadius: { xs: 2, sm: 3 },
+                                    "&:hover": {
+                                      backgroundColor: isDarkMode
+                                        ? "rgba(156, 163, 175, 0.8)"
+                                        : "rgba(156, 163, 175, 0.6)",
+                                    },
+                                  },
+                                }}
+                              >
+                                <Table 
+                                  size="small" 
+                                  sx={{ 
+                                    minWidth: { xs: "800px", sm: "900px" },
+                                    tableLayout: "fixed"
+                                  }}
+                                >
+                                  <TableHead>
+                                    <TableRow
+                                      sx={{
+                                        bgcolor: isDarkMode ? "#111827" : "#f0f4f8",
+                                        "& th": {
+                                          fontWeight: "bold",
+                                          color: isDarkMode ? "#fff" : "#334155",
+                                          fontSize: { xs: "0.75rem", sm: "0.85rem" },
+                                          padding: { xs: "8px 10px", sm: "12px 16px" },
+                                          borderBottom: isDarkMode
+                                            ? "1px solid #374151"
+                                            : "2px solid #e2e8f0",
+                                          textTransform: "uppercase",
+                                          letterSpacing: "0.05em",
+                                          whiteSpace: "nowrap",
+                                        },
+                                      }}
+                                    >
+                                      <TableCell sx={{ width: { xs: "60px", sm: "80px" } }}>ID</TableCell>
+                                      <TableCell sx={{ width: { xs: "200px", sm: "250px" } }}>Titre</TableCell>
+                                      <TableCell sx={{ width: { xs: "120px", sm: "140px" } }}>Statut</TableCell>
+                                      <TableCell sx={{ width: { xs: "100px", sm: "120px" } }}>Date</TableCell>
+                                      <TableCell sx={{ width: { xs: "80px", sm: "100px" } }} align="center">Actions</TableCell>
+                                    </TableRow>
+                                  </TableHead>
+                                  <TableBody>
+                                    {getFilteredPublications("jobOffer", false).map((offer) => (
+                                      <TableRow
+                                        key={offer.id}
+                                        sx={{
+                                          "&:hover": {
+                                            bgcolor: isDarkMode ? "#374151" : "#f8fafc",
+                                          },
+                                          borderBottom: `1px solid ${
+                                            isDarkMode ? "#374151" : "#e2e8f0"
+                                          }`,
+                                          "& td": {
+                                            padding: { xs: "6px 10px", sm: "10px 16px" },
+                                            color: isDarkMode ? "#fff" : "#475569",
+                                            fontSize: { xs: "0.75rem", sm: "0.875rem" },
+                                            whiteSpace: "nowrap",
+                                            overflow: "hidden",
+                                            textOverflow: "ellipsis",
+                                          },
+                                          bgcolor: isDarkMode ? "#1d2432" : "#fff",
+                                        }}
+                                      >
+                                        <TableCell>
+                                          <Box
+                                            sx={{
+                                              display: "inline-flex",
+                                              alignItems: "center",
+                                              px: { xs: 0.75, sm: 1 },
+                                              py: { xs: 0.4, sm: 0.5 },
+                                              borderRadius: { xs: 0.75, sm: 1 },
+                                              background: isDarkMode
+                                                ? "rgba(34, 197, 94, 0.2)"
+                                                : "rgba(34, 197, 94, 0.1)",
+                                              border: `1px solid ${isDarkMode ? "rgba(34, 197, 94, 0.3)" : "rgba(34, 197, 94, 0.2)"}`,
+                                              fontSize: { xs: "0.7rem", sm: "0.8rem" },
+                                              fontWeight: 600,
+                                              color: isDarkMode ? "#4ade80" : "#16a34a",
+                                            }}
+                                          >
+                                            #{offer.id}
+                                          </Box>
+                                        </TableCell>
+                                        <TableCell>
+                                          <Box
+                                            sx={{
+                                              maxWidth: { xs: "180px", sm: "230px" },
+                                            }}
+                                          >
+                                            <Box
+                                              sx={{
+                                                fontWeight: 600,
+                                                color: isDarkMode ? "#fff" : "#1f2937",
+                                                fontSize: { xs: "0.8rem", sm: "0.9rem" },
+                                                overflow: "hidden",
+                                                textOverflow: "ellipsis",
+                                                whiteSpace: "nowrap",
+                                              }}
+                                            >
+                                              {offer.titre || "Sans titre"}
+                                            </Box>
+                                            {offer.description && (
+                                              <Box
+                                                sx={{
+                                                  color: isDarkMode ? "#9ca3af" : "#6b7280",
+                                                  fontSize: { xs: "0.7rem", sm: "0.75rem" },
+                                                  mt: 0.5,
+                                                  overflow: "hidden",
+                                                  textOverflow: "ellipsis",
+                                                  whiteSpace: "nowrap",
+                                                }}
+                                              >
+                                                {offer.description.length > 50
+                                                  ? offer.description.substring(0, 50) + "..."
+                                                  : offer.description}
+                                              </Box>
+                                            )}
+                                          </Box>
+                                        </TableCell>
+                                        <TableCell>
+                                          <Chip
+                                            label={getStatutLabel(offer.statut)}
+                                            size="small"
+                                            color={getStatutColor(offer.statut)}
+                                            sx={{
+                                              fontSize: { xs: "0.65rem", sm: "0.75rem" },
+                                              height: { xs: 20, sm: 24 },
+                                              fontWeight: 600,
+                                              borderRadius: { xs: 1, sm: 1.5 },
+                                            }}
+                                          />
+                                        </TableCell>
+                                        <TableCell>
+                                          <Box
+                                            sx={{
+                                              fontSize: { xs: "0.7rem", sm: "0.8rem" },
+                                              color: isDarkMode ? "#9ca3af" : "#6b7280",
+                                            }}
+                                          >
+                                            {formatDate(offer.created_at)}
+                                          </Box>
+                                        </TableCell>
+                                        <TableCell align="center">
+                                          <Box
+                                            sx={{
+                                              display: "flex",
+                                              gap: 0.5,
+                                              justifyContent: "center",
+                                            }}
+                                          >
+                                            <Tooltip title="Voir les détails" arrow>
+                                              <IconButton
+                                                size="small"
+                                                onClick={() => handleViewDetails(offer, "jobOffer")}
+                                                sx={{
+                                                  color: isDarkMode ? "#60a5fa" : "#2563eb",
+                                                  bgcolor: isDarkMode ? "rgba(59, 130, 246, 0.1)" : "rgba(37, 99, 235, 0.05)",
+                                                  "&:hover": {
+                                                    bgcolor: isDarkMode ? "rgba(59, 130, 246, 0.2)" : "rgba(37, 99, 235, 0.1)",
+                                                  },
+                                                }}
+                                              >
+                                                <EyeIcon className="h-4 w-4" />
+                                              </IconButton>
+                                            </Tooltip>
+                                            <Tooltip title="Modifier" arrow>
+                                              <IconButton
+                                                size="small"
+                                                onClick={() => handleEdit(offer, "jobOffer")}
+                                                sx={{
+                                                  color: isDarkMode ? "#34d399" : "#059669",
+                                                  bgcolor: isDarkMode ? "rgba(52, 211, 153, 0.1)" : "rgba(5, 150, 105, 0.05)",
+                                                  "&:hover": {
+                                                    bgcolor: isDarkMode ? "rgba(52, 211, 153, 0.2)" : "rgba(5, 150, 105, 0.1)",
+                                                  },
+                                                }}
+                                              >
+                                                <PencilIcon className="h-4 w-4" />
+                                              </IconButton>
+                                            </Tooltip>
+                                            <Tooltip title="Supprimer" arrow>
+                                              <IconButton
+                                                size="small"
+                                                onClick={() => handleDeleteConfirm(offer.id, "jobOffer")}
+                                                sx={{
+                                                  color: isDarkMode ? "#f87171" : "#dc2626",
+                                                  bgcolor: isDarkMode ? "rgba(248, 113, 113, 0.1)" : "rgba(220, 38, 38, 0.05)",
+                                                  "&:hover": {
+                                                    bgcolor: isDarkMode ? "rgba(248, 113, 113, 0.2)" : "rgba(220, 38, 38, 0.1)",
+                                                  },
+                                                }}
+                                              >
+                                                <TrashIcon className="h-4 w-4" />
+                                              </IconButton>
+                                            </Tooltip>
+                                          </Box>
+                                        </TableCell>
+                                      </TableRow>
+                                    ))}
+                                  </TableBody>
+                                </Table>
+                              </TableContainer>
                             )}
+
+                            {/* Pagination backend pour les offres d'emploi */}
+                            <TablePagination
+                              component="div"
+                              count={backendPagination.totalItems}
+                              page={backendPagination.currentPage - 1}
+                              onPageChange={(event, newPage) => handleBackendPageChange(newPage)}
+                              rowsPerPage={backendPagination.itemsPerPage}
+                              onRowsPerPageChange={(event) => handleBackendRowsPerPageChange(parseInt(event.target.value, 10))}
+                              rowsPerPageOptions={[5, 10, 25, 50]}
+                              labelRowsPerPage="Lignes par page:"
+                              labelDisplayedRows={({ from, to, count }) =>
+                                `${from}-${to} sur ${count !== -1 ? count : `plus de ${to}`}`
+                              }
+                              sx={{
+                                color: isDarkMode ? "#fff" : "#475569",
+                                fontSize: { xs: "0.75rem", sm: "0.875rem" },
+                                "& .MuiTablePagination-toolbar": {
+                                  minHeight: { xs: "40px", sm: "52px" },
+                                  padding: { xs: "8px", sm: "16px" },
+                                },
+                                "& .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows": {
+                                  fontSize: { xs: "0.75rem", sm: "0.875rem" },
+                                },
+                                "& .MuiTablePagination-selectIcon": {
+                                  color: isDarkMode ? "#fff" : "#475569",
+                                },
+                                "& .MuiTablePagination-select": {
+                                  backgroundColor: isDarkMode ? "#1f2937" : "#f8fafc",
+                                  borderRadius: 1,
+                                  padding: "4px 8px",
+                                  border: isDarkMode
+                                    ? "1px solid #374151"
+                                    : "1px solid #e2e8f0",
+                                  fontSize: { xs: "0.75rem", sm: "0.875rem" },
+                                },
+                                "& .MuiTablePagination-actions button": {
+                                  color: isDarkMode ? "#fff" : "#475569",
+                                  fontSize: { xs: "0.75rem", sm: "0.875rem" },
+                                  "&:hover": {
+                                    backgroundColor: isDarkMode ? "#374151" : "#f1f5f9",
+                                  },
+                                },
+                              }}
+                            />
                           </>
                         )}
                       </>
@@ -1992,93 +2731,287 @@ export default function MyPage() {
                           </div>
                         ) : (
                           <>
-                            <div
-                              className={`grid ${
-                                isMobile
-                                  ? "grid-cols-1 sm:grid-cols-2"
-                                  : "grid-cols-1 md:grid-cols-2 lg:grid-cols-3"
-                              } ${isMobile ? "gap-3" : "gap-4"}`}
-                            >
-                              {getFilteredPublications(
-                                "businessOpportunity",
-                                false
-                              ).length === 0 ? (
-                                <div className="col-span-full py-8 text-center text-gray-500 dark:text-gray-400">
-                                  {searchTerm ||
-                                  filters.statut !== "tous" ||
-                                  filters.etat !== "tous" ||
-                                  filters.dateRange !== "tous"
-                                    ? "Aucune opportunité d'affaires ne correspond à vos critères de recherche."
-                                    : "Vous n'avez pas encore d'opportunités d'affaires."}
-                                </div>
-                              ) : (
-                                getFilteredPublications(
-                                  "businessOpportunity",
-                                  true
-                                ).map((opportunity) => (
-                                  <PublicationCard
-                                    key={opportunity.id}
-                                    publication={opportunity}
-                                    type="businessOpportunity"
-                                    onEdit={() =>
-                                      handleEdit(
-                                        opportunity,
-                                        "businessOpportunity"
-                                      )
-                                    }
-                                    onDelete={() =>
-                                      handleDeleteConfirm(
-                                        opportunity.id,
-                                        "businessOpportunity"
-                                      )
-                                    }
-                                    onViewDetails={() =>
-                                      handleViewDetails(
-                                        opportunity,
-                                        "businessOpportunity"
-                                      )
-                                    }
-                                    onStateChange={(newState) =>
-                                      handleStateChange(
-                                        opportunity.id,
-                                        "businessOpportunity",
-                                        newState
-                                      )
-                                    }
-                                    onBoost={() =>
-                                      handleBoost(
-                                        opportunity,
-                                        "businessOpportunity"
-                                      )
-                                    }
-                                  />
-                                ))
-                              )}
-                            </div>
-
-                            {/* Pagination pour les opportunités d'affaires */}
-                            {getFilteredPublications(
-                              "businessOpportunity",
-                              false
-                            ).length > 0 && (
-                              <div className={`mt-${isMobile ? "4" : "6"}`}>
-                                <Pagination
-                                  currentPage={
-                                    pagination.businessOpportunities.currentPage
-                                  }
-                                  totalPages={getTotalPages(
-                                    "businessOpportunity"
-                                  )}
-                                  onPageChange={(page) =>
-                                    handlePageChange(
-                                      "businessOpportunities",
-                                      page
-                                    )
-                                  }
-                                  compact={isMobile}
-                                />
-                              </div>
+                            {/* Tableau des opportunités d'affaires */}
+                            {getFilteredPublications("businessOpportunity", false).length === 0 ? (
+                              <Alert severity="info" sx={{ mb: 2 }}>
+                                {searchTerm ||
+                                filters.statut !== "tous" ||
+                                filters.etat !== "tous" ||
+                                filters.dateRange !== "tous"
+                                  ? "Aucune opportunité d'affaires ne correspond à vos critères de recherche."
+                                  : "Vous n'avez pas encore d'opportunités d'affaires."}
+                              </Alert>
+                            ) : (
+                              <TableContainer
+                                sx={{
+                                  boxShadow: isDarkMode
+                                    ? "none"
+                                    : "0 2px 10px rgba(0, 0, 0, 0.05)",
+                                  borderRadius: { xs: 1.5, sm: 2 },
+                                  overflow: "auto",
+                                  maxWidth: "100%",
+                                  "&::-webkit-scrollbar": {
+                                    height: { xs: 4, sm: 6 },
+                                    width: { xs: 4, sm: 6 },
+                                  },
+                                  "&::-webkit-scrollbar-track": {
+                                    backgroundColor: isDarkMode
+                                      ? "rgba(55, 65, 81, 0.4)"
+                                      : "rgba(0, 0, 0, 0.06)",
+                                    borderRadius: { xs: 2, sm: 3 },
+                                  },
+                                  "&::-webkit-scrollbar-thumb": {
+                                    backgroundColor: isDarkMode
+                                      ? "rgba(156, 163, 175, 0.6)"
+                                      : "rgba(156, 163, 175, 0.4)",
+                                    borderRadius: { xs: 2, sm: 3 },
+                                    "&:hover": {
+                                      backgroundColor: isDarkMode
+                                        ? "rgba(156, 163, 175, 0.8)"
+                                        : "rgba(156, 163, 175, 0.6)",
+                                    },
+                                  },
+                                }}
+                              >
+                                <Table 
+                                  size="small" 
+                                  sx={{ 
+                                    minWidth: { xs: "800px", sm: "900px" },
+                                    tableLayout: "fixed"
+                                  }}
+                                >
+                                  <TableHead>
+                                    <TableRow
+                                      sx={{
+                                        bgcolor: isDarkMode ? "#111827" : "#f0f4f8",
+                                        "& th": {
+                                          fontWeight: "bold",
+                                          color: isDarkMode ? "#fff" : "#334155",
+                                          fontSize: { xs: "0.75rem", sm: "0.85rem" },
+                                          padding: { xs: "8px 10px", sm: "12px 16px" },
+                                          borderBottom: isDarkMode
+                                            ? "1px solid #374151"
+                                            : "2px solid #e2e8f0",
+                                          textTransform: "uppercase",
+                                          letterSpacing: "0.05em",
+                                          whiteSpace: "nowrap",
+                                        },
+                                      }}
+                                    >
+                                      <TableCell sx={{ width: { xs: "60px", sm: "80px" } }}>ID</TableCell>
+                                      <TableCell sx={{ width: { xs: "200px", sm: "250px" } }}>Titre</TableCell>
+                                      <TableCell sx={{ width: { xs: "120px", sm: "140px" } }}>Statut</TableCell>
+                                      <TableCell sx={{ width: { xs: "100px", sm: "120px" } }}>Date</TableCell>
+                                      <TableCell sx={{ width: { xs: "80px", sm: "100px" } }} align="center">Actions</TableCell>
+                                    </TableRow>
+                                  </TableHead>
+                                  <TableBody>
+                                    {getFilteredPublications("businessOpportunity", false).map((opportunity) => (
+                                      <TableRow
+                                        key={opportunity.id}
+                                        sx={{
+                                          "&:hover": {
+                                            bgcolor: isDarkMode ? "#374151" : "#f8fafc",
+                                          },
+                                          borderBottom: `1px solid ${
+                                            isDarkMode ? "#374151" : "#e2e8f0"
+                                          }`,
+                                          "& td": {
+                                            padding: { xs: "6px 10px", sm: "10px 16px" },
+                                            color: isDarkMode ? "#fff" : "#475569",
+                                            fontSize: { xs: "0.75rem", sm: "0.875rem" },
+                                            whiteSpace: "nowrap",
+                                            overflow: "hidden",
+                                            textOverflow: "ellipsis",
+                                          },
+                                          bgcolor: isDarkMode ? "#1d2432" : "#fff",
+                                        }}
+                                      >
+                                        <TableCell>
+                                          <Box
+                                            sx={{
+                                              display: "inline-flex",
+                                              alignItems: "center",
+                                              px: { xs: 0.75, sm: 1 },
+                                              py: { xs: 0.4, sm: 0.5 },
+                                              borderRadius: { xs: 0.75, sm: 1 },
+                                              background: isDarkMode
+                                                ? "rgba(168, 85, 247, 0.2)"
+                                                : "rgba(168, 85, 247, 0.1)",
+                                              border: `1px solid ${isDarkMode ? "rgba(168, 85, 247, 0.3)" : "rgba(168, 85, 247, 0.2)"}`,
+                                              fontSize: { xs: "0.7rem", sm: "0.8rem" },
+                                              fontWeight: 600,
+                                              color: isDarkMode ? "#a78bfa" : "#7c3aed",
+                                            }}
+                                          >
+                                            #{opportunity.id}
+                                          </Box>
+                                        </TableCell>
+                                        <TableCell>
+                                          <Box
+                                            sx={{
+                                              maxWidth: { xs: "180px", sm: "230px" },
+                                            }}
+                                          >
+                                            <Box
+                                              sx={{
+                                                fontWeight: 600,
+                                                color: isDarkMode ? "#fff" : "#1f2937",
+                                                fontSize: { xs: "0.8rem", sm: "0.9rem" },
+                                                overflow: "hidden",
+                                                textOverflow: "ellipsis",
+                                                whiteSpace: "nowrap",
+                                              }}
+                                            >
+                                              {opportunity.titre || "Sans titre"}
+                                            </Box>
+                                            {opportunity.description && (
+                                              <Box
+                                                sx={{
+                                                  color: isDarkMode ? "#9ca3af" : "#6b7280",
+                                                  fontSize: { xs: "0.7rem", sm: "0.75rem" },
+                                                  mt: 0.5,
+                                                  overflow: "hidden",
+                                                  textOverflow: "ellipsis",
+                                                  whiteSpace: "nowrap",
+                                                }}
+                                              >
+                                                {opportunity.description.length > 50
+                                                  ? opportunity.description.substring(0, 50) + "..."
+                                                  : opportunity.description}
+                                              </Box>
+                                            )}
+                                          </Box>
+                                        </TableCell>
+                                        <TableCell>
+                                          <Chip
+                                            label={getStatutLabel(opportunity.statut)}
+                                            size="small"
+                                            color={getStatutColor(opportunity.statut)}
+                                            sx={{
+                                              fontSize: { xs: "0.65rem", sm: "0.75rem" },
+                                              height: { xs: 20, sm: 24 },
+                                              fontWeight: 600,
+                                              borderRadius: { xs: 1, sm: 1.5 },
+                                            }}
+                                          />
+                                        </TableCell>
+                                        <TableCell>
+                                          <Box
+                                            sx={{
+                                              fontSize: { xs: "0.7rem", sm: "0.8rem" },
+                                              color: isDarkMode ? "#9ca3af" : "#6b7280",
+                                            }}
+                                          >
+                                            {formatDate(opportunity.created_at)}
+                                          </Box>
+                                        </TableCell>
+                                        <TableCell align="center">
+                                          <Box
+                                            sx={{
+                                              display: "flex",
+                                              gap: 0.5,
+                                              justifyContent: "center",
+                                            }}
+                                          >
+                                            <Tooltip title="Voir les détails" arrow>
+                                              <IconButton
+                                                size="small"
+                                                onClick={() => handleViewDetails(opportunity, "businessOpportunity")}
+                                                sx={{
+                                                  color: isDarkMode ? "#60a5fa" : "#2563eb",
+                                                  bgcolor: isDarkMode ? "rgba(59, 130, 246, 0.1)" : "rgba(37, 99, 235, 0.05)",
+                                                  "&:hover": {
+                                                    bgcolor: isDarkMode ? "rgba(59, 130, 246, 0.2)" : "rgba(37, 99, 235, 0.1)",
+                                                  },
+                                                }}
+                                              >
+                                                <EyeIcon className="h-4 w-4" />
+                                              </IconButton>
+                                            </Tooltip>
+                                            <Tooltip title="Modifier" arrow>
+                                              <IconButton
+                                                size="small"
+                                                onClick={() => handleEdit(opportunity, "businessOpportunity")}
+                                                sx={{
+                                                  color: isDarkMode ? "#34d399" : "#059669",
+                                                  bgcolor: isDarkMode ? "rgba(52, 211, 153, 0.1)" : "rgba(5, 150, 105, 0.05)",
+                                                  "&:hover": {
+                                                    bgcolor: isDarkMode ? "rgba(52, 211, 153, 0.2)" : "rgba(5, 150, 105, 0.1)",
+                                                  },
+                                                }}
+                                              >
+                                                <PencilIcon className="h-4 w-4" />
+                                              </IconButton>
+                                            </Tooltip>
+                                            <Tooltip title="Supprimer" arrow>
+                                              <IconButton
+                                                size="small"
+                                                onClick={() => handleDeleteConfirm(opportunity.id, "businessOpportunity")}
+                                                sx={{
+                                                  color: isDarkMode ? "#f87171" : "#dc2626",
+                                                  bgcolor: isDarkMode ? "rgba(248, 113, 113, 0.1)" : "rgba(220, 38, 38, 0.05)",
+                                                  "&:hover": {
+                                                    bgcolor: isDarkMode ? "rgba(248, 113, 113, 0.2)" : "rgba(220, 38, 38, 0.1)",
+                                                  },
+                                                }}
+                                              >
+                                                <TrashIcon className="h-4 w-4" />
+                                              </IconButton>
+                                            </Tooltip>
+                                          </Box>
+                                        </TableCell>
+                                      </TableRow>
+                                    ))}
+                                  </TableBody>
+                                </Table>
+                              </TableContainer>
                             )}
+
+                            {/* Pagination backend pour les opportunités d'affaires */}
+                            <TablePagination
+                              component="div"
+                              count={backendPagination.totalItems}
+                              page={backendPagination.currentPage - 1}
+                              onPageChange={(event, newPage) => handleBackendPageChange(newPage)}
+                              rowsPerPage={backendPagination.itemsPerPage}
+                              onRowsPerPageChange={(event) => handleBackendRowsPerPageChange(parseInt(event.target.value, 10))}
+                              rowsPerPageOptions={[5, 10, 25, 50]}
+                              labelRowsPerPage="Lignes par page:"
+                              labelDisplayedRows={({ from, to, count }) =>
+                                `${from}-${to} sur ${count !== -1 ? count : `plus de ${to}`}`
+                              }
+                              sx={{
+                                color: isDarkMode ? "#fff" : "#475569",
+                                fontSize: { xs: "0.75rem", sm: "0.875rem" },
+                                "& .MuiTablePagination-toolbar": {
+                                  minHeight: { xs: "40px", sm: "52px" },
+                                  padding: { xs: "8px", sm: "16px" },
+                                },
+                                "& .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows": {
+                                  fontSize: { xs: "0.75rem", sm: "0.875rem" },
+                                },
+                                "& .MuiTablePagination-selectIcon": {
+                                  color: isDarkMode ? "#fff" : "#475569",
+                                },
+                                "& .MuiTablePagination-select": {
+                                  backgroundColor: isDarkMode ? "#1f2937" : "#f8fafc",
+                                  borderRadius: 1,
+                                  padding: "4px 8px",
+                                  border: isDarkMode
+                                    ? "1px solid #374151"
+                                    : "1px solid #e2e8f0",
+                                  fontSize: { xs: "0.75rem", sm: "0.875rem" },
+                                },
+                                "& .MuiTablePagination-actions button": {
+                                  color: isDarkMode ? "#fff" : "#475569",
+                                  fontSize: { xs: "0.75rem", sm: "0.875rem" },
+                                  "&:hover": {
+                                    backgroundColor: isDarkMode ? "#374151" : "#f1f5f9",
+                                  },
+                                },
+                              }}
+                            />
                           </>
                         )}
                       </>
@@ -2116,119 +3049,75 @@ export default function MyPage() {
 
             {/* Livreurs Panel */}
             <Tab.Panel className={`${isMobile ? "p-2" : "p-4"}`}>
-              <SubTabsPanel
-                tabs={[
-                  { label: "Gestion", icon: UserIcon },
-                  { label: "Candidatures", icon: NewspaperIcon },
-                ]}
-                panels={[
-                  {
-                    content: (
-                      <>
-                        <div className="flex justify-between items-center mb-4">
-                          <h2
-                            className={`${
-                              isMobile ? "text-base" : "text-lg"
-                            } font-semibold text-gray-800 dark:text-white`}
-                          >
-                            Livreurs
-                          </h2>
-                          {!pageData?.is_owner &&
-                            candidatureStatus !== null && (
-                              <div
-                                className={`${
-                                  isMobile ? "text-xs" : "text-sm"
-                                }`}
-                              >
-                                {candidatureStatus === "en_attente" && (
-                                  <span
-                                    className={`${
-                                      isMobile
-                                        ? "px-1.5 py-0.5 text-[10px]"
-                                        : "px-2 py-1"
-                                    } bg-yellow-100 text-yellow-800 rounded-full`}
-                                  >
-                                    Candidature en attente
-                                  </span>
-                                )}
-                                {candidatureStatus === "approuve" && (
-                                  <span
-                                    className={`${
-                                      isMobile
-                                        ? "px-1.5 py-0.5 text-[10px]"
-                                        : "px-2 py-1"
-                                    } bg-green-100 text-green-800 rounded-full`}
-                                  >
-                                    Candidature approuvée
-                                  </span>
-                                )}
-                                {candidatureStatus === "rejete" && (
-                                  <span
-                                    className={`${
-                                      isMobile
-                                        ? "px-1.5 py-0.5 text-[10px]"
-                                        : "px-2 py-1"
-                                    } bg-red-100 text-red-800 rounded-full`}
-                                  >
-                                    Candidature rejetée
-                                  </span>
-                                )}
-                              </div>
-                            )}
-                        </div>
-
-                        {isLoadingLivreurs ? (
-                          <div className="flex justify-center items-center py-10">
-                            <div
-                              className={`animate-spin rounded-full ${
-                                isMobile ? "h-8 w-8" : "h-10 w-10"
-                              } border-b-2 border-primary-600`}
-                            ></div>
-                          </div>
-                        ) : (
-                          <LivreursList
-                            livreurs={livreurs}
-                            onApprove={handleApproveLivreur}
-                            onReject={handleRejectLivreur}
-                            onRevoke={handleRevokeLivreur}
-                            onDelete={handleDeleteLivreur}
-                            isPageOwner={true}
-                            compact={isMobile}
-                          />
+              {/* Gestion des livreurs */}
+              <>
+                <div className="flex justify-between items-center mb-6">
+                  <h2 className={`${
+                    isMobile ? "text-lg" : "text-xl"
+                  } font-bold bg-gradient-to-r from-gray-900 to-gray-700 dark:from-white dark:to-gray-300 bg-clip-text text-transparent`}>
+                    Gestion des livreurs
+                  </h2>
+                  {!pageData?.is_owner &&
+                    candidatureStatus !== null && (
+                      <div className={`${
+                        isMobile ? "text-xs" : "text-sm"
+                      }`}>
+                        {candidatureStatus === "en_attente" && (
+                          <span className={`${
+                            isMobile
+                              ? "px-2 py-1 text-[10px]"
+                              : "px-3 py-1.5"
+                          } bg-gradient-to-r from-yellow-100 to-yellow-200 dark:from-yellow-900/30 dark:to-yellow-800/30 text-yellow-800 dark:text-yellow-200 rounded-full font-medium border border-yellow-200 dark:border-yellow-700`}>
+                            Candidature en attente
+                          </span>
                         )}
-                      </>
-                    ),
-                  },
-                  {
-                    content: (
-                      <div className="news-feed-wrapper">
-                        <h2
-                          className={`${
-                            isMobile ? "text-base" : "text-lg"
-                          } font-semibold text-gray-800 dark:text-white ${
-                            isMobile ? "mb-3" : "mb-4"
-                          }`}
-                        >
-                          Candidatures des livreurs
-                        </h2>
-                        <div
-                          className={`bg-white dark:bg-gray-800 ${
-                            isMobile ? "rounded-md" : "rounded-lg"
-                          } shadow ${isMobile ? "p-2" : "p-4"}`}
-                        >
-                          <p
-                            className={`${
-                              isMobile ? "text-sm" : "text-base"
-                            } text-gray-600 dark:text-gray-400`}
-                          >
-                            Gérez les candidatures des livreurs ici.
-                          </p>
-                        </div>
+                        {candidatureStatus === "approuve" && (
+                          <span className={`${
+                            isMobile
+                              ? "px-2 py-1 text-[10px]"
+                              : "px-3 py-1.5"
+                          } bg-gradient-to-r from-green-100 to-green-200 dark:from-green-900/30 dark:to-green-800/30 text-green-800 dark:text-green-200 rounded-full font-medium border border-green-200 dark:border-green-700`}>
+                            Candidature approuvée
+                          </span>
+                        )}
+                        {candidatureStatus === "rejete" && (
+                          <span className={`${
+                            isMobile
+                              ? "px-2 py-1 text-[10px]"
+                              : "px-3 py-1.5"
+                          } bg-gradient-to-r from-red-100 to-red-200 dark:from-red-900/30 dark:to-red-800/30 text-red-800 dark:text-red-200 rounded-full font-medium border border-red-200 dark:border-red-700`}>
+                            Candidature rejetée
+                          </span>
+                        )}
                       </div>
-                    ),
-                  },
-                ]}
-              />
+                    )}
+                </div>
+
+                {isLoadingLivreurs ? (
+                  <div className="flex justify-center items-center py-12">
+                    <div className={`animate-spin rounded-full ${
+                      isMobile ? "h-8 w-8" : "h-10 w-10"
+                    } border-b-2 border-primary-600`}></div>
+                  </div>
+                ) : (
+                  <LivreursList
+                    livreurs={livreurs}
+                    onApprove={handleApproveLivreur}
+                    onReject={handleRejectLivreur}
+                    onRevoke={handleRevokeLivreur}
+                    onDelete={handleDeleteLivreur}
+                    isPageOwner={true}
+                    compact={isMobile}
+                    pagination={true}
+                    currentPage={livreursPagination.currentPage}
+                    totalPages={livreursPagination.totalPages}
+                    onPageChange={handleLivreursPageChange}
+                    rowsPerPage={livreursPagination.rowsPerPage}
+                    onRowsPerPageChange={handleLivreursRowsPerPageChange}
+                    totalCount={livreursPagination.totalCount}
+                  />
+                )}
+              </>
             </Tab.Panel>
 
             {/* Formations Panel */}
@@ -2355,15 +3244,7 @@ export default function MyPage() {
                                   : "grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
                               }`}
                             >
-                              {getFilteredPublications("digitalProduct", true)
-                                // Pagination: slice pour n'afficher que les éléments de la page courante
-                                .slice(
-                                  (digitalProductsPagination.currentPage - 1) *
-                                    digitalProductsPagination.itemsPerPage,
-                                  digitalProductsPagination.currentPage *
-                                    digitalProductsPagination.itemsPerPage
-                                )
-                                .map((product) => (
+                              {publications?.digitalProducts?.map((product) => (
                                   <div key={product.id} className="mb-4">
                                     <DigitalProductCard
                                       product={product}
@@ -2527,26 +3408,36 @@ export default function MyPage() {
                           </div>
                         )}
 
-                        {/* Pagination */}
+                        {/* Pagination backend pour les produits de l'utilisateur */}
                         {!isLoading &&
                           publications?.digitalProducts?.length > 0 && (
-                            <div className="mt-4">
-                              <Pagination
-                                currentPage={
-                                  pagination?.digitalProducts?.currentPage
-                                }
-                                totalPages={getTotalPages("digitalProduct")}
-                                onPageChange={(page) =>
-                                  setPagination((prev) => ({
-                                    ...prev,
-                                    digitalProducts: {
-                                      ...prev.digitalProducts,
-                                      currentPage: page,
+                            <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mt: 4, px: 2 }}>
+                              <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+                                <Typography variant="body2" sx={{ color: "text.secondary" }}>
+                                  {userProductsPagination.totalCount > 0
+                                    ? `${(userProductsPagination.currentPage - 1) * userProductsPagination.rowsPerPage + 1}-${Math.min(userProductsPagination.currentPage * userProductsPagination.rowsPerPage, userProductsPagination.totalCount)} sur ${userProductsPagination.totalCount}`
+                                    : "0 résultats"}
+                                </Typography>
+                                <MuiPagination
+                                  count={userProductsPagination.totalPages}
+                                  page={userProductsPagination.currentPage}
+                                  onChange={(e, newPage) => handleUserProductsPageChange(newPage)}
+                                  color="primary"
+                                  size={isMobile ? "small" : "medium"}
+                                  showFirstButton
+                                  showLastButton
+                                  sx={{
+                                    "& .MuiPaginationItem-root": {
+                                      borderRadius: 2,
                                     },
-                                  }))
-                                }
-                              />
-                            </div>
+                                    "& .Mui-selected": {
+                                      background: "linear-gradient(45deg, #3b82f6, #8b5cf6)",
+                                      color: "white",
+                                    },
+                                  }}
+                                />
+                              </Box>
+                            </Box>
                           )}
                       </>
                     ),
@@ -2832,6 +3723,37 @@ export default function MyPage() {
                                   />
                                 </div>
                               )}
+
+                              {/* Pagination pour le catalogue */}
+                              {catalogPagination.totalPages > 1 && (
+                                <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mt: 4, px: 2 }}>
+                                  <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+                                    <Typography variant="body2" sx={{ color: "text.secondary" }}>
+                                      {catalogPagination.totalCount > 0
+                                        ? `${(catalogPagination.currentPage - 1) * catalogPagination.rowsPerPage + 1}-${Math.min(catalogPagination.currentPage * catalogPagination.rowsPerPage, catalogPagination.totalCount)} sur ${catalogPagination.totalCount}`
+                                        : "0 résultats"}
+                                    </Typography>
+                                    <MuiPagination
+                                      count={catalogPagination.totalPages}
+                                      page={catalogPagination.currentPage}
+                                      onChange={(e, newPage) => handleCatalogPageChange(newPage)}
+                                      color="primary"
+                                      size={isMobile ? "small" : "medium"}
+                                      showFirstButton
+                                      showLastButton
+                                      sx={{
+                                        "& .MuiPaginationItem-root": {
+                                          borderRadius: 2,
+                                        },
+                                        "& .Mui-selected": {
+                                          background: "linear-gradient(45deg, #3b82f6, #8b5cf6)",
+                                          color: "white",
+                                        },
+                                      }}
+                                    />
+                                  </Box>
+                                </Box>
+                              )}
                             </>
                           ) : (
                             <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 text-center">
@@ -3097,6 +4019,7 @@ export default function MyPage() {
         pauseOnHover
         theme={isDarkMode ? "dark" : "light"}
       />
+      </div>
     </div>
   );
 }

@@ -1575,7 +1575,7 @@ export default function PostDetailModal({
                                 </button>
                                 <button
                                   onClick={() => {
-                                    onShare(post.id, "twitter");
+                                    onShare(post.type, post.id, "twitter");
                                     setIsShareMenuOpen(false);
                                   }}
                                   className={`block w-full text-left px-3 sm:px-4 py-2 text-xs sm:text-sm ${
@@ -1588,7 +1588,7 @@ export default function PostDetailModal({
                                 </button>
                                 <button
                                   onClick={() => {
-                                    onShare(post.id, "linkedin");
+                                    onShare(post.type, post.id, "linkedin");
                                     setIsShareMenuOpen(false);
                                   }}
                                   className={`block w-full text-left px-3 sm:px-4 py-2 text-xs sm:text-sm ${
@@ -1601,7 +1601,7 @@ export default function PostDetailModal({
                                 </button>
                                 <button
                                   onClick={() => {
-                                    onShare(post.id, "whatsapp");
+                                    onShare(post.type, post.id, "whatsapp");
                                     setIsShareMenuOpen(false);
                                   }}
                                   className={`block w-full text-left px-3 sm:px-4 py-2 text-xs sm:text-sm ${

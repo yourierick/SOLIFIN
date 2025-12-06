@@ -75,7 +75,9 @@ class UserFormationController extends Controller
                 });
             }
             
-            $formations = $query->orderBy('created_at', 'desc')->paginate(10);
+            // Pagination avec 6 éléments par page
+            $perPage = $request->get('per_page', 6);
+            $formations = $query->orderBy('created_at', 'desc')->paginate($perPage);
             
             // Ajouter les informations de progression et d'accès pour chaque formation
             $formations->getCollection()->transform(function($formation) use ($user, $userPackIds) {
@@ -715,7 +717,9 @@ class UserFormationController extends Controller
             $query->where('status', $request->status);
         }
         
-        $formations = $query->orderBy('created_at', 'desc')->paginate(10);
+        // Pagination avec 6 éléments par page
+        $perPage = $request->get('per_page', 6);
+        $formations = $query->orderBy('created_at', 'desc')->paginate($perPage);
         
         return response()->json([
             'success' => true,

@@ -34,15 +34,48 @@ class LivreurController extends Controller
             $query->where('statut', $request->statut);
         }
         
-        // Récupérer les livreurs avec leurs utilisateurs associés
-        $livreurs = $query->with('user')->get();
+        // Pagination
+        $page = $request->get('page', 1);
+        $limit = $request->get('limit', 25);
+        
+        // Calculer offset
+        $offset = ($page - 1) * $limit;
+        
+        // Compter le total
+        $total = $query->count();
+        
+        // Récupérer les livreurs paginés avec leurs utilisateurs associés
+        $livreurs = $query->with('user')
+            ->offset($offset)
+            ->limit($limit)
+            ->get();
+            
+        // Ajouter les URLs des images
         foreach($livreurs as $livreur){
             $livreur->user->picture = $livreur->user->picture ? asset('storage/' . $livreur->user->picture) : null;
         }
         
+        // Calculer les informations de pagination
+        $totalPages = ceil($total / $limit);
+        $perPage = min($limit, $total);
+        $from = $total > 0 ? $offset + 1 : 0;
+        $to = $total > 0 ? min($offset + $limit, $total) : 0;
+        
         return response()->json([
             'success' => true,
-            'livreurs' => $livreurs
+            'livreurs' => $livreurs,
+            'pagination' => [
+                'current_page' => (int) $page,
+                'total_pages' => $totalPages,
+                'per_page' => (int) $limit,
+                'total' => $total,
+                'from' => $from,
+                'to' => $to,
+            ],
+            'current_page' => (int) $page,
+            'total_pages' => $totalPages,
+            'per_page' => (int) $limit,
+            'total' => $total
         ]);
     }
 
